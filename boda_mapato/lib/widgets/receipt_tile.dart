@@ -1,0 +1,376 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../constants/colors.dart';
+import '../constants/styles.dart';
+import '../utils/responsive_utils.dart';
+import 'responsive_wrapper.dart';
+
+class ReceiptTile extends StatelessWidget {
+
+  const ReceiptTile({
+    required this.receiptNumber, required this.customerName, required this.amount, required this.date, required this.serviceType, super.key,
+    this.onTap,
+    this.onPrint,
+    this.onShare,
+  });
+  final String receiptNumber;
+  final String customerName;
+  final double amount;
+  final DateTime date;
+  final String serviceType;
+  final VoidCallback? onTap;
+  final VoidCallback? onPrint;
+  final VoidCallback? onShare;
+
+  @override
+  Widget build(final BuildContext context) {
+    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    
+    return InkWell(
+      onTap: onTap,
+      child: ResponsiveContainer(
+        child: ResponsiveColumn(
+          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+          children: <Widget>[
+            ResponsiveRow(
+              spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+              children: <Widget>[
+                // Receipt Icon
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.receipt_long,
+                    color: AppColors.info,
+                    size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                  ),
+                ),
+                
+                // Receipt Details
+                Expanded(
+                  child: ResponsiveColumn(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                    children: <Widget>[
+                      Text(
+                        receiptNumber,
+                        style: AppStyles.bodyMedium(context).copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        customerName,
+                        style: AppStyles.bodySmall(context).copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        serviceType,
+                        style: AppStyles.bodySmall(context).copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Amount and Date
+                ResponsiveColumn(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                  children: <Widget>[
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        "TSh ${amount.toStringAsFixed(0)}",
+                        style: AppStyles.bodyMedium(context).copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      "${date.day}/${date.month}/${date.year}",
+                      style: AppStyles.bodySmall(context).copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            
+            // Action Buttons
+            if (onPrint != null || onShare != null)
+              ResponsiveRow(
+                spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                children: <Widget>[
+                  if (onPrint != null)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onPrint,
+                        icon: Icon(
+                          Icons.print,
+                          size: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                        ),
+                        label: Text(
+                          "Chapisha",
+                          style: AppStyles.bodySmall(context),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary, width: 1.w),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (onShare != null)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onShare,
+                        icon: Icon(
+                          Icons.share,
+                          size: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                        ),
+                        label: Text(
+                          "Shiriki",
+                          style: AppStyles.bodySmall(context),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.secondary,
+                          side: BorderSide(color: AppColors.secondary, width: 1.w),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ReceiptSummaryCard extends StatelessWidget {
+
+  const ReceiptSummaryCard({
+    required this.title, required this.count, required this.totalAmount, required this.icon, required this.color, super.key,
+    this.onTap,
+  });
+  final String title;
+  final int count;
+  final double totalAmount;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(final BuildContext context) => InkWell(
+      onTap: onTap,
+      child: ResponsiveContainer(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+          ),
+          border: Border.all(color: color.withOpacity(0.3), width: 1.w),
+        ),
+        child: ResponsiveColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+          children: <Widget>[
+            ResponsiveRow(
+              spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+              children: <Widget>[
+                Icon(
+                  icon,
+                  color: color,
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                ),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: AppStyles.bodyMedium(context).copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                count.toString(),
+                style: AppStyles.heading2(context).copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "TSh ${totalAmount.toStringAsFixed(0)}",
+                style: AppStyles.bodyMedium(context).copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+}
+
+class ReceiptPreviewCard extends StatelessWidget {
+
+  const ReceiptPreviewCard({
+    required this.receiptNumber, required this.customerName, required this.amount, required this.serviceType, required this.date, super.key,
+    this.notes,
+  });
+  final String receiptNumber;
+  final String customerName;
+  final double amount;
+  final String serviceType;
+  final DateTime date;
+  final String? notes;
+
+  @override
+  Widget build(final BuildContext context) => ResponsiveContainer(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(
+          ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+        ),
+        border: Border.all(color: AppColors.textHint.withOpacity(0.3), width: 1.w),
+      ),
+      child: ResponsiveColumn(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+        children: <Widget>[
+          // Header
+          Center(
+            child: Text(
+              "BODA MAPATO",
+              style: AppStyles.heading3(context),
+            ),
+          ),
+          Center(
+            child: Text(
+              "Risiti ya Huduma",
+              style: AppStyles.bodySmall(context),
+            ),
+          ),
+          
+          const Divider(),
+          
+          // Receipt Details
+          _ReceiptRow("Nambari ya Risiti:", receiptNumber),
+          _ReceiptRow("Tarehe:", "${date.day}/${date.month}/${date.year}"),
+          _ReceiptRow("Muda:", '${date.hour}:${date.minute.toString().padLeft(2, '0')}'),
+          
+          const Divider(),
+          
+          // Customer & Service Details
+          _ReceiptRow("Mteja:", customerName),
+          _ReceiptRow("Huduma:", serviceType),
+          if (notes != null && notes!.isNotEmpty)
+            _ReceiptRow("Maelezo:", notes!),
+          
+          const Divider(),
+          
+          // Amount
+          ResponsiveRow(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                "JUMLA:",
+                style: AppStyles.heading3(context),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  "TSh ${amount.toStringAsFixed(0)}",
+                  style: AppStyles.heading3(context).copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const Divider(),
+          
+          // Footer
+          Center(
+            child: Text(
+              "Asante kwa kutumia huduma zetu!",
+              style: AppStyles.bodySmall(context),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+}
+
+class _ReceiptRow extends StatelessWidget {
+
+  const _ReceiptRow(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: ResponsiveUtils.getResponsiveSpacing(context, 8),
+      ),
+      child: ResponsiveRow(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: ResponsiveUtils.getResponsiveSpacing(context, 100),
+            child: Text(
+              label,
+              style: AppStyles.bodySmall(context).copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: AppStyles.bodySmall(context),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+}
