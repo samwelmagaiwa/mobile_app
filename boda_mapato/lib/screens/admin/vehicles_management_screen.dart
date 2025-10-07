@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../constants/colors.dart';
 import '../../constants/styles.dart';
 import '../../widgets/custom_card.dart';
@@ -232,13 +233,13 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       ],
     );
 
-  Widget _buildLoadingScreen() => const Center(
+  Widget _buildLoadingScreen() => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text(
+          const CircularProgressIndicator(),
+          SizedBox(height: 16.h),
+          const Text(
             "Inapakia magari...",
             style: TextStyle(
               fontSize: 16,
@@ -305,7 +306,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           // Filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -420,7 +421,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               color: color,
               size: 24,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               value,
               style: TextStyle(
@@ -429,7 +430,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             Text(
               title,
               style: const TextStyle(
@@ -473,7 +474,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               color: Colors.black45,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
           if (_searchQuery.isEmpty)
             CustomButton(
               text: "Sajili Gari",
@@ -572,7 +573,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         vehicle.plateNumber,
                         style: const TextStyle(
@@ -686,7 +687,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               ],
             ),
             if (vehicle.description != null && vehicle.description!.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -1167,7 +1168,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         },
                       ),
                       
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16.h),
                       
                       // Vehicle type dropdown
                       DropdownButtonFormField<String>(

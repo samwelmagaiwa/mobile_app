@@ -7,7 +7,8 @@ import '../utils/responsive_utils.dart';
 class CustomCard extends StatelessWidget {
 
   const CustomCard({
-    required this.child, super.key,
+    required this.child,
+    super.key,
     this.onTap,
     this.padding,
     this.margin,
@@ -15,7 +16,7 @@ class CustomCard extends StatelessWidget {
     this.elevation,
     this.borderRadius,
     this.border,
-  );
+  });
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;

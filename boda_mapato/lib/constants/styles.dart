@@ -61,55 +61,6 @@ class AppStyles {
     height: 1.3,
   );
   
-  // Legacy static styles for backward compatibility
-  static const TextStyle heading1 = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle heading2 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle heading3 = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle heading4 = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textPrimary,
-  );
-  
-  static const TextStyle bodySmall = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textSecondary,
-  );
-  
-  static const TextStyle caption = TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textHint,
-  );
-  
   // Responsive Button Styles
   static ButtonStyle primaryButton(BuildContext context) => ElevatedButton.styleFrom(
     backgroundColor: AppColors.primary,
@@ -118,6 +69,7 @@ class AppStyles {
       horizontal: ResponsiveUtils.getResponsiveSpacing(context, 24),
       vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
     ),
+    textStyle: bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(
         ResponsiveUtils.getResponsiveBorderRadius(context, 8),
@@ -127,6 +79,7 @@ class AppStyles {
       ResponsiveUtils.getResponsiveSpacing(context, 120),
       ResponsiveUtils.getResponsiveButtonHeight(context),
     ),
+    elevation: elevationM(context),
   );
   
   static ButtonStyle secondaryButton(BuildContext context) => OutlinedButton.styleFrom(
@@ -136,6 +89,7 @@ class AppStyles {
       horizontal: ResponsiveUtils.getResponsiveSpacing(context, 24),
       vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
     ),
+    textStyle: bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(
         ResponsiveUtils.getResponsiveBorderRadius(context, 8),
@@ -144,25 +98,6 @@ class AppStyles {
     minimumSize: Size(
       ResponsiveUtils.getResponsiveSpacing(context, 120),
       ResponsiveUtils.getResponsiveButtonHeight(context),
-    ),
-  );
-  
-  // Legacy static styles for backward compatibility
-  static final ButtonStyle primaryButton = ElevatedButton.styleFrom(
-    backgroundColor: AppColors.primary,
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
-  );
-  
-  static final ButtonStyle secondaryButton = OutlinedButton.styleFrom(
-    foregroundColor: AppColors.primary,
-    side: const BorderSide(color: AppColors.primary),
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
     ),
   );
   
@@ -177,19 +112,6 @@ class AppStyles {
         color: Colors.black12,
         blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 4),
         offset: Offset(0, 2.h),
-      ),
-    ],
-  );
-  
-  // Legacy static style for backward compatibility
-  static const BoxDecoration cardDecoration = BoxDecoration(
-    color: AppColors.cardBackground,
-    borderRadius: BorderRadius.all(Radius.circular(12)),
-    boxShadow: <BoxShadow>[
-      BoxShadow(
-        color: Colors.black12,
-        blurRadius: 4,
-        offset: Offset(0, 2),
       ),
     ],
   );
@@ -222,21 +144,30 @@ class AppStyles {
     fillColor: AppColors.surface,
   );
   
-  // Legacy static style for backward compatibility
-  static final InputDecoration inputDecoration = InputDecoration(
+  // Responsive Input Decoration Theme
+  static InputDecorationTheme inputDecorationTheme(BuildContext context) => InputDecorationTheme(
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.textHint),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+      ),
+      borderSide: BorderSide(color: AppColors.textHint, width: 1.w),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+      ),
+      borderSide: BorderSide(color: AppColors.primary, width: 2.w),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.error),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+      ),
+      borderSide: BorderSide(color: AppColors.error, width: 1.w),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: ResponsiveUtils.getResponsiveSpacing(context, 16),
+      vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
+    ),
     filled: true,
     fillColor: AppColors.surface,
   );
@@ -258,22 +189,6 @@ class AppStyles {
   static double elevationS(BuildContext context) => ResponsiveUtils.getResponsiveSpacing(context, 2);
   static double elevationM(BuildContext context) => ResponsiveUtils.getResponsiveSpacing(context, 4);
   static double elevationL(BuildContext context) => ResponsiveUtils.getResponsiveSpacing(context, 8);
-  
-  // Legacy static values for backward compatibility
-  static const double spacingXS = 4;
-  static const double spacingS = 8;
-  static const double spacingM = 16;
-  static const double spacingL = 24;
-  static const double spacingXL = 32;
-  
-  static const double radiusS = 4;
-  static const double radiusM = 8;
-  static const double radiusL = 12;
-  static const double radiusXL = 16;
-  
-  static const double elevationS = 2;
-  static const double elevationM = 4;
-  static const double elevationL = 8;
   
   // Responsive Icon Sizes
   static double iconSizeSmall(BuildContext context) => ResponsiveUtils.getResponsiveIconSize(context, 16);
@@ -347,11 +262,5 @@ class AppStyles {
         ResponsiveUtils.getResponsiveBorderRadius(context, 16),
       ),
     ),
-  );
-) => SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: crossAxisCount ?? ResponsiveUtils.getResponsiveCrossAxisCount(context),
-    childAspectRatio: childAspectRatio ?? ResponsiveUtils.getResponsiveAspectRatio(context),
-    crossAxisSpacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-    mainAxisSpacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
   );
 }

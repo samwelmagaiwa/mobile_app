@@ -76,7 +76,7 @@ class BodaMapatoApp extends StatelessWidget {
       bottomNavigationBarTheme: AppStyles.bottomNavTheme(context),
       
       // Input decoration theme
-      inputDecorationTheme: AppStyles.inputDecoration(context),
+      inputDecorationTheme: AppStyles.inputDecorationTheme(context),
       
       // Button themes
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -126,18 +126,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(final BuildContext context) => Consumer<AuthProvider>(builder: (final BuildContext context, final AuthProvider authProvider, final Widget? child) {
       // Show loading screen while initializing
       if (authProvider.isLoading) {
-        return const Scaffold(
+        return Scaffold(
           backgroundColor: AppColors.background,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
+                const CircularProgressIndicator(),
+                SizedBox(height: 16.h),
                 Text(
                   "Inapakia...",
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     color: AppColors.textSecondary,
                   ),
                 ),
