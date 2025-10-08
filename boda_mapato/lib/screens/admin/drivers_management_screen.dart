@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../services/api_service.dart';
-import '../../models/driver.dart';
+import "package:flutter/material.dart";
+
+import "../../models/driver.dart";
+import "../../services/api_service.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -22,17 +20,15 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   bool _isLoading = true;
   List<Driver> _drivers = <Driver>[];
   List<Driver> _filteredDrivers = <Driver>[];
-  String _searchQuery = '';
-  String _selectedFilter = 'all'; // all, active, inactive
+  String _searchQuery = "";
+  String _selectedFilter = "all"; // all, active, inactive
   int _currentPage = 1;
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   
   // Enhanced color scheme
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
-  static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color grayBackground = Color(0xFFF8FAFC);
   static const Color darkGray = Color(0xFF1F2937);
@@ -78,22 +74,22 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     });
 
     try {
-      final response = await _apiService.getDrivers(
+      final Map<String, dynamic> response = await _apiService.getDrivers(
         page: _currentPage,
       );
       
       // Handle the actual response structure: {status, message, data: {data: [...], pagination: {...}}}
       List<dynamic> driversData;
-      if (response['data'] is Map<String, dynamic>) {
-        // Paginated response: data contains another object with 'data' key
-        driversData = response['data']['data'] ?? <dynamic>[];
-      } else if (response['data'] is List) {
+      if (response["data"] is Map<String, dynamic>) {
+        // Paginated response: data contains another object with "data" key
+        driversData = response["data"]["data"] ?? <dynamic>[];
+      } else if (response["data"] is List) {
         // Direct list response
-        driversData = response['data'];
+        driversData = response["data"];
       } else {
         driversData = <dynamic>[];
       }
-      List<Driver> newDrivers = driversData
+      final List<Driver> newDrivers = driversData
           .map((final json) => Driver.fromJson(json as Map<String, dynamic>))
           .toList();
       
@@ -104,14 +100,14 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           _drivers.addAll(newDrivers);
         }
         
-        // Check if there's more data
+        // Check if there"s more data
         _hasMoreData = newDrivers.length >= 20;
         _currentPage++;
       });
       
       _filterDrivers();
     } catch (e) {
-      _showErrorSnackBar('Hitilafu katika kupakia madereva: $e');
+      _showErrorSnackBar("Hitilafu katika kupakia madereva: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -122,13 +118,13 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   void _filterDrivers() {
     setState(() {
-      _filteredDrivers = _drivers.where((final driver) {
-        final matchesSearch = _searchQuery.isEmpty ||
+      _filteredDrivers = _drivers.where((final Driver driver) {
+        final bool matchesSearch = _searchQuery.isEmpty ||
             driver.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             driver.phone.contains(_searchQuery) ||
             (driver.vehicleNumber?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
         
-        final matchesFilter = _selectedFilter == 'all' ||
+        final bool matchesFilter = _selectedFilter == "all" ||
             driver.status == _selectedFilter;
         
         return matchesSearch && matchesFilter;
@@ -215,7 +211,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               value: "import",
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.upload, color: primaryOrange),
+                  Icon(Icons.upload, color: Colors.orange),
                   SizedBox(width: 8),
                   Text("Ingiza Data"),
                 ],
@@ -323,11 +319,11 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     );
 
   Widget _buildFilterChip(final String value, final String label, final int count) {
-    final isSelected = _selectedFilter == value;
+    final bool isSelected = _selectedFilter == value;
     return FilterChip(
       selected: isSelected,
       label: Text(
-        '$label ($count)',
+        "$label ($count)",
         style: TextStyle(
           color: isSelected ? Colors.white : darkGray,
           fontWeight: FontWeight.w500,
@@ -345,12 +341,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   }
 
   Widget _buildStatsCards() {
-    final activeDrivers = _drivers.where((final Driver d) => d.status == 'active').length;
-    final totalPayments = _drivers.fold<double>(
+    final int activeDrivers = _drivers.where((final Driver d) => d.status == "active").length;
+    final double totalPayments = _drivers.fold<double>(
       0,
       (final double sum, final Driver driver) => sum + driver.totalPayments,
     );
-    final avgRating = _drivers.isNotEmpty
+    final double avgRating = _drivers.isNotEmpty
         ? _drivers.fold<double>(0, (final double sum, final Driver driver) => sum + driver.rating) /
             _drivers.length
         : 0.0;
@@ -361,8 +357,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         children: <Widget>[
           Expanded(
             child: _buildStatCard(
-              title: 'Madereva Hai',
-              value: '$activeDrivers/${_drivers.length}',
+              title: "Madereva Hai",
+              value: "$activeDrivers/${_drivers.length}",
               icon: Icons.people,
               color: successGreen,
             ),
@@ -370,19 +366,19 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Jumla ya Malipo',
-              value: 'TSH ${_formatCurrency(totalPayments)}',
+              title: "Jumla ya Malipo",
+              value: "TSH ${_formatCurrency(totalPayments)}",
               icon: Icons.payments,
-              color: primaryOrange,
+              color: Colors.orange,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Kiwango cha Wastani',
+              title: "Kiwango cha Wastani",
               value: avgRating.toStringAsFixed(1),
               icon: Icons.star,
-              color: warningAmber,
+              color: Colors.amber,
             ),
           ),
         ],
@@ -492,8 +488,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     );
 
   Widget _buildDriverCard(final Driver driver) {
-    final status = driver.status;
-    final isActive = status == 'active';
+    final String status = driver.status;
+    final bool isActive = status == "active";
     
     return CustomCard(
       margin: const EdgeInsets.only(bottom: 12),
@@ -547,7 +543,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              isActive ? 'HAI' : 'HAHAI',
+                              isActive ? "HAI" : "HAHAI",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -569,13 +565,13 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                       Row(
                         children: <Widget>[
                           Icon(
-                            _getVehicleIcon(driver.vehicleType ?? ''),
+                            _getVehicleIcon(driver.vehicleType ?? ""),
                             size: 16,
                             color: primaryBlue,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${driver.vehicleNumber ?? 'N/A'} (${driver.vehicleType ?? 'N/A'})',
+                            "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})",
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.black54,
@@ -588,30 +584,30 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 ),
                 // Actions
                 PopupMenuButton<String>(
-                  onSelected: (final value) => _handleDriverAction(value, driver),
-                  itemBuilder: (final context) => <PopupMenuEntry<String>>[
+                  onSelected: (final String value) => _handleDriverAction(value, driver),
+                  itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
                     const PopupMenuItem(
-                      value: 'view',
+                      value: "view",
                       child: Row(
                         children: <Widget>[
                           Icon(Icons.visibility, color: primaryBlue),
                           SizedBox(width: 8),
-                          Text('Ona'),
+                          Text("Ona"),
                         ],
                       ),
                     ),
                     const PopupMenuItem(
-                      value: 'edit',
+                      value: "edit",
                       child: Row(
                         children: <Widget>[
-                          Icon(Icons.edit, color: primaryOrange),
+                          Icon(Icons.edit, color: Colors.orange),
                           SizedBox(width: 8),
-                          Text('Hariri'),
+                          Text("Hariri"),
                         ],
                       ),
                     ),
                     PopupMenuItem(
-                      value: isActive ? 'deactivate' : 'activate',
+                      value: isActive ? "deactivate" : "activate",
                       child: Row(
                         children: <Widget>[
                           Icon(
@@ -619,17 +615,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                             color: isActive ? errorRed : successGreen,
                           ),
                           const SizedBox(width: 8),
-                          Text(isActive ? 'Zima' : 'Washa'),
+                          Text(isActive ? "Zima" : "Washa"),
                         ],
                       ),
                     ),
                     const PopupMenuItem(
-                      value: 'delete',
+                      value: "delete",
                       child: Row(
                         children: <Widget>[
                           Icon(Icons.delete, color: errorRed),
                           SizedBox(width: 8),
-                          Text('Futa'),
+                          Text("Futa"),
                         ],
                       ),
                     ),
@@ -643,32 +639,32 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               children: <Widget>[
                 Expanded(
                   child: _buildDriverStat(
-                    'Malipo',
-                    'TSH ${_formatCurrency(driver.totalPayments)}',
+                    "Malipo",
+                    "TSH ${_formatCurrency(driver.totalPayments)}",
                     Icons.payments,
-                    primaryOrange,
+                    Colors.orange,
                   ),
                 ),
                 Expanded(
                   child: _buildDriverStat(
-                    'Safari',
-                    '${driver.tripsCompleted}',
+                    "Safari",
+                    "${driver.tripsCompleted}",
                     Icons.route,
                     primaryBlue,
                   ),
                 ),
                 Expanded(
                   child: _buildDriverStat(
-                    'Kiwango',
-                    '${driver.rating}',
+                    "Kiwango",
+                    "${driver.rating}",
                     Icons.star,
-                    warningAmber,
+                    Colors.amber,
                   ),
                 ),
                 Expanded(
                   child: _buildDriverStat(
-                    'Malipo ya Mwisho',
-                    driver.lastPayment != null ? _formatDateTime(driver.lastPayment!) : 'Hakuna',
+                    "Malipo ya Mwisho",
+                    driver.lastPayment != null ? _formatDateTime(driver.lastPayment!) : "Hakuna",
                     Icons.schedule,
                     successGreen,
                   ),
@@ -717,7 +713,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   Widget _buildFloatingActionButton() => FloatingActionButton.extended(
       onPressed: _showAddDriverDialog,
-      backgroundColor: primaryOrange,
+      backgroundColor: Colors.orange,
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text(
@@ -728,11 +724,11 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   IconData _getVehicleIcon(final String vehicleType) {
     switch (vehicleType.toLowerCase()) {
-      case 'bajaji':
+      case "bajaji":
         return Icons.directions_car; // three_wheeler not available, using car icon
-      case 'pikipiki':
+      case "pikipiki":
         return Icons.motorcycle;
-      case 'gari':
+      case "gari":
         return Icons.directions_car;
       default:
         return Icons.directions_car;
@@ -741,39 +737,39 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   String _formatCurrency(final double amount) {
     if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
+      return "${(amount / 1000000).toStringAsFixed(1)}M";
     } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
+      return "${(amount / 1000).toStringAsFixed(0)}K";
     } else {
       return amount.toStringAsFixed(0);
     }
   }
 
   String _formatDateTime(final DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final DateTime now = DateTime.now();
+    final Duration difference = now.difference(dateTime);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays}d';
+      return "${difference.inDays}d";
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
+      return "${difference.inHours}h";
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
+      return "${difference.inMinutes}m";
     } else {
-      return 'Sasa';
+      return "Sasa";
     }
   }
 
   void _handleDriverAction(final String action, final Driver driver) {
     switch (action) {
-      case 'view':
+      case "view":
         _showDriverDetails(driver);
-      case 'edit':
+      case "edit":
         _showEditDriverDialog(driver);
-      case 'activate':
-      case 'deactivate':
+      case "activate":
+      case "deactivate":
         _toggleDriverStatus(driver);
-      case 'delete':
+      case "delete":
         _confirmDeleteDriver(driver);
     }
   }
@@ -781,31 +777,31 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   void _showDriverDetails(final Driver driver) {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Maelezo ya ${driver.name}'),
+        title: Text("Maelezo ya ${driver.name}"),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _buildDetailRow('Jina:', driver.name),
-              _buildDetailRow('Barua pepe:', driver.email),
-              _buildDetailRow('Simu:', driver.phone),
-              _buildDetailRow('Leseni:', driver.licenseNumber),
-              _buildDetailRow('Gari:', '${driver.vehicleNumber ?? 'N/A'} (${driver.vehicleType ?? 'N/A'})'),
-              _buildDetailRow('Hali:', driver.status == 'active' ? 'Hai' : 'Hahai'),
-              _buildDetailRow('Jumla ya Malipo:', 'TSH ${_formatCurrency(driver.totalPayments)}'),
-              _buildDetailRow('Safari:', '${driver.tripsCompleted}'),
-              _buildDetailRow('Kiwango:', '${driver.rating}'),
-              _buildDetailRow('Aliungana:', _formatDate(driver.joinedDate)),
+              _buildDetailRow("Jina:", driver.name),
+              _buildDetailRow("Barua pepe:", driver.email),
+              _buildDetailRow("Simu:", driver.phone),
+              _buildDetailRow("Leseni:", driver.licenseNumber),
+              _buildDetailRow("Gari:", "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})"),
+              _buildDetailRow("Hali:", driver.status == "active" ? "Hai" : "Hahai"),
+              _buildDetailRow("Jumla ya Malipo:", "TSH ${_formatCurrency(driver.totalPayments)}"),
+              _buildDetailRow("Safari:", "${driver.tripsCompleted}"),
+              _buildDetailRow("Kiwango:", "${driver.rating}"),
+              _buildDetailRow("Aliungana:", _formatDate(driver.joinedDate)),
             ],
           ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Funga'),
+            child: const Text("Funga"),
           ),
         ],
       ),
@@ -844,7 +840,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   void _showAddDriverDialog() {
     showDialog(
       context: context,
-      builder: (final context) => _AddDriverDialog(
+      builder: (final BuildContext context) => _AddDriverDialog(
         onDriverAdded: () {
           // Refresh the drivers list after adding a new driver
           _loadDrivers(refresh: true);
@@ -859,12 +855,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Hariri ${driver.name}'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: Text("Hariri ${driver.name}"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -872,37 +868,38 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   }
 
   void _toggleDriverStatus(final Driver driver) {
-    final isActive = driver.status == 'active';
-    final newStatus = isActive ? 'inactive' : 'active';
+    final bool isActive = driver.status == "active";
+    final String newStatus = isActive ? "inactive" : "active";
     
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(isActive ? 'Zima Dereva' : 'Washa Dereva'),
+        title: Text(isActive ? "Zima Dereva" : "Washa Dereva"),
         content: Text(
           isActive
-              ? 'Je, una uhakika unataka kuzima ${driver.name}?'
-              : 'Je, una uhakika unataka kuwasha ${driver.name}?',
+              ? "Je, una uhakika unataka kuzima ${driver.name}?"
+              : "Je, una uhakika unataka kuwasha ${driver.name}?",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
+              final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               
               try {
                 // Call API to update driver status
                 await _apiService.updateDriver(driver.id, <String, dynamic>{
-                  'status': newStatus,
+                  "status": newStatus,
                 });
                 
                 // Update local state
-                final updatedDriver = driver.copyWith(status: newStatus);
-                final index = _drivers.indexWhere((final d) => d.id == driver.id);
+                final Driver updatedDriver = driver.copyWith(status: newStatus);
+                final int index = _drivers.indexWhere((final Driver d) => d.id == driver.id);
                 if (index != -1) {
                   setState(() {
                     _drivers[index] = updatedDriver;
@@ -910,22 +907,26 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   _filterDrivers();
                 }
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isActive
-                          ? '${driver.name} amezimwa'
-                          : '${driver.name} amewashwa',
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isActive
+                            ? "${driver.name} amezimwa"
+                            : "${driver.name} amewashwa",
+                      ),
+                      backgroundColor: isActive ? errorRed : successGreen,
                     ),
-                    backgroundColor: isActive ? errorRed : successGreen,
-                  ),
-                );
+                  );
+                }
               } catch (e) {
-                _showErrorSnackBar('Hitilafu katika kubadilisha hali: $e');
+                if (mounted) {
+                  _showErrorSnackBar("Hitilafu katika kubadilisha hali: $e");
+                }
               }
             },
             child: Text(
-              isActive ? 'Zima' : 'Washa',
+              isActive ? "Zima" : "Washa",
               style: TextStyle(
                 color: isActive ? errorRed : successGreen,
               ),
@@ -941,17 +942,18 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Futa Dereva'),
+        title: const Text("Futa Dereva"),
         content: Text(
-          'Je, una uhakika unataka kumfuta ${driver.name}? Kitendo hiki hakiwezi kurudishwa.',
+          "Je, una uhakika unataka kumfuta ${driver.name}? Kitendo hiki hakiwezi kurudishwa.",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
+              final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               
               try {
@@ -960,22 +962,26 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 
                 // Remove from local state
                 setState(() {
-                  _drivers.removeWhere((final d) => d.id == driver.id);
+                  _drivers.removeWhere((final Driver d) => d.id == driver.id);
                 });
                 _filterDrivers();
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${driver.name} amefutwa'),
-                    backgroundColor: errorRed,
-                  ),
-                );
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text("${driver.name} amefutwa"),
+                      backgroundColor: errorRed,
+                    ),
+                  );
+                }
               } catch (e) {
-                _showErrorSnackBar('Hitilafu katika kufuta dereva: $e');
+                if (mounted) {
+                  _showErrorSnackBar("Hitilafu katika kufuta dereva: $e");
+                }
               }
             },
             child: const Text(
-              'Futa',
+              "Futa",
               style: TextStyle(color: errorRed),
             ),
           ),
@@ -988,7 +994,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     // TODO: Implement export functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuhamisha kinatengenezwa...'),
+        content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
       ),
     );
   }
@@ -997,7 +1003,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     // TODO: Implement import functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuingiza kinatengenezwa...'),
+        content: Text("Kipengele cha kuingiza kinatengenezwa..."),
       ),
     );
   }
@@ -1026,25 +1032,24 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
   
   // Form state
   bool _isLoading = false;
-  String _selectedVehicleType = 'bajaji';
-  String _selectedStatus = 'active';
+  String _selectedVehicleType = "bajaji";
+  String _selectedStatus = "active";
   
   // Vehicle types
   final Map<String, String> _vehicleTypes = <String, String>{
-    'bajaji': 'Bajaji',
-    'pikipiki': 'Pikipiki',
-    'gari': 'Gari',
+    "bajaji": "Bajaji",
+    "pikipiki": "Pikipiki",
+    "gari": "Gari",
   };
   
   // Status options
   final Map<String, String> _statusOptions = <String, String>{
-    'active': 'Hai',
-    'inactive': 'Hahai',
+    "active": "Hai",
+    "inactive": "Hahai",
   };
   
   // Colors
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color darkGray = Color(0xFF1F2937);
@@ -1069,19 +1074,19 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
     try {
       await _apiService.initialize();
       
-      final driverData = <String, String?>{
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'license_number': _licenseController.text.trim(),
-        'vehicle_number': _vehicleNumberController.text.trim().isNotEmpty 
+      final Map<String, String?> driverData = <String, String?>{
+        "name": _nameController.text.trim(),
+        "email": _emailController.text.trim(),
+        "phone": _phoneController.text.trim(),
+        "license_number": _licenseController.text.trim(),
+        "vehicle_number": _vehicleNumberController.text.trim().isNotEmpty 
             ? _vehicleNumberController.text.trim() 
             : null,
-        'vehicle_type': _selectedVehicleType,
-        'status': _selectedStatus,
+        "vehicle_type": _selectedVehicleType,
+        "status": _selectedStatus,
       };
 
-      final response = await _apiService.createDriver(driverData);
+      await _apiService.createDriver(driverData);
 
       if (mounted) {
         Navigator.pop(context);
@@ -1089,7 +1094,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dereva ${_nameController.text} ameongezwa kikamilifu!'),
+            content: Text("Dereva ${_nameController.text} ameongezwa kikamilifu!"),
             backgroundColor: successGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1100,7 +1105,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu katika kuongeza dereva: $e'),
+            content: Text("Hitilafu katika kuongeza dereva: $e"),
             backgroundColor: errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

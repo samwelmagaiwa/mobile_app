@@ -1,4 +1,4 @@
-enum DeviceType {
+﻿enum DeviceType {
   bajaji,
   pikipiki,
   gari,
@@ -8,26 +8,27 @@ extension DeviceTypeExtension on DeviceType {
   String get name {
     switch (this) {
       case DeviceType.bajaji:
-        return 'Bajaji';
+        return "Bajaji";
       case DeviceType.pikipiki:
-        return 'Pikipiki';
+        return "Pikipiki";
       case DeviceType.gari:
-        return 'Gari';
+        return "Gari";
     }
   }
 
   String get icon {
     switch (this) {
       case DeviceType.bajaji:
-        return '🛺';
+        return "🛺";
       case DeviceType.pikipiki:
-        return '🏍️';
+        return "🏍️";
       case DeviceType.gari:
-        return '🚗';
+        return "🚗";
     }
   }
 }
 
+@immutable
 class Device {
 
   Device({
@@ -43,15 +44,19 @@ class Device {
   });
 
   factory Device.fromJson(final Map<String, dynamic> json) => Device(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      type: _parseDeviceType(json['type']),
-      plateNumber: json['plate_number'] ?? '',
-      driverId: json['driver_id'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
-      isActive: json['is_active'] ?? true,
-      description: json['description'],
+      id: (json["id"] as String?) ?? "",
+      name: (json["name"] as String?) ?? "",
+      type: _parseDeviceType(json["type"] as String?),
+      plateNumber: (json["plate_number"] as String?) ?? "",
+      driverId: (json["driver_id"] as String?) ?? "",
+      createdAt: DateTime.parse(
+        (json["created_at"] as String?) ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        (json["updated_at"] as String?) ?? DateTime.now().toIso8601String(),
+      ),
+      isActive: (json["is_active"] as bool?) ?? true,
+      description: json["description"] as String?,
     );
   final String id;
   final String name;
@@ -65,11 +70,11 @@ class Device {
 
   static DeviceType _parseDeviceType(final String? type) {
     switch (type?.toLowerCase()) {
-      case 'bajaji':
+      case "bajaji":
         return DeviceType.bajaji;
-      case 'pikipiki':
+      case "pikipiki":
         return DeviceType.pikipiki;
-      case 'gari':
+      case "gari":
         return DeviceType.gari;
       default:
         return DeviceType.pikipiki;
@@ -111,11 +116,15 @@ class Device {
     );
 
   @override
-  String toString() => "Device(id: $id, name: $name, type: ${type.name}, plateNumber: $plateNumber, driverId: $driverId, isActive: $isActive)";
+  String toString() =>
+      "Device(id: $id, name: $name, type: ${type.name}, "
+      "plateNumber: $plateNumber, driverId: $driverId, isActive: $isActive)";
 
   @override
   bool operator ==(final Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
     return other is Device && other.id == id;
   }
 

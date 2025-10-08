@@ -1,12 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../utils/responsive_utils.dart';
+import "package:flutter/material.dart";
+import "../utils/responsive_utils.dart";
 
 /// A wrapper widget that provides responsive layout capabilities
 class ResponsiveWrapper extends StatelessWidget {
   const ResponsiveWrapper({
-    super.key,
-    required this.child,
+    required this.child, super.key,
     this.padding,
     this.margin,
     this.maxWidth,
@@ -22,8 +20,7 @@ class ResponsiveWrapper extends StatelessWidget {
   final Color? backgroundColor;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: double.infinity,
       color: backgroundColor,
       padding: margin,
@@ -40,15 +37,13 @@ class ResponsiveWrapper extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 /// A responsive scaffold that automatically handles safe areas and responsive padding
 class ResponsiveScaffold extends StatelessWidget {
   const ResponsiveScaffold({
-    super.key,
+    required this.body, super.key,
     this.appBar,
-    required this.body,
     this.floatingActionButton,
     this.floatingActionButtonLocation,
     this.drawer,
@@ -77,8 +72,7 @@ class ResponsiveScaffold extends StatelessWidget {
   final double? maxWidth;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: appBar,
       drawer: drawer,
       endDrawer: endDrawer,
@@ -95,14 +89,12 @@ class ResponsiveScaffold extends StatelessWidget {
         child: body,
       ),
     );
-  }
 }
 
 /// A responsive column that automatically adjusts spacing based on screen size
 class ResponsiveColumn extends StatelessWidget {
   const ResponsiveColumn({
-    super.key,
-    required this.children,
+    required this.children, super.key,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.mainAxisSize = MainAxisSize.max,
@@ -119,9 +111,9 @@ class ResponsiveColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 16);
+    final double responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 16);
     
-    final spacedChildren = <Widget>[];
+    final List<Widget> spacedChildren = <Widget>[];
     for (int i = 0; i < children.length; i++) {
       spacedChildren.add(children[i]);
       if (i < children.length - 1) {
@@ -150,8 +142,7 @@ class ResponsiveColumn extends StatelessWidget {
 /// A responsive row that automatically adjusts spacing based on screen size
 class ResponsiveRow extends StatelessWidget {
   const ResponsiveRow({
-    super.key,
-    required this.children,
+    required this.children, super.key,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.mainAxisSize = MainAxisSize.max,
@@ -168,9 +159,9 @@ class ResponsiveRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 16);
+    final double responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 16);
     
-    final spacedChildren = <Widget>[];
+    final List<Widget> spacedChildren = <Widget>[];
     for (int i = 0; i < children.length; i++) {
       spacedChildren.add(children[i]);
       if (i < children.length - 1) {
@@ -199,8 +190,7 @@ class ResponsiveRow extends StatelessWidget {
 /// A responsive grid view that automatically adjusts columns based on screen size
 class ResponsiveGridView extends StatelessWidget {
   const ResponsiveGridView({
-    super.key,
-    required this.children,
+    required this.children, super.key,
     this.crossAxisCount,
     this.childAspectRatio,
     this.spacing,
@@ -219,7 +209,7 @@ class ResponsiveGridView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 8);
+    final double responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 8);
     
     return GridView.count(
       crossAxisCount: crossAxisCount ?? ResponsiveUtils.getResponsiveCrossAxisCount(context),
@@ -237,8 +227,7 @@ class ResponsiveGridView extends StatelessWidget {
 /// A responsive list view with automatic spacing
 class ResponsiveListView extends StatelessWidget {
   const ResponsiveListView({
-    super.key,
-    required this.children,
+    required this.children, super.key,
     this.spacing,
     this.padding,
     this.shrinkWrap = false,
@@ -255,9 +244,9 @@ class ResponsiveListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 8);
+    final double responsiveSpacing = spacing ?? ResponsiveUtils.getResponsiveSpacing(context, 8);
     
-    final spacedChildren = <Widget>[];
+    final List<Widget> spacedChildren = <Widget>[];
     for (int i = 0; i < children.length; i++) {
       spacedChildren.add(children[i]);
       if (i < children.length - 1) {
@@ -305,8 +294,7 @@ class ResponsiveContainer extends StatelessWidget {
   final BoxConstraints? constraints;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: width,
       height: height,
       padding: padding ?? ResponsiveUtils.getResponsiveCardPadding(context),
@@ -324,7 +312,6 @@ class ResponsiveContainer extends StatelessWidget {
           : null),
       child: child,
     );
-  }
 }
 
 /// A responsive text widget that automatically adjusts font size
@@ -349,8 +336,7 @@ class ResponsiveText extends StatelessWidget {
   final double? textScaleFactor;
 
   @override
-  Widget build(BuildContext context) {
-    return Text(
+  Widget build(BuildContext context) => Text(
       text,
       style: style,
       textAlign: textAlign,
@@ -359,7 +345,6 @@ class ResponsiveText extends StatelessWidget {
       softWrap: softWrap,
       textScaleFactor: textScaleFactor ?? ResponsiveUtils.getResponsiveTextScaleFactor(context),
     );
-  }
 }
 
 /// A responsive icon that automatically adjusts size
@@ -380,8 +365,7 @@ class ResponsiveIcon extends StatelessWidget {
   final TextDirection? textDirection;
 
   @override
-  Widget build(BuildContext context) {
-    return Icon(
+  Widget build(BuildContext context) => Icon(
       icon,
       size: size != null 
           ? ResponsiveUtils.getResponsiveIconSize(context, size!)
@@ -390,7 +374,6 @@ class ResponsiveIcon extends StatelessWidget {
       semanticLabel: semanticLabel,
       textDirection: textDirection,
     );
-  }
 }
 
 /// A responsive sized box that automatically adjusts dimensions
@@ -419,11 +402,9 @@ class ResponsiveSizedBox extends StatelessWidget {
   final Widget? child;
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
+  Widget build(BuildContext context) => SizedBox(
       width: width != null ? ResponsiveUtils.getResponsiveSpacing(context, width!) : null,
       height: height != null ? ResponsiveUtils.getResponsiveSpacing(context, height!) : null,
       child: child,
     );
-  }
 }

@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../providers/transaction_provider.dart';
-import '../../providers/device_provider.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/transaction_tile.dart';
-import '../../models/transaction.dart';
-import '../../models/device.dart';
-import '../../utils/date_utils.dart';
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../models/device.dart";
+import "../../models/transaction.dart";
+import "../../providers/device_provider.dart";
+import "../../providers/transaction_provider.dart";
+import "../../widgets/custom_card.dart";
+import "../../widgets/transaction_tile.dart";
 
 class RevenueCardsSection extends StatelessWidget {
   const RevenueCardsSection({super.key});
@@ -17,54 +17,94 @@ class RevenueCardsSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Consumer<TransactionProvider>(
       builder: (final BuildContext context, final TransactionProvider transactionProvider, final Widget? child) {
-        var Map<String, double> stats = transactionProvider.getRevenueStats();
+        final Map<String, double> stats = transactionProvider.getRevenueStats();
         
-        return Column(
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _RevenueCard(
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            // Use single column layout for very small screens
+            if (constraints.maxWidth < 400) {
+              return Column(
+                children: <Widget>[
+                  _RevenueCard(
                     title: AppStrings.todayRevenue,
                     amount: stats["today"] ?? 0.0,
                     icon: Icons.today,
                     color: AppColors.success,
                   ),
-                ),
-                const SizedBox(width: AppStyles.spacingM),
-                Expanded(
-                  child: _RevenueCard(
+                  const SizedBox(height: AppStyles.spacingS),
+                  _RevenueCard(
                     title: AppStrings.weeklyRevenue,
                     amount: stats["week"] ?? 0.0,
                     icon: Icons.date_range,
                     color: AppColors.info,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppStyles.spacingM),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _RevenueCard(
+                  const SizedBox(height: AppStyles.spacingS),
+                  _RevenueCard(
                     title: AppStrings.monthlyRevenue,
                     amount: stats["month"] ?? 0.0,
                     icon: Icons.calendar_month,
                     color: AppColors.warning,
                   ),
-                ),
-                const SizedBox(width: AppStyles.spacingM),
-                Expanded(
-                  child: _RevenueCard(
+                  const SizedBox(height: AppStyles.spacingS),
+                  _RevenueCard(
                     title: AppStrings.totalRevenue,
                     amount: stats["total"] ?? 0.0,
                     icon: Icons.account_balance_wallet,
                     color: AppColors.primary,
                   ),
+                ],
+              );
+            }
+            
+            // Use 2x2 grid for normal screens
+            return Column(
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _RevenueCard(
+                        title: AppStrings.todayRevenue,
+                        amount: stats["today"] ?? 0.0,
+                        icon: Icons.today,
+                        color: AppColors.success,
+                      ),
+                    ),
+                    const SizedBox(width: AppStyles.spacingM),
+                    Expanded(
+                      child: _RevenueCard(
+                        title: AppStrings.weeklyRevenue,
+                        amount: stats["week"] ?? 0.0,
+                        icon: Icons.date_range,
+                        color: AppColors.info,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppStyles.spacingM),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _RevenueCard(
+                        title: AppStrings.monthlyRevenue,
+                        amount: stats["month"] ?? 0.0,
+                        icon: Icons.calendar_month,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                    const SizedBox(width: AppStyles.spacingM),
+                    Expanded(
+                      child: _RevenueCard(
+                        title: AppStrings.totalRevenue,
+                        amount: stats["total"] ?? 0.0,
+                        icon: Icons.account_balance_wallet,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -89,6 +129,7 @@ class _RevenueCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppStyles.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Row(
               children: <Widget>[
@@ -104,18 +145,24 @@ class _RevenueCard extends StatelessWidget {
                     style: AppStyles.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: AppStyles.spacingS),
-            Text(
-              "TSh ${amount.toStringAsFixed(0)}",
-              style: AppStyles.heading3.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "TSh ${amount.toStringAsFixed(0)}",
+                  style: AppStyles.heading3.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -130,7 +177,7 @@ class RecentTransactionsSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Consumer<TransactionProvider>(
       builder: (final BuildContext context, final TransactionProvider transactionProvider, final Widget? child) {
-        var List<Transaction> recentTransactions = transactionProvider.getRecentTransactions(5);
+        final List<Transaction> recentTransactions = transactionProvider.getRecentTransactions(5);
         
         if (recentTransactions.isEmpty) {
           return CustomCard(
@@ -157,13 +204,51 @@ class RecentTransactionsSection extends StatelessWidget {
         }
         
         return CustomCard(
-          child: Column(
-            children: recentTransactions
-                .map((final Transaction transaction) => TransactionTile(
-                      transaction: transaction,
-                      showDate: true,
-                    ),)
-                .toList(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxHeight: 300, // Limit height to prevent overflow
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                // If there are many transactions, make the list scrollable
+                if (recentTransactions.length > 4)
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: recentTransactions.length,
+                      itemBuilder: (BuildContext context, int index) => TransactionTile(
+                        transaction: recentTransactions[index],
+                        showDate: true,
+                      ),
+                      separatorBuilder: (BuildContext context, int index) => const Divider(
+                        height: 1,
+                        indent: AppStyles.spacingM,
+                        endIndent: AppStyles.spacingM,
+                      ),
+                    ),
+                  )
+                else
+                  // For few transactions, use regular column
+                  ...recentTransactions
+                      .asMap()
+                      .entries
+                      .expand((MapEntry<int, Transaction> entry) => <StatelessWidget>[
+                            TransactionTile(
+                              transaction: entry.value,
+                              showDate: true,
+                            ),
+                            if (entry.key < recentTransactions.length - 1)
+                              const Divider(
+                                height: 1,
+                                indent: AppStyles.spacingM,
+                                endIndent: AppStyles.spacingM,
+                              ),
+                          ],)
+                      ,
+              ],
+            ),
           ),
         );
       },
@@ -175,8 +260,8 @@ class DeviceStatusSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Consumer<DeviceProvider>(
-      builder: (final BuildContext context, final DeviceProvider deviceProvider, final Widget? final child) {
-        var List<Device> devices = deviceProvider.devices;
+      builder: (final BuildContext context, final DeviceProvider deviceProvider, final Widget? child) {
+        final List<Device> devices = deviceProvider.devices;
         
         if (devices.isEmpty) {
           return CustomCard(
@@ -203,11 +288,49 @@ class DeviceStatusSection extends StatelessWidget {
         }
         
         return CustomCard(
-          child: Column(
-            children: devices
-                .take(3)
-                .map((final Device device) => _DeviceStatusTile(device: device))
-                .toList(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxHeight: 250, // Limit height to prevent overflow
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                // If there are many devices, make the list scrollable
+                if (devices.length > 3)
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: devices.take(5).length, // Limit to 5 devices max
+                      itemBuilder: (BuildContext context, int index) => _DeviceStatusTile(
+                        device: devices[index],
+                      ),
+                      separatorBuilder: (BuildContext context, int index) => const Divider(
+                        height: 1,
+                        indent: AppStyles.spacingM,
+                        endIndent: AppStyles.spacingM,
+                      ),
+                    ),
+                  )
+                else
+                  // For few devices, use regular column
+                  ...devices
+                      .take(3)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .expand((MapEntry<int, Device> entry) => <StatelessWidget>[
+                            _DeviceStatusTile(device: entry.value),
+                            if (entry.key < devices.take(3).length - 1)
+                              const Divider(
+                                height: 1,
+                                indent: AppStyles.spacingM,
+                                endIndent: AppStyles.spacingM,
+                              ),
+                          ],)
+                      ,
+              ],
+            ),
           ),
         );
       },
@@ -221,43 +344,59 @@ class _DeviceStatusTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Consumer<TransactionProvider>(
-      builder: (final BuildContext final context, TransactionProvider final transactionProvider, final Widget? child) {
-        var todayRevenue = transactionProvider.getDeviceRevenueToday(device.id);
+      builder: (final BuildContext context, final TransactionProvider transactionProvider, final Widget? child) {
+        final double todayRevenue = transactionProvider.getDeviceRevenueToday(device.id);
         
         return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppStyles.spacingM,
+            vertical: AppStyles.spacingS,
+          ),
           leading: CircleAvatar(
             backgroundColor: _getDeviceColor(device.type),
+            radius: 20,
             child: Text(
               device.type.icon,
-              style: const TextStyle(fontSize: 20),
+              style: const TextStyle(fontSize: 18),
             ),
           ),
           title: Text(
             device.name,
             style: AppStyles.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             "${device.plateNumber} • ${device.type.name}",
             style: AppStyles.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text(
-                "TSh ${todayRevenue.toStringAsFixed(0)}",
-                style: AppStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+          trailing: SizedBox(
+            width: 80, // Fixed width to prevent overflow
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    "TSh ${todayRevenue.toStringAsFixed(0)}",
+                    style: AppStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.success,
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                "Leo",
-                style: AppStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                Text(
+                  "Leo",
+                  style: AppStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

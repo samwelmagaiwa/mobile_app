@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../constants/colors.dart';
-import '../constants/styles.dart';
-import '../utils/responsive_utils.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "../constants/colors.dart";
+import "../constants/styles.dart";
+import "../utils/responsive_utils.dart";
 
 class CustomCard extends StatelessWidget {
 
@@ -28,12 +28,12 @@ class CustomCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final responsiveBorderRadius = borderRadius ?? BorderRadius.circular(
+    final BorderRadius responsiveBorderRadius = borderRadius ?? BorderRadius.circular(
       ResponsiveUtils.getResponsiveBorderRadius(context, 12),
     );
-    final responsiveElevation = elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
+    final double responsiveElevation = elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
     
-    final card = Container(
+    final Container card = Container(
       margin: margin ?? ResponsiveUtils.getResponsiveMargin(context),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.cardBackground,
@@ -122,8 +122,8 @@ class CustomInfoCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 40);
-    final responsiveIconInnerSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
+    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 40);
+    final double responsiveIconInnerSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
     
     return CustomCard(
       onTap: onTap,
@@ -155,7 +155,7 @@ class CustomInfoCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     title,
-                    style: AppStyles.bodyMedium(context).copyWith(
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -165,7 +165,7 @@ class CustomInfoCard extends StatelessWidget {
                     SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
                     Text(
                       subtitle!,
-                      style: AppStyles.bodySmall(context).copyWith(
+                      style: AppStyles.bodySmallResponsive(context).copyWith(
                         color: AppColors.textSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -202,7 +202,7 @@ class CustomStatCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
+    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
     
     return CustomCard(
       onTap: onTap,
@@ -223,7 +223,7 @@ class CustomStatCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: AppStyles.bodySmall(context).copyWith(
+                    style: AppStyles.bodySmallResponsive(context).copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -239,7 +239,7 @@ class CustomStatCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: AppStyles.heading2(context).copyWith(
+                style: AppStyles.heading2Responsive(context).copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
@@ -250,7 +250,7 @@ class CustomStatCard extends StatelessWidget {
               SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
               Text(
                 subtitle!,
-                style: AppStyles.bodySmall(context).copyWith(
+                style: AppStyles.bodySmallResponsive(context).copyWith(
                   color: AppColors.textSecondary,
                 ),
                 maxLines: 2,

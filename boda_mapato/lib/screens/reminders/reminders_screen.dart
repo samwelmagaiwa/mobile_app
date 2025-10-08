@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../models/reminder.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/reminder_tile.dart';
+import "package:flutter/material.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../models/reminder.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
+import "../../widgets/reminder_tile.dart";
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -23,15 +23,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (final context) => const _AddReminderSheet(),
+      builder: (final BuildContext context) => const _AddReminderSheet(),
     );
   }
 
   @override
   Widget build(final BuildContext context) {
-    final activeReminders = _reminders.where((final r) => r.isActive).toList();
-    final upcomingReminders = activeReminders.where((final Reminder Reminder final r) => r.isUpcoming).toList();
-    final overdueReminders = activeReminders.where((final r) => r.isOverdue).toList();
+    final List<Reminder> activeReminders = _reminders.where((final Reminder r) => r.isActive).toList();
+    final List<Reminder> upcomingReminders = activeReminders.where((final Reminder r) => r.isUpcoming).toList();
+    final List<Reminder> overdueReminders = activeReminders.where((final Reminder r) => r.isOverdue).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -54,7 +54,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               children: <Widget>[
                 Expanded(
                   child: _SummaryCard(
-                    title: 'Vikumbusho vya Sasa',
+                    title: "Vikumbusho vya Sasa",
                     count: activeReminders.length,
                     icon: Icons.notifications_active,
                     color: AppColors.primary,
@@ -63,7 +63,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 const SizedBox(width: AppStyles.spacingM),
                 Expanded(
                   child: _SummaryCard(
-                    title: 'Vilivyochelewa',
+                    title: "Vilivyochelewa",
                     count: overdueReminders.length,
                     icon: Icons.warning,
                     color: AppColors.error,
@@ -85,13 +85,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   ),
                   SizedBox(width: AppStyles.spacingS),
                   Text(
-                    'Vikumbusho vilivyochelewa',
+                    "Vikumbusho vilivyochelewa",
                     style: AppStyles.heading3,
                   ),
                 ],
               ),
               const SizedBox(height: AppStyles.spacingM),
-              ...overdueReminders.map((final reminder) => Padding(
+              ...overdueReminders.map((final Reminder reminder) => Padding(
                 padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
                 child: CustomCard(
                   child: ReminderTile(
@@ -105,7 +105,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
             
             // Upcoming Reminders
             const Text(
-              'Vikumbusho vya Baadaye',
+              "Vikumbusho vya Baadaye",
               style: AppStyles.heading3,
             ),
             const SizedBox(height: AppStyles.spacingM),
@@ -123,7 +123,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       ),
                       const SizedBox(height: AppStyles.spacingM),
                       Text(
-                        'Hakuna vikumbusho vya baadaye',
+                        "Hakuna vikumbusho vya baadaye",
                         style: AppStyles.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -138,7 +138,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
               )
             else
-              ...upcomingReminders.map((final reminder) => Padding(
+              ...upcomingReminders.map((final Reminder reminder) => Padding(
                 padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
                 child: CustomCard(
                   child: ReminderTile(reminder: reminder),
@@ -229,7 +229,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
   }
 
   Future<void> _selectDateTime() async {
-    final date = await showDatePicker(
+    final DateTime? date = await showDatePicker(
       context: context,
       initialDate: _selectedDateTime,
       firstDate: DateTime.now(),
@@ -237,7 +237,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
     );
 
     if (date != null && mounted) {
-      final time = await showTimePicker(
+      final TimeOfDay? time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
       );
@@ -280,7 +280,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -301,10 +301,10 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
       ),
       child: Container(
         padding: const EdgeInsets.all(AppStyles.spacingM),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppStyles.radiusL),
+            top: Radius.circular(AppStyles.radiusL(context)),
           ),
         ),
         child: Form(
@@ -322,7 +322,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               // Title
               TextFormField(
                 controller: _titleController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.reminderTitle,
                   hintText: "Mfano: Kukusanya Mapato",
                 ),
@@ -339,12 +339,12 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               // Message
               TextFormField(
                 controller: _messageController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.reminderMessage,
                   hintText: "Maelezo ya kikumbusho",
                 ),
                 maxLines: 3,
-                validator: (final String? String? final String? final value) {
+                validator: (final String? value) {
                   if (value == null || value.trim().isEmpty) {
                     return AppStrings.fieldRequired;
                   }
@@ -361,7 +361,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                   padding: const EdgeInsets.all(AppStyles.spacingM),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.textHint),
-                    borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                    borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
                   ),
                   child: Row(
                     children: <Widget>[
@@ -381,7 +381,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                               ),
                             ),
                             Text(
-                              '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                              "${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, "0")}",
                               style: AppStyles.bodyMedium,
                             ),
                           ],
@@ -407,16 +407,18 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               const SizedBox(height: AppStyles.spacingS),
               DropdownButtonFormField<ReminderType>(
                 value: _selectedType,
-                decoration: AppStyles.inputDecoration,
-                items: ReminderType.values.map((final ReminderType type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      type.name,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),).toList(),
-                onChanged: (ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final ReminderType? final value) {
+                decoration: AppStyles.inputDecoration(context),
+                items: ReminderType.values
+                    .map((final ReminderType type) => DropdownMenuItem<ReminderType>(
+                          value: type,
+                          child: Text(
+                            type.name,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),)
+                    .toList(),
+                onChanged: (final ReminderType? value) {
                   if (value != null) {
                     setState(() {
                       _selectedType = value;

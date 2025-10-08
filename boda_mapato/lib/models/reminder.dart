@@ -1,4 +1,4 @@
-enum ReminderType {
+﻿enum ReminderType {
   daily,
   weekly,
   monthly,
@@ -15,13 +15,13 @@ extension ReminderTypeExtension on ReminderType {
   String get name {
     switch (this) {
       case ReminderType.daily:
-        return 'Kila Siku';
+        return "Kila Siku";
       case ReminderType.weekly:
-        return 'Kila Wiki';
+        return "Kila Wiki";
       case ReminderType.monthly:
-        return 'Kila Mwezi';
+        return "Kila Mwezi";
       case ReminderType.oneTime:
-        return 'Mara Moja';
+        return "Mara Moja";
     }
   }
 }
@@ -30,11 +30,11 @@ extension ReminderStatusExtension on ReminderStatus {
   String get name {
     switch (this) {
       case ReminderStatus.active:
-        return 'Inatumika';
+        return "Inatumika";
       case ReminderStatus.completed:
-        return 'Imekamilika';
+        return "Imekamilika";
       case ReminderStatus.cancelled:
-        return 'Imeghairiwa';
+        return "Imeghairiwa";
     }
   }
 }
@@ -56,17 +56,17 @@ class Reminder {
   });
 
   factory Reminder.fromJson(final Map<String, dynamic> json) => Reminder(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      reminderTime: DateTime.parse(json['reminder_time'] ?? DateTime.now().toIso8601String()),
-      type: _parseReminderType(json['type']),
-      status: _parseReminderStatus(json['status']),
-      driverId: json['driver_id'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
-      isNotificationSent: json['is_notification_sent'] ?? false,
-      deviceId: json['device_id'],
+      id: json["id"] ?? "",
+      title: json["title"] ?? "",
+      message: json["message"] ?? "",
+      reminderTime: DateTime.parse(json["reminder_time"] ?? DateTime.now().toIso8601String()),
+      type: _parseReminderType(json["type"]),
+      status: _parseReminderStatus(json["status"]),
+      driverId: json["driver_id"] ?? "",
+      createdAt: DateTime.parse(json["created_at"] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json["updated_at"] ?? DateTime.now().toIso8601String()),
+      isNotificationSent: json["is_notification_sent"] ?? false,
+      deviceId: json["device_id"],
     );
   final String id;
   final String title;
@@ -82,13 +82,13 @@ class Reminder {
 
   static ReminderType _parseReminderType(final String? type) {
     switch (type?.toLowerCase()) {
-      case 'daily':
+      case "daily":
         return ReminderType.daily;
-      case 'weekly':
+      case "weekly":
         return ReminderType.weekly;
-      case 'monthly':
+      case "monthly":
         return ReminderType.monthly;
-      case 'one_time':
+      case "one_time":
         return ReminderType.oneTime;
       default:
         return ReminderType.oneTime;
@@ -97,18 +97,18 @@ class Reminder {
 
   static ReminderStatus _parseReminderStatus(final String? status) {
     switch (status?.toLowerCase()) {
-      case 'active':
+      case "active":
         return ReminderStatus.active;
-      case 'completed':
+      case "completed":
         return ReminderStatus.completed;
-      case 'cancelled':
+      case "cancelled":
         return ReminderStatus.cancelled;
       default:
         return ReminderStatus.active;
     }
   }
 
-  Map<String, dynamic> toJson() => <String, >{
+  Map<String, dynamic> toJson() => <String, dynamic>{
       "id": id,
       "title": title,
       "message": message,

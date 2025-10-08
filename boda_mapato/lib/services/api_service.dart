@@ -1,34 +1,34 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import "dart:convert";
+import "dart:io";
+import "package:http/http.dart" as http;
+import "package:shared_preferences/shared_preferences.dart";
 
 class ApiService {
   // Use the same base URL as AuthService for consistency
-  static const String baseUrl = 'http://localhost/mobile_app/backend_mapato/public/api';
-  static const String webBaseUrl = 'http://localhost/mobile_app/backend_mapato/public';
+  static const String baseUrl = "http://localhost/mobile_app/backend_mapato/public/api";
+  static const String webBaseUrl = "http://localhost/mobile_app/backend_mapato/public";
   
   // Timeout duration
   static const Duration timeoutDuration = Duration(seconds: 30);
   
   // Headers
   Map<String, String> get _headers => <String, String>{
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    "Accept": "application/json",
   };
   
   Future<Map<String, String>> get _authHeaders async {
-    final token = await _getStoredToken();
+    final String? token = await _getStoredToken();
     return <String, String>{
       ..._headers,
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (token != null) "Authorization": "Bearer $token",
     };
   }
   
   // Get token from SharedPreferences (same key as AuthService)
   Future<String?> _getStoredToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString("auth_token");
   }
   
   // Initialize with stored token (for backward compatibility)
@@ -39,88 +39,88 @@ class ApiService {
   
   // Set auth token
   Future<void> setAuthToken(final String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString("auth_token", token);
   }
   
   // Clear auth token
   Future<void> clearAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove("auth_token");
   }
   
   // Generic HTTP methods
   Future<Map<String, dynamic>> _get(final String endpoint, {final bool requireAuth = true}) async {
     try {
-      final headers = requireAuth ? await _authHeaders : _headers;
-      final response = await http.get(
-        Uri.parse('$baseUrl$endpoint'),
+      final Map<String, String> headers = requireAuth ? await _authHeaders : _headers;
+      final http.Response response = await http.get(
+        Uri.parse("$baseUrl$endpoint"),
         headers: headers,
       ).timeout(timeoutDuration);
       
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException('Hakuna muunganisho wa mtandao');
+      throw ApiException("Hakuna muunganisho wa mtandao");
     } on HttpException {
-      throw ApiException('Hitilafu ya seva');
+      throw ApiException("Hitilafu ya seva");
     } catch (e) {
-      throw ApiException('Hitilafu isiyojulikana: $e');
+      throw ApiException("Hitilafu isiyojulikana: $e");
     }
   }
   
   Future<Map<String, dynamic>> _post(final String endpoint, final Map<String, dynamic> data, {final bool requireAuth = true}) async {
     try {
-      final headers = requireAuth ? await _authHeaders : _headers;
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
+      final Map<String, String> headers = requireAuth ? await _authHeaders : _headers;
+      final http.Response response = await http.post(
+        Uri.parse("$baseUrl$endpoint"),
         headers: headers,
         body: json.encode(data),
       ).timeout(timeoutDuration);
       
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException('Hakuna muunganisho wa mtandao');
+      throw ApiException("Hakuna muunganisho wa mtandao");
     } on HttpException {
-      throw ApiException('Hitilafu ya seva');
+      throw ApiException("Hitilafu ya seva");
     } catch (e) {
-      throw ApiException('Hitilafu isiyojulikana: $e');
+      throw ApiException("Hitilafu isiyojulikana: $e");
     }
   }
   
   Future<Map<String, dynamic>> _put(final String endpoint, final Map<String, dynamic> data) async {
     try {
-      final headers = await _authHeaders;
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http.put(
+        Uri.parse("$baseUrl$endpoint"),
         headers: headers,
         body: json.encode(data),
       ).timeout(timeoutDuration);
       
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException('Hakuna muunganisho wa mtandao');
+      throw ApiException("Hakuna muunganisho wa mtandao");
     } on HttpException {
-      throw ApiException('Hitilafu ya seva');
+      throw ApiException("Hitilafu ya seva");
     } catch (e) {
-      throw ApiException('Hitilafu isiyojulikana: $e');
+      throw ApiException("Hitilafu isiyojulikana: $e");
     }
   }
   
   Future<Map<String, dynamic>> _delete(final String endpoint) async {
     try {
-      final headers = await _authHeaders;
-      final response = await http.delete(
-        Uri.parse('$baseUrl$endpoint'),
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http.delete(
+        Uri.parse("$baseUrl$endpoint"),
         headers: headers,
       ).timeout(timeoutDuration);
       
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException('Hakuna muunganisho wa mtandao');
+      throw ApiException("Hakuna muunganisho wa mtandao");
     } on HttpException {
-      throw ApiException('Hitilafu ya seva');
+      throw ApiException("Hitilafu ya seva");
     } catch (e) {
-      throw ApiException('Hitilafu isiyojulikana: $e');
+      throw ApiException("Hitilafu isiyojulikana: $e");
     }
   }
   
@@ -130,7 +130,7 @@ class ApiService {
     try {
       data = json.decode(response.body);
     } catch (e) {
-      throw ApiException('Jibu la seva halieleweki');
+      throw ApiException("Jibu la seva halieleweki");
     }
     
     switch (response.statusCode) {
@@ -138,26 +138,26 @@ class ApiService {
       case 201:
         return data;
       case 400:
-        throw ApiException(data['message'] ?? 'Ombi si sahihi');
+        throw ApiException(data["message"] ?? "Ombi si sahihi");
       case 401:
-        throw ApiException('Hauruhusiwi - tafadhali ingia tena');
+        throw ApiException("Hauruhusiwi - tafadhali ingia tena");
       case 403:
-        throw ApiException('Hauruhusiwi kufikia rasilimali hii');
+        throw ApiException("Hauruhusiwi kufikia rasilimali hii");
       case 404:
-        throw ApiException('Rasilimali haipatikani');
+        throw ApiException("Rasilimali haipatikani");
       case 422:
-        final errors = data['errors'] as Map<String, dynamic>?;
+        final Map<String, dynamic>? errors = data["errors"] as Map<String, dynamic>?;
         if (errors != null) {
           final firstError = errors.values.first;
           if (firstError is List && firstError.isNotEmpty) {
             throw ApiException(firstError.first.toString());
           }
         }
-        throw ApiException(data['message'] ?? 'Data si sahihi');
+        throw ApiException(data["message"] ?? "Data si sahihi");
       case 500:
-        throw ApiException('Hitilafu ya seva ya ndani');
+        throw ApiException("Hitilafu ya seva ya ndani");
       default:
-        throw ApiException('Hitilafu isiyojulikana: ${response.statusCode}');
+        throw ApiException("Hitilafu isiyojulikana: ${response.statusCode}");
     }
   }
   
@@ -167,20 +167,20 @@ class ApiService {
     required final String password,
     final String? phoneNumber,
   }) async {
-    Map<String, dynamic> requestData = <String, dynamic>{
-      'email': email,
-      'password': password,
+    final Map<String, dynamic> requestData = <String, dynamic>{
+      "email": email,
+      "password": password,
     };
     
     // Only add phone_number if provided
     if (phoneNumber != null && phoneNumber.isNotEmpty) {
-      requestData['phone_number'] = phoneNumber;
+      requestData["phone_number"] = phoneNumber;
     }
     
-    final response = await _post('/auth/login', requestData, requireAuth: false);
+    final Map<String, dynamic> response = await _post("/auth/login", requestData, requireAuth: false);
     
-    if (response['token'] != null) {
-      await setAuthToken(response['token']);
+    if (response["token"] != null) {
+      await setAuthToken(response["token"]);
     }
     
     return response;
@@ -188,7 +188,7 @@ class ApiService {
   
   Future<Map<String, dynamic>> logout() async {
     try {
-      final response = await _post('/auth/logout', <String, dynamic>{});
+      final Map<String, dynamic> response = await _post("/auth/logout", <String, dynamic>{});
       await clearAuthToken();
       return response;
     } catch (e) {
@@ -201,10 +201,10 @@ class ApiService {
   Future<Map<String, dynamic>> getCurrentUser() async => await _get("/auth/user");
   
   Future<Map<String, dynamic>> refreshToken() async {
-    final response = await _post('/auth/refresh', <String, dynamic>{});
+    final Map<String, dynamic> response = await _post("/auth/refresh", <String, dynamic>{});
     
-    if (response['token'] != null) {
-      await setAuthToken(response['token']);
+    if (response["token"] != null) {
+      await setAuthToken(response["token"]);
     }
     
     return response;
@@ -216,8 +216,8 @@ class ApiService {
   Future<Map<String, dynamic>> getDashboardStats() async => await _get("/admin/dashboard/data");
   
   Future<List<dynamic>> getRevenueChart({final int days = 30}) async {
-    final response = await _get('/admin/dashboard/revenue-chart?days=$days');
-    return response['data'] ?? <dynamic>[];
+    final Map<String, dynamic> response = await _get("/admin/dashboard/revenue-chart?days=$days");
+    return response["data"] ?? <dynamic>[];
   }
   
   // Driver management endpoints
@@ -259,12 +259,12 @@ class ApiService {
     final int page = 1,
     final int limit = 20,
   }) async {
-    String endpoint = '/admin/payment-history?page=$page&limit=$limit';
+    String endpoint = "/admin/payment-history?page=$page&limit=$limit";
     
-    if (driverId != null) endpoint += '&driver_id=$driverId';
-    if (vehicleId != null) endpoint += '&vehicle_id=$vehicleId';
-    if (startDate != null) endpoint += '&start_date=${startDate.toIso8601String()}';
-    if (endDate != null) endpoint += '&end_date=${endDate.toIso8601String()}';
+    if (driverId != null) endpoint += "&driver_id=$driverId";
+    if (vehicleId != null) endpoint += "&vehicle_id=$vehicleId";
+    if (startDate != null) endpoint += "&start_date=${startDate.toIso8601String()}";
+    if (endDate != null) endpoint += "&end_date=${endDate.toIso8601String()}";
     
     return await _get(endpoint);
   }
@@ -281,14 +281,14 @@ class ApiService {
     final DateTime? startDate,
     final DateTime? endDate,
   }) async {
-    String endpoint = '/admin/reports/revenue';
-    List<String> params = <String>[];
+    String endpoint = "/admin/reports/revenue";
+    final List<String> params = <String>[];
     
-    if (startDate != null) params.add('start_date=${startDate.toIso8601String()}');
-    if (endDate != null) params.add('end_date=${endDate.toIso8601String()}');
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String()}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
     
     if (params.isNotEmpty) {
-      endpoint += '?${params.join('&')}';
+      endpoint += "?${params.join("&")}";
     }
     
     return await _get(endpoint);
@@ -298,14 +298,14 @@ class ApiService {
     final DateTime? startDate,
     final DateTime? endDate,
   }) async {
-    String endpoint = '/admin/reports/expenses';
-    List<String> params = <String>[];
+    String endpoint = "/admin/reports/expenses";
+    final List<String> params = <String>[];
     
-    if (startDate != null) params.add('start_date=${startDate.toIso8601String()}');
-    if (endDate != null) params.add('end_date=${endDate.toIso8601String()}');
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String()}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
     
     if (params.isNotEmpty) {
-      endpoint += '?${params.join('&')}';
+      endpoint += "?${params.join("&")}";
     }
     
     return await _get(endpoint);
@@ -315,14 +315,14 @@ class ApiService {
     final DateTime? startDate,
     final DateTime? endDate,
   }) async {
-    String endpoint = '/admin/reports/profit-loss';
-    List<String> params = <String>[];
+    String endpoint = "/admin/reports/profit-loss";
+    final List<String> params = <String>[];
     
-    if (startDate != null) params.add('start_date=${startDate.toIso8601String()}');
-    if (endDate != null) params.add('end_date=${endDate.toIso8601String()}');
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String()}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
     
     if (params.isNotEmpty) {
-      endpoint += '?${params.join('&')}';
+      endpoint += "?${params.join("&")}";
     }
     
     return await _get(endpoint);
@@ -359,12 +359,12 @@ class ApiService {
     final DateTime? startDate,
     final DateTime? endDate,
   }) async {
-    String endpoint = '/admin/transactions?page=$page&limit=$limit';
+    String endpoint = "/admin/transactions?page=$page&limit=$limit";
     
-    if (status != null) endpoint += '&status=$status';
-    if (type != null) endpoint += '&type=$type';
-    if (startDate != null) endpoint += '&start_date=${startDate.toIso8601String()}';
-    if (endDate != null) endpoint += '&end_date=${endDate.toIso8601String()}';
+    if (status != null) endpoint += "&status=$status";
+    if (type != null) endpoint += "&type=$type";
+    if (startDate != null) endpoint += "&start_date=${startDate.toIso8601String()}";
+    if (endDate != null) endpoint += "&end_date=${endDate.toIso8601String()}";
     
     return await _get(endpoint);
   }
@@ -391,7 +391,7 @@ class ApiException implements Exception {
   final String message;
   
   @override
-  String toString() => 'ApiException: $message';
+  String toString() => "ApiException: $message";
 }
 
 // Response wrapper class
@@ -408,10 +408,10 @@ class ApiResponse<T> {
     final Map<String, dynamic> json,
     final T Function()? fromJson,
   ) => ApiResponse<T>(
-      success: json['success'] ?? true,
-      data: json['data'] != null && fromJson != null ? fromJson() : json['data'],
-      message: json['message'],
-      errors: json['errors'],
+      success: json["success"] ?? true,
+      data: json["data"] != null && fromJson != null ? fromJson() : json["data"],
+      message: json["message"],
+      errors: json["errors"],
     );
   final bool success;
   final T? data;
@@ -423,7 +423,7 @@ class ApiResponse<T> {
 class NetworkHelper {
   static Future<bool> isConnected() async {
     try {
-      final result = await InternetAddress.lookup('google.com');
+      final List<InternetAddress> result = await InternetAddress.lookup("google.com");
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } on SocketException catch (_) {
       return false;

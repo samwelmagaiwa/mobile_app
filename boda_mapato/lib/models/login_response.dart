@@ -1,4 +1,4 @@
-class LoginResponse {
+﻿class LoginResponse {
 
   LoginResponse({
     required this.status,
@@ -7,15 +7,15 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(final Map<String, dynamic> json) => LoginResponse(
-      status: json['status'] ?? '',
-      message: json['message'] ?? '',
-      data: json['data'] != null ? LoginData.fromJson(json['data']) : null,
+      status: (json["status"] as String?) ?? "",
+      message: (json["message"] as String?) ?? "",
+      data: json["data"] != null ? LoginData.fromJson(json["data"] as Map<String, dynamic>) : null,
     );
   final String status;
   final String message;
   final LoginData? data;
 
-  bool get isSuccess => status == 'success';
+  bool get isSuccess => status == "success";
 }
 
 class LoginData {
@@ -30,12 +30,12 @@ class LoginData {
   });
 
   factory LoginData.fromJson(final Map<String, dynamic> json) => LoginData(
-      userId: json['user_id'],
-      token: json['token'],
-      user: json['user'] != null ? UserData.fromJson(json['user']) : null,
-      role: json['role'],
-      dashboardRoute: json['dashboard_route'],
-      expiresInMinutes: json['expires_in_minutes'],
+      userId: json["user_id"] as String?,
+      token: json["token"] as String?,
+      user: json["user"] != null ? UserData.fromJson(json["user"] as Map<String, dynamic>) : null,
+      role: json["role"] as String?,
+      dashboardRoute: json["dashboard_route"] as String?,
+      expiresInMinutes: json["expires_in_minutes"] as int?,
     );
   final String? userId;
   final String? token;
@@ -59,21 +59,21 @@ class UserData {
   });
 
   factory UserData.fromJson(final Map<String, dynamic> json) => UserData(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phoneNumber: json['phone_number'],
-      role: json['role'] ?? 'driver',
-      isActive: json['is_active'] ?? true,
-      deviceId: json['device_id'],
-      lastLoginAt: json['last_login_at'] != null 
-          ? DateTime.parse(json['last_login_at']) 
+      id: (json["id"] as String?) ?? "",
+      name: (json["name"] as String?) ?? "",
+      email: (json["email"] as String?) ?? "",
+      phoneNumber: json["phone_number"] as String?,
+      role: (json["role"] as String?) ?? "driver",
+      isActive: (json["is_active"] as bool?) ?? true,
+      deviceId: json["device_id"] as String?,
+      lastLoginAt: json["last_login_at"] != null 
+          ? DateTime.parse(json["last_login_at"] as String) 
           : null,
-      driver: json['driver'] != null 
-          ? DriverData.fromJson(json['driver']) 
+      driver: json["driver"] != null 
+          ? DriverData.fromJson(json["driver"] as Map<String, dynamic>) 
           : null,
-      assignedDevice: json['assigned_device'] != null 
-          ? DeviceData.fromJson(json['assigned_device']) 
+      assignedDevice: json["assigned_device"] != null 
+          ? DeviceData.fromJson(json["assigned_device"] as Map<String, dynamic>) 
           : null,
     );
   final String id;
@@ -87,9 +87,9 @@ class UserData {
   final DriverData? driver;
   final DeviceData? assignedDevice;
 
-  bool get isSuperAdmin => role == 'super_admin';
-  bool get isAdmin => role == 'admin';
-  bool get isDriver => role == 'driver';
+  bool get isSuperAdmin => role == "super_admin";
+  bool get isAdmin => role == "admin";
+  bool get isDriver => role == "driver";
   bool get canManageDrivers => isSuperAdmin || isAdmin;
 }
 
@@ -105,16 +105,16 @@ class DriverData {
   });
 
   factory DriverData.fromJson(final Map<String, dynamic> json) => DriverData(
-      id: json['id'] ?? '',
-      userId: json['user_id'] ?? '',
-      licenseNumber: json['license_number'] ?? '',
-      licenseExpiry: DateTime.parse(json['license_expiry']),
-      address: json['address'],
-      emergencyContact: json['emergency_contact'],
-      isActive: json['is_active'] ?? true,
-      rating: (json['rating'] ?? 0.0).toDouble(),
-      totalTrips: json['total_trips'] ?? 0,
-      totalEarnings: (json['total_earnings'] ?? 0.0).toDouble(),
+      id: (json["id"] as String?) ?? "",
+      userId: (json["user_id"] as String?) ?? "",
+      licenseNumber: (json["license_number"] as String?) ?? "",
+      licenseExpiry: DateTime.parse((json["license_expiry"] as String?) ?? DateTime.now().toIso8601String()),
+      address: json["address"] as String?,
+      emergencyContact: json["emergency_contact"] as String?,
+      isActive: (json["is_active"] as bool?) ?? true,
+      rating: ((json["rating"] as num?) ?? 0.0).toDouble(),
+      totalTrips: (json["total_trips"] as int?) ?? 0,
+      totalEarnings: ((json["total_earnings"] as num?) ?? 0.0).toDouble(),
     );
   final String id;
   final String userId;
@@ -139,12 +139,12 @@ class DeviceData {
   });
 
   factory DeviceData.fromJson(final Map<String, dynamic> json) => DeviceData(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      type: json['type'] ?? '',
-      plateNumber: json['plate_number'] ?? '',
-      description: json['description'],
-      isActive: json['is_active'] ?? true,
+      id: (json["id"] as String?) ?? "",
+      name: (json["name"] as String?) ?? "",
+      type: (json["type"] as String?) ?? "",
+      plateNumber: (json["plate_number"] as String?) ?? "",
+      description: json["description"] as String?,
+      isActive: (json["is_active"] as bool?) ?? true,
     );
   final String id;
   final String name;

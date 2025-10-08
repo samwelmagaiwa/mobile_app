@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../models/transaction.dart';
-import '../../providers/transaction_provider.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../utils/date_utils.dart';
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../models/transaction.dart";
+import "../../providers/transaction_provider.dart";
+import "../../utils/date_utils.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class TransactionDetailScreen extends StatelessWidget {
 
@@ -82,7 +83,7 @@ class TransactionDetailScreen extends StatelessWidget {
                         color: transaction.type == TransactionType.income
                             ? AppColors.success.withOpacity(0.1)
                             : AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                        borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
                       ),
                       child: Text(
                         transaction.type.name,
@@ -192,7 +193,7 @@ class TransactionDetailScreen extends StatelessWidget {
     // TODO: Implement edit transaction dialog
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Uhariri wa muamala utaongezwa hivi karibuni'),
+        content: Text("Uhariri wa muamala utaongezwa hivi karibuni"),
         backgroundColor: AppColors.info,
       ),
     );
@@ -201,9 +202,9 @@ class TransactionDetailScreen extends StatelessWidget {
   void _showDeleteDialog(final BuildContext context) {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
-        title: const Text('Futa Muamala'),
-        content: const Text('Je, una uhakika unataka kufuta muamala huu?'),
+      builder: (final BuildContext context) => AlertDialog(
+        title: const Text("Futa Muamala"),
+        content: const Text("Je, una uhakika unataka kufuta muamala huu?"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -220,7 +221,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   Navigator.pop(context); // Go back to transactions list
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Muamala umefutwa'),
+                      content: Text("Muamala umefutwa"),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -230,7 +231,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Hitilafu: $e'),
+                      content: Text("Hitilafu: $e"),
                       backgroundColor: AppColors.error,
                     ),
                   );

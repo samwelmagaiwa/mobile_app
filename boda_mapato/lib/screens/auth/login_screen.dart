@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_button.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/auth_service.dart';
-import '../../utils/responsive_utils.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/styles.dart";
+import "../../providers/auth_provider.dart";
+import "../../utils/responsive_utils.dart";
+import "../../widgets/custom_button.dart";
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,9 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      final success = await authProvider.login(
+      final bool success = await authProvider.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         phoneNumber: _phoneController.text.trim(),
@@ -59,14 +58,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (success) {
         // Show success message
         if (mounted) {
-          _showSnackBar('Umeingia kikamilifu!', Colors.green);
+          _showSnackBar("Umeingia kikamilifu!", Colors.green);
         }
         // Navigation will be handled by AuthWrapper
       } else {
         // Show error message
         if (mounted) {
           _showSnackBar(
-            authProvider.errorMessage ?? 'Kuingia kumeshindikana',
+            authProvider.errorMessage ?? "Kuingia kumeshindikana",
             Colors.red,
           );
         }
@@ -80,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (mounted) {
         _showSnackBar(
-          'Hitilafu katika kuingia: ${e.toString().replaceAll('Exception: ', '')}',
+          "Hitilafu katika kuingia: ${e.toString().replaceAll("Exception: ", "")}",
           Colors.red,
         );
       }
@@ -108,43 +107,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Auto-fill demo credentials
   void _fillDemoCredentials() {
-    _emailController.text = 'admin@gmail.com';
-    _phoneController.text = '+255743519104';
-    _passwordController.text = '12345678';
+    _emailController.text = "admin@gmail.com";
+    _phoneController.text = "+255743519104";
+    _passwordController.text = "12345678";
     
-    _showSnackBar('Taarifa za demo zimejazwa', Colors.blue);
+    _showSnackBar("Taarifa za demo zimejazwa", Colors.blue);
   }
 
   // Fill actual database credentials
   void _fillDatabaseCredentials() {
-    _emailController.text = 'admin@';
-    _phoneController.text = '+255743519104';
-    _passwordController.text = '12345678';
+    _emailController.text = "admin@";
+    _phoneController.text = "+255743519104";
+    _passwordController.text = "12345678";
     
-    _showSnackBar('Taarifa za database zimejazwa', Colors.orange);
+    _showSnackBar("Taarifa za database zimejazwa", Colors.orange);
   }
 
   // Forgot password functionality
   void _handleForgotPassword() {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Umesahau Nywila?'),
+        title: const Text("Umesahau Nywila?"),
         content: const SelectableText(
-          'Kipengele cha kurudisha nywila kinatengenezwa. Kwa sasa, tumia taarifa za demo au wasiliana na msimamizi.',
+          "Kipengele cha kurudisha nywila kinatengenezwa. Kwa sasa, tumia taarifa za demo au wasiliana na msimamizi.",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _fillDatabaseCredentials();
             },
-            child: const Text('Tumia Database'),
+            child: const Text("Tumia Database"),
           ),
         ],
       ),
@@ -153,16 +152,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLandscape = ResponsiveUtils.isLandscape(context);
+    final bool isLandscape = ResponsiveUtils.isLandscape(context);
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
+          builder: (BuildContext context, BoxConstraints constraints) => SingleChildScrollView(
               padding: ResponsiveUtils.getResponsivePadding(context),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -205,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 24)),
                             Text(
                               "Boda Mapato",
-                              style: AppStyles.heading1(context).copyWith(
+                              style: AppStyles.heading1Responsive(context).copyWith(
                                 color: const Color(0xFF1F2937),
                               ),
                               textAlign: TextAlign.center,
@@ -213,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
                             Text(
                               "Simamia biashara yako ya boda boda",
-                              style: AppStyles.bodyLarge(context).copyWith(
+                              style: AppStyles.bodyLargeResponsive(context).copyWith(
                                 color: Colors.black54,
                               ),
                               textAlign: TextAlign.center,
@@ -252,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: <Widget>[
                               Text(
                                 "Ingia",
-                                style: AppStyles.heading2(context).copyWith(
+                                style: AppStyles.heading2Responsive(context).copyWith(
                                   color: const Color(0xFF1F2937),
                                 ),
                                 textAlign: TextAlign.center,
@@ -264,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                style: AppStyles.bodyMedium(context),
+                                style: AppStyles.bodyMediumResponsive(context),
                                 decoration: AppStyles.inputDecoration(context).copyWith(
                                   labelText: "Barua pepe",
                                   hintText: "Ingiza barua pepe yako",
@@ -291,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _phoneController,
                                 keyboardType: TextInputType.phone,
-                                style: AppStyles.bodyMedium(context),
+                                style: AppStyles.bodyMediumResponsive(context),
                                 decoration: AppStyles.inputDecoration(context).copyWith(
                                   labelText: "Namba ya simu",
                                   hintText: "Ingiza namba ya simu",
@@ -317,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
-                                style: AppStyles.bodyMedium(context),
+                                style: AppStyles.bodyMediumResponsive(context),
                                 decoration: AppStyles.inputDecoration(context).copyWith(
                                   labelText: "Nywila",
                                   hintText: "Ingiza nywila yako",
@@ -368,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onPressed: _handleForgotPassword,
                                 child: Text(
                                   "Umesahau nywila?",
-                                  style: AppStyles.bodyMedium(context).copyWith(
+                                  style: AppStyles.bodyMediumResponsive(context).copyWith(
                                     color: const Color(0xFF1E40AF),
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -391,27 +387,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: <Widget>[
                                     Text(
                                       "Taarifa za Kuingia:",
-                                      style: AppStyles.bodyMedium(context).copyWith(
+                                      style: AppStyles.bodyMediumResponsive(context).copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: const Color(0xFF1F2937),
                                       ),
                                     ),
                                     SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
                                     SelectableText(
-                                      "Database: admin@ / +255743519104",
-                                      style: AppStyles.bodySmall(context).copyWith(
+                                      "Database: admin@gmail.com / +255743519104",
+                                      style: AppStyles.bodySmallResponsive(context).copyWith(
                                         color: Colors.black54,
                                       ),
                                     ),
                                     SelectableText(
                                       "Demo: admin@gmail.com / +255743519104",
-                                      style: AppStyles.bodySmall(context).copyWith(
+                                      style: AppStyles.bodySmallResponsive(context).copyWith(
                                         color: Colors.black54,
                                       ),
                                     ),
                                     SelectableText(
                                       "Nywila: 12345678",
-                                      style: AppStyles.bodyMedium(context).copyWith(
+                                      style: AppStyles.bodyMediumResponsive(context).copyWith(
                                         color: Colors.black54,
                                       ),
                                     ),
@@ -423,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             onPressed: _fillDatabaseCredentials,
                                             child: Text(
                                               "Database",
-                                              style: AppStyles.bodySmall(context).copyWith(
+                                              style: AppStyles.bodySmallResponsive(context).copyWith(
                                                 color: const Color(0xFFF97316),
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -435,7 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             onPressed: _fillDemoCredentials,
                                             child: Text(
                                               "Demo",
-                                              style: AppStyles.bodySmall(context).copyWith(
+                                              style: AppStyles.bodySmallResponsive(context).copyWith(
                                                 color: const Color(0xFF1E40AF),
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -457,7 +453,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Footer
                       Text(
                         "Imetengenezwa kwa ajili ya biashara za boda boda",
-                        style: AppStyles.bodyMedium(context).copyWith(
+                        style: AppStyles.bodyMediumResponsive(context).copyWith(
                           color: Colors.black45,
                         ),
                         textAlign: TextAlign.center,
@@ -466,8 +462,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-            );
-          },
+            ),
         ),
       ),
     );

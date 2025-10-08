@@ -1,21 +1,21 @@
-/*
+﻿/*
  * TEXT SELECTION GUIDE FOR FLUTTER MOBILE APPS
  * ============================================
  * 
  * This guide explains how to fix text selection issues in Flutter mobile apps
- * where users can't highlight or copy text.
+ * where users can"t highlight or copy text.
  * 
  * COMMON ISSUES AND SOLUTIONS:
  * 
  * 1. NON-SELECTABLE TEXT WIDGETS
  * ==============================
- * Problem: Regular Text() widgets don't allow text selection by default
+ * Problem: Regular Text() widgets don"t allow text selection by default
  * 
  * ❌ BAD:
- * Text('Error: Login failed')
+ * Text("Error: Login failed")
  * 
  * ✅ GOOD:
- * SelectableText('Error: Login failed')
+ * SelectableText("Error: Login failed")
  * 
  * Use SelectableText for:
  * - Error messages
@@ -32,14 +32,14 @@
  * ❌ BAD:
  * GestureDetector(
  *   onTap: () => doSomething(),
- *   child: Text('Selectable text')
+ *   child: Text("Selectable text")
  * )
  * 
  * ✅ GOOD:
  * GestureDetector(
  *   behavior: HitTestBehavior.translucent,
  *   onTap: () => doSomething(),
- *   child: SelectableText('Selectable text')
+ *   child: SelectableText("Selectable text")
  * )
  * 
  * Or better yet, avoid wrapping text in GestureDetector unless necessary.
@@ -49,10 +49,10 @@
  * Problem: SnackBar content is not selectable by default
  * 
  * ❌ BAD:
- * SnackBar(content: Text('Error message'))
+ * SnackBar(content: Text("Error message"))
  * 
  * ✅ GOOD:
- * SnackBar(content: SelectableText('Error message'))
+ * SnackBar(content: SelectableText("Error message"))
  * 
  * 4. DIALOG CONTENT
  * ================
@@ -60,12 +60,12 @@
  * 
  * ❌ BAD:
  * AlertDialog(
- *   content: Text('Long error message that users might want to copy')
+ *   content: Text("Long error message that users might want to copy")
  * )
  * 
  * ✅ GOOD:
  * AlertDialog(
- *   content: SelectableText('Long error message that users might want to copy')
+ *   content: SelectableText("Long error message that users might want to copy")
  * )
  * 
  * 5. CONTAINER/CARD WRAPPED TEXT
@@ -74,12 +74,12 @@
  * 
  * ❌ BAD:
  * Container(
- *   child: Text('Important information')
+ *   child: Text("Important information")
  * )
  * 
  * ✅ GOOD:
  * Container(
- *   child: SelectableText('Important information')
+ *   child: SelectableText("Important information")
  * )
  * 
  * 6. LISTVIEW/COLUMN TEXT ITEMS
@@ -89,16 +89,16 @@
  * ❌ BAD:
  * ListView(
  *   children: [
- *     Text('Item 1'),
- *     Text('Item 2'),
+ *     Text("Item 1"),
+ *     Text("Item 2"),
  *   ]
  * )
  * 
  * ✅ GOOD:
  * ListView(
  *   children: [
- *     SelectableText('Item 1'),
- *     SelectableText('Item 2'),
+ *     SelectableText("Item 1"),
+ *     SelectableText("Item 2"),
  *   ]
  * )
  * 
@@ -128,7 +128,7 @@
  * ADDITIONAL PROPERTIES:
  * =====================
  * SelectableText(
- *   'Your text here',
+ *   "Your text here",
  *   style: TextStyle(...),
  *   textAlign: TextAlign.center,
  *   maxLines: 3,
@@ -153,8 +153,8 @@
  * - Compliance with accessibility guidelines
  */
 
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
 
 /// Example implementations of selectable text widgets
 class TextSelectionExamples {

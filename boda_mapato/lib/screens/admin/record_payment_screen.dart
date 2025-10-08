@@ -1,11 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/currency.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_card.dart';
-import '../../services/api_service.dart';
-import '../../providers/auth_provider.dart';
+import "package:flutter/material.dart";
+
+import "../../services/api_service.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class RecordPaymentScreen extends StatefulWidget {
   const RecordPaymentScreen({super.key});
@@ -33,36 +30,34 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   
   String? _selectedDriverId;
   String? _selectedVehicleId;
-  String _selectedCategory = 'daily_payment';
-  String _selectedPaymentMethod = 'cash';
+  String _selectedCategory = "daily_payment";
+  String _selectedPaymentMethod = "cash";
 
   // Enhanced color scheme
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
-  static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color grayBackground = Color(0xFFF8FAFC);
   static const Color darkGray = Color(0xFF1F2937);
 
   // Payment categories
   final Map<String, String> _paymentCategories = <String, String>{
-    'daily_payment': 'Malipo ya Kila Siku',
-    'weekly_payment': 'Malipo ya Kila Wiki',
-    'trip_payment': 'Malipo ya Safari',
-    'delivery_payment': 'Malipo ya Uwasilishaji',
-    'rental_payment': 'Malipo ya Kukodisha',
-    'fuel_contribution': 'Mchango wa Mafuta',
-    'maintenance_fee': 'Ada ya Matengenezo',
-    'other_payment': 'Malipo Mengine',
+    "daily_payment": "Malipo ya Kila Siku",
+    "weekly_payment": "Malipo ya Kila Wiki",
+    "trip_payment": "Malipo ya Safari",
+    "delivery_payment": "Malipo ya Uwasilishaji",
+    "rental_payment": "Malipo ya Kukodisha",
+    "fuel_contribution": "Mchango wa Mafuta",
+    "maintenance_fee": "Ada ya Matengenezo",
+    "other_payment": "Malipo Mengine",
   };
 
   // Payment methods
   final Map<String, String> _paymentMethods = <String, String>{
-    'cash': 'Fedha Taslimu',
-    'mobile_money': 'Pesa za Simu',
-    'bank_transfer': 'Uhamisho wa Benki',
-    'card': 'Kadi',
+    "cash": "Fedha Taslimu",
+    "mobile_money": "Pesa za Simu",
+    "bank_transfer": "Uhamisho wa Benki",
+    "card": "Kadi",
   };
 
   @override
@@ -91,44 +86,44 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
     try {
       await _apiService.initialize();
-      final response = await _apiService.getDrivers();
+      final Map<String, dynamic> response = await _apiService.getDrivers();
       
       if (mounted) {
         setState(() {
           // Handle the actual response structure: {status, message, data}
           try {
             // Debug logging
-            print('Drivers response type: ${response.runtimeType}');
-            print('Drivers response keys: ${response is Map ? response.keys : 'Not a Map'}');
-            print('Drivers data type: ${response['data']?.runtimeType}');
-            print('Drivers data: ${response['data']}');
+            debugPrint("Drivers response type: ${response.runtimeType}");
+            debugPrint("Drivers response keys: ${response.keys}");
+            debugPrint("Drivers data type: ${response['data']?.runtimeType}");
+            debugPrint("Drivers data: ${response['data']}");
             
             // Check if data is a Map (paginated response) or List (direct response)
-            final data = response['data'];
+            final data = response["data"];
             if (data is Map<String, dynamic>) {
-              // Paginated response: data contains another object with 'data' key
-              if (data['data'] is List) {
-                _drivers = List<Map<String, dynamic>>.from(data['data']);
+              // Paginated response: data contains another object with "data" key
+              if (data["data"] is List) {
+                _drivers = List<Map<String, dynamic>>.from(data["data"]);
               } else {
-                print('No list found in nested data object');
+                debugPrint("No list found in nested data object");
                 _drivers = <Map<String, dynamic>>[];
               }
             } else if (data is List) {
               // Direct list response
               _drivers = List<Map<String, dynamic>>.from(data);
             } else {
-              print('Data is neither Map nor List: ${data?.runtimeType}');
+              debugPrint("Data is neither Map nor List: ${data?.runtimeType}");
               _drivers = <Map<String, dynamic>>[];
             }
           } catch (e) {
-            print('Error parsing drivers response: $e');
+            debugPrint("Error parsing drivers response: $e");
             _drivers = <Map<String, dynamic>>[];
           }
         });
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Hitilafu katika kupakia madereva: $e');
+        _showErrorSnackBar("Hitilafu katika kupakia madereva: $e");
       }
     } finally {
       if (mounted) {
@@ -148,44 +143,44 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
     try {
       await _apiService.initialize();
-      final response = await _apiService.getVehicles();
+      final Map<String, dynamic> response = await _apiService.getVehicles();
       
       if (mounted) {
         setState(() {
           // Handle the actual response structure: {status, message, data}
           try {
             // Debug logging
-            print('Vehicles response type: ${response.runtimeType}');
-            print('Vehicles response keys: ${response is Map ? response.keys : 'Not a Map'}');
-            print('Vehicles data type: ${response['data']?.runtimeType}');
-            print('Vehicles data: ${response['data']}');
+            debugPrint("Vehicles response type: ${response.runtimeType}");
+            debugPrint("Vehicles response keys: ${response.keys}");
+            debugPrint("Vehicles data type: ${response['data']?.runtimeType}");
+            debugPrint("Vehicles data: ${response['data']}");
             
             // Check if data is a Map (paginated response) or List (direct response)
-            final data = response['data'];
+            final data = response["data"];
             if (data is Map<String, dynamic>) {
-              // Paginated response: data contains another object with 'data' key
-              if (data['data'] is List) {
-                _vehicles = List<Map<String, dynamic>>.from(data['data']);
+              // Paginated response: data contains another object with "data" key
+              if (data["data"] is List) {
+                _vehicles = List<Map<String, dynamic>>.from(data["data"]);
               } else {
-                print('No list found in nested data object');
+                debugPrint("No list found in nested data object");
                 _vehicles = <Map<String, dynamic>>[];
               }
             } else if (data is List) {
               // Direct list response
               _vehicles = List<Map<String, dynamic>>.from(data);
             } else {
-              print('Data is neither Map nor List: ${data?.runtimeType}');
+              debugPrint("Data is neither Map nor List: ${data?.runtimeType}");
               _vehicles = <Map<String, dynamic>>[];
             }
           } catch (e) {
-            print('Error parsing vehicles response: $e');
+            debugPrint("Error parsing vehicles response: $e");
             _vehicles = <Map<String, dynamic>>[];
           }
         });
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Hitilafu katika kupakia magari: $e');
+        _showErrorSnackBar("Hitilafu katika kupakia magari: $e");
       }
     } finally {
       if (mounted) {
@@ -200,7 +195,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedDriverId == null) {
-      _showErrorSnackBar('Tafadhali chagua dereva');
+      _showErrorSnackBar("Tafadhali chagua dereva");
       return;
     }
 
@@ -213,27 +208,27 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     try {
       await _apiService.initialize();
       
-      final paymentData = <String, Object?>{
-        'driver_id': _selectedDriverId,
-        'device_id': _selectedVehicleId,
-        'amount': double.parse(_amountController.text),
-        'category': _selectedCategory,
-        'description': _descriptionController.text,
-        'payment_method': _selectedPaymentMethod,
-        'notes': _notesController.text.isNotEmpty ? _notesController.text : null,
-        'customer_name': _customerNameController.text.isNotEmpty ? _customerNameController.text : null,
-        'customer_phone': _customerPhoneController.text.isNotEmpty ? _customerPhoneController.text : null,
+      final Map<String, Object?> paymentData = <String, Object?>{
+        "driver_id": _selectedDriverId,
+        "device_id": _selectedVehicleId,
+        "amount": double.parse(_amountController.text),
+        "category": _selectedCategory,
+        "description": _descriptionController.text,
+        "payment_method": _selectedPaymentMethod,
+        "notes": _notesController.text.isNotEmpty ? _notesController.text : null,
+        "customer_name": _customerNameController.text.isNotEmpty ? _customerNameController.text : null,
+        "customer_phone": _customerPhoneController.text.isNotEmpty ? _customerPhoneController.text : null,
       };
 
-      final response = await _apiService.recordPayment(paymentData);
+      await _apiService.recordPayment(paymentData);
 
       if (mounted) {
-        _showSuccessSnackBar('Malipo yamerekodiwa kikamilifu!');
+        _showSuccessSnackBar("Malipo yamerekodiwa kikamilifu!");
         _clearForm();
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Hitilafu katika kurekodi malipo: $e');
+        _showErrorSnackBar("Hitilafu katika kurekodi malipo: $e");
       }
     } finally {
       if (mounted) {
@@ -253,8 +248,8 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     setState(() {
       _selectedDriverId = null;
       _selectedVehicleId = null;
-      _selectedCategory = 'daily_payment';
-      _selectedPaymentMethod = 'cash';
+      _selectedCategory = "daily_payment";
+      _selectedPaymentMethod = "cash";
     });
   }
 
@@ -379,21 +374,21 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                       if (_isLoadingDrivers) const Center(child: CircularProgressIndicator()) else DropdownButtonFormField<String>(
                               value: _selectedDriverId,
                               decoration: InputDecoration(
-                                labelText: 'Dereva',
+                                labelText: "Dereva",
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 prefixIcon: const Icon(Icons.person),
                               ),
-                              items: _drivers.map((final driver) => DropdownMenuItem<String>(
+                              items: _drivers.map((final Map<String, dynamic> driver) => DropdownMenuItem<String>(
                                   value: driver["id"].toString(),
                                   child: Text(
-                                    '${driver['name']} - ${driver['phone']}',
+                                    "${driver["name"]} - ${driver["phone"]}",
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
                                 ),).toList(),
-                              onChanged: (final value) {
+                              onChanged: (final String? value) {
                                 setState(() {
                                   _selectedDriverId = value;
                                   // Filter vehicles for selected driver
@@ -402,7 +397,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                               },
                               validator: (final String? value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Tafadhali chagua dereva';
+                                  return "Tafadhali chagua dereva";
                                 }
                                 return null;
                               },
@@ -433,7 +428,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                       if (_isLoadingVehicles) const Center(child: CircularProgressIndicator()) else DropdownButtonFormField<String>(
                               value: _selectedVehicleId,
                               decoration: InputDecoration(
-                                labelText: 'Gari',
+                                labelText: "Gari",
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -441,18 +436,18 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                               ),
                               items: <DropdownMenuItem<String>>[
                                 const DropdownMenuItem<String>(
-                                  child: Text('Hakuna gari'),
+                                  child: Text("Hakuna gari"),
                                 ),
-                                ..._vehicles.map((final vehicle) => DropdownMenuItem<String>(
+                                ..._vehicles.map((final Map<String, dynamic> vehicle) => DropdownMenuItem<String>(
                                     value: vehicle["id"].toString(),
                                     child: Text(
-                                      '${vehicle['plate_number']} - ${vehicle['type']}',
+                                      "${vehicle["plate_number"]} - ${vehicle["type"]}",
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                     ),
                                   ),),
                               ],
-                              onChanged: (final value) {
+                              onChanged: (final String? value) {
                                 setState(() {
                                   _selectedVehicleId = value;
                                 });

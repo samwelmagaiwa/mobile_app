@@ -1,10 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../services/api_service.dart';
+import "package:flutter/material.dart";
+import "package:intl/intl.dart";
+import "../../widgets/custom_card.dart";
 
 class PaymentsManagementScreen extends StatefulWidget {
   const PaymentsManagementScreen({super.key});
@@ -15,22 +11,20 @@ class PaymentsManagementScreen extends StatefulWidget {
 
 class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     with TickerProviderStateMixin {
-  final ApiService _apiService = ApiService();
+  // final ApiService _apiService = ApiService(); // `TODO`: Implement API integration
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   
   bool _isLoading = true;
   List<Map<String, dynamic>> _payments = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _filteredPayments = <Map<String, dynamic>>[];
-  String _searchQuery = '';
-  String _selectedStatus = 'all'; // all, paid, pending, overdue
+  String _searchQuery = "";
+  String _selectedStatus = "all"; // all, paid, pending, overdue
   DateTimeRange? _selectedDateRange;
   
   // Enhanced color scheme
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
-  static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color grayBackground = Color(0xFFF8FAFC);
   static const Color darkGray = Color(0xFF1F2937);
@@ -57,100 +51,100 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     try {
       // TODO: Replace with actual API call
       // final response = await _apiService.getPayments();
-      // _payments = List<Map<String, dynamic>>.from(response['data'] ?? []);
+      // _payments = List<Map<String, dynamic>>.from(response["data"] ?? []);
       
       // Mock data for now
       await Future.delayed(const Duration(seconds: 1));
       _payments = <Map<String, dynamic>>[
         <String, dynamic>{
-          'id': '1',
-          'driver_name': 'John Mukasa',
-          'driver_id': '1',
-          'vehicle_number': 'UBE 123A',
-          'amount': 50000.0,
-          'payment_type': 'daily',
-          'status': 'paid',
-          'due_date': DateTime.now().subtract(const Duration(days: 1)),
-          'paid_date': DateTime.now().subtract(const Duration(hours: 2)),
-          'payment_method': 'cash',
-          'receipt_number': 'R20241206001',
-          'notes': 'Malipo ya kawaida ya kila siku',
+          "id": "1",
+          "driver_name": "John Mukasa",
+          "driver_id": "1",
+          "vehicle_number": "UBE 123A",
+          "amount": 50000.0,
+          "payment_type": "daily",
+          "status": "paid",
+          "due_date": DateTime.now().subtract(const Duration(days: 1)),
+          "paid_date": DateTime.now().subtract(const Duration(hours: 2)),
+          "payment_method": "cash",
+          "receipt_number": "R20241206001",
+          "notes": "Malipo ya kawaida ya kila siku",
         },
         <String, dynamic>{
-          'id': '2',
-          'driver_name': 'Peter Ssali',
-          'driver_id': '2',
-          'vehicle_number': 'UBF 456B',
-          'amount': 45000.0,
-          'payment_type': 'daily',
-          'status': 'pending',
-          'due_date': DateTime.now(),
-          'paid_date': null,
-          'payment_method': null,
-          'receipt_number': null,
-          'notes': 'Malipo ya leo',
+          "id": "2",
+          "driver_name": "Peter Ssali",
+          "driver_id": "2",
+          "vehicle_number": "UBF 456B",
+          "amount": 45000.0,
+          "payment_type": "daily",
+          "status": "pending",
+          "due_date": DateTime.now(),
+          "paid_date": null,
+          "payment_method": null,
+          "receipt_number": null,
+          "notes": "Malipo ya leo",
         },
         <String, dynamic>{
-          'id': '3',
-          'driver_name': 'Mary Nakato',
-          'driver_id': '3',
-          'vehicle_number': 'UBG 789C',
-          'amount': 55000.0,
-          'payment_type': 'daily',
-          'status': 'paid',
-          'due_date': DateTime.now().subtract(const Duration(days: 2)),
-          'paid_date': DateTime.now().subtract(const Duration(days: 1)),
-          'payment_method': 'mobile_money',
-          'receipt_number': 'R20241205002',
-          'notes': 'Malipo kupitia simu',
+          "id": "3",
+          "driver_name": "Mary Nakato",
+          "driver_id": "3",
+          "vehicle_number": "UBG 789C",
+          "amount": 55000.0,
+          "payment_type": "daily",
+          "status": "paid",
+          "due_date": DateTime.now().subtract(const Duration(days: 2)),
+          "paid_date": DateTime.now().subtract(const Duration(days: 1)),
+          "payment_method": "mobile_money",
+          "receipt_number": "R20241205002",
+          "notes": "Malipo kupitia simu",
         },
         <String, dynamic>{
-          'id': '4',
-          'driver_name': 'James Kato',
-          'driver_id': '4',
-          'vehicle_number': 'UBH 012D',
-          'amount': 150000.0,
-          'payment_type': 'weekly',
-          'status': 'overdue',
-          'due_date': DateTime.now().subtract(const Duration(days: 3)),
-          'paid_date': null,
-          'payment_method': null,
-          'receipt_number': null,
-          'notes': 'Malipo ya wiki - umechelewa',
+          "id": "4",
+          "driver_name": "James Kato",
+          "driver_id": "4",
+          "vehicle_number": "UBH 012D",
+          "amount": 150000.0,
+          "payment_type": "weekly",
+          "status": "overdue",
+          "due_date": DateTime.now().subtract(const Duration(days: 3)),
+          "paid_date": null,
+          "payment_method": null,
+          "receipt_number": null,
+          "notes": "Malipo ya wiki - umechelewa",
         },
         <String, dynamic>{
-          'id': '5',
-          'driver_name': 'Sarah Nambi',
-          'driver_id': '5',
-          'vehicle_number': 'UBI 345E',
-          'amount': 42000.0,
-          'payment_type': 'daily',
-          'status': 'pending',
-          'due_date': DateTime.now().add(const Duration(hours: 6)),
-          'paid_date': null,
-          'payment_method': null,
-          'receipt_number': null,
-          'notes': 'Malipo ya leo - bado',
+          "id": "5",
+          "driver_name": "Sarah Nambi",
+          "driver_id": "5",
+          "vehicle_number": "UBI 345E",
+          "amount": 42000.0,
+          "payment_type": "daily",
+          "status": "pending",
+          "due_date": DateTime.now().add(const Duration(hours: 6)),
+          "paid_date": null,
+          "payment_method": null,
+          "receipt_number": null,
+          "notes": "Malipo ya leo - bado",
         },
         <String, dynamic>{
-          'id': '6',
-          'driver_name': 'David Musoke',
-          'driver_id': '6',
-          'vehicle_number': 'UBJ 678F',
-          'amount': 600000.0,
-          'payment_type': 'monthly',
-          'status': 'paid',
-          'due_date': DateTime.now().subtract(const Duration(days: 5)),
-          'paid_date': DateTime.now().subtract(const Duration(days: 3)),
-          'payment_method': 'bank_transfer',
-          'receipt_number': 'R20241203001',
-          'notes': 'Malipo ya mwezi - benki',
+          "id": "6",
+          "driver_name": "David Musoke",
+          "driver_id": "6",
+          "vehicle_number": "UBJ 678F",
+          "amount": 600000.0,
+          "payment_type": "monthly",
+          "status": "paid",
+          "due_date": DateTime.now().subtract(const Duration(days: 5)),
+          "paid_date": DateTime.now().subtract(const Duration(days: 3)),
+          "payment_method": "bank_transfer",
+          "receipt_number": "R20241203001",
+          "notes": "Malipo ya mwezi - benki",
         },
       ];
       
       _filterPayments();
     } catch (e) {
-      _showErrorSnackBar('Hitilafu katika kupakia malipo: $e');
+      _showErrorSnackBar("Hitilafu katika kupakia malipo: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -161,26 +155,26 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   void _filterPayments() {
     setState(() {
       _filteredPayments = _payments.where((final Map<String, dynamic> payment) {
-        final matchesSearch = _searchQuery.isEmpty ||
-            payment['driver_name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            payment['vehicle_number'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (payment['receipt_number'] ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+        final bool matchesSearch = _searchQuery.isEmpty ||
+            payment["driver_name"].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            payment["vehicle_number"].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            (payment["receipt_number"] ?? "").toLowerCase().contains(_searchQuery.toLowerCase());
         
-        final matchesStatus = _selectedStatus == 'all' ||
-            payment['status'] == _selectedStatus;
+        final bool matchesStatus = _selectedStatus == "all" ||
+            payment["status"] == _selectedStatus;
         
-        final matchesDateRange = _selectedDateRange == null ||
-            (_isDateInRange(payment['due_date'], _selectedDateRange!) ||
-             (payment['paid_date'] != null && _isDateInRange(payment['paid_date'], _selectedDateRange!)));
+        final bool matchesDateRange = _selectedDateRange == null ||
+            (_isDateInRange(payment["due_date"], _selectedDateRange!) ||
+             (payment["paid_date"] != null && _isDateInRange(payment["paid_date"], _selectedDateRange!)));
         
         return matchesSearch && matchesStatus && matchesDateRange;
       }).toList();
       
       // Sort by due date (overdue first, then by date)
-      _filteredPayments.sort((final a, final b) {
-        if (a['status'] == 'overdue' && b['status'] != 'overdue') return -1;
-        if (b['status'] == 'overdue' && a['status'] != 'overdue') return 1;
-        return (b['due_date'] as DateTime).compareTo(a['due_date'] as DateTime);
+      _filteredPayments.sort((final Map<String, dynamic> a, final Map<String, dynamic> b) {
+        if (a["status"] == "overdue" && b["status"] != "overdue") return -1;
+        if (b["status"] == "overdue" && a["status"] != "overdue") return 1;
+        return (b["due_date"] as DateTime).compareTo(a["due_date"] as DateTime);
       });
     });
   }
@@ -283,7 +277,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
               value: "bulk_action",
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.checklist, color: primaryOrange),
+                  Icon(Icons.checklist, color: Colors.orange),
                   SizedBox(width: 8),
                   Text("Vitendo vya Wingi"),
                 ],
@@ -321,7 +315,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
             children: <Widget>[
               _buildPaymentsList(_payments),
               _buildPaymentsList(_payments.where((final Map<String, dynamic> p) => p["status"] == "pending" || p["status"] == "overdue").toList()),
-              _buildPaymentsList(_payments.where((final p) => p["status"] == "paid").toList()),
+              _buildPaymentsList(_payments.where((final Map<String, dynamic> p) => p["status"] == "paid").toList()),
             ],
           ),
         ),
@@ -385,7 +379,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                 _buildFilterChip(
                   "pending",
                   "Yanayosubiri",
-                  _payments.where((final p) => p["status"] == "pending").length,
+                  _payments.where((final Map<String, dynamic> p) => p["status"] == "pending").length,
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
@@ -397,7 +391,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                 if (_selectedDateRange != null)
                   Chip(
                     label: Text(
-                      '${DateFormat('dd/MM').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM').format(_selectedDateRange!.end)}',
+                      "${DateFormat("dd/MM").format(_selectedDateRange!.start)} - ${DateFormat("dd/MM").format(_selectedDateRange!.end)}",
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -420,11 +414,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     );
 
   Widget _buildFilterChip(final String value, final String label, final int count) {
-    final isSelected = _selectedStatus == value;
+    final bool isSelected = _selectedStatus == value;
     return FilterChip(
       selected: isSelected,
       label: Text(
-        '$label ($count)',
+        "$label ($count)",
         style: TextStyle(
           color: isSelected ? Colors.white : darkGray,
           fontWeight: FontWeight.w500,
@@ -433,7 +427,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       backgroundColor: Colors.white,
       selectedColor: primaryBlue,
       checkmarkColor: Colors.white,
-      onSelected: (final selected) {
+      onSelected: (final bool selected) {
         if (selected) {
           _onStatusChanged(value);
         }
@@ -442,17 +436,17 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   Widget _buildStatsCards() {
-    final totalAmount = _payments.fold<double>(
+    final double totalAmount = _payments.fold<double>(
       0,
-      (final sum, final payment) => sum + (payment['amount'] as double),
+      (final double sum, final Map<String, dynamic> payment) => sum + (payment["amount"] as double),
     );
-    final paidAmount = _payments
-        .where((final p) => p['status'] == 'paid')
-        .fold<double>(0, (final double sum, final Map<String, dynamic> payment) => sum + (payment['amount'] as double));
-    final pendingAmount = _payments
-        .where((final Map<String, dynamic> p) => p['status'] == 'pending' || p['status'] == 'overdue')
-        .fold<double>(0, (final double sum, final Map<String, dynamic> payment) => sum + (payment['amount'] as double));
-    final overdueCount = _payments.where((final p) => p['status'] == 'overdue').length;
+    final double paidAmount = _payments
+        .where((final Map<String, dynamic> p) => p["status"] == "paid")
+        .fold<double>(0, (final double sum, final Map<String, dynamic> payment) => sum + (payment["amount"] as double));
+    final double pendingAmount = _payments
+        .where((final Map<String, dynamic> p) => p["status"] == "pending" || p["status"] == "overdue")
+        .fold<double>(0, (final double sum, final Map<String, dynamic> payment) => sum + (payment["amount"] as double));
+    final int overdueCount = _payments.where((final Map<String, dynamic> p) => p["status"] == "overdue").length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -460,8 +454,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
         children: <Widget>[
           Expanded(
             child: _buildStatCard(
-              title: 'Jumla',
-              value: 'TSH ${_formatCurrency(totalAmount)}',
+              title: "Jumla",
+              value: "TSH ${_formatCurrency(totalAmount)}",
               icon: Icons.account_balance_wallet,
               color: primaryBlue,
             ),
@@ -469,8 +463,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Yaliyolipwa',
-              value: 'TSH ${_formatCurrency(paidAmount)}',
+              title: "Yaliyolipwa",
+              value: "TSH ${_formatCurrency(paidAmount)}",
               icon: Icons.check_circle,
               color: successGreen,
             ),
@@ -478,17 +472,17 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Yanayosubiri',
-              value: 'TSH ${_formatCurrency(pendingAmount)}',
+              title: "Yanayosubiri",
+              value: "TSH ${_formatCurrency(pendingAmount)}",
               icon: Icons.pending,
-              color: warningAmber,
+              color: Colors.amber,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Yaliyochelewa',
-              value: '$overdueCount',
+              title: "Yaliyochelewa",
+              value: "$overdueCount",
               icon: Icons.warning,
               color: errorRed,
             ),
@@ -549,7 +543,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
         padding: const EdgeInsets.all(16),
         itemCount: payments.length,
         itemBuilder: (final BuildContext context, final int index) {
-          final payment = payments[index];
+          final Map<String, dynamic> payment = payments[index];
           return _buildPaymentCard(payment);
         },
       ),
@@ -587,32 +581,32 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     );
 
   Widget _buildPaymentCard(final Map<String, dynamic> payment) {
-    final status = payment['status'] as String;
-    final amount = payment['amount'] as double;
-    final dueDate = payment['due_date'] as DateTime;
-    final paidDate = payment['paid_date'] as DateTime?;
+    final String status = payment["status"] as String;
+    final double amount = payment["amount"] as double;
+    final DateTime dueDate = payment["due_date"] as DateTime;
+    final DateTime? paidDate = payment["paid_date"] as DateTime?;
     
     Color statusColor;
     IconData statusIcon;
     String statusText;
     
     switch (status) {
-      case 'paid':
+      case "paid":
         statusColor = successGreen;
         statusIcon = Icons.check_circle;
-        statusText = 'YALIYOLIPWA';
-      case 'pending':
-        statusColor = warningAmber;
+        statusText = "YALIYOLIPWA";
+      case "pending":
+        statusColor = Colors.amber;
         statusIcon = Icons.pending;
-        statusText = 'YANAYOSUBIRI';
-      case 'overdue':
+        statusText = "YANAYOSUBIRI";
+      case "overdue":
         statusColor = errorRed;
         statusIcon = Icons.warning;
-        statusText = 'YALIYOCHELEWA';
+        statusText = "YALIYOCHELEWA";
       default:
         statusColor = Colors.grey;
         statusIcon = Icons.help;
-        statusText = 'HAIJULIKANI';
+        statusText = "HAIJULIKANI";
     }
     
     return CustomCard(
@@ -647,7 +641,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                         children: <Widget>[
                           Expanded(
                             child: Text(
-                              payment['driver_name'],
+                              payment["driver_name"],
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -677,7 +671,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        payment['vehicle_number'],
+                        payment["vehicle_number"],
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
@@ -693,7 +687,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Tarehe ya kulipa: ${DateFormat('dd/MM/yyyy').format(dueDate)}',
+                            "Tarehe ya kulipa: ${DateFormat("dd/MM/yyyy").format(dueDate)}",
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -712,7 +706,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Ililipwa: ${DateFormat('dd/MM/yyyy HH:mm').format(paidDate)}',
+                              "Ililipwa: ${DateFormat("dd/MM/yyyy HH:mm").format(paidDate)}",
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: successGreen,
@@ -729,7 +723,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
                     Text(
-                      'TSH ${_formatCurrency(amount)}',
+                      "TSH ${_formatCurrency(amount)}",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -738,57 +732,57 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                     ),
                     const SizedBox(height: 8),
                     PopupMenuButton<String>(
-                      onSelected: (final value) => _handlePaymentAction(value, payment),
-                      itemBuilder: (final context) => <PopupMenuEntry<String>>[
+                      onSelected: (final String value) => _handlePaymentAction(value, payment),
+                      itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
                         const PopupMenuItem(
-                          value: 'view',
+                          value: "view",
                           child: Row(
                             children: <Widget>[
                               Icon(Icons.visibility, color: primaryBlue),
                               SizedBox(width: 8),
-                              Text('Ona'),
+                              Text("Ona"),
                             ],
                           ),
                         ),
-                        if (status == 'pending' || status == 'overdue')
+                        if (status == "pending" || status == "overdue")
                           const PopupMenuItem(
-                            value: 'mark_paid',
+                            value: "mark_paid",
                             child: Row(
                               children: <Widget>[
                                 Icon(Icons.check_circle, color: successGreen),
                                 SizedBox(width: 8),
-                                Text('Weka Kuwa Yaliyolipwa'),
+                                Text("Weka Kuwa Yaliyolipwa"),
                               ],
                             ),
                           ),
-                        if (status == 'paid')
+                        if (status == "paid")
                           const PopupMenuItem(
-                            value: 'receipt',
+                            value: "receipt",
                             child: Row(
                               children: <Widget>[
-                                Icon(Icons.receipt, color: primaryOrange),
+                                Icon(Icons.receipt, color: Colors.orange),
                                 SizedBox(width: 8),
-                                Text('Ona Risiti'),
+                                Text("Ona Risiti"),
                               ],
                             ),
                           ),
                         const PopupMenuItem(
-                          value: 'edit',
+                          value: "edit",
                           child: Row(
                             children: <Widget>[
-                              Icon(Icons.edit, color: primaryOrange),
+                              Icon(Icons.edit, color: Colors.orange),
                               SizedBox(width: 8),
-                              Text('Hariri'),
+                              Text("Hariri"),
                             ],
                           ),
                         ),
                         const PopupMenuItem(
-                          value: 'delete',
+                          value: "delete",
                           child: Row(
                             children: <Widget>[
                               Icon(Icons.delete, color: errorRed),
                               SizedBox(width: 8),
-                              Text('Futa'),
+                              Text("Futa"),
                             ],
                           ),
                         ),
@@ -798,7 +792,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                 ),
               ],
             ),
-            if (payment['notes'] != null && payment['notes'].isNotEmpty) ...<Widget>[
+            if (payment["notes"] != null && payment["notes"].isNotEmpty) ...<Widget>[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -808,7 +802,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  payment['notes'],
+                  payment["notes"],
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.black54,
@@ -822,20 +816,20 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
             Row(
               children: <Widget>[
                 _buildPaymentDetail(
-                  'Aina',
-                  _getPaymentTypeText(payment['payment_type']),
+                  "Aina",
+                  _getPaymentTypeText(payment["payment_type"]),
                   Icons.category,
                 ),
-                if (payment['payment_method'] != null)
+                if (payment["payment_method"] != null)
                   _buildPaymentDetail(
-                    'Njia',
-                    _getPaymentMethodText(payment['payment_method']),
+                    "Njia",
+                    _getPaymentMethodText(payment["payment_method"]),
                     Icons.payment,
                   ),
-                if (payment['receipt_number'] != null)
+                if (payment["receipt_number"] != null)
                   _buildPaymentDetail(
-                    'Risiti',
-                    payment['receipt_number'],
+                    "Risiti",
+                    payment["receipt_number"],
                     Icons.receipt,
                   ),
               ],
@@ -883,7 +877,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
   Widget _buildFloatingActionButton() => FloatingActionButton.extended(
       onPressed: _showRecordPaymentDialog,
-      backgroundColor: primaryOrange,
+      backgroundColor: Colors.orange,
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text(
@@ -894,9 +888,9 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
   String _formatCurrency(final double amount) {
     if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
+      return "${(amount / 1000000).toStringAsFixed(1)}M";
     } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
+      return "${(amount / 1000).toStringAsFixed(0)}K";
     } else {
       return amount.toStringAsFixed(0);
     }
@@ -904,12 +898,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
   String _getPaymentTypeText(final String type) {
     switch (type) {
-      case 'daily':
-        return 'Kila siku';
-      case 'weekly':
-        return 'Kila wiki';
-      case 'monthly':
-        return 'Kila mwezi';
+      case "daily":
+        return "Kila siku";
+      case "weekly":
+        return "Kila wiki";
+      case "monthly":
+        return "Kila mwezi";
       default:
         return type;
     }
@@ -917,12 +911,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
   String _getPaymentMethodText(final String method) {
     switch (method) {
-      case 'cash':
-        return 'Fedha taslimu';
-      case 'mobile_money':
-        return 'Pesa za simu';
-      case 'bank_transfer':
-        return 'Uhamisho wa benki';
+      case "cash":
+        return "Fedha taslimu";
+      case "mobile_money":
+        return "Pesa za simu";
+      case "bank_transfer":
+        return "Uhamisho wa benki";
       default:
         return method;
     }
@@ -930,15 +924,15 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
   void _handlePaymentAction(final String action, final Map<String, dynamic> payment) {
     switch (action) {
-      case 'view':
+      case "view":
         _showPaymentDetails(payment);
-      case 'mark_paid':
+      case "mark_paid":
         _markPaymentAsPaid(payment);
-      case 'receipt':
+      case "receipt":
         _showReceipt(payment);
-      case 'edit':
+      case "edit":
         _showEditPaymentDialog(payment);
-      case 'delete':
+      case "delete":
         _confirmDeletePayment(payment);
     }
   }
@@ -948,33 +942,33 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Maelezo ya Malipo - ${payment['driver_name']}'),
+        title: Text("Maelezo ya Malipo - ${payment["driver_name"]}"),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _buildDetailRow('Dereva:', payment['driver_name']),
-              _buildDetailRow('Gari:', payment['vehicle_number']),
-              _buildDetailRow('Kiasi:', 'TSH ${_formatCurrency(payment['amount'])}'),
-              _buildDetailRow('Aina ya Malipo:', _getPaymentTypeText(payment['payment_type'])),
-              _buildDetailRow('Hali:', payment['status']),
-              _buildDetailRow('Tarehe ya Kulipa:', DateFormat('dd/MM/yyyy').format(payment['due_date'])),
-              if (payment['paid_date'] != null)
-                _buildDetailRow('Ililipwa:', DateFormat('dd/MM/yyyy HH:mm').format(payment['paid_date'])),
-              if (payment['payment_method'] != null)
-                _buildDetailRow('Njia ya Malipo:', _getPaymentMethodText(payment['payment_method'])),
-              if (payment['receipt_number'] != null)
-                _buildDetailRow('Namba ya Risiti:', payment['receipt_number']),
-              if (payment['notes'] != null && payment['notes'].isNotEmpty)
-                _buildDetailRow('Maelezo:', payment['notes']),
+              _buildDetailRow("Dereva:", payment["driver_name"]),
+              _buildDetailRow("Gari:", payment["vehicle_number"]),
+              _buildDetailRow("Kiasi:", "TSH ${_formatCurrency(payment["amount"])}"),
+              _buildDetailRow("Aina ya Malipo:", _getPaymentTypeText(payment["payment_type"])),
+              _buildDetailRow("Hali:", payment["status"]),
+              _buildDetailRow("Tarehe ya Kulipa:", DateFormat("dd/MM/yyyy").format(payment["due_date"])),
+              if (payment["paid_date"] != null)
+                _buildDetailRow("Ililipwa:", DateFormat("dd/MM/yyyy HH:mm").format(payment["paid_date"])),
+              if (payment["payment_method"] != null)
+                _buildDetailRow("Njia ya Malipo:", _getPaymentMethodText(payment["payment_method"])),
+              if (payment["receipt_number"] != null)
+                _buildDetailRow("Namba ya Risiti:", payment["receipt_number"]),
+              if (payment["notes"] != null && payment["notes"].isNotEmpty)
+                _buildDetailRow("Maelezo:", payment["notes"]),
             ],
           ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Funga'),
+            child: const Text("Funga"),
           ),
         ],
       ),
@@ -1011,36 +1005,36 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   void _markPaymentAsPaid(final Map<String, dynamic> payment) {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Weka Kuwa Yaliyolipwa'),
+        title: const Text("Weka Kuwa Yaliyolipwa"),
         content: Text(
-          'Je, una uhakika malipo ya ${payment['driver_name']} ya TSH ${_formatCurrency(payment['amount'])} yamelipwa?',
+          "Je, una uhakika malipo ya ${payment["driver_name"]} ya TSH ${_formatCurrency(payment["amount"])} yamelipwa?",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               // TODO: Implement mark as paid API call
               setState(() {
-                payment['status'] = 'paid';
-                payment['paid_date'] = DateTime.now();
-                payment['receipt_number'] = 'R${DateTime.now().millisecondsSinceEpoch}';
+                payment["status"] = "paid";
+                payment["paid_date"] = DateTime.now();
+                payment["receipt_number"] = "R${DateTime.now().millisecondsSinceEpoch}";
               });
               _filterPayments();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Malipo ya ${payment['driver_name']} yamewekwa kuwa yaliyolipwa'),
+                  content: Text("Malipo ya ${payment["driver_name"]} yamewekwa kuwa yaliyolipwa"),
                   backgroundColor: successGreen,
                 ),
               );
             },
             child: const Text(
-              'Ndio',
+              "Ndio",
               style: TextStyle(color: successGreen),
             ),
           ),
@@ -1053,7 +1047,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     // TODO: Implement receipt viewing
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuona risiti kinatengenezwa...'),
+        content: Text("Kipengele cha kuona risiti kinatengenezwa..."),
       ),
     );
   }
@@ -1064,12 +1058,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Hariri Malipo - ${payment['driver_name']}'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: Text("Hariri Malipo - ${payment["driver_name"]}"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -1081,32 +1075,32 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Futa Malipo'),
+        title: const Text("Futa Malipo"),
         content: Text(
-          'Je, una uhakika unataka kufuta malipo ya ${payment['driver_name']} ya TSH ${_formatCurrency(payment['amount'])}? Kitendo hiki hakiwezi kurudishwa.',
+          "Je, una uhakika unataka kufuta malipo ya ${payment["driver_name"]} ya TSH ${_formatCurrency(payment["amount"])}? Kitendo hiki hakiwezi kurudishwa.",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               // TODO: Implement delete API call
               setState(() {
-                _payments.removeWhere((final p) => p['id'] == payment['id']);
+                _payments.removeWhere((final Map<String, dynamic> p) => p["id"] == payment["id"]);
               });
               _filterPayments();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Malipo ya ${payment['driver_name']} yamefutwa'),
+                  content: Text("Malipo ya ${payment["driver_name"]} yamefutwa"),
                   backgroundColor: errorRed,
                 ),
               );
             },
             child: const Text(
-              'Futa',
+              "Futa",
               style: TextStyle(color: errorRed),
             ),
           ),
@@ -1119,14 +1113,14 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     // TODO: Implement record payment dialog
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Rekodi Malipo'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: const Text("Rekodi Malipo"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -1134,7 +1128,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   Future<void> _showDateRangePicker() async {
-    final picked = await showDateRangePicker(
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -1153,7 +1147,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     // TODO: Implement export functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuhamisha kinatengenezwa...'),
+        content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
       ),
     );
   }
@@ -1162,14 +1156,14 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     // TODO: Implement bulk actions
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Vitendo vya Wingi'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: const Text("Vitendo vya Wingi"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),

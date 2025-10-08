@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
+import "package:flutter/material.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({super.key});
@@ -47,7 +48,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -64,7 +65,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   void _showReceiptPreview() {
     showDialog(
       context: context,
-      builder: (final context) => _ReceiptPreviewDialog(
+      builder: (final BuildContext context) => _ReceiptPreviewDialog(
         customerName: _customerNameController.text,
         amount: double.parse(_amountController.text),
         serviceType: _serviceTypeController.text,
@@ -139,7 +140,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               // Customer Name
               TextFormField(
                 controller: _customerNameController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.customerName,
                   hintText: "Jina la mteja",
                   prefixIcon: const Icon(Icons.person),
@@ -157,7 +158,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               // Amount
               TextFormField(
                 controller: _amountController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.amount,
                   hintText: "0",
                   prefixText: "TSh ",
@@ -180,7 +181,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               // Service Type
               TextFormField(
                 controller: _serviceTypeController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.serviceType,
                   hintText: "Mfano: Safari ya Boda",
                   prefixIcon: const Icon(Icons.work),
@@ -198,7 +199,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               // Notes (Optional)
               TextFormField(
                 controller: _notesController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: "Maelezo ya Ziada (Si lazima)",
                   hintText: "Maelezo mengine...",
                   prefixIcon: const Icon(Icons.note),
@@ -271,8 +272,8 @@ class _ReceiptPreviewDialog extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final receiptNumber = 'R${DateTime.now().millisecondsSinceEpoch}';
-    final currentDate = DateTime.now();
+    final String receiptNumber = "R${DateTime.now().millisecondsSinceEpoch}";
+    final DateTime currentDate = DateTime.now();
     
     return Dialog(
       child: Container(
@@ -284,7 +285,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
             Row(
               children: <Widget>[
                 const Text(
-                  'Muhtasari wa Risiti',
+                  "Muhtasari wa Risiti",
                   style: AppStyles.heading3,
                 ),
                 const Spacer(),
@@ -303,7 +304,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
               padding: const EdgeInsets.all(AppStyles.spacingM),
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.textHint),
-                borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,13 +312,13 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                   // Business Header
                   const Center(
                     child: Text(
-                      'BODA MAPATO',
+                      "BODA MAPATO",
                       style: AppStyles.heading2,
                     ),
                   ),
                   const Center(
                     child: Text(
-                      'Mfumo wa Usimamizi wa Mapato',
+                      "Mfumo wa Usimamizi wa Mapato",
                       style: AppStyles.bodySmall,
                     ),
                   ),
@@ -326,17 +327,17 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                   const Divider(),
                   
                   // Receipt Details
-                  _ReceiptRow('Nambari ya Risiti:', receiptNumber),
-                  _ReceiptRow('Tarehe:', '${currentDate.day}/${currentDate.month}/${currentDate.year}'),
-                  _ReceiptRow('Muda:', '${currentDate.hour}:${currentDate.minute.toString().padLeft(2, '0')}'),
+                  _ReceiptRow("Nambari ya Risiti:", receiptNumber),
+                  _ReceiptRow("Tarehe:", "${currentDate.day}/${currentDate.month}/${currentDate.year}"),
+                  _ReceiptRow("Muda:", "${currentDate.hour}:${currentDate.minute.toString().padLeft(2, "0")}"),
                   
                   const SizedBox(height: AppStyles.spacingM),
                   const Divider(),
                   
                   // Customer & Service Details
-                  _ReceiptRow('Mteja:', customerName),
-                  _ReceiptRow('Huduma:', serviceType),
-                  if (notes.isNotEmpty) _ReceiptRow('Maelezo:', notes),
+                  _ReceiptRow("Mteja:", customerName),
+                  _ReceiptRow("Huduma:", serviceType),
+                  if (notes.isNotEmpty) _ReceiptRow("Maelezo:", notes),
                   
                   const SizedBox(height: AppStyles.spacingM),
                   const Divider(),
@@ -346,11 +347,11 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       const Text(
-                        'JUMLA:',
+                        "JUMLA:",
                         style: AppStyles.heading3,
                       ),
                       Text(
-                        'TSh ${amount.toStringAsFixed(0)}',
+                        "TSh ${amount.toStringAsFixed(0)}",
                         style: AppStyles.heading3.copyWith(
                           color: AppColors.primary,
                         ),
@@ -364,7 +365,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                   // Footer
                   const Center(
                     child: Text(
-                      'Asante kwa kutumia huduma zetu!',
+                      "Asante kwa kutumia huduma zetu!",
                       style: AppStyles.bodySmall,
                     ),
                   ),
@@ -395,12 +396,12 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                 const SizedBox(width: AppStyles.spacingM),
                 Expanded(
                   child: CustomButton(
-                    text: 'Hifadhi',
+                    text: "Hifadhi",
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Risiti imehifadhiwa'),
+                          content: Text("Risiti imehifadhiwa"),
                           backgroundColor: AppColors.success,
                         ),
                       );

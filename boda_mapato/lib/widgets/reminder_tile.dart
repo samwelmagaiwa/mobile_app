@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import '../constants/colors.dart';
-import '../constants/styles.dart';
-import '../models/reminder.dart';
-import '../utils/date_utils.dart';
+import "package:flutter/material.dart";
+import "../constants/colors.dart";
+import "../constants/styles.dart";
+import "../models/reminder.dart";
+import "../utils/date_utils.dart";
 
 class ReminderTile extends StatelessWidget {
 
@@ -36,7 +36,7 @@ class ReminderTile extends StatelessWidget {
                   height: 48,
                   decoration: BoxDecoration(
                     color: _getReminderColor().withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                    borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
                   ),
                   child: Icon(
                     _getReminderIcon(),
@@ -93,7 +93,7 @@ class ReminderTile extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: _getTypeColor().withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppStyles.radiusS),
+                              borderRadius: BorderRadius.circular(AppStyles.radiusS(context)),
                             ),
                             child: Text(
                               reminder.type.name,
@@ -120,7 +120,7 @@ class ReminderTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppStyles.radiusS),
+                          borderRadius: BorderRadius.circular(AppStyles.radiusS(context)),
                         ),
                         child: Text(
                           "Imechelewa",
@@ -269,34 +269,34 @@ class ReminderTile extends StatelessWidget {
   }
 
   String _getTimeText() {
-    final now = DateTime.now();
-    final reminderTime = reminder.reminderTime;
+    final DateTime now = DateTime.now();
+    final DateTime reminderTime = reminder.reminderTime;
     
     if (isOverdue) {
-      final difference = now.difference(reminderTime);
+      final Duration difference = now.difference(reminderTime);
       if (difference.inDays > 0) {
-        return 'Imechelewa kwa siku ${difference.inDays}';
+        return "Imechelewa kwa siku ${difference.inDays}";
       } else if (difference.inHours > 0) {
-        return 'Imechelewa kwa saa ${difference.inHours}';
+        return "Imechelewa kwa saa ${difference.inHours}";
       } else {
-        return 'Imechelewa kwa dakika ${difference.inMinutes}';
+        return "Imechelewa kwa dakika ${difference.inMinutes}";
       }
     }
     
     if (reminderTime.day == now.day && 
         reminderTime.month == now.month && 
         reminderTime.year == now.year) {
-      return 'Leo ${AppDateUtils.formatTime(reminderTime)}';
+      return "Leo ${AppDateUtils.formatTime(reminderTime)}";
     }
     
-    final tomorrow = now.add(const Duration(days: 1));
+    final DateTime tomorrow = now.add(const Duration(days: 1));
     if (reminderTime.day == tomorrow.day && 
         reminderTime.month == tomorrow.month && 
         reminderTime.year == tomorrow.year) {
-      return 'Kesho ${AppDateUtils.formatTime(reminderTime)}';
+      return "Kesho ${AppDateUtils.formatTime(reminderTime)}";
     }
     
-    return '${AppDateUtils.formatDate(reminderTime)} ${AppDateUtils.formatTime(reminderTime)}';
+    return "${AppDateUtils.formatDate(reminderTime)} ${AppDateUtils.formatTime(reminderTime)}";
   }
 }
 
@@ -319,7 +319,7 @@ class ReminderSummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppStyles.spacingM),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppStyles.radiusL),
+          borderRadius: BorderRadius.circular(AppStyles.radiusL(context)),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(

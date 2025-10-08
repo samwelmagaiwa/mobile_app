@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../constants/colors.dart';
-import '../constants/styles.dart';
-import '../models/transaction.dart';
-import '../utils/date_utils.dart';
-import '../utils/responsive_utils.dart';
-import 'responsive_wrapper.dart';
+import "package:flutter/material.dart";
+import "../constants/colors.dart";
+import "../constants/styles.dart";
+import "../models/transaction.dart";
+import "../utils/date_utils.dart";
+import "../utils/responsive_utils.dart";
+import "responsive_wrapper.dart";
 
 class TransactionTile extends StatelessWidget {
 
@@ -22,12 +21,12 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
     
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: ResponsiveContainer(
+      child: ResponsiveWrapper(
         child: ResponsiveRow(
           spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
           children: <Widget>[
@@ -56,7 +55,7 @@ class TransactionTile extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     transaction.description,
-                    style: AppStyles.bodyMedium(context).copyWith(
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -66,20 +65,20 @@ class TransactionTile extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         transaction.category,
-                        style: AppStyles.bodySmall(context).copyWith(
+                        style: AppStyles.bodySmallResponsive(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
                       ),
                       if (showDate) ...<Widget>[
                         Text(
                           " • ",
-                          style: AppStyles.bodySmall(context).copyWith(
+                          style: AppStyles.bodySmallResponsive(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                         Text(
                           AppDateUtils.formatDate(transaction.createdAt),
-                          style: AppStyles.bodySmall(context).copyWith(
+                          style: AppStyles.bodySmallResponsive(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -100,7 +99,7 @@ class TransactionTile extends StatelessWidget {
                       ),
                       child: Text(
                         transaction.status.name,
-                        style: AppStyles.bodySmall(context).copyWith(
+                        style: AppStyles.bodySmallResponsive(context).copyWith(
                           color: _getStatusColor(),
                           fontWeight: FontWeight.w600,
                         ),
@@ -118,8 +117,8 @@ class TransactionTile extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    '${transaction.type == TransactionType.income ? '+' : '-'}TSh ${transaction.amount.toStringAsFixed(0)}',
-                    style: AppStyles.bodyMedium(context).copyWith(
+                    "${transaction.type == TransactionType.income ? "+" : "-"}TSh ${transaction.amount.toStringAsFixed(0)}",
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
                       color: _getTransactionColor(),
                       fontWeight: FontWeight.bold,
                     ),
@@ -127,7 +126,7 @@ class TransactionTile extends StatelessWidget {
                 ),
                 Text(
                   AppDateUtils.formatTime(transaction.createdAt),
-                  style: AppStyles.bodySmall(context).copyWith(
+                  style: AppStyles.bodySmallResponsive(context).copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -184,11 +183,11 @@ class TransactionSummaryTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
     
     return InkWell(
       onTap: onTap,
-      child: ResponsiveContainer(
+      child: ResponsiveWrapper(
         child: ResponsiveRow(
           spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
           children: <Widget>[
@@ -215,7 +214,7 @@ class TransactionSummaryTile extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     title,
-                    style: AppStyles.bodyMedium(context).copyWith(
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -223,7 +222,7 @@ class TransactionSummaryTile extends StatelessWidget {
                   ),
                   Text(
                     "$count miamala",
-                    style: AppStyles.bodySmall(context).copyWith(
+                    style: AppStyles.bodySmallResponsive(context).copyWith(
                       color: AppColors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -237,7 +236,7 @@ class TransactionSummaryTile extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 "TSh ${amount.toStringAsFixed(0)}",
-                style: AppStyles.bodyLarge(context).copyWith(
+                style: AppStyles.bodyLargeResponsive(context).copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
@@ -274,7 +273,7 @@ class TransactionListHeader extends StatelessWidget {
               children: <Widget>[
                 Text(
                   title,
-                  style: AppStyles.bodyMedium(context).copyWith(
+                  style: AppStyles.bodyMediumResponsive(context).copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
@@ -284,7 +283,7 @@ class TransactionListHeader extends StatelessWidget {
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: AppStyles.bodySmall(context).copyWith(
+                    style: AppStyles.bodySmallResponsive(context).copyWith(
                       color: AppColors.textHint,
                     ),
                     overflow: TextOverflow.ellipsis,

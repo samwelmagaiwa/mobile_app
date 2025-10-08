@@ -1,4 +1,4 @@
-enum TransactionType {
+﻿enum TransactionType {
   income,
   expense,
 }
@@ -13,9 +13,9 @@ extension TransactionTypeExtension on TransactionType {
   String get name {
     switch (this) {
       case TransactionType.income:
-        return 'Mapato';
+        return "Mapato";
       case TransactionType.expense:
-        return 'Matumizi';
+        return "Matumizi";
     }
   }
 }
@@ -24,11 +24,11 @@ extension TransactionStatusExtension on TransactionStatus {
   String get name {
     switch (this) {
       case TransactionStatus.pending:
-        return 'Inasubiri';
+        return "Inasubiri";
       case TransactionStatus.completed:
-        return 'Imekamilika';
+        return "Imekamilika";
       case TransactionStatus.cancelled:
-        return 'Imeghairiwa';
+        return "Imeghairiwa";
     }
   }
 }
@@ -52,19 +52,19 @@ class Transaction {
   });
 
   factory Transaction.fromJson(final Map<String, dynamic> json) => Transaction(
-      id: json['id'] ?? '',
-      amount: (json['amount'] ?? 0).toDouble(),
-      type: _parseTransactionType(json['type']),
-      status: _parseTransactionStatus(json['status']),
-      description: json['description'] ?? '',
-      category: json['category'] ?? '',
-      deviceId: json['device_id'] ?? '',
-      driverId: json['driver_id'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
-      receiptNumber: json['receipt_number'],
-      customerName: json['customer_name'],
-      notes: json['notes'],
+      id: json["id"] ?? "",
+      amount: (json["amount"] ?? 0).toDouble(),
+      type: _parseTransactionType(json["type"]),
+      status: _parseTransactionStatus(json["status"]),
+      description: json["description"] ?? "",
+      category: json["category"] ?? "",
+      deviceId: json["device_id"] ?? "",
+      driverId: json["driver_id"] ?? "",
+      createdAt: DateTime.parse(json["created_at"] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json["updated_at"] ?? DateTime.now().toIso8601String()),
+      receiptNumber: json["receipt_number"],
+      customerName: json["customer_name"],
+      notes: json["notes"],
     );
   final String id;
   final double amount;
@@ -82,9 +82,9 @@ class Transaction {
 
   static TransactionType _parseTransactionType(final String? type) {
     switch (type?.toLowerCase()) {
-      case 'income':
+      case "income":
         return TransactionType.income;
-      case 'expense':
+      case "expense":
         return TransactionType.expense;
       default:
         return TransactionType.income;
@@ -93,11 +93,11 @@ class Transaction {
 
   static TransactionStatus _parseTransactionStatus(final String? status) {
     switch (status?.toLowerCase()) {
-      case 'pending':
+      case "pending":
         return TransactionStatus.pending;
-      case 'completed':
+      case "completed":
         return TransactionStatus.completed;
-      case 'cancelled':
+      case "cancelled":
         return TransactionStatus.cancelled;
       default:
         return TransactionStatus.pending;

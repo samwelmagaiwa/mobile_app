@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../providers/transaction_provider.dart';
-import '../../models/transaction.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/transaction_tile.dart';
-import 'transaction_detail.dart';
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../models/transaction.dart";
+import "../../providers/transaction_provider.dart";
+import "../../widgets/custom_card.dart";
+import "../../widgets/transaction_tile.dart";
+import "transaction_detail.dart";
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -17,7 +18,7 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  String _selectedFilter = 'all';
+  String _selectedFilter = "all";
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -41,7 +42,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (final context) => const _AddTransactionSheet(),
+      builder: (final BuildContext context) => const _AddTransactionSheet(),
     );
   }
 
@@ -75,7 +76,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 hintText: AppStrings.search,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                  borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
@@ -94,7 +95,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               onRefresh: _loadTransactions,
               child: Consumer<TransactionProvider>(
                 builder: (final BuildContext context, final TransactionProvider transactionProvider, final Widget? child) {
-                  var List<Transaction> transactions = transactionProvider.filteredTransactions;
+                  final List<Transaction> transactions = transactionProvider.filteredTransactions;
                   
                   if (transactionProvider.isLoading) {
                     return const Center(
@@ -128,7 +129,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     padding: const EdgeInsets.all(AppStyles.spacingM),
                     itemCount: transactions.length,
                     itemBuilder: (final BuildContext context, final int index) {
-                      var Transaction transaction = transactions[index];
+                      final Transaction transaction = transactions[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
                         child: CustomCard(
@@ -166,16 +167,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (final BuildContext final BuildContext final context) => AlertDialog(
-        title: const Text('Chuja Miamala'),
+      builder: (final BuildContext context) => AlertDialog(
+        title: const Text("Chuja Miamala"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             _FilterOption(
-              title: 'Yote',
-              value: 'all',
+              title: "Yote",
+              value: "all",
               selectedValue: _selectedFilter,
-              onChanged: (final value) {
+              onChanged: (final String? value) {
                 setState(() {
                   _selectedFilter = value!;
                 });
@@ -183,10 +184,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               },
             ),
             _FilterOption(
-              title: 'Mapato',
-              value: 'income',
+              title: "Mapato",
+              value: "income",
               selectedValue: _selectedFilter,
-              onChanged: (final value) {
+              onChanged: (final String? value) {
                 setState(() {
                   _selectedFilter = value!;
                 });
@@ -194,10 +195,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               },
             ),
             _FilterOption(
-              title: 'Matumizi',
-              value: 'expense',
+              title: "Matumizi",
+              value: "expense",
               selectedValue: _selectedFilter,
-              onChanged: (final value) {
+              onChanged: (final String? value) {
                 setState(() {
                   _selectedFilter = value!;
                 });
@@ -264,15 +265,15 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
     });
 
     try {
-      final transaction = Transaction(
+      final Transaction transaction = Transaction(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         amount: double.parse(_amountController.text),
         type: _selectedType,
         status: TransactionStatus.completed,
         description: _descriptionController.text.trim(),
         category: _categoryController.text.trim(),
-        deviceId: 'current_device_id', // Replace with actual device ID
-        driverId: 'current_driver_id', // Replace with actual driver ID
+        deviceId: "current_device_id", // Replace with actual device ID
+        driverId: "current_driver_id", // Replace with actual driver ID
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -293,7 +294,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -314,10 +315,10 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
       ),
       child: Container(
         padding: const EdgeInsets.all(AppStyles.spacingM),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppStyles.radiusL),
+            top: Radius.circular(AppStyles.radiusL(context)),
           ),
         ),
         child: Form(
@@ -367,7 +368,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
               // Amount
               TextFormField(
                 controller: _amountController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.amount,
                   prefixText: "TSh ",
                 ),
@@ -388,7 +389,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
               // Description
               TextFormField(
                 controller: _descriptionController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.description,
                 ),
                 validator: (final String? value) {
@@ -404,7 +405,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
               // Category
               TextFormField(
                 controller: _categoryController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: AppStrings.category,
                 ),
                 validator: (final String? value) {
@@ -422,7 +423,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveTransaction,
-                  style: AppStyles.primaryButton,
+                  style: AppStyles.primaryButton(context),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(AppStrings.save),

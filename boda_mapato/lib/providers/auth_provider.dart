@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
-import '../services/auth_service.dart';
-import '../models/login_response.dart';
+import "package:flutter/foundation.dart";
+
+import "../models/login_response.dart";
+import "../services/auth_service.dart";
 
 class AuthProvider extends ChangeNotifier {
   UserData? _user;
@@ -24,18 +25,18 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isAuthenticated = await AuthService.isAuthenticated();
       if (_isAuthenticated) {
-        final userData = await AuthService.getUserData();
+        final Map<String, dynamic>? userData = await AuthService.getUserData();
         if (userData != null) {
           _user = UserData.fromJson(userData);
         }
         // Validate token
-        final isValid = await AuthService.validateToken();
+        final bool isValid = await AuthService.validateToken();
         if (!isValid) {
           await logout();
         }
       }
     } catch (e) {
-      _setError('Failed to initialize auth: $e');
+      _setError("Failed to initialize auth: $e");
     } finally {
       _setLoading(false);
     }
@@ -51,27 +52,27 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     
     try {
-      final response = await AuthService.login(
+      final Map<String, dynamic> response = await AuthService.login(
         email: email,
         password: password,
         phoneNumber: phoneNumber,
       );
       
       // Extract user data from response
-      if (response['data'] != null) {
-        if (response['data']['user'] != null) {
-          _user = UserData.fromJson(response['data']['user']);
+      if (response["data"] != null) {
+        if (response["data"]["user"] != null) {
+          _user = UserData.fromJson(response["data"]["user"]);
         }
-        if (response['data']['token'] != null) {
-          await AuthService.saveToken(response['data']['token']);
+        if (response["data"]["token"] != null) {
+          await AuthService.saveToken(response["data"]["token"]);
         }
       } else {
         // Handle different response structure
-        if (response['user'] != null) {
-          _user = UserData.fromJson(response['user']);
+        if (response["user"] != null) {
+          _user = UserData.fromJson(response["user"]);
         }
-        if (response['token'] != null) {
-          await AuthService.saveToken(response['token']);
+        if (response["token"] != null) {
+          await AuthService.saveToken(response["token"]);
         }
       }
       
@@ -101,7 +102,7 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     
     try {
-      final response = await AuthService.register(
+      final Map<String, dynamic> response = await AuthService.register(
         name: name,
         email: email,
         password: password,
@@ -109,7 +110,7 @@ class AuthProvider extends ChangeNotifier {
         phone: phone,
       );
       
-      _user = response['user'];
+      _user = response["user"];
       _isAuthenticated = true;
       
       notifyListeners();
@@ -130,7 +131,7 @@ class AuthProvider extends ChangeNotifier {
       await AuthService.logout();
     } catch (e) {
       // Continue with logout even if server request fails
-      debugPrint('Logout error: $e');
+      debugPrint("Logout error: $e");
     } finally {
       _user = null;
       _isAuthenticated = false;
@@ -144,13 +145,13 @@ class AuthProvider extends ChangeNotifier {
     if (!_isAuthenticated) return;
     
     try {
-      final userData = await AuthService.getCurrentUser();
+      final Map<String, dynamic>? userData = await AuthService.getCurrentUser();
       if (userData != null) {
         _user = UserData.fromJson(userData);
       }
       notifyListeners();
     } catch (e) {
-      _setError('Failed to refresh user data: $e');
+      _setError("Failed to refresh user data: $e");
     }
   }
 
@@ -168,13 +169,13 @@ class AuthProvider extends ChangeNotifier {
     try {
       // TODO: Implement API call to update profile
       // For now, just update local data
-      final updatedUserData = <String, Object?>{
-        'id': _user!.id,
-        'name': name ?? _user!.name,
-        'email': email ?? _user!.email,
-        'phone_number': phone ?? _user!.phoneNumber,
-        'role': _user!.role,
-        'is_active': _user!.isActive,
+      final Map<String, Object?> updatedUserData = <String, Object?>{
+        "id": _user!.id,
+        "name": name ?? _user!.name,
+        "email": email ?? _user!.email,
+        "phone_number": phone ?? _user!.phoneNumber,
+        "role": _user!.role,
+        "is_active": _user!.isActive,
       };
       
       await AuthService.saveUserData(updatedUserData);
@@ -183,7 +184,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _setError('Failed to update profile: $e');
+      _setError("Failed to update profile: $e");
       return false;
     } finally {
       _setLoading(false);
@@ -210,7 +211,7 @@ class AuthProvider extends ChangeNotifier {
       
       return true;
     } catch (e) {
-      _setError('Failed to change password: $e');
+      _setError("Failed to change password: $e");
       return false;
     } finally {
       _setLoading(false);
@@ -226,7 +227,7 @@ class AuthProvider extends ChangeNotifier {
       await AuthService.forgotPassword(email);
       return true;
     } catch (e) {
-      _setError('Failed to send reset email: $e');
+      _setError("Failed to send reset email: $e");
       return false;
     } finally {
       _setLoading(false);
@@ -250,7 +251,7 @@ class AuthProvider extends ChangeNotifier {
       );
       return true;
     } catch (e) {
-      _setError('Failed to reset password: $e');
+      _setError("Failed to reset password: $e");
       return false;
     } finally {
       _setLoading(false);
@@ -277,20 +278,20 @@ class AuthProvider extends ChangeNotifier {
 
   // Get user display name
   String get userDisplayName {
-    if (_user == null) return 'Guest';
+    if (_user == null) return "Guest";
     return _user!.name.isNotEmpty ? _user!.name : _user!.email;
   }
 
   // Get user email
   String get userEmail {
-    if (_user == null) return '';
+    if (_user == null) return "";
     return _user!.email;
   }
 
   // Get user phone
   String get userPhone {
-    if (_user == null) return '';
-    return _user!.phoneNumber ?? '';
+    if (_user == null) return "";
+    return _user!.phoneNumber ?? "";
   }
 
   // Check if user has specific role

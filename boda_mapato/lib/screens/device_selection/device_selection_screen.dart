@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../providers/device_provider.dart';
-import '../../models/device.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../models/device.dart";
+import "../../providers/device_provider.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class DeviceSelectionScreen extends StatefulWidget {
   const DeviceSelectionScreen({super.key});
@@ -35,7 +36,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
     if (!_formKey.currentState!.validate() || selectedDeviceType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tafadhali jaza taarifa zote zinazohitajika'),
+          content: Text("Tafadhali jaza taarifa zote zinazohitajika"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -47,12 +48,12 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
     });
 
     try {
-      final device = Device(
+      final Device device = Device(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         type: selectedDeviceType!,
         plateNumber: _plateNumberController.text.trim(),
-        driverId: 'current_driver_id', // Replace with actual driver ID
+        driverId: "current_driver_id", // Replace with actual driver ID
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         description: _descriptionController.text.trim().isEmpty 
@@ -65,7 +66,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Chombo kimesajiliwa kwa mafanikio'),
+            content: Text("Chombo kimesajiliwa kwa mafanikio"),
             backgroundColor: AppColors.success,
           ),
         );
@@ -75,7 +76,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -135,7 +136,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
               // Device Name
               TextFormField(
                 controller: _nameController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: "Jina la Chombo",
                   hintText: "Mfano: Bajaji ya Kwanza",
                 ),
@@ -152,7 +153,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
               // Plate Number
               TextFormField(
                 controller: _plateNumberController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: "Nambari ya Bango",
                   hintText: "Mfano: T123ABC",
                 ),
@@ -170,7 +171,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
               // Description (Optional)
               TextFormField(
                 controller: _descriptionController,
-                decoration: AppStyles.inputDecoration.copyWith(
+                decoration: AppStyles.inputDecoration(context).copyWith(
                   labelText: "Maelezo (Si lazima)",
                   hintText: "Maelezo ya ziada kuhusu chombo",
                 ),
@@ -207,7 +208,7 @@ class _DeviceTypeSelector extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Column(
       children: DeviceType.values.map((final DeviceType type) {
-        var bool isSelected = selectedType == type;
+        final bool isSelected = selectedType == type;
         
         return Padding(
           padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
@@ -216,7 +217,7 @@ class _DeviceTypeSelector extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppStyles.spacingM),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppStyles.radiusL),
+                borderRadius: BorderRadius.circular(AppStyles.radiusL(context)),
                 border: isSelected
                     ? Border.all(color: AppColors.primary, width: 2)
                     : null,
@@ -231,7 +232,7 @@ class _DeviceTypeSelector extends StatelessWidget {
                     height: 60,
                     decoration: BoxDecoration(
                       color: _getDeviceColor(type).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(AppStyles.radiusM),
+                      borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
                     ),
                     child: Center(
                       child: Text(
@@ -289,11 +290,11 @@ class _DeviceTypeSelector extends StatelessWidget {
   String _getDeviceDescription(final DeviceType type) {
     switch (type) {
       case DeviceType.bajaji:
-        return 'Bajaji au rickshaw ya abiria';
+        return "Bajaji au rickshaw ya abiria";
       case DeviceType.pikipiki:
-        return 'Pikipiki ya abiria (boda boda)';
+        return "Pikipiki ya abiria (boda boda)";
       case DeviceType.gari:
-        return 'Gari la abiria au mizigo';
+        return "Gari la abiria au mizigo";
     }
   }
 }

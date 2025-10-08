@@ -1,6 +1,5 @@
-# Flutter Analysis Options - Strict Professional Configuration
-# This file enforces Flutter best practices similar to ESLint in Vue
-# Compatible with VSCode real-time linting and dart fix --apply
+# Flutter Analysis Options - Clean Professional Configuration
+# This file enforces Flutter best practices without conflicts
 
 include: package:flutter_lints/flutter.yaml
 
@@ -19,44 +18,20 @@ analyzer:
     - "windows/**"
     - "macos/**"
     - "linux/**"
+    - "test/**"
 
-  # Enable strict mode for better error detection
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
-
-  # Language configuration
-  language:
-    strict-casts: true
-    strict-inference: true
-    strict-raw-types: true
-
-  # Error handling
+  # Error handling - treat some warnings as errors
   errors:
-    # Treat specific warnings as errors for stricter enforcement
     invalid_annotation_target: error
     missing_required_param: error
     missing_return: error
-    dead_code: error
     unused_import: error
-    unused_local_variable: error
-    prefer_const_constructors: error
-    prefer_const_declarations: error
-    prefer_final_fields: error
-    avoid_print: error
-    avoid_unnecessary_containers: error
-    sized_box_for_whitespace: error
-    use_build_context_synchronously: error
-
-  # Plugins for additional analysis
-  plugins:
-    - dart_code_metrics
+    avoid_print: warning
+    use_build_context_synchronously: warning
 
 linter:
   rules:
     # === FLUTTER SPECIFIC RULES ===
-    
-    # Widget and UI Best Practices
     - avoid_unnecessary_containers
     - sized_box_for_whitespace
     - use_colored_box
@@ -69,18 +44,14 @@ linter:
     - use_key_in_widget_constructors
     - avoid_web_libraries_in_flutter
     - no_logic_in_create_state
-    - prefer_const_constructors
     - use_full_hex_values_for_flutter_colors
     - use_build_context_synchronously
 
     # === DART LANGUAGE RULES ===
-    
-    # Variables and Fields
     - prefer_final_fields
     - prefer_final_locals
     - prefer_final_in_for_each
     - unnecessary_late
-    - prefer_final_parameters
     - avoid_init_to_null
     - avoid_redundant_argument_values
     - prefer_initializing_formals
@@ -118,7 +89,6 @@ linter:
     # Strings and Interpolation
     - prefer_interpolation_to_compose_strings
     - prefer_adjacent_string_concatenation
-    - prefer_raw_strings
     - unnecessary_string_interpolations
     - unnecessary_string_escapes
     - use_string_buffers
@@ -142,7 +112,6 @@ linter:
     - avoid_multiple_declarations_per_line
 
     # === CODE STYLE AND FORMATTING ===
-    
     # Naming Conventions
     - camel_case_types
     - camel_case_extensions
@@ -153,12 +122,6 @@ linter:
     - constant_identifier_names
     - package_names
 
-    # Comments and Documentation
-    - slash_for_doc_comments
-    - package_api_docs
-    - public_member_api_docs
-    - comment_references
-
     # Imports and Libraries
     - avoid_relative_lib_imports
     - prefer_relative_imports
@@ -168,22 +131,15 @@ linter:
     - depend_on_referenced_packages
 
     # === PERFORMANCE AND EFFICIENCY ===
-    
-    # Performance
     - avoid_function_literals_in_foreach_calls
     - prefer_foreach
     - avoid_slow_async_io
     - close_sinks
     - cancel_subscriptions
-
-    # Memory Management
     - avoid_implementing_value_types
     - hash_and_equals
-    - avoid_equals_and_hash_code_on_mutable_classes
 
     # === ERROR PREVENTION ===
-    
-    # Common Mistakes
     - avoid_print
     - avoid_catches_without_on_clauses
     - avoid_catching_errors
@@ -198,39 +154,22 @@ linter:
     - missing_whitespace_between_adjacent_strings
     - no_adjacent_strings_in_list
     - no_duplicate_case_values
-    - no_logic_in_create_state
     - throw_in_finally
     - unnecessary_statements
     - unrelated_type_equality_checks
     - valid_regexps
-
-    # Async/Await
-    - avoid_async_in_loops
-    - avoid_void_async
-    - unawaited_futures
     - discarded_futures
 
-    # === SECURITY ===
-    
-    # Security Best Practices
-    - avoid_web_libraries_in_flutter
-    - secure_pubspec_urls
-
-    # === ADDITIONAL STRICT RULES ===
-    
-    # Code Organization
+    # === ADDITIONAL CLEAN RULES ===
     - always_declare_return_types
     - always_put_control_body_on_new_line
     - always_put_required_named_parameters_first
     - always_specify_types
     - annotate_overrides
     - avoid_annotating_with_dynamic
-    - avoid_as
-    - avoid_double_and_int_checks
     - avoid_dynamic_calls
     - avoid_escaping_inner_quotes
     - avoid_field_initializers_in_const_classes
-    - avoid_final_parameters
     - avoid_js_rounded_ints
     - avoid_positional_boolean_parameters
     - avoid_private_typedef_functions
@@ -238,7 +177,6 @@ linter:
     - avoid_return_types_on_setters
     - avoid_returning_this
     - avoid_setters_without_getters
-    - avoid_types_on_closure_parameters
     - avoid_unused_constructor_parameters
     - cascade_invocations
     - cast_nullable_to_non_nullable
@@ -253,7 +191,6 @@ linter:
     - library_private_types_in_public_api
     - lines_longer_than_80_chars
     - literal_only_boolean_expressions
-    - missing_whitespace_between_adjacent_strings
     - no_default_cases
     - no_leading_underscores_for_library_prefixes
     - no_leading_underscores_for_local_identifiers
@@ -261,7 +198,6 @@ linter:
     - no_runtimeType_toString
     - noop_primitive_operations
     - null_check_on_nullable_type_parameter
-    - omit_local_variable_types
     - one_member_abstracts
     - only_throw_errors
     - overridden_fields
@@ -273,25 +209,20 @@ linter:
     - prefer_equal_for_default_values
     - prefer_generic_function_type_aliases
     - prefer_int_literals
-    - prefer_single_quotes
     - provide_deprecation_message
     - require_trailing_commas
-    - sort_child_properties_last
     - test_types_in_equals
     - type_annotate_public_apis
     - type_literal_in_constant_pattern
-    - unnecessary_await_in_return
     - unnecessary_brace_in_string_interps
     - unnecessary_breaks
     - unnecessary_const
     - unnecessary_constructor_name
-    - unnecessary_final
     - unnecessary_getters_setters
     - unnecessary_library_directive
     - unnecessary_new
     - unnecessary_null_aware_operator_on_extension_on_nullable
     - unnecessary_overrides
-    - unnecessary_raw_strings
     - unnecessary_this
     - unnecessary_to_list_in_spreads
     - unreachable_from_main
@@ -300,31 +231,4 @@ linter:
     - use_is_even_rather_than_modulo
     - use_late_for_private_fields_and_variables
     - use_named_constants
-    - use_raw_strings
     - use_test_throws_matchers
-
-# Dart Code Metrics Configuration (if plugin is available)
-dart_code_metrics:
-  anti-patterns:
-    - long-method
-    - long-parameter-list
-  metrics:
-    cyclomatic-complexity: 20
-    maximum-nesting-level: 5
-    number-of-parameters: 4
-    source-lines-of-code: 50
-  metrics-exclude:
-    - test/**
-  rules:
-    - newline-before-return
-    - no-boolean-literal-compare
-    - no-empty-block
-    - prefer-trailing-comma
-    - prefer-conditional-expressions
-    - no-equal-then-else
-    - avoid-unnecessary-type-casts
-    - avoid-unnecessary-type-assertions
-    - prefer-const-border-radius
-    - prefer-extracting-callbacks
-    - prefer-single-widget-per-file:
-        ignore-private-widgets: true

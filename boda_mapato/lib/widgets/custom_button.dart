@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../constants/colors.dart';
-import '../constants/styles.dart';
-import '../utils/responsive_utils.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "../constants/colors.dart";
+import "../constants/styles.dart";
+import "../utils/responsive_utils.dart";
 
 class CustomButton extends StatelessWidget {
 
@@ -29,11 +29,11 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final effectiveBackgroundColor = backgroundColor ?? AppColors.primary;
-    final effectiveTextColor = textColor ?? Colors.white;
-    final responsiveHeight = height ?? ResponsiveUtils.getResponsiveButtonHeight(context);
-    final responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 18);
-    final responsiveProgressSize = ResponsiveUtils.getResponsiveIconSize(context, 16);
+    final Color effectiveBackgroundColor = backgroundColor ?? AppColors.primary;
+    final Color effectiveTextColor = textColor ?? Colors.white;
+    final double responsiveHeight = height ?? ResponsiveUtils.getResponsiveButtonHeight(context);
+    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 18);
+    final double responsiveProgressSize = ResponsiveUtils.getResponsiveIconSize(context, 16);
 
     if (isOutlined) {
       return ConstrainedBox(
@@ -76,7 +76,7 @@ class CustomButton extends StatelessWidget {
                     : const SizedBox.shrink(),
             label: Text(
               text,
-              style: AppStyles.bodyMedium(context).copyWith(
+              style: AppStyles.bodyMediumResponsive(context).copyWith(
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -127,7 +127,7 @@ class CustomButton extends StatelessWidget {
                   : const SizedBox.shrink(),
           label: Text(
             text,
-            style: AppStyles.bodyMedium(context).copyWith(
+            style: AppStyles.bodyMediumResponsive(context).copyWith(
               color: effectiveTextColor,
               fontWeight: FontWeight.w600,
             ),
@@ -160,11 +160,11 @@ class CustomIconButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final responsiveSize = ResponsiveUtils.getResponsiveIconSize(context, size);
-    final responsiveIconSize = responsiveSize * 0.5;
-    final responsiveBlurRadius = ResponsiveUtils.getResponsiveSpacing(context, 4);
+    final double responsiveSize = ResponsiveUtils.getResponsiveIconSize(context, size);
+    final double responsiveIconSize = responsiveSize * 0.5;
+    final double responsiveBlurRadius = ResponsiveUtils.getResponsiveSpacing(context, 4);
     
-    final button = Container(
+    final Container button = Container(
       width: responsiveSize,
       height: responsiveSize,
       decoration: BoxDecoration(
@@ -234,7 +234,7 @@ class CustomTextButton extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: AppStyles.bodyMedium(context).copyWith(
+        style: AppStyles.bodyMediumResponsive(context).copyWith(
           color: textColor ?? AppColors.primary,
           fontWeight: fontWeight ?? FontWeight.w600,
         ),

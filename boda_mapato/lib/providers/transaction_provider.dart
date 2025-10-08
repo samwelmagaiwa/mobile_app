@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
-import '../models/transaction.dart';
-import '../services/api_service.dart';
+import "package:flutter/foundation.dart";
+import "../models/transaction.dart";
+import "../services/api_service.dart";
 
 class TransactionProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -9,8 +9,8 @@ class TransactionProvider extends ChangeNotifier {
   List<Transaction> _filteredTransactions = <Transaction>[];
   bool _isLoading = false;
   String? _error;
-  String _searchQuery = '';
-  String _filterType = 'all';
+  String _searchQuery = "";
+  String _filterType = "all";
 
   // Getters
   List<Transaction> get transactions => _transactions;
@@ -26,20 +26,20 @@ class TransactionProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final resp = await _api.getTransactions();
-      final data = resp['data'];
+      final Map<String, dynamic> resp = await _api.getTransactions();
+      final data = resp["data"];
       List list = <dynamic>[];
       if (data is List) {
         list = data;
-      } else if (data is Map && data['data'] is List) {
-        list = data['data'];
+      } else if (data is Map && data["data"] is List) {
+        list = data["data"];
       }
       _transactions = list
           .map<Transaction>((final j) => Transaction.fromJson(j as Map<String, dynamic>))
           .toList();
       _applyFilters();
     } catch (e) {
-      _setError('Failed to load transactions: $e');
+      _setError("Failed to load transactions: $e");
       // Use mock data for development
       _loadMockTransactions();
     } finally {
@@ -50,14 +50,14 @@ class TransactionProvider extends ChangeNotifier {
   // Add new transaction
   Future<bool> addTransaction(final Transaction transaction) async {
     try {
-      final resp = await _api.createTransaction(transaction.toJson());
-      final createdJson = (resp['data'] ?? resp) as Map<String, dynamic>;
-      final newTransaction = Transaction.fromJson(createdJson);
+      final Map<String, dynamic> resp = await _api.createTransaction(transaction.toJson());
+      final Map<String, dynamic> createdJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      final Transaction newTransaction = Transaction.fromJson(createdJson);
       _transactions.insert(0, newTransaction);
       _applyFilters();
       return true;
     } catch (e) {
-      _setError('Failed to add transaction: $e');
+      _setError("Failed to add transaction: $e");
       // Add to local list for development
       _transactions.insert(0, transaction);
       _applyFilters();
@@ -68,17 +68,17 @@ class TransactionProvider extends ChangeNotifier {
   // Update transaction
   Future<bool> updateTransaction(final Transaction transaction) async {
     try {
-      final resp = await _api.updateTransaction(transaction.id, transaction.toJson());
-      final updatedJson = (resp['data'] ?? resp) as Map<String, dynamic>;
-      final updatedTransaction = Transaction.fromJson(updatedJson);
-      final index = _transactions.indexWhere((final Transaction t) => t.id == transaction.id);
+      final Map<String, dynamic> resp = await _api.updateTransaction(transaction.id, transaction.toJson());
+      final Map<String, dynamic> updatedJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      final Transaction updatedTransaction = Transaction.fromJson(updatedJson);
+      final int index = _transactions.indexWhere((final Transaction t) => t.id == transaction.id);
       if (index != -1) {
         _transactions[index] = updatedTransaction;
         _applyFilters();
       }
       return true;
     } catch (e) {
-      _setError('Failed to update transaction: $e');
+      _setError("Failed to update transaction: $e");
       return false;
     }
   }
@@ -87,11 +87,11 @@ class TransactionProvider extends ChangeNotifier {
   Future<bool> deleteTransaction(final String id) async {
     try {
       await _api.deleteTransaction(id);
-      _transactions.removeWhere((final t) => t.id == id);
+      _transactions.removeWhere((final Transaction t) => t.id == id);
       _applyFilters();
       return true;
     } catch (e) {
-      _setError('Failed to delete transaction: $e');
+      _setError("Failed to delete transaction: $e");
       return false;
     }
   }
@@ -110,7 +110,7 @@ class TransactionProvider extends ChangeNotifier {
 
   // Apply filters and search
   void _applyFilters() {
-    _filteredTransactions = _transactions.where((final transaction) {
+    _filteredTransactions = _transactions.where((final Transaction transaction) {
       // Apply search filter
       bool matchesSearch = true;
       if (_searchQuery.isNotEmpty) {
@@ -126,21 +126,21 @@ class TransactionProvider extends ChangeNotifier {
       // Apply type filter
       bool matchesType = true;
       switch (_filterType) {
-        case 'income':
+        case "income":
           matchesType = transaction.type == TransactionType.income;
-        case 'expense':
+        case "expense":
           matchesType = transaction.type == TransactionType.expense;
-        case 'today':
-          final today = DateTime.now();
+        case "today":
+          final DateTime today = DateTime.now();
           matchesType = transaction.createdAt.day == today.day &&
               transaction.createdAt.month == today.month &&
               transaction.createdAt.year == today.year;
-        case 'week':
-          final now = DateTime.now();
-          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        case "week":
+          final DateTime now = DateTime.now();
+          final DateTime weekStart = now.subtract(Duration(days: now.weekday - 1));
           matchesType = transaction.createdAt.isAfter(weekStart);
-        case 'month':
-          final now = DateTime.now();
+        case "month":
+          final DateTime now = DateTime.now();
           matchesType = transaction.createdAt.month == now.month &&
               transaction.createdAt.year == now.year;
         default:
@@ -158,68 +158,68 @@ class TransactionProvider extends ChangeNotifier {
 
   // Get revenue statistics
   Map<String, double> getRevenueStats() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final weekStart = today.subtract(Duration(days: now.weekday - 1));
-    final monthStart = DateTime(now.year, now.month);
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime weekStart = today.subtract(Duration(days: now.weekday - 1));
+    final DateTime monthStart = DateTime(now.year, now.month);
 
     double todayRevenue = 0;
     double weekRevenue = 0;
     double monthRevenue = 0;
     double totalRevenue = 0;
 
-    for (final transaction in _transactions) {
+    for (final Transaction transaction in _transactions) {
       if (transaction.type == TransactionType.income &&
           transaction.status == TransactionStatus.completed) {
-        totalRevenue += transaction.amount.toDouble();
+        totalRevenue += transaction.amount;
 
         if (transaction.createdAt.isAfter(today)) {
-          todayRevenue += transaction.amount.toDouble();
+          todayRevenue += transaction.amount;
         }
 
         if (transaction.createdAt.isAfter(weekStart)) {
-          weekRevenue += transaction.amount.toDouble();
+          weekRevenue += transaction.amount;
         }
 
         if (transaction.createdAt.isAfter(monthStart)) {
-          monthRevenue += transaction.amount.toDouble();
+          monthRevenue += transaction.amount;
         }
       }
     }
 
     return <String, double>{
-      'today': todayRevenue.toDouble(),
-      'week': weekRevenue.toDouble(),
-      'month': monthRevenue.toDouble(),
-      'total': totalRevenue.toDouble(),
+      "today": todayRevenue,
+      "week": weekRevenue,
+      "month": monthRevenue,
+      "total": totalRevenue,
     };
   }
 
   // Get recent transactions
   List<Transaction> getRecentTransactions(final int limit) {
-    final sortedTransactions = List<Transaction>.from(_transactions);
+    final List<Transaction> sortedTransactions = List<Transaction>.from(_transactions);
     sortedTransactions.sort((final Transaction a, final Transaction b) => b.createdAt.compareTo(a.createdAt));
     return sortedTransactions.take(limit).toList();
   }
 
   // Get device revenue for today
   double getDeviceRevenueToday(final String deviceId) {
-    final today = DateTime.now();
-    final todayStart = DateTime(today.year, today.month, today.day);
+    final DateTime today = DateTime.now();
+    final DateTime todayStart = DateTime(today.year, today.month, today.day);
 
     return _transactions
-        .where((final t) =>
+        .where((final Transaction t) =>
             t.deviceId == deviceId &&
             t.type == TransactionType.income &&
             t.status == TransactionStatus.completed &&
             t.createdAt.isAfter(todayStart),)
-        .fold(0.0, (final double sum, final t) => sum + t.amount.toDouble());
+        .fold(0, (final double sum, final Transaction t) => sum + t.amount);
   }
 
   // Get transactions by date range
   List<Transaction> getTransactionsByDateRange(
       final DateTime startDate, final DateTime endDate,) => _transactions
-        .where((final t) =>
+        .where((final Transaction t) =>
             t.createdAt.isAfter(startDate) && t.createdAt.isBefore(endDate),)
         .toList();
 
@@ -231,22 +231,22 @@ class TransactionProvider extends ChangeNotifier {
 
   // Get monthly revenue data for charts
   Map<String, double> getMonthlyRevenueData() {
-    final monthlyData = <String, double>{};
-    final now = DateTime.now();
+    final Map<String, double> monthlyData = <String, double>{};
+    final DateTime now = DateTime.now();
 
     for (int i = 11; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i);
-      final monthKey = '${month.month}/${month.year}';
+      final DateTime month = DateTime(now.year, now.month - i);
+      final String monthKey = "${month.month}/${month.year}";
       monthlyData[monthKey] = 0.0;
     }
 
-    for (final transaction in _transactions) {
+    for (final Transaction transaction in _transactions) {
       if (transaction.type == TransactionType.income &&
           transaction.status == TransactionStatus.completed) {
-        final monthKey =
-            '${transaction.createdAt.month}/${transaction.createdAt.year}';
+        final String monthKey =
+            "${transaction.createdAt.month}/${transaction.createdAt.year}";
         if (monthlyData.containsKey(monthKey)) {
-          monthlyData[monthKey] = monthlyData[monthKey]! + transaction.amount.toDouble();
+          monthlyData[monthKey] = monthlyData[monthKey]! + transaction.amount;
         }
       }
     }
@@ -272,58 +272,58 @@ class TransactionProvider extends ChangeNotifier {
 
   // Load mock data for development
   void _loadMockTransactions() {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     _transactions = <Transaction>[
       Transaction(
-        id: '1',
+        id: "1",
         amount: 5000,
         type: TransactionType.income,
         status: TransactionStatus.completed,
-        description: 'Safari ya Kimbo',
-        category: 'Abiria',
-        deviceId: 'device1',
-        driverId: 'driver1',
+        description: "Safari ya Kimbo",
+        category: "Abiria",
+        deviceId: "device1",
+        driverId: "driver1",
         createdAt: now.subtract(const Duration(hours: 2)),
         updatedAt: now.subtract(const Duration(hours: 2)),
-        customerName: 'John Doe',
+        customerName: "John Doe",
       ),
       Transaction(
-        id: '2',
+        id: "2",
         amount: 3000,
         type: TransactionType.income,
         status: TransactionStatus.completed,
-        description: 'Safari ya Mwenge',
-        category: 'Abiria',
-        deviceId: 'device1',
-        driverId: 'driver1',
+        description: "Safari ya Mwenge",
+        category: "Abiria",
+        deviceId: "device1",
+        driverId: "driver1",
         createdAt: now.subtract(const Duration(hours: 4)),
         updatedAt: now.subtract(const Duration(hours: 4)),
-        customerName: 'Jane Smith',
+        customerName: "Jane Smith",
       ),
       Transaction(
-        id: '3',
+        id: "3",
         amount: 15000,
         type: TransactionType.expense,
         status: TransactionStatus.completed,
-        description: 'Mafuta',
-        category: 'Matumizi',
-        deviceId: 'device1',
-        driverId: 'driver1',
+        description: "Mafuta",
+        category: "Matumizi",
+        deviceId: "device1",
+        driverId: "driver1",
         createdAt: now.subtract(const Duration(hours: 6)),
         updatedAt: now.subtract(const Duration(hours: 6)),
       ),
       Transaction(
-        id: '4',
+        id: "4",
         amount: 7500,
         type: TransactionType.income,
         status: TransactionStatus.completed,
-        description: 'Safari ya Ubungo',
-        category: 'Abiria',
-        deviceId: 'device1',
-        driverId: 'driver1',
+        description: "Safari ya Ubungo",
+        category: "Abiria",
+        deviceId: "device1",
+        driverId: "driver1",
         createdAt: now.subtract(const Duration(days: 1)),
         updatedAt: now.subtract(const Duration(days: 1)),
-        customerName: 'Peter Johnson',
+        customerName: "Peter Johnson",
       ),
     ];
     _applyFilters();

@@ -1,32 +1,34 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import "dart:convert";
+import "dart:developer" as developer;
+
+import "package:http/http.dart" as http;
+import "package:shared_preferences/shared_preferences.dart";
 
 class AuthService {
   // API URL for XAMPP setup
-  static const String baseUrl = 'http://localhost/mobile_app/backend_mapato/public/api';
+  static const String baseUrl = "http://localhost/mobile_app/backend_mapato/public/api";
   
   // Alternative URLs (commented out):
-  // For real device: 'http://192.168.1.124:8000/api'
-  // For emulator: 'http://10.0.2.2:8000/api'
-  // For localhost Laravel: 'http://127.0.0.1:8000/api'
+  // For real device: "http://192.168.1.124:8000/api"
+  // For emulator: "http://10.0.2.2:8000/api"
+  // For localhost Laravel: "http://127.0.0.1:8000/api"
   
   static const Duration timeoutDuration = Duration(seconds: 30);
-  static const String tokenKey = 'auth_token';
-  static const String userKey = 'user_data';
+  static const String tokenKey = "auth_token";
+  static const String userKey = "user_data";
 
   // Headers for API requests
   static Map<String, String> get _headers => <String, String>{
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    "Accept": "application/json",
   };
 
   // Headers with authentication token
   static Future<Map<String, String>> get _authHeaders async {
-    final token = await getToken();
+    final String? token = await getToken();
     return <String, String>{
       ..._headers,
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (token != null) "Authorization": "Bearer $token",
     };
   }
 
@@ -37,7 +39,7 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
     } else {
-      throw Exception(data['message'] ?? 'Server error: ${response.statusCode}');
+      throw Exception(data["message"] ?? "Server error: ${response.statusCode}");
     }
   }
 
@@ -48,41 +50,41 @@ class AuthService {
     required final String phoneNumber,
   }) async {
     try {
-      final response = await http
+      final http.Response response = await http
           .post(
-            Uri.parse('$baseUrl/auth/login'),
+            Uri.parse("$baseUrl/auth/login"),
             headers: _headers,
             body: jsonEncode(<String, String>{
-              'email': email,
-              'password': password,
-              'phone_number': phoneNumber,
+              "email": email,
+              "password": password,
+              "phone_number": phoneNumber,
             }),
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       
       // Save token and user data after successful login
-      if (data['data'] != null) {
-        if (data['data']['token'] != null) {
-          await saveToken(data['data']['token']);
+      if (data["data"] != null) {
+        if (data["data"]["token"] != null) {
+          await saveToken(data["data"]["token"]);
         }
-        if (data['data']['user'] != null) {
-          await saveUserData(data['data']['user']);
+        if (data["data"]["user"] != null) {
+          await saveUserData(data["data"]["user"]);
         }
       } else {
         // Handle different response structure
-        if (data['token'] != null) {
-          await saveToken(data['token']);
+        if (data["token"] != null) {
+          await saveToken(data["token"]);
         }
-        if (data['user'] != null) {
-          await saveUserData(data['user']);
+        if (data["user"] != null) {
+          await saveUserData(data["user"]);
         }
       }
       
       return data;
     } catch (e) {
-      throw Exception('Login failed: $e');
+      throw Exception("Login failed: $e");
     }
   }
 
@@ -97,49 +99,49 @@ class AuthService {
     final String? phone,
   }) async {
     try {
-      final response = await http
+      final http.Response response = await http
           .post(
-            Uri.parse('$baseUrl/auth/register'),
+            Uri.parse("$baseUrl/auth/register"),
             headers: _headers,
             body: jsonEncode(<String, String>{
-              'name': name,
-              'email': email,
-              'password': password,
-              'password_confirmation': passwordConfirmation,
-              if (phone != null) 'phone': phone,
+              "name": name,
+              "email": email,
+              "password": password,
+              "password_confirmation": passwordConfirmation,
+              if (phone != null) "phone": phone,
             }),
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       
       // Save token and user data
-      if (data['token'] != null) {
-        await saveToken(data['token']);
+      if (data["token"] != null) {
+        await saveToken(data["token"]);
       }
-      if (data['user'] != null) {
-        await saveUserData(data['user']);
+      if (data["user"] != null) {
+        await saveUserData(data["user"]);
       }
 
       return data;
     } catch (e) {
-      throw Exception('Registration failed: $e');
+      throw Exception("Registration failed: $e");
     }
   }
 
   // Logout method
   static Future<void> logout() async {
     try {
-      final headers = await _authHeaders;
+      final Map<String, String> headers = await _authHeaders;
       await http
           .post(
-            Uri.parse('$baseUrl/auth/logout'),
+            Uri.parse("$baseUrl/auth/logout"),
             headers: headers,
           )
           .timeout(timeoutDuration);
     } catch (e) {
       // Continue with local logout even if server request fails
-      print('Logout request failed: $e');
+      developer.log("Logout request failed: $e");
     } finally {
       // Clear local storage
       await clearAuthData();
@@ -149,66 +151,66 @@ class AuthService {
   // Get current user
   static Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
-      final headers = await _authHeaders;
-      final response = await http
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http
           .get(
-            Uri.parse('$baseUrl/auth/user'),
+            Uri.parse("$baseUrl/auth/user"),
             headers: headers,
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       
       // Update stored user data
-      if (data['user'] != null) {
-        await saveUserData(data['user']);
+      if (data["user"] != null) {
+        await saveUserData(data["user"]);
       }
 
-      return data['user'];
+      return data["user"];
     } catch (e) {
-      throw Exception('Failed to get user data: $e');
+      throw Exception("Failed to get user data: $e");
     }
   }
 
   // Refresh token
   static Future<String?> refreshToken() async {
     try {
-      final headers = await _authHeaders;
-      final response = await http
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http
           .post(
-            Uri.parse('$baseUrl/auth/refresh'),
+            Uri.parse("$baseUrl/auth/refresh"),
             headers: headers,
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       
-      if (data['token'] != null) {
-        await saveToken(data['token']);
-        return data['token'];
+      if (data["token"] != null) {
+        await saveToken(data["token"]);
+        return data["token"];
       }
 
       return null;
     } catch (e) {
-      throw Exception('Token refresh failed: $e');
+      throw Exception("Token refresh failed: $e");
     }
   }
 
   // Forgot password
   static Future<Map<String, dynamic>> forgotPassword(final String email) async {
     try {
-      final response = await http
+      final http.Response response = await http
           .post(
-            Uri.parse('$baseUrl/auth/forgot-password'),
+            Uri.parse("$baseUrl/auth/forgot-password"),
             headers: _headers,
-            body: jsonEncode(<String, String>{'email': email}),
+            body: jsonEncode(<String, String>{"email": email}),
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       return data;
     } catch (e) {
-      throw Exception('Forgot password request failed: $e');
+      throw Exception("Forgot password request failed: $e");
     }
   }
 
@@ -219,50 +221,50 @@ class AuthService {
     required final String passwordConfirmation,
   }) async {
     try {
-      final response = await http
+      final http.Response response = await http
           .post(
-            Uri.parse('$baseUrl/auth/reset-password'),
+            Uri.parse("$baseUrl/auth/reset-password"),
             headers: _headers,
             body: jsonEncode(<String, String>{
-              'email': email,
-              'password': password,
-              'password_confirmation': passwordConfirmation,
+              "email": email,
+              "password": password,
+              "password_confirmation": passwordConfirmation,
             }),
           )
           .timeout(timeoutDuration);
 
-      final data = _handleResponse(response);
+      final Map<String, dynamic> data = _handleResponse(response);
       return data;
     } catch (e) {
-      throw Exception('Password reset failed: $e');
+      throw Exception("Password reset failed: $e");
     }
   }
 
   // Token management
   static Future<void> saveToken(final String token) async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(tokenKey, token);
   }
 
   static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(tokenKey);
   }
 
   static Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(tokenKey);
   }
 
   // User data management
   static Future<void> saveUserData(final Map<String, dynamic> userData) async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(userKey, jsonEncode(userData));
   }
 
   static Future<Map<String, dynamic>?> getUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userDataString = prefs.getString(userKey);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? userDataString = prefs.getString(userKey);
     if (userDataString != null) {
       return jsonDecode(userDataString);
     }
@@ -270,7 +272,7 @@ class AuthService {
   }
 
   static Future<void> clearUserData() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(userKey);
   }
 
@@ -282,7 +284,7 @@ class AuthService {
 
   // Check if user is authenticated
   static Future<bool> isAuthenticated() async {
-    final token = await getToken();
+    final String? token = await getToken();
     return token != null && token.isNotEmpty;
   }
 

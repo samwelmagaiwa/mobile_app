@@ -3,8 +3,7 @@
 /// This file contains utility functions and type definitions to ensure
 /// proper type inference and prevent compilation issues.
 library;
-
-import 'dart:convert';
+import "dart:convert";
 
 class TypeHelpers {
   /// Safely cast dynamic to Map<String, dynamic>
@@ -95,7 +94,7 @@ class TypeHelpers {
   }
 
   /// Convert dynamic to string safely
-  static String toString(final value, {final String defaultValue = ''}) {
+  static String stringify(final value, {final String defaultValue = ""}) {
     if (value is String) return value;
     if (value != null) return value.toString();
     return defaultValue;
@@ -105,7 +104,7 @@ class TypeHelpers {
   static bool toBool(final value, {final bool defaultValue = false}) {
     if (value is bool) return value;
     if (value is String) {
-      return value.toLowerCase() == 'true' || value == '1';
+      return value.toLowerCase() == "true" || value == "1";
     }
     if (value is int) {
       return value != 0;
@@ -123,9 +122,9 @@ class TypeHelpers {
   }
 
   /// Create a typed list from dynamic
-  static List<T> createTypedList<T>(final value, final T Function() converter) {
+  static List<T> createTypedList<T>(final value, T Function(dynamic) converter) {
     if (value is List) {
-      return value.map(converter).toList();
+      return value.map((final item) => converter(item)).toList();
     }
     return <T>[];
   }
@@ -134,7 +133,7 @@ class TypeHelpers {
   static bool validateMapStructure(final Map<String, dynamic>? map, final List<String> requiredKeys) {
     if (map == null) return false;
     
-    for (final key in requiredKeys) {
+    for (final String key in requiredKeys) {
       if (!map.containsKey(key)) return false;
     }
     return true;
@@ -151,18 +150,18 @@ class FilterOption {
   });
 
   factory FilterOption.fromJson(final Map<String, dynamic> json) => FilterOption(
-    key: TypeHelpers.toString(json["key"]),
-    label: TypeHelpers.toString(json["label"]),
+    key: TypeHelpers.stringify(json["key"]),
+    label: TypeHelpers.stringify(json["label"]),
     description: TypeHelpers.safeGet<String>(json, "description"),
   );
   final String key;
   final String label;
   final String? description;
 
-  Map<String, dynamic> toJson() => <String, >{
-    'key': key,
-    'label': label,
-    if (description != null) 'description': description,
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    "key": key,
+    "label": label,
+    if (description != null) "description": description,
   };
 
   @override
@@ -179,24 +178,24 @@ class FilterOption {
 /// Common filter options for the app
 class CommonFilters {
   static const List<FilterOption> transactionFilters = <FilterOption>[
-    FilterOption(key: 'all', label: 'Yote'),
-    FilterOption(key: 'income', label: 'Mapato'),
-    FilterOption(key: 'expense', label: 'Matumizi'),
-    FilterOption(key: 'today', label: 'Leo'),
-    FilterOption(key: 'week', label: 'Wiki hii'),
-    FilterOption(key: 'month', label: 'Mwezi huu'),
+    FilterOption(key: "all", label: "Yote"),
+    FilterOption(key: "income", label: "Mapato"),
+    FilterOption(key: "expense", label: "Matumizi"),
+    FilterOption(key: "today", label: "Leo"),
+    FilterOption(key: "week", label: "Wiki hii"),
+    FilterOption(key: "month", label: "Mwezi huu"),
   ];
 
   static const List<FilterOption> paymentStatusFilters = <FilterOption>[
-    FilterOption(key: 'all', label: 'Yote'),
-    FilterOption(key: 'paid', label: 'Yaliyolipwa'),
-    FilterOption(key: 'pending', label: 'Yanayosubiri'),
-    FilterOption(key: 'overdue', label: 'Yaliyochelewa'),
+    FilterOption(key: "all", label: "Yote"),
+    FilterOption(key: "paid", label: "Yaliyolipwa"),
+    FilterOption(key: "pending", label: "Yanayosubiri"),
+    FilterOption(key: "overdue", label: "Yaliyochelewa"),
   ];
 
   static const List<FilterOption> driverStatusFilters = <FilterOption>[
-    FilterOption(key: 'all', label: 'Wote'),
-    FilterOption(key: 'active', label: 'Hai'),
-    FilterOption(key: 'inactive', label: 'Hahai'),
+    FilterOption(key: "all", label: "Wote"),
+    FilterOption(key: "active", label: "Hai"),
+    FilterOption(key: "inactive", label: "Si hai"),
   ];
 }

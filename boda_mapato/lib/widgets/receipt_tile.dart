@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../constants/colors.dart';
-import '../constants/styles.dart';
-import '../utils/responsive_utils.dart';
-import 'responsive_wrapper.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "../constants/colors.dart";
+import "../constants/styles.dart";
+import "../utils/responsive_utils.dart";
+import "responsive_wrapper.dart";
 
 class ReceiptTile extends StatelessWidget {
 
@@ -24,7 +24,7 @@ class ReceiptTile extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
     
     return InkWell(
       onTap: onTap,
@@ -60,7 +60,7 @@ class ReceiptTile extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         receiptNumber,
-                        style: AppStyles.bodyMedium(context).copyWith(
+                        style: AppStyles.bodyMediumResponsive(context).copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -68,7 +68,7 @@ class ReceiptTile extends StatelessWidget {
                       ),
                       Text(
                         customerName,
-                        style: AppStyles.bodySmall(context).copyWith(
+                        style: AppStyles.bodySmallResponsive(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -76,7 +76,7 @@ class ReceiptTile extends StatelessWidget {
                       ),
                       Text(
                         serviceType,
-                        style: AppStyles.bodySmall(context).copyWith(
+                        style: AppStyles.bodySmallResponsive(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -95,7 +95,7 @@ class ReceiptTile extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                         "TSh ${amount.toStringAsFixed(0)}",
-                        style: AppStyles.bodyMedium(context).copyWith(
+                        style: AppStyles.bodyMediumResponsive(context).copyWith(
                           color: AppColors.success,
                           fontWeight: FontWeight.bold,
                         ),
@@ -103,7 +103,7 @@ class ReceiptTile extends StatelessWidget {
                     ),
                     Text(
                       "${date.day}/${date.month}/${date.year}",
-                      style: AppStyles.bodySmall(context).copyWith(
+                      style: AppStyles.bodySmallResponsive(context).copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -127,7 +127,7 @@ class ReceiptTile extends StatelessWidget {
                         ),
                         label: Text(
                           "Chapisha",
-                          style: AppStyles.bodySmall(context),
+                          style: AppStyles.bodySmallResponsive(context),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
@@ -149,7 +149,7 @@ class ReceiptTile extends StatelessWidget {
                         ),
                         label: Text(
                           "Shiriki",
-                          style: AppStyles.bodySmall(context),
+                          style: AppStyles.bodySmallResponsive(context),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.secondary,
@@ -209,7 +209,7 @@ class ReceiptSummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: AppStyles.bodyMedium(context).copyWith(
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
                       color: color,
                       fontWeight: FontWeight.w600,
                     ),
@@ -224,7 +224,7 @@ class ReceiptSummaryCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 count.toString(),
-                style: AppStyles.heading2(context).copyWith(
+                style: AppStyles.heading2Responsive(context).copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
@@ -235,7 +235,7 @@ class ReceiptSummaryCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 "TSh ${totalAmount.toStringAsFixed(0)}",
-                style: AppStyles.bodyMedium(context).copyWith(
+                style: AppStyles.bodyMediumResponsive(context).copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
                 ),
@@ -277,13 +277,13 @@ class ReceiptPreviewCard extends StatelessWidget {
           Center(
             child: Text(
               "BODA MAPATO",
-              style: AppStyles.heading3(context),
+              style: AppStyles.heading3Responsive(context),
             ),
           ),
           Center(
             child: Text(
               "Risiti ya Huduma",
-              style: AppStyles.bodySmall(context),
+              style: AppStyles.bodySmallResponsive(context),
             ),
           ),
           
@@ -292,7 +292,7 @@ class ReceiptPreviewCard extends StatelessWidget {
           // Receipt Details
           _ReceiptRow("Nambari ya Risiti:", receiptNumber),
           _ReceiptRow("Tarehe:", "${date.day}/${date.month}/${date.year}"),
-          _ReceiptRow("Muda:", '${date.hour}:${date.minute.toString().padLeft(2, '0')}'),
+          _ReceiptRow("Muda:", "${date.hour}:${date.minute.toString().padLeft(2, "0")}"),
           
           const Divider(),
           
@@ -310,13 +310,13 @@ class ReceiptPreviewCard extends StatelessWidget {
             children: <Widget>[
               Text(
                 "JUMLA:",
-                style: AppStyles.heading3(context),
+                style: AppStyles.heading3Responsive(context),
               ),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   "TSh ${amount.toStringAsFixed(0)}",
-                  style: AppStyles.heading3(context).copyWith(
+                  style: AppStyles.heading3Responsive(context).copyWith(
                     color: AppColors.primary,
                   ),
                 ),
@@ -330,7 +330,7 @@ class ReceiptPreviewCard extends StatelessWidget {
           Center(
             child: Text(
               "Asante kwa kutumia huduma zetu!",
-              style: AppStyles.bodySmall(context),
+              style: AppStyles.bodySmallResponsive(context),
               textAlign: TextAlign.center,
             ),
           ),
@@ -357,7 +357,7 @@ class _ReceiptRow extends StatelessWidget {
             width: ResponsiveUtils.getResponsiveSpacing(context, 100),
             child: Text(
               label,
-              style: AppStyles.bodySmall(context).copyWith(
+              style: AppStyles.bodySmallResponsive(context).copyWith(
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -365,7 +365,7 @@ class _ReceiptRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: AppStyles.bodySmall(context),
+              style: AppStyles.bodySmallResponsive(context),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
             ),

@@ -1,4 +1,4 @@
-class Vehicle {
+﻿class Vehicle {
 
   Vehicle({
     required this.id,
@@ -13,18 +13,18 @@ class Vehicle {
   });
 
   factory Vehicle.fromJson(final Map<String, dynamic> json) => Vehicle(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: json['type'] as String,
-      plateNumber: json['plate_number'] as String,
-      description: json['description'] as String?,
-      isActive: json['is_active'] as bool? ?? true,
-      driverId: json['driver']?['id'] as String?,
-      driverName: json['driver']?['name'] as String?,
-      driverEmail: json['driver']?['email'] as String?,
-      driverPhone: json['driver']?['phone'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      type: json["type"] as String,
+      plateNumber: json["plate_number"] as String,
+      description: json["description"] as String?,
+      isActive: json["is_active"] as bool? ?? true,
+      driverId: json["driver"]?["id"] as String?,
+      driverName: json["driver"]?["name"] as String?,
+      driverEmail: json["driver"]?["email"] as String?,
+      driverPhone: json["driver"]?["phone"] as String?,
+      createdAt: DateTime.parse(json["created_at"] as String),
+      updatedAt: DateTime.parse(json["updated_at"] as String),
     );
   final String id;
   final String name;

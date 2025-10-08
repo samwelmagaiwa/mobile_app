@@ -1,3 +1,6 @@
+import "package:flutter/foundation.dart";
+
+@immutable
 class Driver {
 
   const Driver({
@@ -6,25 +9,43 @@ class Driver {
     required this.email,
     required this.phone,
     required this.licenseNumber,
-    required this.status, required this.totalPayments, required this.joinedDate, required this.rating, required this.tripsCompleted, this.vehicleNumber,
+    required this.status,
+    required this.totalPayments,
+    required this.joinedDate,
+    required this.rating,
+    required this.tripsCompleted,
+    this.vehicleNumber,
     this.vehicleType,
     this.lastPayment,
   });
 
   factory Driver.fromJson(final Map<String, dynamic> json) {
-    // ignore: no_leading_underscores_for_local_identifiers
-    double _parseDouble(final v) {
-      if (v == null) return 0;
-      if (v is num) return v.toDouble();
-      if (v is String) return double.tryParse(v) ?? 0.0;
+    double parseDouble(final dynamic v) {
+      if (v == null) {
+        return 0;
+      }
+      if (v is num) {
+        return v.toDouble();
+      }
+      if (v is String) {
+        return double.tryParse(v) ?? 0.0;
+      }
       return 0;
     }
 
-    int parseInt(final v) {
-      if (v == null) return 0;
-      if (v is int) return v;
-      if (v is num) return v.toInt();
-      if (v is String) return int.tryParse(v) ?? 0;
+    int parseInt(final dynamic v) {
+      if (v == null) {
+        return 0;
+      }
+      if (v is int) {
+        return v;
+      }
+      if (v is num) {
+        return v.toInt();
+      }
+      if (v is String) {
+        return int.tryParse(v) ?? 0;
+      }
       return 0;
     }
 
@@ -37,14 +58,16 @@ class Driver {
       vehicleNumber: json["vehicle_number"]?.toString(),
       vehicleType: json["vehicle_type"]?.toString(),
       status: (json["status"] ?? "inactive").toString(),
-      totalPayments: _parseDouble(json["total_payments"]),
-      lastPayment: json["last_payment"] != null && json["last_payment"].toString().isNotEmpty
+      totalPayments: parseDouble(json["total_payments"]),
+      lastPayment: json["last_payment"] != null &&
+              json["last_payment"].toString().isNotEmpty
           ? DateTime.tryParse(json["last_payment"].toString())
           : null,
-      joinedDate: json["joined_date"] != null && json["joined_date"].toString().isNotEmpty
+      joinedDate: json["joined_date"] != null &&
+              json["joined_date"].toString().isNotEmpty
           ? DateTime.tryParse(json["joined_date"].toString()) ?? DateTime.now()
           : DateTime.now(),
-      rating: _parseDouble(json["rating"]),
+      rating: parseDouble(json["rating"]),
       tripsCompleted: parseInt(json["trips_completed"]),
     );
   }
@@ -109,11 +132,14 @@ class Driver {
     );
 
   @override
-  String toString() => "Driver(id: $id, name: $name, email: $email, status: $status)";
+  String toString() =>
+      "Driver(id: $id, name: $name, email: $email, status: $status)";
 
   @override
   bool operator ==(final Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
     return other is Driver && other.id == id;
   }
 

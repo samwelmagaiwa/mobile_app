@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../models/transaction.dart';
-import '../../utils/date_utils.dart';
-import '../../utils/type_helpers.dart';
+import "package:flutter/material.dart";
+import "../../constants/colors.dart";
+import "../../constants/styles.dart";
+import "../../models/transaction.dart";
+import "../../utils/date_utils.dart";
+import "../../utils/type_helpers.dart";
 
 class TransactionSummaryCard extends StatelessWidget {
 
@@ -17,14 +17,14 @@ class TransactionSummaryCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final totalAmount = transactions.fold<double>(
+    final double totalAmount = transactions.fold<double>(
       0,
-      (final sum, final transaction) => sum + transaction.amount,
+      (final double sum, final Transaction transaction) => sum + transaction.amount,
     );
 
     return Container(
       padding: const EdgeInsets.all(AppStyles.spacingM),
-      decoration: AppStyles.cardDecoration.copyWith(
+      decoration: AppStyles.cardDecoration(context).copyWith(
         color: color.withOpacity(0.1),
       ),
       child: Column(
@@ -45,7 +45,7 @@ class TransactionSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: AppStyles.spacingM),
           Text(
-            'TSh ${totalAmount.toStringAsFixed(0)}',
+            "TSh ${totalAmount.toStringAsFixed(0)}",
             style: AppStyles.heading2.copyWith(
               color: color,
               fontWeight: FontWeight.bold,
@@ -53,7 +53,7 @@ class TransactionSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: AppStyles.spacingS),
           Text(
-            '${transactions.length} miamala',
+            "${transactions.length} miamala",
             style: AppStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -82,16 +82,16 @@ class TransactionFilterChips extends StatelessWidget {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
-        itemBuilder: (final context, final index) {
-          filter = filters[index];
-          isSelected = selectedFilter == filter.key;
+        itemBuilder: (final BuildContext context, final int index) {
+          final FilterOption filter = filters[index];
+          final bool isSelected = selectedFilter == filter.key;
 
           return Padding(
             padding: const EdgeInsets.only(right: AppStyles.spacingS),
             child: FilterChip(
               label: Text(filter.label),
               selected: isSelected,
-              onSelected: (final selected) {
+              onSelected: (final bool selected) {
                 if (selected) {
                   onFilterChanged(filter.key);
                 }
@@ -121,17 +121,17 @@ class TransactionChart extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     // Group transactions by date
-    final groupedTransactions = _groupTransactionsByDate();
+    final Map<String, double> groupedTransactions = _groupTransactionsByDate();
     
     return Container(
       height: 200,
       padding: const EdgeInsets.all(AppStyles.spacingM),
-      decoration: AppStyles.cardDecoration,
+      decoration: AppStyles.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Mchoro wa Mapato - $period',
+            "Mchoro wa Mapato - $period",
             style: AppStyles.heading3,
           ),
           const SizedBox(height: AppStyles.spacingM),
@@ -139,7 +139,7 @@ class TransactionChart extends StatelessWidget {
             child: groupedTransactions.isEmpty
                 ? Center(
                     child: Text(
-                      'Hakuna data ya kuonyesha',
+                      "Hakuna data ya kuonyesha",
                       style: AppStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -153,11 +153,11 @@ class TransactionChart extends StatelessWidget {
   }
 
   Map<String, double> _groupTransactionsByDate() {
-    grouped = <String, double><String, double><, >{};
+    final Map<String, double> grouped = <String, double>{};
     
-    for (final transaction in transactions) {
+    for (final Transaction transaction in transactions) {
       if (transaction.type == TransactionType.income) {
-        final dateKey = AppDateUtils.formatDate(transaction.createdAt);
+        final String dateKey = AppDateUtils.formatDate(transaction.createdAt);
         grouped[dateKey] = (grouped[dateKey] ?? 0) + transaction.amount;
       }
     }
@@ -168,16 +168,16 @@ class TransactionChart extends StatelessWidget {
   Widget _buildChart(final Map<String, double> data) {
     if (data.isEmpty) {
       return const Center(
-        child: Text('Hakuna data ya kuonyesha'),
+        child: Text("Hakuna data ya kuonyesha"),
       );
     }
 
-    final maxAmount = data.values.reduce((final a, final double double final b) => a > b ? a : b);
+    final double maxAmount = data.values.reduce((final double a, final double b) => a > b ? a : b);
     
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: data.entries.map((final entry) {
-        final height = (entry.value / maxAmount) * 120;
+      children: data.entries.map((final MapEntry<String, double> entry) {
+        final double height = (entry.value / maxAmount) * 120;
         
         return Expanded(
           child: Padding(
@@ -194,7 +194,7 @@ class TransactionChart extends StatelessWidget {
                 ),
                 const SizedBox(height: AppStyles.spacingS),
                 Text(
-                  entry.key.split('/').last, // Show only day
+                  entry.key.split("/").last, // Show only day
                   style: AppStyles.bodySmall,
                 ),
               ],
@@ -237,7 +237,7 @@ class TransactionStatusBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(AppStyles.radiusS),
+        borderRadius: BorderRadius.circular(AppStyles.radiusS(context)),
       ),
       child: Text(
         status.name,

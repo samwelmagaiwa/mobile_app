@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import "package:flutter/material.dart";
 
 /// A utility class for creating SnackBars with selectable text content
 class SelectableSnackBar {

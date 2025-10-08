@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../services/api_service.dart';
-import '../../models/vehicle.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+
+import "../../models/vehicle.dart";
+import "../../services/api_service.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class VehiclesManagementScreen extends StatefulWidget {
   const VehiclesManagementScreen({super.key});
@@ -22,20 +21,16 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   bool _isLoading = true;
   List<Vehicle> _vehicles = <Vehicle>[];
   List<Vehicle> _filteredVehicles = <Vehicle>[];
-  String _searchQuery = '';
-  String _selectedFilter = 'all'; // all, active, inactive, assigned, unassigned
+  String _searchQuery = "";
+  String _selectedFilter = "all"; // all, active, inactive, assigned, unassigned
   int _currentPage = 1;
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   
-  // Add missing variable declaration
-  List<Map<String, dynamic>> newVehicles = <Map<String, dynamic>>[];
   
   // Enhanced color scheme
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
-  static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color grayBackground = Color(0xFFF8FAFC);
   static const Color darkGray = Color(0xFF1F2937);
@@ -81,22 +76,22 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     });
 
     try {
-      final response = await _apiService.getVehicles(
+      final Map<String, dynamic> response = await _apiService.getVehicles(
         page: _currentPage,
       );
       
       // Handle the actual response structure: {status, message, data: {data: [...], pagination: {...}}}
       List<dynamic> vehiclesData;
-      if (response['data'] is Map<String, dynamic>) {
-        // Paginated response: data contains another object with 'data' key
-        vehiclesData = response['data']['data'] ?? <Map<String, dynamic>>[];
-      } else if (response['data'] is List) {
+      if (response["data"] is Map<String, dynamic>) {
+        // Paginated response: data contains another object with "data" key
+        vehiclesData = response["data"]["data"] ?? <Map<String, dynamic>>[];
+      } else if (response["data"] is List) {
         // Direct list response
-        vehiclesData = response['data'];
+        vehiclesData = response["data"];
       } else {
         vehiclesData = <Map<String, dynamic>>[];
       }
-      List<Vehicle> newVehicles = vehiclesData
+      final List<Vehicle> newVehicles = vehiclesData
           .map((final json) => Vehicle.fromJson(json as Map<String, dynamic>))
           .toList();
       
@@ -107,14 +102,14 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           _vehicles.addAll(newVehicles);
         }
         
-        // Check if there's more data
+        // Check if there"s more data
         _hasMoreData = newVehicles.length >= 20;
         _currentPage++;
       });
       
       _filterVehicles();
     } catch (e) {
-      _showErrorSnackBar('Hitilafu katika kupakia magari: $e');
+      _showErrorSnackBar("Hitilafu katika kupakia magari: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -125,18 +120,18 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   void _filterVehicles() {
     setState(() {
-      _filteredVehicles = _vehicles.where((final vehicle) {
-        final matchesSearch = _searchQuery.isEmpty ||
+      _filteredVehicles = _vehicles.where((final Vehicle vehicle) {
+        final bool matchesSearch = _searchQuery.isEmpty ||
             vehicle.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             vehicle.plateNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             vehicle.type.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             (vehicle.driverName?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
         
-        final matchesFilter = _selectedFilter == 'all' ||
-            (_selectedFilter == 'active' && vehicle.isActive) ||
-            (_selectedFilter == 'inactive' && !vehicle.isActive) ||
-            (_selectedFilter == 'assigned' && vehicle.driverName != null) ||
-            (_selectedFilter == 'unassigned' && vehicle.driverName == null);
+        final bool matchesFilter = _selectedFilter == "all" ||
+            (_selectedFilter == "active" && vehicle.isActive) ||
+            (_selectedFilter == "inactive" && !vehicle.isActive) ||
+            (_selectedFilter == "assigned" && vehicle.driverName != null) ||
+            (_selectedFilter == "unassigned" && vehicle.driverName == null);
         
         return matchesSearch && matchesFilter;
       }).toList();
@@ -222,7 +217,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               value: "import",
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.upload, color: primaryOrange),
+                  Icon(Icons.upload, color: Colors.orange),
                   SizedBox(width: 8),
                   Text("Ingiza Data"),
                 ],
@@ -345,11 +340,11 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     );
 
   Widget _buildFilterChip(final String value, final String label, final int count) {
-    final isSelected = _selectedFilter == value;
+    final bool isSelected = _selectedFilter == value;
     return FilterChip(
       selected: isSelected,
       label: Text(
-        '$label ($count)',
+        "$label ($count)",
         style: TextStyle(
           color: isSelected ? Colors.white : darkGray,
           fontWeight: FontWeight.w500,
@@ -367,9 +362,9 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   }
 
   Widget _buildStatsCards() {
-    final activeVehicles = _vehicles.where((final Vehicle v) => v.isActive).length;
-    final assignedVehicles = _vehicles.where((final Vehicle v) => v.driverName != null).length;
-    final utilizationRate = _vehicles.isNotEmpty ? (assignedVehicles / _vehicles.length * 100) : 0.0;
+    final int activeVehicles = _vehicles.where((final Vehicle v) => v.isActive).length;
+    final int assignedVehicles = _vehicles.where((final Vehicle v) => v.driverName != null).length;
+    final double utilizationRate = _vehicles.isNotEmpty ? (assignedVehicles / _vehicles.length * 100) : 0.0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -377,8 +372,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
         children: <Widget>[
           Expanded(
             child: _buildStatCard(
-              title: 'Magari Hai',
-              value: '$activeVehicles/${_vehicles.length}',
+              title: "Magari Hai",
+              value: "$activeVehicles/${_vehicles.length}",
               icon: Icons.directions_car,
               color: successGreen,
             ),
@@ -386,19 +381,19 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Yamepewa Madereva',
-              value: '$assignedVehicles/${_vehicles.length}',
+              title: "Yamepewa Madereva",
+              value: "$assignedVehicles/${_vehicles.length}",
               icon: Icons.assignment_ind,
-              color: primaryOrange,
+              color: Colors.orange,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              title: 'Kiwango cha Matumizi',
-              value: '${utilizationRate.toStringAsFixed(1)}%',
+              title: "Kiwango cha Matumizi",
+              value: "${utilizationRate.toStringAsFixed(1)}%",
               icon: Icons.trending_up,
-              color: warningAmber,
+              color: Colors.amber,
             ),
           ),
         ],
@@ -508,8 +503,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     );
 
   Widget _buildVehicleCard(final Vehicle vehicle) {
-    final isActive = vehicle.isActive;
-    final isAssigned = vehicle.driverName != null;
+    final bool isActive = vehicle.isActive;
+    final bool isAssigned = vehicle.driverName != null;
     
     return CustomCard(
       margin: const EdgeInsets.only(bottom: 12),
@@ -563,7 +558,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              isActive ? 'HAI' : 'HAHAI',
+                              isActive ? "HAI" : "HAHAI",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -624,43 +619,43 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 ),
                 // Actions
                 PopupMenuButton<String>(
-                  onSelected: (final value) => _handleVehicleAction(value, vehicle),
-                  itemBuilder: (final context) => <PopupMenuEntry<String>>[
+                  onSelected: (final String value) => _handleVehicleAction(value, vehicle),
+                  itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
                     const PopupMenuItem(
-                      value: 'view',
+                      value: "view",
                       child: Row(
                         children: <Widget>[
                           Icon(Icons.visibility, color: primaryBlue),
                           SizedBox(width: 8),
-                          Text('Ona'),
+                          Text("Ona"),
                         ],
                       ),
                     ),
                     const PopupMenuItem(
-                      value: 'edit',
+                      value: "edit",
                       child: Row(
                         children: <Widget>[
-                          Icon(Icons.edit, color: primaryOrange),
+                          Icon(Icons.edit, color: Colors.orange),
                           SizedBox(width: 8),
-                          Text('Hariri'),
+                          Text("Hariri"),
                         ],
                       ),
                     ),
                     PopupMenuItem(
-                      value: isAssigned ? 'unassign' : 'assign',
+                      value: isAssigned ? "unassign" : "assign",
                       child: Row(
                         children: <Widget>[
                           Icon(
                             isAssigned ? Icons.person_remove : Icons.person_add,
-                            color: isAssigned ? warningAmber : successGreen,
+                            color: isAssigned ? Colors.amber : successGreen,
                           ),
                           const SizedBox(width: 8),
-                          Text(isAssigned ? 'Ondoa Dereva' : 'Weka Dereva'),
+                          Text(isAssigned ? "Ondoa Dereva" : "Weka Dereva"),
                         ],
                       ),
                     ),
                     PopupMenuItem(
-                      value: isActive ? 'deactivate' : 'activate',
+                      value: isActive ? "deactivate" : "activate",
                       child: Row(
                         children: <Widget>[
                           Icon(
@@ -668,17 +663,17 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                             color: isActive ? errorRed : successGreen,
                           ),
                           const SizedBox(width: 8),
-                          Text(isActive ? 'Zima' : 'Washa'),
+                          Text(isActive ? "Zima" : "Washa"),
                         ],
                       ),
                     ),
                     const PopupMenuItem(
-                      value: 'delete',
+                      value: "delete",
                       child: Row(
                         children: <Widget>[
                           Icon(Icons.delete, color: errorRed),
                           SizedBox(width: 8),
-                          Text('Futa'),
+                          Text("Futa"),
                         ],
                       ),
                     ),
@@ -713,7 +708,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   Widget _buildFloatingActionButton() => FloatingActionButton.extended(
       onPressed: _showAddVehicleDialog,
-      backgroundColor: primaryOrange,
+      backgroundColor: Colors.orange,
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text(
@@ -724,11 +719,11 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   IconData _getVehicleIcon(final String vehicleType) {
     switch (vehicleType.toLowerCase()) {
-      case 'bajaji':
+      case "bajaji":
         return Icons.directions_car; // three_wheeler not available, using car icon
-      case 'pikipiki':
+      case "pikipiki":
         return Icons.motorcycle;
-      case 'gari':
+      case "gari":
         return Icons.directions_car;
       default:
         return Icons.directions_car;
@@ -737,12 +732,12 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   String _getVehicleTypeDisplay(final String vehicleType) {
     switch (vehicleType.toLowerCase()) {
-      case 'bajaji':
-        return 'Bajaji';
-      case 'pikipiki':
-        return 'Pikipiki';
-      case 'gari':
-        return 'Gari';
+      case "bajaji":
+        return "Bajaji";
+      case "pikipiki":
+        return "Pikipiki";
+      case "gari":
+        return "Gari";
       default:
         return vehicleType;
     }
@@ -750,18 +745,18 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   void _handleVehicleAction(final String action, final Vehicle vehicle) {
     switch (action) {
-      case 'view':
+      case "view":
         _showVehicleDetails(vehicle);
-      case 'edit':
+      case "edit":
         _showEditVehicleDialog(vehicle);
-      case 'assign':
+      case "assign":
         _showAssignDriverDialog(vehicle);
-      case 'unassign':
+      case "unassign":
         _confirmUnassignDriver(vehicle);
-      case 'activate':
-      case 'deactivate':
+      case "activate":
+      case "deactivate":
         _toggleVehicleStatus(vehicle);
-      case 'delete':
+      case "delete":
         _confirmDeleteVehicle(vehicle);
     }
   }
@@ -769,29 +764,29 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   void _showVehicleDetails(final Vehicle vehicle) {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Maelezo ya ${vehicle.name}'),
+        title: Text("Maelezo ya ${vehicle.name}"),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _buildDetailRow('Jina:', vehicle.name),
-              _buildDetailRow('Namba ya Gari:', vehicle.plateNumber),
-              _buildDetailRow('Aina:', _getVehicleTypeDisplay(vehicle.type)),
-              _buildDetailRow('Hali:', vehicle.isActive ? 'Hai' : 'Hahai'),
-              _buildDetailRow('Dereva:', vehicle.driverName ?? 'Hajapewa dereva'),
+              _buildDetailRow("Jina:", vehicle.name),
+              _buildDetailRow("Namba ya Gari:", vehicle.plateNumber),
+              _buildDetailRow("Aina:", _getVehicleTypeDisplay(vehicle.type)),
+              _buildDetailRow("Hali:", vehicle.isActive ? "Hai" : "Hahai"),
+              _buildDetailRow("Dereva:", vehicle.driverName ?? "Hajapewa dereva"),
               if (vehicle.description != null && vehicle.description!.isNotEmpty)
-                _buildDetailRow('Maelezo:', vehicle.description!),
-              _buildDetailRow('Ilisajiliwa:', _formatDate(vehicle.createdAt)),
+                _buildDetailRow("Maelezo:", vehicle.description!),
+              _buildDetailRow("Ilisajiliwa:", _formatDate(vehicle.createdAt)),
             ],
           ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Funga'),
+            child: const Text("Funga"),
           ),
         ],
       ),
@@ -830,7 +825,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   void _showAddVehicleDialog() {
     showDialog(
       context: context,
-      builder: (final context) => _AddVehicleDialog(
+      builder: (final BuildContext context) => _AddVehicleDialog(
         onVehicleAdded: () {
           // Refresh the vehicles list after adding a new vehicle
           _loadVehicles(refresh: true);
@@ -845,12 +840,12 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Hariri ${vehicle.name}'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: Text("Hariri ${vehicle.name}"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -863,12 +858,12 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Weka Dereva kwa ${vehicle.name}'),
-        content: const Text('Kipengele hiki kinatengenezwa. Subiri kidogo!'),
+        title: Text("Weka Dereva kwa ${vehicle.name}"),
+        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -880,24 +875,24 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Ondoa Dereva'),
+        title: const Text("Ondoa Dereva"),
         content: Text(
-          'Je, una uhakika unataka kuondoa ${vehicle.driverName} kutoka kwa gari ${vehicle.plateNumber}?',
+          "Je, una uhakika unataka kuondoa ${vehicle.driverName} kutoka kwa gari ${vehicle.plateNumber}?",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               // TODO: Implement unassign driver API call
-              _showErrorSnackBar('Kipengele hiki kinatengenezwa. Subiri kidogo!');
+              _showErrorSnackBar("Kipengele hiki kinatengenezwa. Subiri kidogo!");
             },
             child: const Text(
-              'Ondoa',
-              style: TextStyle(color: warningAmber),
+              "Ondoa",
+              style: TextStyle(color: Colors.amber),
             ),
           ),
         ],
@@ -906,32 +901,31 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   }
 
   void _toggleVehicleStatus(final Vehicle vehicle) {
-    final isActive = vehicle.isActive;
-    final newStatus = !isActive;
+    final bool isActive = vehicle.isActive;
     
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(isActive ? 'Zima Gari' : 'Washa Gari'),
+        title: Text(isActive ? "Zima Gari" : "Washa Gari"),
         content: Text(
           isActive
-              ? 'Je, una uhakika unataka kuzima gari ${vehicle.plateNumber}?'
-              : 'Je, una uhakika unataka kuwasha gari ${vehicle.plateNumber}?',
+              ? "Je, una uhakika unataka kuzima gari ${vehicle.plateNumber}?"
+              : "Je, una uhakika unataka kuwasha gari ${vehicle.plateNumber}?",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               // TODO: Implement update vehicle status API call
-              _showErrorSnackBar('Kipengele hiki kinatengenezwa. Subiri kidogo!');
+              _showErrorSnackBar("Kipengele hiki kinatengenezwa. Subiri kidogo!");
             },
             child: Text(
-              isActive ? 'Zima' : 'Washa',
+              isActive ? "Zima" : "Washa",
               style: TextStyle(
                 color: isActive ? errorRed : successGreen,
               ),
@@ -947,23 +941,23 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Futa Gari'),
+        title: const Text("Futa Gari"),
         content: Text(
-          'Je, una uhakika unataka kufuta gari ${vehicle.plateNumber}? Kitendo hiki hakiwezi kurudishwa.',
+          "Je, una uhakika unataka kufuta gari ${vehicle.plateNumber}? Kitendo hiki hakiwezi kurudishwa.",
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               // TODO: Implement delete vehicle API call
-              _showErrorSnackBar('Kipengele hiki kinatengenezwa. Subiri kidogo!');
+              _showErrorSnackBar("Kipengele hiki kinatengenezwa. Subiri kidogo!");
             },
             child: const Text(
-              'Futa',
+              "Futa",
               style: TextStyle(color: errorRed),
             ),
           ),
@@ -976,7 +970,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     // TODO: Implement export functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuhamisha kinatengenezwa...'),
+        content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
       ),
     );
   }
@@ -985,7 +979,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     // TODO: Implement import functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Kipengele cha kuingiza kinatengenezwa...'),
+        content: Text("Kipengele cha kuingiza kinatengenezwa..."),
       ),
     );
   }
@@ -1012,21 +1006,19 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
   
   // Form state
   bool _isLoading = false;
-  String _selectedVehicleType = 'bajaji';
+  String _selectedVehicleType = "bajaji";
   
   // Vehicle types
   final Map<String, String> _vehicleTypes = <String, String>{
-    'bajaji': 'Bajaji',
-    'pikipiki': 'Pikipiki',
-    'gari': 'Gari',
+    "bajaji": "Bajaji",
+    "pikipiki": "Pikipiki",
+    "gari": "Gari",
   };
   
   // Colors
   static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
   static const Color successGreen = Color(0xFF10B981);
   static const Color errorRed = Color(0xFFEF4444);
-  static const Color darkGray = Color(0xFF1F2937);
 
   @override
   void dispose() {
@@ -1046,16 +1038,16 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
     try {
       await _apiService.initialize();
       
-      final vehicleData = <String, String?>{
-        'name': _nameController.text.trim(),
-        'type': _selectedVehicleType,
-        'plate_number': _plateNumberController.text.trim().toUpperCase(),
-        'description': _descriptionController.text.trim().isNotEmpty 
+      final Map<String, String?> vehicleData = <String, String?>{
+        "name": _nameController.text.trim(),
+        "type": _selectedVehicleType,
+        "plate_number": _plateNumberController.text.trim().toUpperCase(),
+        "description": _descriptionController.text.trim().isNotEmpty 
             ? _descriptionController.text.trim() 
             : null,
       };
 
-      final response = await _apiService.createVehicle(vehicleData);
+      await _apiService.createVehicle(vehicleData);
 
       if (mounted) {
         Navigator.pop(context);
@@ -1063,7 +1055,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gari ${_plateNumberController.text} limesajiliwa kikamilifu!'),
+            content: Text("Gari ${_plateNumberController.text} limesajiliwa kikamilifu!"),
             backgroundColor: successGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1074,7 +1066,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu katika kusajili gari: $e'),
+            content: Text("Hitilafu katika kusajili gari: $e"),
             backgroundColor: errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

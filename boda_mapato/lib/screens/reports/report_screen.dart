@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
+import "package:flutter/material.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -13,13 +14,13 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
-  String _selectedPeriod = 'daily';
+  String _selectedPeriod = "daily";
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _endDate = DateTime.now();
   bool _isGenerating = false;
 
   Future<void> _selectDateRange() async {
-    picked = await showDateRangePicker(
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now(),
@@ -50,7 +51,7 @@ class _ReportScreenState extends State<ReportScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -67,7 +68,7 @@ class _ReportScreenState extends State<ReportScreen> {
   void _showReportPreview() {
     showDialog(
       context: context,
-      builder: (final BuildContext final BuildContext final context) => _ReportPreviewDialog(
+      builder: (final BuildContext context) => _ReportPreviewDialog(
         period: _selectedPeriod,
         startDate: _startDate,
         endDate: _endDate,
@@ -292,7 +293,7 @@ class _ReportTypeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppStyles.spacingM),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppStyles.radiusL),
+          borderRadius: BorderRadius.circular(AppStyles.radiusL(context)),
           border: isSelected
               ? Border.all(color: color, width: 2)
               : null,
@@ -483,14 +484,14 @@ class _ReportPreviewDialog extends StatelessWidget {
 
   String _getPeriodName(final String period) {
     switch (period) {
-      case 'daily':
-        return 'Kila Siku';
-      case 'weekly':
-        return 'Kila Wiki';
-      case 'monthly':
-        return 'Kila Mwezi';
+      case "daily":
+        return "Kila Siku";
+      case "weekly":
+        return "Kila Wiki";
+      case "monthly":
+        return "Kila Mwezi";
       default:
-        return 'Maalum';
+        return "Maalum";
     }
   }
 }

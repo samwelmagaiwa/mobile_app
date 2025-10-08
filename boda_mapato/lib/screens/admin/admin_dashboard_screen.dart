@@ -1,17 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../constants/currency.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/styles.dart";
 import "../../models/login_response.dart";
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/responsive_wrapper.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/api_service.dart';
-import '../../utils/responsive_utils.dart';
-// import 'package:fl_chart/fl_chart.dart'; // Commented out until package is installed
+import "../../providers/auth_provider.dart";
+import "../../utils/responsive_utils.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
+import "../../widgets/responsive_wrapper.dart";
+// import "package:fl_chart/fl_chart.dart"; // Commented out until package is installed
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -28,7 +26,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   
   bool _isLoading = true;
   Map<String, dynamic> _dashboardData = <String, dynamic>{};
-  String _selectedPage = 'dashboard';
+  String _selectedPage = "dashboard";
   
   // Enhanced color scheme
   static const Color primaryBlue = Color(0xFF1E40AF);
@@ -76,55 +74,55 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       
       if (mounted) {
         _dashboardData = <String, dynamic>{
-          'total_drivers': 24,
-          'active_drivers': 18,
-          'total_vehicles': 18,
-          'active_vehicles': 15,
-          'monthly_revenue': 2400000.0,
-          'weekly_revenue': 580000.0,
-          'daily_revenue': 85000.0,
-          'pending_payments': 6,
-          'completed_trips': 156,
-          'revenue_growth': 15.2,
-          'driver_growth': 12.5,
-          'vehicle_utilization': 83.3,
-          'recent_transactions': <Map<String, Object>>[
+          "total_drivers": 24,
+          "active_drivers": 18,
+          "total_vehicles": 18,
+          "active_vehicles": 15,
+          "monthly_revenue": 2400000.0,
+          "weekly_revenue": 580000.0,
+          "daily_revenue": 85000.0,
+          "pending_payments": 6,
+          "completed_trips": 156,
+          "revenue_growth": 15.2,
+          "driver_growth": 12.5,
+          "vehicle_utilization": 83.3,
+          "recent_transactions": <Map<String, Object>>[
             <String, Object>{
-              'id': '1',
-              'driver_name': 'John Mukasa',
-              'vehicle_number': 'UBE 123A',
-              'amount': 50000.0,
-              'date': DateTime.now().subtract(const Duration(hours: 2)),
-              'status': 'paid',
-              'type': 'daily_payment',
+              "id": "1",
+              "driver_name": "John Mukasa",
+              "vehicle_number": "UBE 123A",
+              "amount": 50000.0,
+              "date": DateTime.now().subtract(const Duration(hours: 2)),
+              "status": "paid",
+              "type": "daily_payment",
             },
             <String, Object>{
-              'id': '2',
-              'driver_name': 'Peter Ssali',
-              'vehicle_number': 'UBF 456B',
-              'amount': 45000.0,
-              'date': DateTime.now().subtract(const Duration(hours: 6)),
-              'status': 'pending',
-              'type': 'daily_payment',
+              "id": "2",
+              "driver_name": "Peter Ssali",
+              "vehicle_number": "UBF 456B",
+              "amount": 45000.0,
+              "date": DateTime.now().subtract(const Duration(hours: 6)),
+              "status": "pending",
+              "type": "daily_payment",
             },
             <String, Object>{
-              'id': '3',
-              'driver_name': 'Mary Nakato',
-              'vehicle_number': 'UBG 789C',
-              'amount': 55000.0,
-              'date': DateTime.now().subtract(const Duration(days: 1)),
-              'status': 'paid',
-              'type': 'weekly_payment',
+              "id": "3",
+              "driver_name": "Mary Nakato",
+              "vehicle_number": "UBG 789C",
+              "amount": 55000.0,
+              "date": DateTime.now().subtract(const Duration(days: 1)),
+              "status": "paid",
+              "type": "weekly_payment",
             },
           ],
-          'revenue_chart_data': <Map<String, Object>>[
-            <String, Object>{'day': 'Mon', 'amount': 75000},
-            <String, Object>{'day': 'Tue', 'amount': 82000},
-            <String, Object>{'day': 'Wed', 'amount': 68000},
-            <String, Object>{'day': 'Thu', 'amount': 91000},
-            <String, Object>{'day': 'Fri', 'amount': 85000},
-            <String, Object>{'day': 'Sat', 'amount': 95000},
-            <String, Object>{'day': 'Sun', 'amount': 78000},
+          "revenue_chart_data": <Map<String, Object>>[
+            <String, Object>{"day": "Mon", "amount": 75000},
+            <String, Object>{"day": "Tue", "amount": 82000},
+            <String, Object>{"day": "Wed", "amount": 68000},
+            <String, Object>{"day": "Thu", "amount": 91000},
+            <String, Object>{"day": "Fri", "amount": 85000},
+            <String, Object>{"day": "Sat", "amount": 95000},
+            <String, Object>{"day": "Sun", "amount": 78000},
           ],
         };
         
@@ -132,7 +130,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Hitilafu katika kupakia data: $e');
+        _showErrorSnackBar("Hitilafu katika kupakia data: $e");
       }
     } finally {
       if (mounted) {
@@ -187,7 +185,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
             Text(
               "Inapakia Dashboard...",
-              style: AppStyles.bodyLarge(context).copyWith(
+              style: AppStyles.bodyLargeResponsive(context).copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
@@ -198,9 +196,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
 
   Widget _buildNavigationDrawer() {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
-    final logoSize = ResponsiveUtils.getResponsiveIconSize(context, 80);
+    final AuthProvider authProvider = Provider.of<AuthProvider>(context);
+    final UserData? user = authProvider.user;
+    final double logoSize = ResponsiveUtils.getResponsiveIconSize(context, 80);
     
     return Drawer(
       width: ResponsiveUtils.getResponsiveValue(
@@ -248,8 +246,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     ),
                   ),
                   Text(
-                    'Boda Mapato',
-                    style: AppStyles.heading2(context).copyWith(
+                    "Boda Mapato",
+                    style: AppStyles.heading2Responsive(context).copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -266,8 +264,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       ),
                     ),
                     child: Text(
-                      user?.name ?? 'Admin User',
-                      style: AppStyles.bodyMedium(context).copyWith(
+                      user?.name ?? "Admin User",
+                      style: AppStyles.bodyMediumResponsive(context).copyWith(
                         color: Colors.white70,
                       ),
                       textAlign: TextAlign.center,
@@ -288,65 +286,65 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: <Widget>[
                   _buildNavItem(
                     icon: Icons.dashboard,
-                    title: 'Dashboard',
-                    page: 'dashboard',
-                    isSelected: _selectedPage == 'dashboard',
+                    title: "Dashboard",
+                    page: "dashboard",
+                    isSelected: _selectedPage == "dashboard",
                   ),
                   _buildNavItem(
                     icon: Icons.people,
-                    title: 'Madereva',
-                    page: 'drivers',
-                    badge: '${_dashboardData['total_drivers'] ?? 0}',
+                    title: "Madereva",
+                    page: "drivers",
+                    badge: "${_dashboardData["total_drivers"] ?? 0}",
                   ),
                   _buildNavItem(
                     icon: Icons.directions_car,
-                    title: 'Magari',
-                    page: 'vehicles',
-                    badge: '${_dashboardData['total_vehicles'] ?? 0}',
+                    title: "Magari",
+                    page: "vehicles",
+                    badge: "${_dashboardData["total_vehicles"] ?? 0}",
                   ),
                   _buildNavItem(
                     icon: Icons.devices,
-                    title: 'Vifaa',
-                    page: 'devices',
+                    title: "Vifaa",
+                    page: "devices",
                   ),
                   const Divider(color: Colors.white24, height: 32),
                   _buildNavItem(
                     icon: Icons.payment,
-                    title: 'Malipo',
-                    page: 'payments',
-                    badge: '${_dashboardData['pending_payments'] ?? 0}',
+                    title: "Malipo",
+                    page: "payments",
+                    badge: "${_dashboardData["pending_payments"] ?? 0}",
                   ),
                   _buildNavItem(
                     icon: Icons.receipt_long,
-                    title: 'Risiti',
-                    page: 'receipts',
+                    title: "Risiti",
+                    page: "receipts",
                   ),
                   _buildNavItem(
                     icon: Icons.swap_horiz,
-                    title: 'Miamala',
-                    page: 'transactions',
+                    title: "Miamala",
+                    page: "transactions",
                   ),
                   const Divider(color: Colors.white24, height: 32),
                   _buildNavItem(
                     icon: Icons.analytics,
-                    title: 'Ripoti',
-                    page: 'reports',
+                    title: "Ripoti",
+                    page: "reports",
                   ),
                   _buildNavItem(
                     icon: Icons.trending_up,
-                    title: 'Uchambuzi',
-                    page: 'analytics',
+                    title: "Uchambuzi",
+                    page: "analytics",
                   ),
                   const Divider(color: Colors.white24, height: 32),
                   _buildNavItem(
                     icon: Icons.notifications,
-                    title: 'Mikumbuzi',
-                    page: 'reminders',
+                    title: "Mikumbuzi",
+                    page: "reminders",
                   ),
                   _buildNavItem(
                     icon: Icons.settings,
-                    title: 'Mipangilio',
-                    page: 'settings',
+                    title: "Mipangilio",
+                    page: "settings",
                   ),
                 ],
               ),
@@ -356,7 +354,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             Container(
               padding: ResponsiveUtils.getResponsiveCardPadding(context),
               child: CustomButton(
-                text: 'Toka',
+                text: "Toka",
                 icon: Icons.logout,
                 backgroundColor: errorRed,
                 onPressed: _handleLogout,
@@ -386,7 +384,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
         title: Text(
           title,
-          style: AppStyles.bodyMedium(context).copyWith(
+          style: AppStyles.bodyMediumResponsive(context).copyWith(
             color: isSelected ? Colors.white : Colors.white70,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -407,7 +405,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 ),
                 child: Text(
                   badge,
-                  style: AppStyles.bodySmall(context).copyWith(
+                  style: AppStyles.bodySmallResponsive(context).copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -441,9 +439,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               onRefresh: _loadDashboardData,
               color: primaryBlue,
               child: SingleChildScrollView(
-                padding: ResponsiveUtils.getResponsivePadding(context),
+                padding: ResponsiveUtils.getResponsivePadding(context).copyWith(
+                  bottom: ResponsiveUtils.getResponsiveSpacing(context, 32),
+                ),
+                physics: const BouncingScrollPhysics(),
                 child: ResponsiveColumn(
-                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 24),
+                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 20),
                   children: <Widget>[
                     _buildWelcomeCard(),
                     _buildStatsGrid(),
@@ -498,7 +499,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Expanded(
             child: Text(
               "Admin Dashboard",
-              style: AppStyles.heading2(context).copyWith(
+              style: AppStyles.heading2Responsive(context).copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -544,130 +545,147 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
 
   Widget _buildWelcomeCard() {
-    final user = Provider.of<AuthProvider>(context).user;
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 60);
+    final UserData? user = Provider.of<AuthProvider>(context).user;
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 50);
     
     return CustomCard(
-      child: ResponsiveContainer(
+      child: Container(
+        padding: ResponsiveUtils.getResponsiveCardPadding(context),
         decoration: BoxDecoration(
           color: successGreen.withOpacity(0.1),
           borderRadius: BorderRadius.circular(
             ResponsiveUtils.getResponsiveBorderRadius(context, 16),
           ),
         ),
-        child: ResponsiveRow(
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 20),
-          children: <Widget>[
-            Container(
-              width: iconSize,
-              height: iconSize,
-              decoration: BoxDecoration(
-                color: primaryBlue,
-                borderRadius: BorderRadius.circular(iconSize / 2),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: iconSize,
+                height: iconSize,
+                decoration: BoxDecoration(
+                  color: primaryBlue,
+                  borderRadius: BorderRadius.circular(iconSize / 2),
+                ),
+                child: Icon(
+                  Icons.admin_panel_settings,
+                  color: Colors.white,
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                ),
               ),
-              child: Icon(
-                Icons.admin_panel_settings,
-                color: Colors.white,
-                size: ResponsiveUtils.getResponsiveIconSize(context, 30),
-              ),
-            ),
-            Expanded(
-              child: ResponsiveColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                children: <Widget>[
-                  Text(
-                    'Karibu, ${user?.name ?? 'Admin'}!',
-                    style: AppStyles.heading3(context).copyWith(
-                      color: darkGray,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  Text(
-                    'Simamia biashara yako ya boda boda kwa urahisi',
-                    style: AppStyles.bodyMedium(context).copyWith(
-                      color: Colors.black54,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
-                      vertical: ResponsiveUtils.getResponsiveSpacing(context, 6),
-                    ),
-                    decoration: BoxDecoration(
-                      color: successGreen,
-                      borderRadius: BorderRadius.circular(
-                        ResponsiveUtils.getResponsiveBorderRadius(context, 20),
-                      ),
-                    ),
-                    child: Text(
-                      'Mapato: +${_dashboardData['revenue_growth']?.toStringAsFixed(1) ?? '0'}%',
-                      style: AppStyles.bodySmall(context).copyWith(
-                        color: Colors.white,
+              SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 16)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      "Karibu, ${user?.name ?? "Admin"}!",
+                      style: AppStyles.heading4Responsive(context).copyWith(
+                        color: darkGray,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                ],
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 6)),
+                    Text(
+                      "Simamia biashara yako ya boda boda kwa urahisi",
+                      style: AppStyles.bodySmallResponsive(context).copyWith(
+                        color: Colors.black54,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+                    Wrap(
+                      children: <Widget>[
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 10),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                          ),
+                          decoration: BoxDecoration(
+                            color: successGreen,
+                            borderRadius: BorderRadius.circular(
+                              ResponsiveUtils.getResponsiveBorderRadius(context, 16),
+                            ),
+                          ),
+                          child: Text(
+                            "Mapato: +${_dashboardData["revenue_growth"]?.toStringAsFixed(1) ?? "0"}%",
+                            style: AppStyles.captionResponsive(context).copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid() => ResponsiveGridView(
+  Widget _buildStatsGrid() {
+    final int crossAxisCount = ResponsiveUtils.getResponsiveValue(
+      context,
+      mobile: 2,
+      tablet: 3,
+      desktop: 4,
+    );
+    final double spacing = ResponsiveUtils.getResponsiveSpacing(context, 12);
+    
+    return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: ResponsiveUtils.getResponsiveValue(
-        context,
-        mobile: 2,
-        tablet: 3,
-        desktop: 4,
-      ),
+      crossAxisCount: crossAxisCount,
       childAspectRatio: ResponsiveUtils.getResponsiveValue(
         context,
-        mobile: 1.2,
-        tablet: 1.1,
-        desktop: 1.0,
+        mobile: 0.9,
+        tablet: 1,
+        desktop: 1.1,
       ),
-      spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+      crossAxisSpacing: spacing,
+      mainAxisSpacing: spacing,
+      padding: EdgeInsets.zero,
       children: <Widget>[
         _buildStatCard(
           title: "Madereva",
-          value: '${_dashboardData['active_drivers']}/${_dashboardData['total_drivers']}',
+          value: "${_dashboardData["active_drivers"]}/${_dashboardData["total_drivers"]}",
           icon: Icons.people,
           color: primaryBlue,
-          subtitle: '+${_dashboardData['driver_growth']?.toStringAsFixed(1) ?? '0'}%',
+          subtitle: "+${_dashboardData["driver_growth"]?.toStringAsFixed(1) ?? "0"}%",
         ),
         _buildStatCard(
           title: "Magari",
-          value: '${_dashboardData['active_vehicles']}/${_dashboardData['total_vehicles']}',
+          value: "${_dashboardData["active_vehicles"]}/${_dashboardData["total_vehicles"]}",
           icon: Icons.directions_car,
           color: primaryOrange,
-          subtitle: '${_dashboardData['vehicle_utilization']?.toStringAsFixed(1) ?? '0'}% matumizi',
+          subtitle: "${_dashboardData["vehicle_utilization"]?.toStringAsFixed(1) ?? "0"}%",
         ),
         _buildStatCard(
           title: "Mapato ya Mwezi",
-          value: 'TSH ${_formatCurrency(_dashboardData['monthly_revenue'] ?? 0)}',
+          value: "TSH ${_formatCurrency(_dashboardData["monthly_revenue"] ?? 0)}",
           icon: Icons.trending_up,
           color: successGreen,
-          subtitle: '+${_dashboardData['revenue_growth']?.toStringAsFixed(1) ?? '0'}%',
+          subtitle: "+${_dashboardData["revenue_growth"]?.toStringAsFixed(1) ?? "0"}%",
         ),
         _buildStatCard(
           title: "Malipo Yanayosubiri",
-          value: '${_dashboardData['pending_payments'] ?? 0}',
+          value: "${_dashboardData["pending_payments"] ?? 0}",
           icon: Icons.pending_actions,
           color: warningAmber,
           subtitle: "Yanahitaji uangalizi",
         ),
       ],
     );
+  }
 
   Widget _buildStatCard({
     required final String title,
@@ -676,16 +694,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     required final Color color,
     final String? subtitle,
   }) {
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 40);
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 32);
     
     return CustomCard(
-      child: ResponsiveContainer(
-        child: ResponsiveColumn(
+      child: Container(
+        padding: ResponsiveUtils.getResponsiveCardPadding(context),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
           children: <Widget>[
-            ResponsiveRow(
+            Row(
               children: <Widget>[
                 Container(
                   width: iconSize,
@@ -693,63 +711,66 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(
-                      ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+                      ResponsiveUtils.getResponsiveBorderRadius(context, 8),
                     ),
                   ),
                   child: Icon(
                     icon,
                     color: color,
-                    size: ResponsiveUtils.getResponsiveIconSize(context, 20),
+                    size: ResponsiveUtils.getResponsiveIconSize(context, 16),
                   ),
                 ),
                 const Spacer(),
                 Icon(
                   Icons.more_vert,
                   color: Colors.grey[400],
-                  size: ResponsiveUtils.getResponsiveIconSize(context, 20),
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 16),
                 ),
               ],
             ),
+            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
             Text(
               title,
-              style: AppStyles.bodySmall(context).copyWith(
+              style: AppStyles.captionResponsive(context).copyWith(
                 color: Colors.black54,
                 fontWeight: FontWeight.w500,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: AppStyles.bodyLarge(context).copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
+            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: AppStyles.bodyMediumResponsive(context).copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
               ),
             ),
-            if (subtitle != null)
+            if (subtitle != null) ...<Widget>[
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 2)),
               Text(
                 subtitle,
-                style: AppStyles.caption(context).copyWith(
+                style: AppStyles.captionResponsive(context).copyWith(
                   color: Colors.black45,
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRevenueChart() {
-    final chartData = _dashboardData['revenue_chart_data'] as List? ?? <dynamic>[];
-    
-    return CustomCard(
+  Widget _buildRevenueChart() => CustomCard(
       child: ResponsiveContainer(
         child: ResponsiveColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,8 +780,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               children: <Widget>[
                 Expanded(
                   child: Text(
-                    'Mapato ya Wiki',
-                    style: AppStyles.heading4(context).copyWith(
+                    "Mapato ya Wiki",
+                    style: AppStyles.heading4Responsive(context).copyWith(
                       fontWeight: FontWeight.bold,
                       color: darkGray,
                     ),
@@ -780,8 +801,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     ),
                   ),
                   child: Text(
-                    'TSH ${_formatCurrency(_dashboardData['weekly_revenue'] ?? 0)}',
-                    style: AppStyles.bodySmall(context).copyWith(
+                    "TSH ${_formatCurrency(_dashboardData["weekly_revenue"] ?? 0)}",
+                    style: AppStyles.bodySmallResponsive(context).copyWith(
                       color: successGreen,
                       fontWeight: FontWeight.bold,
                     ),
@@ -789,85 +810,80 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 ),
               ],
             ),
-            SizedBox(
-              height: ResponsiveUtils.getResponsiveContainerHeight(context, 200),
-              child: chartData.isNotEmpty
-                  ? DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(
-                          ResponsiveUtils.getResponsiveBorderRadius(context, 12),
-                        ),
-                      ),
-                      child: Center(
-                        child: ResponsiveColumn(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                          children: <Widget>[
-                            Icon(
-                              Icons.show_chart,
-                              size: ResponsiveUtils.getResponsiveIconSize(context, 48),
-                              color: Colors.black54,
-                            ),
-                            Text(
-                              'Chati ya Mapato',
-                              style: AppStyles.bodyLarge(context).copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            Text(
-                              'Itaongezwa baadaye',
-                              style: AppStyles.bodySmall(context).copyWith(
-                                color: Colors.black45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Text(
-                        'Hakuna data ya kuchora',
-                        style: AppStyles.bodyMedium(context).copyWith(
-                          color: Colors.black54,
-                        ),
+            Container(
+              height: ResponsiveUtils.getResponsiveContainerHeight(context, 180),
+              decoration: BoxDecoration(
+                color: primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(
+                  ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(
+                      Icons.show_chart,
+                      size: ResponsiveUtils.getResponsiveIconSize(context, 36),
+                      color: Colors.black54,
+                    ),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+                    Text(
+                      "Chati ya Mapato",
+                      style: AppStyles.bodyMediumResponsive(context).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
                       ),
                     ),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
+                    Text(
+                      "Itaongezwa baadaye",
+                      style: AppStyles.bodySmallResponsive(context).copyWith(
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
-  }
 
-  Widget _buildQuickActions() => ResponsiveColumn(
+  Widget _buildQuickActions() {
+    final int crossAxisCount = ResponsiveUtils.getResponsiveValue(
+      context,
+      mobile: 2,
+      tablet: 3,
+      desktop: 4,
+    );
+    final double spacing = ResponsiveUtils.getResponsiveSpacing(context, 12);
+    
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
       children: <Widget>[
         Text(
           "Vitendo vya Haraka",
-          style: AppStyles.heading4(context).copyWith(
+          style: AppStyles.heading4Responsive(context).copyWith(
             fontWeight: FontWeight.bold,
             color: darkGray,
           ),
         ),
-        ResponsiveGridView(
+        SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 16)),
+        GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: ResponsiveUtils.getResponsiveValue(
-            context,
-            mobile: 2,
-            tablet: 3,
-            desktop: 4,
-          ),
+          crossAxisCount: crossAxisCount,
           childAspectRatio: ResponsiveUtils.getResponsiveValue(
             context,
-            mobile: 1.5,
-            tablet: 1.3,
-            desktop: 1.2,
+            mobile: 1.1,
+            tablet: 1.2,
+            desktop: 1.3,
           ),
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          padding: EdgeInsets.zero,
           children: <Widget>[
             _buildQuickActionCard(
               title: "Rekodi Malipo",
@@ -897,6 +913,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
       ],
     );
+  }
 
   Widget _buildQuickActionCard({
     required final String title,
@@ -904,20 +921,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     required final Color color,
     required final VoidCallback onTap,
   }) {
-    final iconContainerSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconContainerSize = ResponsiveUtils.getResponsiveIconSize(context, 36);
     
     return CustomCard(
       onTap: onTap,
-      child: ResponsiveContainer(
+      child: Container(
+        padding: ResponsiveUtils.getResponsiveCardPadding(context),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(
             ResponsiveUtils.getResponsiveBorderRadius(context, 16),
           ),
         ),
-        child: ResponsiveColumn(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 12),
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
               width: iconContainerSize,
@@ -928,21 +946,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: color.withOpacity(0.3),
-                    blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 12),
-                    offset: Offset(0, 6.h),
+                    blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                    offset: Offset(0, 4.h),
                   ),
                 ],
               ),
               child: Icon(
                 icon,
                 color: Colors.white,
-                size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                size: ResponsiveUtils.getResponsiveIconSize(context, 18),
               ),
             ),
+            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
             Flexible(
               child: Text(
                 title,
-                style: AppStyles.bodyMedium(context).copyWith(
+                style: AppStyles.bodySmallResponsive(context).copyWith(
                   fontWeight: FontWeight.w600,
                   color: darkGray,
                 ),
@@ -958,18 +977,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   Widget _buildRecentTransactions() {
-    final transactions = _dashboardData['recent_transactions'] as List? ?? <dynamic>[];
+    final List transactions = _dashboardData["recent_transactions"] as List? ?? <dynamic>[];
     
-    return ResponsiveColumn(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
       children: <Widget>[
-        ResponsiveRow(
+        Row(
           children: <Widget>[
             Expanded(
               child: Text(
-                'Miamala ya Hivi Karibuni',
-                style: AppStyles.heading4(context).copyWith(
+                "Miamala ya Hivi Karibuni",
+                style: AppStyles.heading4Responsive(context).copyWith(
                   fontWeight: FontWeight.bold,
                   color: darkGray,
                 ),
@@ -978,10 +996,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ),
             ),
             TextButton(
-              onPressed: () => _navigateToPage('transactions'),
+              onPressed: () => _navigateToPage("transactions"),
               child: Text(
-                'Ona Zote',
-                style: AppStyles.bodyMedium(context).copyWith(
+                "Ona Zote",
+                style: AppStyles.bodyMediumResponsive(context).copyWith(
                   color: primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
@@ -989,9 +1007,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
           ],
         ),
+        SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 16)),
         CustomCard(
           child: Column(
-            children: transactions.map<Widget>((final transaction) => _buildTransactionItem(transaction as Map<String, dynamic>)).toList(),
+            mainAxisSize: MainAxisSize.min,
+            children: transactions.take(3).map<Widget>((final transaction) => _buildTransactionItem(transaction as Map<String, dynamic>)).toList(),
           ),
         ),
       ],
@@ -999,18 +1019,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   Widget _buildTransactionItem(final Map<String, dynamic> transaction) {
-    final status = transaction['status'] as String;
-    final amount = transaction['amount'] as double;
-    final date = transaction['date'] as DateTime;
+    final String status = transaction["status"] as String;
+    final double amount = transaction["amount"] as double;
+    final DateTime date = transaction["date"] as DateTime;
     
     Color statusColor;
     IconData statusIcon;
     
     switch (status) {
-      case 'paid':
+      case "paid":
         statusColor = successGreen;
         statusIcon = Icons.check_circle;
-      case 'pending':
+      case "pending":
         statusColor = warningAmber;
         statusIcon = Icons.pending;
       default:
@@ -1018,17 +1038,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         statusIcon = Icons.error;
     }
     
-    final iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 36);
     
     return Container(
-      padding: ResponsiveUtils.getResponsiveCardPadding(context),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getResponsiveSpacing(context, 16),
+        vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
+      ),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Colors.black12, width: 0.5.w),
         ),
       ),
-      child: ResponsiveRow(
-        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+      child: Row(
         children: <Widget>[
           Container(
             width: iconSize,
@@ -1040,34 +1062,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             child: Icon(
               statusIcon,
               color: statusColor,
-              size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+              size: ResponsiveUtils.getResponsiveIconSize(context, 18),
             ),
           ),
+          SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 12)),
           Expanded(
-            child: ResponsiveColumn(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
               children: <Widget>[
                 Text(
-                  transaction['driver_name'],
-                  style: AppStyles.bodyLarge(context).copyWith(
+                  transaction["driver_name"],
+                  style: AppStyles.bodyMediumResponsive(context).copyWith(
                     fontWeight: FontWeight.w600,
                     color: darkGray,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
+                SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 2)),
                 Text(
-                  transaction['vehicle_number'],
-                  style: AppStyles.bodyMedium(context).copyWith(
+                  transaction["vehicle_number"],
+                  style: AppStyles.bodySmallResponsive(context).copyWith(
                     color: Colors.black54,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
+                SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 2)),
                 Text(
                   _formatDateTime(date),
-                  style: AppStyles.bodySmall(context).copyWith(
+                  style: AppStyles.captionResponsive(context).copyWith(
                     color: Colors.black45,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -1076,34 +1100,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ],
             ),
           ),
-          ResponsiveColumn(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.end,
-            spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
             children: <Widget>[
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'TSH ${_formatCurrency(amount)}',
-                  style: AppStyles.bodyLarge(context).copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
+              Text(
+                "TSH ${_formatCurrency(amount)}",
+                style: AppStyles.bodyMediumResponsive(context).copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
                 ),
               ),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                  vertical: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                  horizontal: ResponsiveUtils.getResponsiveSpacing(context, 6),
+                  vertical: ResponsiveUtils.getResponsiveSpacing(context, 2),
                 ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(
-                    ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
                   ),
                 ),
                 child: Text(
                   status.toUpperCase(),
-                  style: AppStyles.caption(context).copyWith(
+                  style: AppStyles.captionResponsive(context).copyWith(
                     fontWeight: FontWeight.bold,
                     color: statusColor,
                   ),
@@ -1118,46 +1139,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   String _formatCurrency(final double amount) {
     if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
+      return "${(amount / 1000000).toStringAsFixed(1)}M";
     } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
+      return "${(amount / 1000).toStringAsFixed(0)}K";
     } else {
       return amount.toStringAsFixed(0);
     }
   }
 
   String _formatDateTime(final DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final DateTime now = DateTime.now();
+    final Duration difference = now.difference(dateTime);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays} siku zilizopita';
+      return "${difference.inDays} siku zilizopita";
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} saa zilizopita';
+      return "${difference.inHours} saa zilizopita";
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} dakika zilizopita';
+      return "${difference.inMinutes} dakika zilizopita";
     } else {
-      return 'Sasa hivi';
+      return "Sasa hivi";
     }
   }
 
   void _navigateToPage(final String page) {
     // TODO: Implement navigation to different pages
     switch (page) {
-      case 'drivers':
-        Navigator.pushNamed(context, '/admin/drivers');
-      case 'vehicles':
-        Navigator.pushNamed(context, '/admin/vehicles');
-      case 'payments':
-        Navigator.pushNamed(context, '/admin/payments');
-      case 'reports':
-        Navigator.pushNamed(context, '/admin/reports');
-      case 'record_payment':
-        Navigator.pushNamed(context, '/admin/record-payment');
-      case 'add_driver':
-        Navigator.pushNamed(context, '/admin/drivers');
-      case 'add_vehicle':
-        Navigator.pushNamed(context, '/admin/vehicles');
+      case "drivers":
+        Navigator.pushNamed(context, "/admin/drivers");
+      case "vehicles":
+        Navigator.pushNamed(context, "/admin/vehicles");
+      case "payments":
+        Navigator.pushNamed(context, "/admin/payments");
+      case "reports":
+        Navigator.pushNamed(context, "/admin/reports");
+      case "record_payment":
+        Navigator.pushNamed(context, "/admin/record-payment");
+      case "add_driver":
+        Navigator.pushNamed(context, "/admin/drivers");
+      case "add_vehicle":
+        Navigator.pushNamed(context, "/admin/vehicles");
       default:
         _showComingSoonDialog(page);
     }
@@ -1166,14 +1187,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   void _showComingSoonDialog(final String feature) {
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Inakuja Hivi Karibuni'),
-        content: SelectableText('Kipengele cha $feature kinatengenezwa. Subiri kidogo!'),
+        title: const Text("Inakuja Hivi Karibuni"),
+        content: SelectableText("Kipengele cha $feature kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Sawa'),
+            child: const Text("Sawa"),
           ),
         ],
       ),
@@ -1182,22 +1203,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   void _showNotifications() {
     // TODO: Implement notifications
-    _showComingSoonDialog('Arifa');
+    _showComingSoonDialog("Arifa");
   }
 
   Future<void> _handleLogout() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     showDialog(
       context: context,
-      builder: (final context) => AlertDialog(
+      builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Toka'),
-        content: const Text('Je, una uhakika unataka kutoka?'),
+        title: const Text("Toka"),
+        content: const Text("Je, una uhakika unataka kutoka?"),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hapana'),
+            child: const Text("Hapana"),
           ),
           TextButton(
             onPressed: () async {
@@ -1205,7 +1226,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               await authProvider.logout();
             },
             child: const Text(
-              'Ndio',
+              "Ndio",
               style: TextStyle(color: errorRed),
             ),
           ),

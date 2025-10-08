@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/responsive_wrapper.dart';
-import '../../providers/auth_provider.dart';
-import '../../utils/responsive_utils.dart';
+import "package:flutter/material.dart";
+import "package:flutter_screenutil/flutter_screenutil.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/styles.dart";
+import "../../providers/auth_provider.dart";
+import "../../utils/responsive_utils.dart";
+import "../../widgets/custom_button.dart";
+import "../../widgets/custom_card.dart";
+import "../../widgets/responsive_wrapper.dart";
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -38,25 +38,27 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       
       // Mock data
       _dashboardData = <String, dynamic>{
-        'assigned_vehicle': <String, String>{
-          'name': 'Bajaji ya Kwanza',
-          'type': 'bajaji',
-          'plate_number': 'T123ABC',
+        "assigned_vehicle": <String, String>{
+          "name": "Bajaji ya Kwanza",
+          "type": "bajaji",
+          "plate_number": "T123ABC",
         },
-        'payments_today': 15000.0,
-        'payments_this_week': 85000.0,
-        'payments_this_month': 320000.0,
-        'total_trips': 156,
-        'total_earnings': 1250000.0,
-        'rating': 4.5,
+        "payments_today": 15000.0,
+        "payments_this_week": 85000.0,
+        "payments_this_month": 320000.0,
+        "total_trips": 156,
+        "total_earnings": 1250000.0,
+        "rating": 4.5,
       };
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Hitilafu: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Hitilafu: $e"),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -72,7 +74,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         appBar: AppBar(
           title: Text(
             "Dashboard ya Dereva",
-            style: AppStyles.heading2(context).copyWith(color: Colors.white),
+            style: AppStyles.heading2Responsive(context).copyWith(color: Colors.white),
           ),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -105,7 +107,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                       Text(
                         "Toka",
-                        style: AppStyles.bodyMedium(context),
+                        style: AppStyles.bodyMediumResponsive(context),
                       ),
                     ],
                   ),
@@ -134,7 +136,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     children: <Widget>[
                       // Welcome message
                       CustomCard(
-                        child: ResponsiveContainer(
+child: ResponsiveWrapper(
                           child: ResponsiveRow(
                             spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
                             children: <Widget>[
@@ -150,13 +152,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   children: <Widget>[
                                     Text(
                                       "Karibu, Dereva!",
-                                      style: AppStyles.heading3(context),
+                                      style: AppStyles.heading3Responsive(context),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                     ),
                                     Text(
                                       "Angalia takwimu zako za malipo",
-                                      style: AppStyles.bodyMedium(context).copyWith(
+                                      style: AppStyles.bodyMediumResponsive(context).copyWith(
                                         color: AppColors.textSecondary,
                                       ),
                                       maxLines: 2,
@@ -174,10 +176,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       if (_dashboardData["assigned_vehicle"] != null) ...<Widget>[
                         Text(
                           "Gari Lako",
-                          style: AppStyles.heading3(context),
+                          style: AppStyles.heading3Responsive(context),
                         ),
                         CustomCard(
-                          child: ResponsiveContainer(
+child: ResponsiveWrapper(
                             child: ResponsiveRow(
                               spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
                               children: <Widget>[
@@ -203,15 +205,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                     children: <Widget>[
                                       Text(
                                         _dashboardData["assigned_vehicle"]["name"],
-                                        style: AppStyles.bodyLarge(context).copyWith(
+                                        style: AppStyles.bodyLargeResponsive(context).copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                         maxLines: 1,
                                       ),
                                       Text(
-                                        'Nambari: ${_dashboardData['assigned_vehicle']['plate_number']}',
-                                        style: AppStyles.bodyMedium(context).copyWith(
+                                        "Nambari: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
+                                        style: AppStyles.bodyMediumResponsive(context).copyWith(
                                           color: AppColors.textSecondary,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -230,7 +232,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                         ),
                                         child: Text(
                                           "Inatumika",
-                                          style: AppStyles.bodySmall(context).copyWith(
+                                          style: AppStyles.bodySmallResponsive(context).copyWith(
                                             color: AppColors.success,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -248,11 +250,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       // Payment Statistics
                       Text(
                         "Takwimu za Malipo",
-                        style: AppStyles.heading3(context),
+                        style: AppStyles.heading3Responsive(context),
                       ),
                       CustomStatCard(
                         title: "Malipo ya Leo",
-                        value: 'TSh ${(_dashboardData['payments_today'] ?? 0).toStringAsFixed(0)}',
+                        value: "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
                         icon: Icons.today,
                         color: AppColors.success,
                       ),
@@ -262,7 +264,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           Expanded(
                             child: CustomStatCard(
                               title: "Wiki Hii",
-                              value: 'TSh ${(_dashboardData['payments_this_week'] ?? 0).toStringAsFixed(0)}',
+                              value: "TSh ${(_dashboardData["payments_this_week"] ?? 0).toStringAsFixed(0)}",
                               icon: Icons.date_range,
                               color: AppColors.info,
                             ),
@@ -270,7 +272,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           Expanded(
                             child: CustomStatCard(
                               title: "Mwezi Huu",
-                              value: 'TSh ${(_dashboardData['payments_this_month'] ?? 0).toStringAsFixed(0)}',
+                              value: "TSh ${(_dashboardData["payments_this_month"] ?? 0).toStringAsFixed(0)}",
                               icon: Icons.calendar_month,
                               color: AppColors.warning,
                             ),
@@ -281,7 +283,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       // Performance Stats
                       Text(
                         "Utendaji Wako",
-                        style: AppStyles.heading3(context),
+                        style: AppStyles.heading3Responsive(context),
                       ),
                       ResponsiveRow(
                         spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
@@ -289,7 +291,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           Expanded(
                             child: CustomStatCard(
                               title: "Jumla ya Safari",
-                              value: '${_dashboardData['total_trips'] ?? 0}',
+                              value: "${_dashboardData["total_trips"] ?? 0}",
                               icon: Icons.route,
                               color: AppColors.primary,
                             ),
@@ -297,7 +299,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           Expanded(
                             child: CustomStatCard(
                               title: "Ukadiriaji",
-                              value: '${_dashboardData['rating'] ?? 0.0}/5.0',
+                              value: "${_dashboardData["rating"] ?? 0.0}/5.0",
                               icon: Icons.star,
                               color: AppColors.warning,
                             ),
@@ -308,7 +310,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       // Quick Actions
                       Text(
                         "Vitendo vya Haraka",
-                        style: AppStyles.heading3(context),
+                        style: AppStyles.heading3Responsive(context),
                       ),
                       ResponsiveGridView(
                         shrinkWrap: true,
@@ -323,7 +325,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                           context,
                           mobile: 1.2,
                           tablet: 1.1,
-                          desktop: 1.0,
+                          desktop: 1,
                         ),
                         spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
                         children: <Widget>[
@@ -367,13 +369,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                               ),
                               Text(
                                 "Jumla ya Mapato",
-                                style: AppStyles.bodyLarge(context),
+                                style: AppStyles.bodyLargeResponsive(context),
                               ),
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  'TSh ${(_dashboardData['total_earnings'] ?? 0).toStringAsFixed(0)}',
-                                  style: AppStyles.heading1(context).copyWith(
+                                  "TSh ${(_dashboardData["total_earnings"] ?? 0).toStringAsFixed(0)}",
+                                  style: AppStyles.heading1Responsive(context).copyWith(
                                     color: AppColors.success,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -382,7 +384,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                               ),
                               Text(
                                 "Tangu uanze kufanya kazi",
-                                style: AppStyles.bodySmall(context).copyWith(
+                                style: AppStyles.bodySmallResponsive(context).copyWith(
                                   color: AppColors.textSecondary,
                                 ),
                                 textAlign: TextAlign.center,
@@ -400,11 +402,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   IconData _getVehicleIcon(final String type) {
     switch (type) {
-      case 'bajaji':
+      case "bajaji":
         return Icons.directions_car; // three_wheeler not available, using car icon
-      case 'pikipiki':
+      case "pikipiki":
         return Icons.motorcycle;
-      case 'gari':
+      case "gari":
         return Icons.directions_car;
       default:
         return Icons.directions_car;
@@ -414,24 +416,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void _showPaymentRequestDialog() {
     showDialog(
       context: context,
-      builder: (final context) => _PaymentRequestDialog(),
+      builder: (final BuildContext context) => _PaymentRequestDialog(),
     );
   }
 
   void _navigateToPaymentHistory() {
-    Navigator.pushNamed(context, '/driver/payment-history');
+    Navigator.pushNamed(context, "/driver/payment-history");
   }
 
   void _navigateToReceipts() {
-    Navigator.pushNamed(context, '/driver/receipts');
+    Navigator.pushNamed(context, "/driver/receipts");
   }
 
   void _navigateToReminders() {
-    Navigator.pushNamed(context, '/driver/reminders');
+    Navigator.pushNamed(context, "/driver/reminders");
   }
 
   Future<void> _handleLogout() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
   }
 }
@@ -451,7 +453,7 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final iconContainerSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
+    final double iconContainerSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
     
     return CustomCard(
       onTap: onTap,
@@ -477,7 +479,7 @@ class _QuickActionCard extends StatelessWidget {
             ),
             Text(
               title,
-              style: AppStyles.bodyMedium(context).copyWith(
+              style: AppStyles.bodyMediumResponsive(context).copyWith(
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -500,7 +502,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String _paymentMethod = 'cash';
+  String _paymentMethod = "cash";
   bool _isLoading = false;
 
   @override
@@ -525,7 +527,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Ombi la malipo limetumwa. Inasubiri idhini ya admin.'),
+            content: Text("Ombi la malipo limetumwa. Inasubiri idhini ya admin."),
             backgroundColor: AppColors.success,
           ),
         );
@@ -534,7 +536,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hitilafu: $e'),
+            content: Text("Hitilafu: $e"),
             backgroundColor: AppColors.error,
           ),
         );
@@ -562,12 +564,12 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
               children: <Widget>[
                 Text(
                   "Omba Malipo",
-                  style: AppStyles.heading3(context),
+                  style: AppStyles.heading3Responsive(context),
                 ),
               
                 TextFormField(
                   controller: _amountController,
-                  style: AppStyles.bodyMedium(context),
+                  style: AppStyles.bodyMediumResponsive(context),
                   decoration: AppStyles.inputDecoration(context).copyWith(
                     labelText: "Kiasi (TSh)",
                     prefixText: "TSh ",
@@ -585,7 +587,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                 ),
                 TextFormField(
                   controller: _descriptionController,
-                  style: AppStyles.bodyMedium(context),
+                  style: AppStyles.bodyMediumResponsive(context),
                   decoration: AppStyles.inputDecoration(context).copyWith(
                     labelText: "Maelezo",
                   ),
@@ -599,7 +601,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                 ),
                 DropdownButtonFormField<String>(
                   value: _paymentMethod,
-                  style: AppStyles.bodyMedium(context),
+                  style: AppStyles.bodyMediumResponsive(context),
                   decoration: AppStyles.inputDecoration(context).copyWith(
                     labelText: "Njia ya Malipo",
                   ),
@@ -608,7 +610,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                       value: "cash",
                       child: Text(
                         "Fedha Taslimu",
-                        style: AppStyles.bodyMedium(context),
+                        style: AppStyles.bodyMediumResponsive(context),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
@@ -617,7 +619,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                       value: "mobile_money",
                       child: Text(
                         "Pesa za Simu",
-                        style: AppStyles.bodyMedium(context),
+                        style: AppStyles.bodyMediumResponsive(context),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
@@ -626,7 +628,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                       value: "bank_transfer",
                       child: Text(
                         "Uhamisho wa Benki",
-                        style: AppStyles.bodyMedium(context),
+                        style: AppStyles.bodyMediumResponsive(context),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),

@@ -1,17 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/styles.dart';
-import '../../providers/transaction_provider.dart';
-import '../../providers/device_provider.dart';
-import '../../widgets/custom_card.dart';
-import '../transactions/transactions_screen.dart';
-import '../device_selection/device_selection_screen.dart';
-import '../receipts/receipt_screen.dart';
-import '../reminders/reminders_screen.dart';
-import '../reports/report_screen.dart';
-import 'dashboard_widgets.dart';
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
+import "../../constants/styles.dart";
+import "../../providers/device_provider.dart";
+import "../../providers/transaction_provider.dart";
+import "../../widgets/custom_card.dart";
+import "../device_selection/device_selection_screen.dart";
+import "../receipts/receipt_screen.dart";
+import "../reminders/reminders_screen.dart";
+import "../reports/report_screen.dart";
+import "../transactions/transactions_screen.dart";
+import "dashboard_widgets.dart";
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -28,8 +29,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
-    final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
+    final TransactionProvider transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final DeviceProvider deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
     
     await Future.wait(<Future<void>>[
       transactionProvider.loadTransactions(),
@@ -59,7 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (final BuildContext final context) => const RemindersScreen(),
+                  builder: (final BuildContext context) => const RemindersScreen(),
                 ),
               );
             },
@@ -68,60 +69,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadDashboardData,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppStyles.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Revenue Summary Cards
-              const RevenueCardsSection(),
-              
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Quick Actions
-              const Text(
-                "Vitendo vya Haraka",
-                style: AppStyles.heading3,
-              ),
-              const SizedBox(height: AppStyles.spacingM),
-              const QuickActionsSection(),
-              
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Recent Transactions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  const Text(
-                    AppStrings.recentTransactions,
-                    style: AppStyles.heading3,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.all(AppStyles.spacingM),
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - AppStyles.spacingM * 2,
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (final BuildContext context) => const TransactionsScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text("Ona Zote"),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // Revenue Summary Cards
+                      const RevenueCardsSection(),
+                      
+                      const SizedBox(height: AppStyles.spacingL),
+                      
+                      // Quick Actions
+                      const Text(
+                        "Vitendo vya Haraka",
+                        style: AppStyles.heading3,
+                      ),
+                      const SizedBox(height: AppStyles.spacingM),
+                      const QuickActionsSection(),
+                      
+                      const SizedBox(height: AppStyles.spacingL),
+                      
+                      // Recent Transactions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          const Flexible(
+                            child: Text(
+                              AppStrings.recentTransactions,
+                              style: AppStyles.heading3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (final BuildContext context) => const TransactionsScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text("Ona Zote"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppStyles.spacingM),
+                      const RecentTransactionsSection(),
+                      
+                      const SizedBox(height: AppStyles.spacingL),
+                      
+                      // Device Status
+                      const Text(
+                        "Hali ya Vyombo",
+                        style: AppStyles.heading3,
+                      ),
+                      const SizedBox(height: AppStyles.spacingM),
+                      const DeviceStatusSection(),
+                      
+                      // Add bottom padding to ensure FAB doesn't overlap content
+                      const SizedBox(height: AppStyles.spacingXL),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: AppStyles.spacingM),
-              const RecentTransactionsSection(),
-              
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Device Status
-              const Text(
-                "Hali ya Vyombo",
-                style: AppStyles.heading3,
-              ),
-              const SizedBox(height: AppStyles.spacingM),
-              const DeviceStatusSection(),
-            ],
           ),
         ),
       ),
@@ -163,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (final BuildContext final context) => const ReceiptScreen(),
+                  builder: (final BuildContext context) => const ReceiptScreen(),
                 ),
               );
             case 3:
@@ -195,40 +212,80 @@ class QuickActionsSection extends StatelessWidget {
   const QuickActionsSection({super.key});
 
   @override
-  Widget build(final BuildContext context) => Row(
-      children: <Widget>[
-        Expanded(
-          child: _QuickActionCard(
-            icon: Icons.add_circle,
-            title: "Muamala Mpya",
-            color: AppColors.success,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const TransactionsScreen(),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: AppStyles.spacingM),
-        Expanded(
-          child: _QuickActionCard(
-            icon: Icons.receipt_long,
-            title: "Tengeneza Risiti",
-            color: AppColors.info,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const ReceiptScreen(),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+  Widget build(final BuildContext context) => LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // Use column layout for very small screens
+        if (constraints.maxWidth < 300) {
+          return Column(
+            children: <Widget>[
+              _QuickActionCard(
+                icon: Icons.add_circle,
+                title: "Muamala Mpya",
+                color: AppColors.success,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (final BuildContext context) => const TransactionsScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppStyles.spacingM),
+              _QuickActionCard(
+                icon: Icons.receipt_long,
+                title: "Tengeneza Risiti",
+                color: AppColors.info,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (final BuildContext context) => const ReceiptScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        }
+        
+        // Use row layout for normal screens
+        return Row(
+          children: <Widget>[
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.add_circle,
+                title: "Muamala Mpya",
+                color: AppColors.success,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (final BuildContext context) => const TransactionsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: AppStyles.spacingM),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.receipt_long,
+                title: "Tengeneza Risiti",
+                color: AppColors.info,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (final BuildContext context) => const ReceiptScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
 }
 
@@ -251,6 +308,8 @@ class _QuickActionCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppStyles.spacingM),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Icon(
               icon,
@@ -258,10 +317,14 @@ class _QuickActionCard extends StatelessWidget {
               color: color,
             ),
             const SizedBox(height: AppStyles.spacingS),
-            Text(
-              title,
-              style: AppStyles.bodyMedium,
-              textAlign: TextAlign.center,
+            Flexible(
+              child: Text(
+                title,
+                style: AppStyles.bodyMedium,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
