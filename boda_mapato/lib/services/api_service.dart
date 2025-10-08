@@ -570,17 +570,17 @@ class ApiService {
       _get("/payment-receipts/pending");
 
   /// Generate receipt for a payment
-  Future<Map<String, dynamic>> generateReceipt(String paymentId) async =>
+  Future<Map<String, dynamic>> generatePaymentReceipt(String paymentId) async =>
       _post("/payment-receipts/generate", {
         "payment_id": paymentId,
       });
 
-  /// Get receipt preview by receipt ID
-  Future<Map<String, dynamic>> getReceiptPreview(String receiptId) async =>
+  /// Get payment receipt preview by receipt ID
+  Future<Map<String, dynamic>> getPaymentReceiptPreview(String receiptId) async =>
       _get("/payment-receipts/$receiptId/preview");
 
-  /// Send receipt to driver via specified method
-  Future<Map<String, dynamic>> sendReceipt({
+  /// Send payment receipt to driver via specified method
+  Future<Map<String, dynamic>> sendPaymentReceipt({
     required String receiptId,
     required String sendVia, // 'whatsapp', 'email', 'system'
     required String contactInfo, // phone number for WhatsApp, email for email
@@ -591,8 +591,8 @@ class ApiService {
         "contact_info": contactInfo,
       });
 
-  /// Get all receipts with optional filtering
-  Future<Map<String, dynamic>> getReceipts({
+  /// Get all payment receipts with optional filtering
+  Future<Map<String, dynamic>> getPaymentReceipts({
     String? status,
     String? driverId,
     DateTime? dateFrom,
@@ -621,8 +621,8 @@ class ApiService {
     return _get(endpoint);
   }
 
-  /// Get receipt by ID
-  Future<Map<String, dynamic>> getReceiptById(String receiptId) async =>
+  /// Get payment receipt by ID
+  Future<Map<String, dynamic>> getPaymentReceiptById(String receiptId) async =>
       _get("/payment-receipts/$receiptId");
 
   // Health check

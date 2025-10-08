@@ -162,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.receipt),
-              label: "Risiti",
+              label: "Toa Risiti",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.assessment),

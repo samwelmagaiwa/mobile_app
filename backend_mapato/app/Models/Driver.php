@@ -51,6 +51,14 @@ class Driver extends Model
     }
 
     /**
+     * Debt records associated with this driver
+     */
+    public function debtRecords()
+    {
+        return $this->hasMany(DebtRecord::class);
+    }
+
+    /**
      * Get the transactions for the driver.
      */
     public function transactions()
@@ -152,5 +160,41 @@ class Driver extends Model
     public function scopeWithExpiringLicenses($query, $days = 30)
     {
         return $query->whereDate('license_expiry', '<=', now()->addDays($days));
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | Convenience accessors to surface related user/device fields
+     |--------------------------------------------------------------------------
+     */
+
+    public function getNameAttribute()
+    {
+        return $this->user->name ?? null;
+    }
+
+    public function getEmailAttribute()
+    {
+        return $this->user->email ?? null;
+    }
+
+    public function getPhoneAttribute()
+    {
+        return $this->user->phone_number ?? null;
+    }
+
+    public function getVehicleNumberAttribute()
+    {
+        return $this->user->assignedDevice->plate_number ?? null;
+    }
+
+    public function getVehicleTypeAttribute()
+    {
+        return $this->user->assignedDevice->type ?? null;
+    }
+
+    public function getStatusAttribute()
+    {
+        return $this->is_active ? 'active' : 'inactive';
     }
 }

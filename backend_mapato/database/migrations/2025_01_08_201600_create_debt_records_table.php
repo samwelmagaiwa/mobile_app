@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('debt_records', function (Blueprint $table) {
+Schema::create('debt_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            // Use UUID for driver_id; FK omitted to be compatible with existing data types
+            $table->uuid('driver_id');
             $table->date('earning_date');
             $table->decimal('expected_amount', 10, 2); // Expected daily return
             $table->decimal('paid_amount', 10, 2)->default(0); // Amount actually paid
             $table->boolean('is_paid')->default(false);
+            // payments.id is bigint
             $table->foreignId('payment_id')->nullable()->constrained('payments')->onDelete('set null');
             $table->timestamp('paid_at')->nullable();
             $table->integer('days_overdue')->default(0);

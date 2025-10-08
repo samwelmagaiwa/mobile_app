@@ -202,7 +202,7 @@ class DebtRecord extends Model
     /**
      * Get summary statistics for a driver's debt records
      */
-    public static function getSummaryForDriver(int $driverId): array
+public static function getSummaryForDriver(string $driverId): array
     {
         $records = self::byDriver($driverId)->get();
         

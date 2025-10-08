@@ -672,19 +672,30 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(
-                        color: ThemeConstants.textPrimary,
-                        fontSize: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.primaryBlue.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
                       ),
-                      decoration: const InputDecoration(
-                        hintText: 'Tafuta dereva...',
-                        hintStyle: TextStyle(
-                          color: ThemeConstants.textSecondary,
-                          fontSize: 14,
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(
+                          color: ThemeConstants.textPrimary,
+                          fontSize: 16,
                         ),
-                        border: InputBorder.none,
+                        decoration: InputDecoration(
+                          hintText: 'Tafuta dereva...',
+                          hintStyle: const TextStyle(
+                            color: ThemeConstants.textSecondary,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: Colors.transparent, // background handled by Container above
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
                       ),
                     ),
                   ),

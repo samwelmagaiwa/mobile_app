@@ -8,6 +8,7 @@ import "../../models/login_response.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
 import "../../utils/responsive_helper.dart";
+import "../receipts/receipts_screen.dart";
 
 class ModernDashboardScreen extends StatefulWidget {
   const ModernDashboardScreen({super.key});
@@ -619,6 +620,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 Scaffold.of(context).openDrawer();
               }),
             ),
+            _buildActionButton(Icons.receipt_long, "Toa Risiti", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => const ReceiptsScreen(),
+                ),
+              );
+            }),
             _buildActionButton(Icons.receipt, "Ripoti", () {
               Navigator.pushNamed(context, "/admin/reports");
             }),

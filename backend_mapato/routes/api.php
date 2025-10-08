@@ -14,6 +14,7 @@ use App\Http\Controllers\API\ReceiptController;
 use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\TestController;
 use App\Http\Controllers\API\TestReportController;
+use App\Http\Controllers\API\PaymentReceiptController;
 
 /*
 |--------------------------------------------------------------------------
@@ -199,8 +200,9 @@ Route::get('health', function () {
     ]);
 });
 
-// Test routes for development
+    // Test routes for development
 Route::prefix('test')->group(function () {
+    Route::post('seed-debts', [TestController::class, 'seedDebts']);
     // Test AdminReportController directly
     Route::get('admin-reports/dashboard', [AdminReportController::class, 'getDashboardReport']);
     Route::get('admin-reports/revenue', [AdminReportController::class, 'getRevenueReport']);

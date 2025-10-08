@@ -15,22 +15,28 @@ if (!Schema::hasTable('payment_receipts')) {
             Schema::create('payment_receipts', function (Blueprint $table) {
             $table->id();
             $table->string('receipt_number')->unique();
+            // payments.id is bigint
             $table->foreignId('payment_id')->constrained('payments')->onDelete('cascade');
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->foreignId('generated_by')->constrained('users')->onDelete('cascade');
-            $table->decimal('amount', 10, 2);
-            $table->string('payment_period'); // e.g., "5 siku", "2 wiki", "1 mwezi"
-            $table->text('covered_days'); // JSON array of covered dates
+            // drivers.id is UUID
+            $table->uuid('driver_id');
+            $table->foreign('driver_id')->references('id')->on('drivers')->onDelete('cascade');
+            // users.id is UUID
+            $table->uuid('generated_by')->nullable();
+            $table->foreign('generated_by')->references('id')->on('users')->onDelete('set null');
+            $table->decimal('amount', 12, 2);
+            $table->string('payment_period')->nullable();
+            $table->json('covered_days')->nullable();
             $table->enum('status', ['generated', 'sent', 'delivered'])->default('generated');
-            $table->timestamp('generated_at');
+            $table->timestamp('generated_at')->useCurrent();
             $table->timestamp('sent_at')->nullable();
-            $table->string('sent_via')->nullable(); // whatsapp, email, system
-            $table->text('receipt_data'); // JSON with full receipt details
+            $table->string('sent_via')->nullable();
+            $table->json('receipt_data')->nullable();
             $table->timestamps();
-            
-            $table->index(['driver_id', 'status']);
+
+            $table->index(['driver_id']);
             $table->index(['payment_id']);
-            $table->index(['generated_by']);
+            $table->index(['status']);
+            $table->index(['generated_at']);
         });
         }
     }

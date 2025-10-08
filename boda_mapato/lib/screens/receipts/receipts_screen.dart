@@ -133,7 +133,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
 
       // For now, we'll load all receipts without filters
       // You can add filtering later
-      final response = await _apiService.getReceipts();
+      final response = await _apiService.getPaymentReceipts();
       
       if (response['success'] == true) {
         // Handle all receipts data here

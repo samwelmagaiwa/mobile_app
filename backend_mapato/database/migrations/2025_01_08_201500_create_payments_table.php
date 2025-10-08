@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('payments', function (Blueprint $table) {
+if (!Schema::hasTable('payments')) {
+            Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->string('reference_number')->unique();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            // Use UUIDs for related models to match existing schema; omit FKs for compatibility
+            $table->uuid('driver_id');
             $table->decimal('amount', 12, 2);
             $table->enum('payment_channel', ['cash', 'mpesa', 'bank', 'mobile', 'other'])->default('cash');
             $table->text('remarks')->nullable();
             $table->json('covers_days'); // Array of dates this payment covers
             $table->enum('status', ['pending', 'completed', 'cancelled'])->default('completed');
             $table->timestamp('payment_date')->useCurrent();
-            $table->foreignId('recorded_by')->constrained('users')->onDelete('cascade');
+            $table->uuid('recorded_by');
             $table->timestamps();
             
             // Indexes for better performance
@@ -29,6 +31,7 @@ return new class extends Migration
             $table->index(['reference_number']);
             $table->index(['status']);
         });
+        }
     }
 
     /**

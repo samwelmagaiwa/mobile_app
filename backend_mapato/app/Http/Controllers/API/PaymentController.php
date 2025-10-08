@@ -81,7 +81,7 @@ class PaymentController extends Controller
     /**
      * Get debt summary for a specific driver
      */
-    public function getDriverDebtSummary(int $driverId): JsonResponse
+public function getDriverDebtSummary(string $driverId): JsonResponse
     {
         try {
             $driver = Driver::findOrFail($driverId);
@@ -109,7 +109,7 @@ class PaymentController extends Controller
     /**
      * Get debt records for a specific driver
      */
-    public function getDriverDebtRecords(int $driverId, Request $request): JsonResponse
+public function getDriverDebtRecords(string $driverId, Request $request): JsonResponse
     {
         try {
             $unpaidOnly = $request->boolean('unpaid_only', true);
@@ -151,7 +151,7 @@ class PaymentController extends Controller
     public function recordPayment(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|integer|exists:drivers,id',
+'driver_id' => 'required|exists:drivers,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_channel' => 'required|in:cash,mpesa,bank,mobile,other',
             'covers_days' => 'required|array|min:1',
@@ -217,6 +217,7 @@ class PaymentController extends Controller
                 'status' => 'completed',
                 'payment_date' => now(),
                 'recorded_by' => auth()->id() ?? 1, // Default to admin if not authenticated
+                'receipt_status' => 'pending',
             ]);
 
             // Update debt records as paid
@@ -233,6 +234,31 @@ class PaymentController extends Controller
                 
                 $paidDays[] = $debtRecord->earning_date->format('d/m/Y');
                 $remainingAmount -= $amountToPay;
+            }
+
+            // Auto-generate receipt for this payment (after computing paidDays)
+            try {
+                $receiptNumber = \App\Models\PaymentReceipt::generateReceiptNumber();
+                $receipt = \App\Models\PaymentReceipt::create([
+                    'receipt_number' => $receiptNumber,
+                    'payment_id' => $payment->id,
+                    'driver_id' => $driverId,
+                    'generated_by' => auth()->id() ?? 1,
+                    'amount' => $amount,
+                    'payment_period' => $this->formatPeriod(count($coversDays)),
+                    'covered_days' => $coversDays,
+                    'status' => 'generated',
+                    'generated_at' => now(),
+                    'receipt_data' => $this->buildReceiptDataForPayment($payment, $paidDays),
+                ]);
+                // Update payment with generated status
+                $payment->update(['receipt_status' => 'generated']);
+            } catch (\Throwable $ex) {
+                // Do not fail payment if receipt generation fails; just log
+                \Illuminate\Support\Facades\Log::warning('Auto receipt generation failed', [
+                    'payment_id' => $payment->id,
+                    'error' => $ex->getMessage(),
+                ]);
             }
 
             DB::commit();
@@ -353,10 +379,8 @@ class PaymentController extends Controller
                 'message' => 'Payment updated successfully',
                 'data' => $payment->toApiResponse()
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error updating payment: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update payment',
@@ -494,5 +518,39 @@ class PaymentController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function formatPeriod(int $days): string
+    {
+        if ($days <= 0) return '';
+        if ($days === 1) return 'Siku 1';
+        if ($days < 7) return $days . ' siku';
+        if ($days < 14) return 'Wiki 1';
+        if ($days < 21) return 'Wiki 2';
+        if ($days < 30) return 'Wiki ' . round($days / 7);
+        return 'Mwezi ' . round($days / 30);
+    }
+
+    private function buildReceiptDataForPayment(\App\Models\Payment $payment, array $paidDays): array
+    {
+        $driver = $payment->driver;
+        return [
+            'company_name' => config('app.name', 'Boda Mapato'),
+            'company_address' => '',
+            'company_phone' => '',
+            'issue_date' => now()->format('d/m/Y'),
+            'issue_time' => now()->format('H:i'),
+            'driver_name' => $driver->name ?? '',
+            'driver_phone' => $driver->phone ?? '',
+            'vehicle_info' => $driver->vehicle_number ?? '',
+            'payment_amount' => number_format((float) $payment->amount, 0),
+            'amount_in_words' => '',
+            'payment_channel' => $payment->formatted_payment_channel,
+            'payment_date' => optional($payment->payment_date)->format('d/m/Y') ?? '',
+            'covered_period' => $this->formatPeriod(count($payment->covers_days ?? [])),
+            'covered_days_list' => $payment->covers_days ?? $paidDays,
+            'remarks' => $payment->remarks ?? '',
+            'recorded_by' => $payment->recordedBy->name ?? '',
+        ];
     }
 }

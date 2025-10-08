@@ -6,27 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-if (Schema::hasTable('payments') && !Schema::hasColumn('payments', 'receipt_status')) {
+        if (Schema::hasTable('payments') && !Schema::hasColumn('payments', 'receipt_status')) {
             Schema::table('payments', function (Blueprint $table) {
-                $table->enum('receipt_status', ['pending', 'generated', 'sent'])
+                $table->enum('receipt_status', ['pending', 'generated', 'issued'])
                       ->default('pending')
                       ->after('status');
             });
         }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-            $table->dropColumn('receipt_status');
-        });
+        if (Schema::hasTable('payments') && Schema::hasColumn('payments', 'receipt_status')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->dropColumn('receipt_status');
+            });
+        }
     }
 };
