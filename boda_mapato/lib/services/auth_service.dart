@@ -4,24 +4,25 @@ import "dart:developer" as developer;
 import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
 
-class AuthService {
-  // API URL for XAMPP setup
-  static const String baseUrl = "http://localhost/mobile_app/backend_mapato/public/api";
-  
-  // Alternative URLs (commented out):
-  // For real device: "http://192.168.1.124:8000/api"
-  // For emulator: "http://10.0.2.2:8000/api"
-  // For localhost Laravel: "http://127.0.0.1:8000/api"
-  
+mixin AuthService {
+  // API Configuration - Updated for Laravel backend
+  // For mobile device testing via USB debugging
+  static const String baseUrl = "http://192.168.1.5:8000/api";
+
+  // Alternative URLs for different environments:
+  // For development on localhost: "http://127.0.1:8000/api"
+  // For Android emulator: "http://10.2.2:8000/api"
+  // For iOS simulator: "http://127.0.1:8000/api"
+
   static const Duration timeoutDuration = Duration(seconds: 30);
   static const String tokenKey = "auth_token";
   static const String userKey = "user_data";
 
   // Headers for API requests
   static Map<String, String> get _headers => <String, String>{
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-  };
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
 
   // Headers with authentication token
   static Future<Map<String, String>> get _authHeaders async {
@@ -39,7 +40,9 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
     } else {
-      throw Exception(data["message"] ?? "Server error: ${response.statusCode}");
+      throw Exception(
+        data["message"] ?? "Server error: ${response.statusCode}",
+      );
     }
   }
 
@@ -63,7 +66,7 @@ class AuthService {
           .timeout(timeoutDuration);
 
       final Map<String, dynamic> data = _handleResponse(response);
-      
+
       // Save token and user data after successful login
       if (data["data"] != null) {
         if (data["data"]["token"] != null) {
@@ -81,14 +84,12 @@ class AuthService {
           await saveUserData(data["user"]);
         }
       }
-      
+
       return data;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Login failed: $e");
     }
   }
-
-
 
   // Register method
   static Future<Map<String, dynamic>> register({
@@ -114,7 +115,7 @@ class AuthService {
           .timeout(timeoutDuration);
 
       final Map<String, dynamic> data = _handleResponse(response);
-      
+
       // Save token and user data
       if (data["token"] != null) {
         await saveToken(data["token"]);
@@ -124,7 +125,7 @@ class AuthService {
       }
 
       return data;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Registration failed: $e");
     }
   }
@@ -139,7 +140,7 @@ class AuthService {
             headers: headers,
           )
           .timeout(timeoutDuration);
-    } catch (e) {
+    } on Exception catch (e) {
       // Continue with local logout even if server request fails
       developer.log("Logout request failed: $e");
     } finally {
@@ -160,14 +161,14 @@ class AuthService {
           .timeout(timeoutDuration);
 
       final Map<String, dynamic> data = _handleResponse(response);
-      
+
       // Update stored user data
       if (data["user"] != null) {
         await saveUserData(data["user"]);
       }
 
       return data["user"];
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Failed to get user data: $e");
     }
   }
@@ -184,14 +185,14 @@ class AuthService {
           .timeout(timeoutDuration);
 
       final Map<String, dynamic> data = _handleResponse(response);
-      
+
       if (data["token"] != null) {
         await saveToken(data["token"]);
         return data["token"];
       }
 
       return null;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Token refresh failed: $e");
     }
   }
@@ -209,7 +210,7 @@ class AuthService {
 
       final Map<String, dynamic> data = _handleResponse(response);
       return data;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Forgot password request failed: $e");
     }
   }
@@ -235,7 +236,7 @@ class AuthService {
 
       final Map<String, dynamic> data = _handleResponse(response);
       return data;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception("Password reset failed: $e");
     }
   }
@@ -293,7 +294,7 @@ class AuthService {
     try {
       await getCurrentUser();
       return true;
-    } catch (e) {
+    } on Exception {
       return false;
     }
   }

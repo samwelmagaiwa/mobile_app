@@ -5,7 +5,6 @@ import "../constants/styles.dart";
 import "../utils/responsive_utils.dart";
 
 class CustomCard extends StatelessWidget {
-
   const CustomCard({
     required this.child,
     super.key,
@@ -28,11 +27,13 @@ class CustomCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final BorderRadius responsiveBorderRadius = borderRadius ?? BorderRadius.circular(
-      ResponsiveUtils.getResponsiveBorderRadius(context, 12),
-    );
-    final double responsiveElevation = elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
-    
+    final BorderRadius responsiveBorderRadius = borderRadius ??
+        BorderRadius.circular(
+          ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+        );
+    final double responsiveElevation =
+        elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
+
     final Container card = Container(
       margin: margin ?? ResponsiveUtils.getResponsiveMargin(context),
       decoration: BoxDecoration(
@@ -74,9 +75,9 @@ class CustomCard extends StatelessWidget {
 }
 
 class CustomListCard extends StatelessWidget {
-
   const CustomListCard({
-    required this.child, super.key,
+    required this.child,
+    super.key,
     this.onTap,
     this.isSelected = false,
     this.padding,
@@ -90,23 +91,27 @@ class CustomListCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => CustomCard(
-      onTap: onTap,
-      padding: padding ?? EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
-      margin: margin ?? EdgeInsets.only(bottom: ResponsiveUtils.getResponsiveSpacing(context, 8)),
-      backgroundColor: isSelected
-          ? AppColors.primary.withOpacity(0.1)
-          : AppColors.cardBackground,
-      border: isSelected
-          ? Border.all(color: AppColors.primary, width: 1.5.w)
-          : null,
-      child: child,
-    );
+        onTap: onTap,
+        padding: padding ??
+            EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
+        margin: margin ??
+            EdgeInsets.only(
+              bottom: ResponsiveUtils.getResponsiveSpacing(context, 8),
+            ),
+        backgroundColor: isSelected
+            ? AppColors.primary.withOpacity(0.1)
+            : AppColors.cardBackground,
+        border: isSelected
+            ? Border.all(color: AppColors.primary, width: 1.5.w)
+            : null,
+        child: child,
+      );
 }
 
 class CustomInfoCard extends StatelessWidget {
-
   const CustomInfoCard({
-    required this.title, super.key,
+    required this.title,
+    super.key,
     this.subtitle,
     this.trailing,
     this.icon,
@@ -122,13 +127,16 @@ class CustomInfoCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 40);
-    final double responsiveIconInnerSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
-    
+    final double responsiveIconSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 40);
+    final double responsiveIconInnerSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 20);
+
     return CustomCard(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
+        padding:
+            EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
         child: Row(
           children: <Widget>[
             if (icon != null) ...<Widget>[
@@ -147,7 +155,9 @@ class CustomInfoCard extends StatelessWidget {
                   size: responsiveIconInnerSize,
                 ),
               ),
-              SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 16)),
+              SizedBox(
+                width: ResponsiveUtils.getResponsiveSpacing(context, 16),
+              ),
             ],
             Expanded(
               child: Column(
@@ -162,7 +172,9 @@ class CustomInfoCard extends StatelessWidget {
                     maxLines: 2,
                   ),
                   if (subtitle != null) ...<Widget>[
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
+                    SizedBox(
+                      height: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                    ),
                     Text(
                       subtitle!,
                       style: AppStyles.bodySmallResponsive(context).copyWith(
@@ -176,7 +188,9 @@ class CustomInfoCard extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...<Widget>[
-              SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 16)),
+              SizedBox(
+                width: ResponsiveUtils.getResponsiveSpacing(context, 16),
+              ),
               trailing!,
             ],
           ],
@@ -187,9 +201,12 @@ class CustomInfoCard extends StatelessWidget {
 }
 
 class CustomStatCard extends StatelessWidget {
-
   const CustomStatCard({
-    required this.title, required this.value, required this.icon, required this.color, super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    super.key,
     this.subtitle,
     this.onTap,
   });
@@ -202,12 +219,14 @@ class CustomStatCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 20);
-    
+    final double responsiveIconSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 20);
+
     return CustomCard(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
+        padding:
+            EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -219,7 +238,9 @@ class CustomStatCard extends StatelessWidget {
                   color: color,
                   size: responsiveIconSize,
                 ),
-                SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+                SizedBox(
+                  width: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                ),
                 Expanded(
                   child: Text(
                     title,
@@ -247,7 +268,9 @@ class CustomStatCard extends StatelessWidget {
               ),
             ),
             if (subtitle != null) ...<Widget>[
-              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
+              SizedBox(
+                height: ResponsiveUtils.getResponsiveSpacing(context, 4),
+              ),
               Text(
                 subtitle!,
                 style: AppStyles.bodySmallResponsive(context).copyWith(

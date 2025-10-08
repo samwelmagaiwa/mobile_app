@@ -1,5 +1,4 @@
-﻿class LoginRequest {
-
+class LoginRequest {
   LoginRequest({
     required this.email,
     required this.password,
@@ -10,14 +9,13 @@
   final String phoneNumber;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "email": email,
-      "password": password,
-      "phone_number": phoneNumber,
-    };
+        "email": email,
+        "password": password,
+        "phone_number": phoneNumber,
+      };
 }
 
 class OtpVerificationRequest {
-
   OtpVerificationRequest({
     required this.userId,
     required this.otp,
@@ -26,23 +24,21 @@ class OtpVerificationRequest {
   final String otp;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "user_id": userId,
-      "otp": otp,
-    };
+        "user_id": userId,
+        "otp": otp,
+      };
 }
 
 class ForgotPasswordRequest {
-
   ForgotPasswordRequest({required this.email});
   final String email;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "email": email,
-    };
+        "email": email,
+      };
 }
 
 class ResetPasswordRequest {
-
   ResetPasswordRequest({
     required this.userId,
     required this.otp,
@@ -55,9 +51,9 @@ class ResetPasswordRequest {
   final String passwordConfirmation;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "user_id": userId,
-      "otp": otp,
-      "password": password,
-      "password_confirmation": passwordConfirmation,
-    };
+        "user_id": userId,
+        "otp": otp,
+        "password": password,
+        "password_confirmation": passwordConfirmation,
+      };
 }

@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
@@ -17,17 +18,18 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _customerNameController = TextEditingController();
-  final TextEditingController _customerPhoneController = TextEditingController();
+  final TextEditingController _customerPhoneController =
+      TextEditingController();
 
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = false;
   bool _isLoadingDrivers = false;
   bool _isLoadingVehicles = false;
-  
+
   List<Map<String, dynamic>> _drivers = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
-  
+
   String? _selectedDriverId;
   String? _selectedVehicleId;
   String _selectedCategory = "daily_payment";
@@ -87,7 +89,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     try {
       await _apiService.initialize();
       final Map<String, dynamic> response = await _apiService.getDrivers();
-      
+
       if (mounted) {
         setState(() {
           // Handle the actual response structure: {status, message, data}
@@ -95,9 +97,9 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
             // Debug logging
             debugPrint("Drivers response type: ${response.runtimeType}");
             debugPrint("Drivers response keys: ${response.keys}");
-            debugPrint("Drivers data type: ${response['data']?.runtimeType}");
-            debugPrint("Drivers data: ${response['data']}");
-            
+            debugPrint("Drivers data type: ${response["data"]?.runtimeType}");
+            debugPrint("Drivers data: ${response["data"]}");
+
             // Check if data is a Map (paginated response) or List (direct response)
             final data = response["data"];
             if (data is Map<String, dynamic>) {
@@ -115,13 +117,13 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               debugPrint("Data is neither Map nor List: ${data?.runtimeType}");
               _drivers = <Map<String, dynamic>>[];
             }
-          } catch (e) {
+          } on Exception catch (e) {
             debugPrint("Error parsing drivers response: $e");
             _drivers = <Map<String, dynamic>>[];
           }
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar("Hitilafu katika kupakia madereva: $e");
       }
@@ -144,7 +146,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     try {
       await _apiService.initialize();
       final Map<String, dynamic> response = await _apiService.getVehicles();
-      
+
       if (mounted) {
         setState(() {
           // Handle the actual response structure: {status, message, data}
@@ -152,9 +154,9 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
             // Debug logging
             debugPrint("Vehicles response type: ${response.runtimeType}");
             debugPrint("Vehicles response keys: ${response.keys}");
-            debugPrint("Vehicles data type: ${response['data']?.runtimeType}");
-            debugPrint("Vehicles data: ${response['data']}");
-            
+            debugPrint("Vehicles data type: ${response["data"]?.runtimeType}");
+            debugPrint("Vehicles data: ${response["data"]}");
+
             // Check if data is a Map (paginated response) or List (direct response)
             final data = response["data"];
             if (data is Map<String, dynamic>) {
@@ -172,13 +174,13 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               debugPrint("Data is neither Map nor List: ${data?.runtimeType}");
               _vehicles = <Map<String, dynamic>>[];
             }
-          } catch (e) {
+          } on Exception catch (e) {
             debugPrint("Error parsing vehicles response: $e");
             _vehicles = <Map<String, dynamic>>[];
           }
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar("Hitilafu katika kupakia magari: $e");
       }
@@ -192,7 +194,9 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   }
 
   Future<void> _recordPayment() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     if (_selectedDriverId == null) {
       _showErrorSnackBar("Tafadhali chagua dereva");
@@ -207,7 +211,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
     try {
       await _apiService.initialize();
-      
+
       final Map<String, Object?> paymentData = <String, Object?>{
         "driver_id": _selectedDriverId,
         "device_id": _selectedVehicleId,
@@ -215,9 +219,14 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
         "category": _selectedCategory,
         "description": _descriptionController.text,
         "payment_method": _selectedPaymentMethod,
-        "notes": _notesController.text.isNotEmpty ? _notesController.text : null,
-        "customer_name": _customerNameController.text.isNotEmpty ? _customerNameController.text : null,
-        "customer_phone": _customerPhoneController.text.isNotEmpty ? _customerPhoneController.text : null,
+        "notes":
+            _notesController.text.isNotEmpty ? _notesController.text : null,
+        "customer_name": _customerNameController.text.isNotEmpty
+            ? _customerNameController.text
+            : null,
+        "customer_phone": _customerPhoneController.text.isNotEmpty
+            ? _customerPhoneController.text
+            : null,
       };
 
       await _apiService.recordPayment(paymentData);
@@ -226,7 +235,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
         _showSuccessSnackBar("Malipo yamerekodiwa kikamilifu!");
         _clearForm();
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar("Hitilafu katika kurekodi malipo: $e");
       }
@@ -281,97 +290,106 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
   @override
   Widget build(final BuildContext context) => Scaffold(
-      backgroundColor: grayBackground,
-      appBar: AppBar(
-        title: const Text(
-          "Rekodi Malipo",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+        backgroundColor: grayBackground,
+        appBar: AppBar(
+          title: const Text(
+            "Rekodi Malipo",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
         ),
-        backgroundColor: primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Header Card
-              CustomCard(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: primaryBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: primaryBlue,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Icon(
-                          Icons.payment,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Header Card
+                  CustomCard(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 20,),
+                      decoration: BoxDecoration(
+                    color: ThemeConstants.primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(width: 20),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              "Rekodi Malipo ya Dereva",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: darkGray,
-                              ),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                        color: ThemeConstants.primaryBlue,
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              "Ingiza taarifa za malipo ya dereva",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
+                            child: const Icon(
+                              Icons.payment,
+                              color: Colors.white,
+                              size: 30,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  "Rekodi Malipo ya Dereva",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF616161),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  "Ingiza taarifa za malipo ya dereva",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Driver Selection
-              CustomCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Text(
-                        "Chagua Dereva",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: darkGray,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_isLoadingDrivers) const Center(child: CircularProgressIndicator()) else DropdownButtonFormField<String>(
+                  // Driver Selection
+                  CustomCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            "Chagua Dereva",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                    color: Color(0xFF616161),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_isLoadingDrivers)
+                            const Center(child: CircularProgressIndicator())
+                          else
+                            DropdownButtonFormField<String>(
                               value: _selectedDriverId,
                               decoration: InputDecoration(
                                 labelText: "Dereva",
@@ -380,14 +398,20 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                                 ),
                                 prefixIcon: const Icon(Icons.person),
                               ),
-                              items: _drivers.map((final Map<String, dynamic> driver) => DropdownMenuItem<String>(
-                                  value: driver["id"].toString(),
-                                  child: Text(
-                                    "${driver["name"]} - ${driver["phone"]}",
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ),).toList(),
+                              items: _drivers
+                                  .map(
+                                    (final Map<String, dynamic> driver) =>
+                                        DropdownMenuItem<String>(
+                                      value: driver["id"].toString(),
+                                      child: Text(
+                                        "${driver["name"]} - ${driver["phone"]}",
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        softWrap: false,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                               onChanged: (final String? value) {
                                 setState(() {
                                   _selectedDriverId = value;
@@ -402,30 +426,33 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                                 return null;
                               },
                             ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Vehicle Selection (Optional)
-              CustomCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Text(
-                        "Chagua Gari (Hiari)",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: darkGray,
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      if (_isLoadingVehicles) const Center(child: CircularProgressIndicator()) else DropdownButtonFormField<String>(
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Vehicle Selection (Optional)
+                  CustomCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            "Chagua Gari (Hiari)",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                    color: Color(0xFF616161),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_isLoadingVehicles)
+                            const Center(child: CircularProgressIndicator())
+                          else
+                            DropdownButtonFormField<String>(
                               value: _selectedVehicleId,
                               decoration: InputDecoration(
                                 labelText: "Gari",
@@ -438,14 +465,18 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                                 const DropdownMenuItem<String>(
                                   child: Text("Hakuna gari"),
                                 ),
-                                ..._vehicles.map((final Map<String, dynamic> vehicle) => DropdownMenuItem<String>(
+                                ..._vehicles.map(
+                                  (final Map<String, dynamic> vehicle) =>
+                                      DropdownMenuItem<String>(
                                     value: vehicle["id"].toString(),
                                     child: Text(
                                       "${vehicle["plate_number"]} - ${vehicle["type"]}",
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
+                                      softWrap: false,
                                     ),
-                                  ),),
+                                  ),
+                                ),
                               ],
                               onChanged: (final String? value) {
                                 setState(() {
@@ -453,223 +484,236 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                                 });
                               },
                             ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-              // Payment Details
-              CustomCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Text(
-                        "Taarifa za Malipo",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: darkGray,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Amount
-                      TextFormField(
-                        controller: _amountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: "Kiasi (TSH)",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: const Icon(Icons.money),
-                          prefixText: "TSH ",
-                        ),
-                        validator: (final String? value) {
-                          if (value == null || value.isEmpty) {
-                            return "Tafadhali ingiza kiasi";
-                          }
-                          if (double.tryParse(value) == null) {
-                            return "Ingiza kiasi sahihi";
-                          }
-                          if (double.parse(value) <= 0) {
-                            return "Kiasi lazima kiwe zaidi ya sifuri";
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Category
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: InputDecoration(
-                          labelText: "Aina ya Malipo",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: const Icon(Icons.category),
-                        ),
-                        items: _paymentCategories.entries.map((final MapEntry<String, String> entry) => DropdownMenuItem<String>(
-                            value: entry.key,
-                            child: Text(
-                              entry.value,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                  // Payment Details
+                  CustomCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            "Taarifa za Malipo",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                    color: Color(0xFF616161),
                             ),
-                          ),).toList(),
-                        onChanged: (final String? value) {
-                          setState(() {
-                            _selectedCategory = value!;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Payment Method
-                      DropdownButtonFormField<String>(
-                        value: _selectedPaymentMethod,
-                        decoration: InputDecoration(
-                          labelText: "Njia ya Malipo",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          prefixIcon: const Icon(Icons.payment),
-                        ),
-                        items: _paymentMethods.entries.map((final MapEntry<String, String> entry) => DropdownMenuItem<String>(
-                            value: entry.key,
-                            child: Text(
-                              entry.value,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                          const SizedBox(height: 16),
+
+                          // Amount
+                          TextFormField(
+                            controller: _amountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: "Kiasi (TSH)",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.money),
+                              prefixText: "TSH ",
                             ),
-                          ),).toList(),
-                        onChanged: (final String? value) {
-                          setState(() {
-                            _selectedPaymentMethod = value!;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Description
-                      TextFormField(
-                        controller: _descriptionController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: "Maelezo",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            validator: (final String? value) {
+                              if (value == null || value.isEmpty) {
+                                return "Tafadhali ingiza kiasi";
+                              }
+                              if (double.tryParse(value) == null) {
+                                return "Ingiza kiasi sahihi";
+                              }
+                              if (double.parse(value) <= 0) {
+                                return "Kiasi lazima kiwe zaidi ya sifuri";
+                              }
+                              return null;
+                            },
                           ),
-                          prefixIcon: const Icon(Icons.description),
-                        ),
-                        validator: (final String? value) {
-                          if (value == null || value.isEmpty) {
-                            return "Tafadhali ingiza maelezo";
-                          }
-                          return null;
-                        },
+
+                          const SizedBox(height: 16),
+
+                          // Category
+                          DropdownButtonFormField<String>(
+                            value: _selectedCategory,
+                            decoration: InputDecoration(
+                              labelText: "Aina ya Malipo",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.category),
+                            ),
+                            items: _paymentCategories.entries
+                                .map(
+                                  (final MapEntry<String, String> entry) =>
+                                      DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      softWrap: false,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (final String? value) {
+                              setState(() {
+                                _selectedCategory = value!;
+                              });
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Payment Method
+                          DropdownButtonFormField<String>(
+                            value: _selectedPaymentMethod,
+                            decoration: InputDecoration(
+                              labelText: "Njia ya Malipo",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.payment),
+                            ),
+                            items: _paymentMethods.entries
+                                .map(
+                                  (final MapEntry<String, String> entry) =>
+                                      DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      softWrap: false,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (final String? value) {
+                              setState(() {
+                                _selectedPaymentMethod = value!;
+                              });
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Description
+                          TextFormField(
+                            controller: _descriptionController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: "Maelezo",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.description),
+                            ),
+                            validator: (final String? value) {
+                              if (value == null || value.isEmpty) {
+                                return "Tafadhali ingiza maelezo";
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-              // Customer Details (Optional)
-              CustomCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Text(
-                        "Taarifa za Mteja (Hiari)",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: darkGray,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Customer Name
-                      TextFormField(
-                        controller: _customerNameController,
-                        decoration: InputDecoration(
-                          labelText: "Jina la Mteja",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  // Customer Details (Optional)
+                  CustomCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            "Taarifa za Mteja (Hiari)",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                    color: Color(0xFF616161),
+                            ),
                           ),
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                      ),
+                          const SizedBox(height: 16),
 
-                      const SizedBox(height: 16),
-
-                      // Customer Phone
-                      TextFormField(
-                        controller: _customerPhoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: "Namba ya Simu ya Mteja",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          // Customer Name
+                          TextFormField(
+                            controller: _customerNameController,
+                            decoration: InputDecoration(
+                              labelText: "Jina la Mteja",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.person_outline),
+                            ),
                           ),
-                          prefixIcon: const Icon(Icons.phone),
-                        ),
-                      ),
 
-                      const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                      // Notes
-                      TextFormField(
-                        controller: _notesController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: "Maelezo ya Ziada (Hiari)",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          // Customer Phone
+                          TextFormField(
+                            controller: _customerPhoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: "Namba ya Simu ya Mteja",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.phone),
+                            ),
                           ),
-                          prefixIcon: const Icon(Icons.note),
-                        ),
+
+                          const SizedBox(height: 16),
+
+                          // Notes
+                          TextFormField(
+                            controller: _notesController,
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              labelText: "Maelezo ya Ziada (Hiari)",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.note),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  // Submit Button
+                  CustomButton(
+                    text: "Rekodi Malipo",
+                    onPressed: _isLoading ? null : _recordPayment,
+                    isLoading: _isLoading,
+                    backgroundColor: successGreen,
+                    height: 56,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Clear Button
+                  CustomButton(
+                    text: "Futa Fomu",
+                    onPressed: _isLoading ? null : _clearForm,
+                    backgroundColor: Colors.grey,
+                    height: 48,
+                  ),
+                ],
               ),
-
-              const SizedBox(height: 24),
-
-              // Submit Button
-              CustomButton(
-                text: "Rekodi Malipo",
-                onPressed: _isLoading ? null : _recordPayment,
-                isLoading: _isLoading,
-                backgroundColor: successGreen,
-                height: 56,
-              ),
-
-              const SizedBox(height: 16),
-
-              // Clear Button
-              CustomButton(
-                text: "Futa Fomu",
-                onPressed: _isLoading ? null : _clearForm,
-                backgroundColor: Colors.grey,
-                height: 48,
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 }

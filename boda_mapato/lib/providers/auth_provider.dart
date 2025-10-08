@@ -10,14 +10,12 @@ class AuthProvider extends ChangeNotifier {
   String? _error;
   String? _errorMessage;
 
-
   // Getters
   UserData? get user => _user;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get errorMessage => _errorMessage;
-
 
   // Initialize auth state
   Future<void> initialize() async {
@@ -35,7 +33,7 @@ class AuthProvider extends ChangeNotifier {
           await logout();
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to initialize auth: $e");
     } finally {
       _setLoading(false);
@@ -50,36 +48,46 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final Map<String, dynamic> response = await AuthService.login(
         email: email,
         password: password,
         phoneNumber: phoneNumber,
       );
-      
+
       // Extract user data from response
-      if (response["data"] != null) {
-        if (response["data"]["user"] != null) {
-          _user = UserData.fromJson(response["data"]["user"]);
+      final Map<String, dynamic>? responseData =
+          response["data"] as Map<String, dynamic>?;
+      if (responseData != null) {
+        final Map<String, dynamic>? userData =
+            responseData["user"] as Map<String, dynamic>?;
+        final String? token = responseData["token"] as String?;
+
+        if (userData != null) {
+          _user = UserData.fromJson(userData);
         }
-        if (response["data"]["token"] != null) {
-          await AuthService.saveToken(response["data"]["token"]);
+        if (token != null) {
+          await AuthService.saveToken(token);
         }
       } else {
         // Handle different response structure
-        if (response["user"] != null) {
-          _user = UserData.fromJson(response["user"]);
+        final Map<String, dynamic>? userData =
+            response["user"] as Map<String, dynamic>?;
+        final String? token = response["token"] as String?;
+
+        if (userData != null) {
+          _user = UserData.fromJson(userData);
         }
-        if (response["token"] != null) {
-          await AuthService.saveToken(response["token"]);
+        if (token != null) {
+          await AuthService.saveToken(token);
         }
       }
-      
+
       _isAuthenticated = true;
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError(e.toString());
       _errorMessage = e.toString();
       return false;
@@ -87,8 +95,6 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
-
 
   // Register
   Future<bool> register({
@@ -100,7 +106,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final Map<String, dynamic> response = await AuthService.register(
         name: name,
@@ -109,13 +115,13 @@ class AuthProvider extends ChangeNotifier {
         passwordConfirmation: passwordConfirmation,
         phone: phone,
       );
-      
+
       _user = response["user"];
       _isAuthenticated = true;
-      
+
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError(e.toString());
       return false;
     } finally {
@@ -126,10 +132,10 @@ class AuthProvider extends ChangeNotifier {
   // Logout
   Future<void> logout() async {
     _setLoading(true);
-    
+
     try {
       await AuthService.logout();
-    } catch (e) {
+    } on Exception catch (e) {
       // Continue with logout even if server request fails
       debugPrint("Logout error: $e");
     } finally {
@@ -142,15 +148,17 @@ class AuthProvider extends ChangeNotifier {
 
   // Refresh user data
   Future<void> refreshUser() async {
-    if (!_isAuthenticated) return;
-    
+    if (!_isAuthenticated) {
+      return;
+    }
+
     try {
       final Map<String, dynamic>? userData = await AuthService.getCurrentUser();
       if (userData != null) {
         _user = UserData.fromJson(userData);
       }
       notifyListeners();
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to refresh user data: $e");
     }
   }
@@ -161,13 +169,15 @@ class AuthProvider extends ChangeNotifier {
     final String? email,
     final String? phone,
   }) async {
-    if (!_isAuthenticated || _user == null) return false;
-    
+    if (!_isAuthenticated || _user == null) {
+      return false;
+    }
+
     _setLoading(true);
     _clearError();
-    
+
     try {
-      // TODO: Implement API call to update profile
+      // TODO(dev): Implement API call to update profile
       // For now, just update local data
       final Map<String, Object?> updatedUserData = <String, Object?>{
         "id": _user!.id,
@@ -177,13 +187,13 @@ class AuthProvider extends ChangeNotifier {
         "role": _user!.role,
         "is_active": _user!.isActive,
       };
-      
+
       await AuthService.saveUserData(updatedUserData);
       _user = UserData.fromJson(updatedUserData);
-      
+
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to update profile: $e");
       return false;
     } finally {
@@ -197,20 +207,22 @@ class AuthProvider extends ChangeNotifier {
     required final String newPassword,
     required final String confirmPassword,
   }) async {
-    if (!_isAuthenticated) return false;
-    
+    if (!_isAuthenticated) {
+      return false;
+    }
+
     _setLoading(true);
     _clearError();
-    
+
     try {
-      // TODO: Implement API call to change password
+      // TODO(dev): Implement API call to change password
       // This would typically involve sending current and new passwords to the server
-      
+
       // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-      
+      await Future<void>.delayed(const Duration(seconds: 1));
+
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to change password: $e");
       return false;
     } finally {
@@ -222,11 +234,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> forgotPassword(final String email) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       await AuthService.forgotPassword(email);
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to send reset email: $e");
       return false;
     } finally {
@@ -242,7 +254,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       await AuthService.resetPassword(
         email: email,
@@ -250,7 +262,7 @@ class AuthProvider extends ChangeNotifier {
         passwordConfirmation: passwordConfirmation,
       );
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to reset password: $e");
       return false;
     } finally {
@@ -278,25 +290,33 @@ class AuthProvider extends ChangeNotifier {
 
   // Get user display name
   String get userDisplayName {
-    if (_user == null) return "Guest";
+    if (_user == null) {
+      return "Guest";
+    }
     return _user!.name.isNotEmpty ? _user!.name : _user!.email;
   }
 
   // Get user email
   String get userEmail {
-    if (_user == null) return "";
+    if (_user == null) {
+      return "";
+    }
     return _user!.email;
   }
 
   // Get user phone
   String get userPhone {
-    if (_user == null) return "";
+    if (_user == null) {
+      return "";
+    }
     return _user!.phoneNumber ?? "";
   }
 
   // Check if user has specific role
   bool hasRole(final String role) {
-    if (_user == null) return false;
+    if (_user == null) {
+      return false;
+    }
     return _user!.role == role;
   }
 

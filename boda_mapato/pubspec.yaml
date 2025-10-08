@@ -31,33 +31,33 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # State management
-  provider: ^6.0.5
+  # Animations
+  animations: ^2.0.11
   
-  # HTTP requests
-  http: ^1.1.0
-  
-  # Local storage
-  shared_preferences: ^2.2.2
-  
-  # Internationalization
-  intl: ^0.18.1
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.6
   
   # Charts for dashboard
   fl_chart: ^0.68.0
-  
-  # Animations
-  animations: ^2.0.11
   
   # Icons
   font_awesome_flutter: ^10.7.0
   
   # Responsive design
   flutter_screenutil: ^5.9.3
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
+  
+  # HTTP requests
+  http: ^1.1.0
+  
+  # Internationalization
+  intl: ^0.18.1
+  
+  # State management
+  provider: ^6.0.5
+  
+  # Local storage
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

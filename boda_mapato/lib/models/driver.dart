@@ -2,7 +2,6 @@ import "package:flutter/foundation.dart";
 
 @immutable
 class Driver {
-
   const Driver({
     required this.id,
     required this.name,
@@ -20,7 +19,7 @@ class Driver {
   });
 
   factory Driver.fromJson(final Map<String, dynamic> json) {
-    double parseDouble(final dynamic v) {
+    double parseDouble(final Object? v) {
       if (v == null) {
         return 0;
       }
@@ -28,12 +27,12 @@ class Driver {
         return v.toDouble();
       }
       if (v is String) {
-        return double.tryParse(v) ?? 0.0;
+        return double.tryParse(v) ?? 0;
       }
       return 0;
     }
 
-    int parseInt(final dynamic v) {
+    int parseInt(final Object? v) {
       if (v == null) {
         return 0;
       }
@@ -86,20 +85,20 @@ class Driver {
   final int tripsCompleted;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "id": id,
-      "name": name,
-      "email": email,
-      "phone": phone,
-      "license_number": licenseNumber,
-      "vehicle_number": vehicleNumber,
-      "vehicle_type": vehicleType,
-      "status": status,
-      "total_payments": totalPayments,
-      "last_payment": lastPayment?.toIso8601String(),
-      "joined_date": joinedDate.toIso8601String(),
-      "rating": rating,
-      "trips_completed": tripsCompleted,
-    };
+        "id": id,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "license_number": licenseNumber,
+        "vehicle_number": vehicleNumber,
+        "vehicle_type": vehicleType,
+        "status": status,
+        "total_payments": totalPayments,
+        "last_payment": lastPayment?.toIso8601String(),
+        "joined_date": joinedDate.toIso8601String(),
+        "rating": rating,
+        "trips_completed": tripsCompleted,
+      };
 
   Driver copyWith({
     final String? id,
@@ -115,21 +114,22 @@ class Driver {
     final DateTime? joinedDate,
     final double? rating,
     final int? tripsCompleted,
-  }) => Driver(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      phone: phone ?? this.phone,
-      licenseNumber: licenseNumber ?? this.licenseNumber,
-      vehicleNumber: vehicleNumber ?? this.vehicleNumber,
-      vehicleType: vehicleType ?? this.vehicleType,
-      status: status ?? this.status,
-      totalPayments: totalPayments ?? this.totalPayments,
-      lastPayment: lastPayment ?? this.lastPayment,
-      joinedDate: joinedDate ?? this.joinedDate,
-      rating: rating ?? this.rating,
-      tripsCompleted: tripsCompleted ?? this.tripsCompleted,
-    );
+  }) =>
+      Driver(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        email: email ?? this.email,
+        phone: phone ?? this.phone,
+        licenseNumber: licenseNumber ?? this.licenseNumber,
+        vehicleNumber: vehicleNumber ?? this.vehicleNumber,
+        vehicleType: vehicleType ?? this.vehicleType,
+        status: status ?? this.status,
+        totalPayments: totalPayments ?? this.totalPayments,
+        lastPayment: lastPayment ?? this.lastPayment,
+        joinedDate: joinedDate ?? this.joinedDate,
+        rating: rating ?? this.rating,
+        tripsCompleted: tripsCompleted ?? this.tripsCompleted,
+      );
 
   @override
   String toString() =>

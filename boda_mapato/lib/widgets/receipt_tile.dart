@@ -6,9 +6,13 @@ import "../utils/responsive_utils.dart";
 import "responsive_wrapper.dart";
 
 class ReceiptTile extends StatelessWidget {
-
   const ReceiptTile({
-    required this.receiptNumber, required this.customerName, required this.amount, required this.date, required this.serviceType, super.key,
+    required this.receiptNumber,
+    required this.customerName,
+    required this.amount,
+    required this.date,
+    required this.serviceType,
+    super.key,
     this.onTap,
     this.onPrint,
     this.onShare,
@@ -25,7 +29,7 @@ class ReceiptTile extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
-    
+
     return InkWell(
       onTap: onTap,
       child: ResponsiveContainer(
@@ -51,7 +55,7 @@ class ReceiptTile extends StatelessWidget {
                     size: ResponsiveUtils.getResponsiveIconSize(context, 24),
                   ),
                 ),
-                
+
                 // Receipt Details
                 Expanded(
                   child: ResponsiveColumn(
@@ -85,7 +89,7 @@ class ReceiptTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 // Amount and Date
                 ResponsiveColumn(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -111,7 +115,7 @@ class ReceiptTile extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             // Action Buttons
             if (onPrint != null || onShare != null)
               ResponsiveRow(
@@ -123,7 +127,10 @@ class ReceiptTile extends StatelessWidget {
                         onPressed: onPrint,
                         icon: Icon(
                           Icons.print,
-                          size: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                          size: ResponsiveUtils.getResponsiveIconSize(
+                            context,
+                            16,
+                          ),
                         ),
                         label: Text(
                           "Chapisha",
@@ -131,10 +138,17 @@ class ReceiptTile extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: BorderSide(color: AppColors.primary, width: 1.w),
+                          side:
+                              BorderSide(color: AppColors.primary, width: 1.w),
                           padding: EdgeInsets.symmetric(
-                            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
-                            vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              12,
+                            ),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              8,
+                            ),
                           ),
                         ),
                       ),
@@ -145,7 +159,10 @@ class ReceiptTile extends StatelessWidget {
                         onPressed: onShare,
                         icon: Icon(
                           Icons.share,
-                          size: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                          size: ResponsiveUtils.getResponsiveIconSize(
+                            context,
+                            16,
+                          ),
                         ),
                         label: Text(
                           "Shiriki",
@@ -153,10 +170,19 @@ class ReceiptTile extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.secondary,
-                          side: BorderSide(color: AppColors.secondary, width: 1.w),
+                          side: BorderSide(
+                            color: AppColors.secondary,
+                            width: 1.w,
+                          ),
                           padding: EdgeInsets.symmetric(
-                            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
-                            vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              12,
+                            ),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              8,
+                            ),
                           ),
                         ),
                       ),
@@ -171,9 +197,13 @@ class ReceiptTile extends StatelessWidget {
 }
 
 class ReceiptSummaryCard extends StatelessWidget {
-
   const ReceiptSummaryCard({
-    required this.title, required this.count, required this.totalAmount, required this.icon, required this.color, super.key,
+    required this.title,
+    required this.count,
+    required this.totalAmount,
+    required this.icon,
+    required this.color,
+    super.key,
     this.onTap,
   });
   final String title;
@@ -185,72 +215,76 @@ class ReceiptSummaryCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => InkWell(
-      onTap: onTap,
-      child: ResponsiveContainer(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(
-            ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+        onTap: onTap,
+        child: ResponsiveContainer(
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(
+              ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+            ),
+            border: Border.all(color: color.withOpacity(0.3), width: 1.w),
           ),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.w),
-        ),
-        child: ResponsiveColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-          children: <Widget>[
-            ResponsiveRow(
-              spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-              children: <Widget>[
-                Icon(
-                  icon,
-                  color: color,
-                  size: ResponsiveUtils.getResponsiveIconSize(context, 24),
-                ),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: AppStyles.bodyMediumResponsive(context).copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w600,
+          child: ResponsiveColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+            children: <Widget>[
+              ResponsiveRow(
+                spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                children: <Widget>[
+                  Icon(
+                    icon,
+                    color: color,
+                    size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                  ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppStyles.bodyMediumResponsive(context).copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                  ),
+                ],
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  count.toString(),
+                  style: AppStyles.heading2Responsive(context).copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                count.toString(),
-                style: AppStyles.heading2Responsive(context).copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "TSh ${totalAmount.toStringAsFixed(0)}",
+                  style: AppStyles.bodyMediumResponsive(context).copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "TSh ${totalAmount.toStringAsFixed(0)}",
-                style: AppStyles.bodyMediumResponsive(context).copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
 }
 
 class ReceiptPreviewCard extends StatelessWidget {
-
   const ReceiptPreviewCard({
-    required this.receiptNumber, required this.customerName, required this.amount, required this.serviceType, required this.date, super.key,
+    required this.receiptNumber,
+    required this.customerName,
+    required this.amount,
+    required this.serviceType,
+    required this.date,
+    super.key,
     this.notes,
   });
   final String receiptNumber;
@@ -262,115 +296,120 @@ class ReceiptPreviewCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => ResponsiveContainer(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(
-          ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+          ),
+          border: Border.all(
+            color: AppColors.textHint.withOpacity(0.3),
+            width: 1.w,
+          ),
         ),
-        border: Border.all(color: AppColors.textHint.withOpacity(0.3), width: 1.w),
-      ),
-      child: ResponsiveColumn(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-        children: <Widget>[
-          // Header
-          Center(
-            child: Text(
-              "BODA MAPATO",
-              style: AppStyles.heading3Responsive(context),
-            ),
-          ),
-          Center(
-            child: Text(
-              "Risiti ya Huduma",
-              style: AppStyles.bodySmallResponsive(context),
-            ),
-          ),
-          
-          const Divider(),
-          
-          // Receipt Details
-          _ReceiptRow("Nambari ya Risiti:", receiptNumber),
-          _ReceiptRow("Tarehe:", "${date.day}/${date.month}/${date.year}"),
-          _ReceiptRow("Muda:", "${date.hour}:${date.minute.toString().padLeft(2, "0")}"),
-          
-          const Divider(),
-          
-          // Customer & Service Details
-          _ReceiptRow("Mteja:", customerName),
-          _ReceiptRow("Huduma:", serviceType),
-          if (notes != null && notes!.isNotEmpty)
-            _ReceiptRow("Maelezo:", notes!),
-          
-          const Divider(),
-          
-          // Amount
-          ResponsiveRow(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                "JUMLA:",
+        child: ResponsiveColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+          children: <Widget>[
+            // Header
+            Center(
+              child: Text(
+                "BODA MAPATO",
                 style: AppStyles.heading3Responsive(context),
               ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  "TSh ${amount.toStringAsFixed(0)}",
-                  style: AppStyles.heading3Responsive(context).copyWith(
-                    color: AppColors.primary,
+            ),
+            Center(
+              child: Text(
+                "Risiti ya Huduma",
+                style: AppStyles.bodySmallResponsive(context),
+              ),
+            ),
+
+            const Divider(),
+
+            // Receipt Details
+            _ReceiptRow("Nambari ya Risiti:", receiptNumber),
+            _ReceiptRow("Tarehe:", "${date.day}/${date.month}/${date.year}"),
+            _ReceiptRow(
+              "Muda:",
+              "${date.hour}:${date.minute.toString().padLeft(2, "0")}",
+            ),
+
+            const Divider(),
+
+            // Customer & Service Details
+            _ReceiptRow("Mteja:", customerName),
+            _ReceiptRow("Huduma:", serviceType),
+            if (notes != null && notes!.isNotEmpty)
+              _ReceiptRow("Maelezo:", notes!),
+
+            const Divider(),
+
+            // Amount
+            ResponsiveRow(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(
+                  "JUMLA:",
+                  style: AppStyles.heading3Responsive(context),
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    "TSh ${amount.toStringAsFixed(0)}",
+                    style: AppStyles.heading3Responsive(context).copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          
-          const Divider(),
-          
-          // Footer
-          Center(
-            child: Text(
-              "Asante kwa kutumia huduma zetu!",
-              style: AppStyles.bodySmallResponsive(context),
-              textAlign: TextAlign.center,
+              ],
             ),
-          ),
-        ],
-      ),
-    );
+
+            const Divider(),
+
+            // Footer
+            Center(
+              child: Text(
+                "Asante kwa kutumia huduma zetu!",
+                style: AppStyles.bodySmallResponsive(context),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _ReceiptRow extends StatelessWidget {
-
   const _ReceiptRow(this.label, this.value);
   final String label;
   final String value;
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: ResponsiveUtils.getResponsiveSpacing(context, 8),
-      ),
-      child: ResponsiveRow(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: ResponsiveUtils.getResponsiveSpacing(context, 100),
-            child: Text(
-              label,
-              style: AppStyles.bodySmallResponsive(context).copyWith(
-                fontWeight: FontWeight.w500,
+        padding: EdgeInsets.only(
+          bottom: ResponsiveUtils.getResponsiveSpacing(context, 8),
+        ),
+        child: ResponsiveRow(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            SizedBox(
+              width: ResponsiveUtils.getResponsiveSpacing(context, 100),
+              child: Text(
+                label,
+                style: AppStyles.bodySmallResponsive(context).copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppStyles.bodySmallResponsive(context),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
+            Expanded(
+              child: Text(
+                value,
+                style: AppStyles.bodySmallResponsive(context),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
 }

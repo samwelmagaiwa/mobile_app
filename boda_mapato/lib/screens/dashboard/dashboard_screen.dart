@@ -29,9 +29,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    final TransactionProvider transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
-    final DeviceProvider deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
-    
+    final TransactionProvider transactionProvider =
+        Provider.of<TransactionProvider>(context, listen: false);
+    final DeviceProvider deviceProvider =
+        Provider.of<DeviceProvider>(context, listen: false);
+
     await Future.wait(<Future<void>>[
       transactionProvider.loadTransactions(),
       deviceProvider.loadDevices(),
@@ -40,38 +42,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(final BuildContext context) => Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.dashboard,
-          style: AppStyles.heading2,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            AppStrings.dashboard,
+            style: AppStyles.heading2,
+          ),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadDashboardData,
+            ),
+            IconButton(
+              icon: const Icon(Icons.notifications),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (final BuildContext context) =>
+                        const RemindersScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDashboardData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const RemindersScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadDashboardData,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) => SingleChildScrollView(
+        body: RefreshIndicator(
+          onRefresh: _loadDashboardData,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) =>
+                  SingleChildScrollView(
                 padding: const EdgeInsets.all(AppStyles.spacingM),
                 physics: const BouncingScrollPhysics(),
                 child: ConstrainedBox(
@@ -83,9 +87,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: <Widget>[
                       // Revenue Summary Cards
                       const RevenueCardsSection(),
-                      
+
                       const SizedBox(height: AppStyles.spacingL),
-                      
+
                       // Quick Actions
                       const Text(
                         "Vitendo vya Haraka",
@@ -93,9 +97,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: AppStyles.spacingM),
                       const QuickActionsSection(),
-                      
+
                       const SizedBox(height: AppStyles.spacingL),
-                      
+
                       // Recent Transactions
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -112,7 +116,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (final BuildContext context) => const TransactionsScreen(),
+                                  builder: (final BuildContext context) =>
+                                      const TransactionsScreen(),
                                 ),
                               );
                             },
@@ -122,9 +127,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: AppStyles.spacingM),
                       const RecentTransactionsSection(),
-                      
+
                       const SizedBox(height: AppStyles.spacingL),
-                      
+
                       // Device Status
                       const Text(
                         "Hali ya Vyombo",
@@ -132,80 +137,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: AppStyles.spacingM),
                       const DeviceStatusSection(),
-                      
+
                       // Add bottom padding to ensure FAB doesn't overlap content
                       const SizedBox(height: AppStyles.spacingXL),
                     ],
                   ),
                 ),
               ),
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: "Dashibodi",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet),
-            label: "Miamala",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt),
-            label: "Risiti",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assessment),
-            label: "Ripoti",
-          ),
-        ],
-        onTap: (final int index) {
-          switch (index) {
-            case 0:
-              // Already on dashboard
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const TransactionsScreen(),
-                ),
-              );
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const ReceiptScreen(),
-                ),
-              );
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final BuildContext context) => const ReportScreen(),
-                ),
-              );
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (final BuildContext context) => const DeviceSelectionScreen(),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSecondary,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              label: "Dashibodi",
             ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet),
+              label: "Miamala",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt),
+              label: "Risiti",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assessment),
+              label: "Ripoti",
+            ),
+          ],
+          onTap: (final int index) {
+            switch (index) {
+              case 0:
+                // Already on dashboard
+                break;
+              case 1:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (final BuildContext context) =>
+                        const TransactionsScreen(),
+                  ),
+                );
+              case 2:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (final BuildContext context) =>
+                        const ReceiptScreen(),
+                  ),
+                );
+              case 3:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (final BuildContext context) =>
+                        const ReportScreen(),
+                  ),
+                );
+            }
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (final BuildContext context) =>
+                    const DeviceSelectionScreen(),
+              ),
+            );
+          },
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      );
 }
 
 class QuickActionsSection extends StatelessWidget {
@@ -213,84 +222,87 @@ class QuickActionsSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        // Use column layout for very small screens
-        if (constraints.maxWidth < 300) {
-          return Column(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Use column layout for very small screens
+          if (constraints.maxWidth < 300) {
+            return Column(
+              children: <Widget>[
+                _QuickActionCard(
+                  icon: Icons.add_circle,
+                  title: "Muamala Mpya",
+                  color: AppColors.success,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const TransactionsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppStyles.spacingM),
+                _QuickActionCard(
+                  icon: Icons.receipt_long,
+                  title: "Tengeneza Risiti",
+                  color: AppColors.info,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const ReceiptScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          }
+
+          // Use row layout for normal screens
+          return Row(
             children: <Widget>[
-              _QuickActionCard(
-                icon: Icons.add_circle,
-                title: "Muamala Mpya",
-                color: AppColors.success,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (final BuildContext context) => const TransactionsScreen(),
-                    ),
-                  );
-                },
+              Expanded(
+                child: _QuickActionCard(
+                  icon: Icons.add_circle,
+                  title: "Muamala Mpya",
+                  color: AppColors.success,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const TransactionsScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: AppStyles.spacingM),
-              _QuickActionCard(
-                icon: Icons.receipt_long,
-                title: "Tengeneza Risiti",
-                color: AppColors.info,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (final BuildContext context) => const ReceiptScreen(),
-                    ),
-                  );
-                },
+              const SizedBox(width: AppStyles.spacingM),
+              Expanded(
+                child: _QuickActionCard(
+                  icon: Icons.receipt_long,
+                  title: "Tengeneza Risiti",
+                  color: AppColors.info,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const ReceiptScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           );
-        }
-        
-        // Use row layout for normal screens
-        return Row(
-          children: <Widget>[
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.add_circle,
-                title: "Muamala Mpya",
-                color: AppColors.success,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (final BuildContext context) => const TransactionsScreen(),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: AppStyles.spacingM),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.receipt_long,
-                title: "Tengeneza Risiti",
-                color: AppColors.info,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (final BuildContext context) => const ReceiptScreen(),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
+        },
+      );
 }
 
 class _QuickActionCard extends StatelessWidget {
-
   const _QuickActionCard({
     required this.icon,
     required this.title,
@@ -304,30 +316,30 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => CustomCard(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppStyles.spacingM),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(
-              icon,
-              size: 32,
-              color: color,
-            ),
-            const SizedBox(height: AppStyles.spacingS),
-            Flexible(
-              child: Text(
-                title,
-                style: AppStyles.bodyMedium,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppStyles.spacingM),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 32,
+                color: color,
               ),
-            ),
-          ],
+              const SizedBox(height: AppStyles.spacingS),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppStyles.bodyMedium,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 }

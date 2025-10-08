@@ -6,9 +6,12 @@ import "../../utils/date_utils.dart";
 import "../../utils/type_helpers.dart";
 
 class TransactionSummaryCard extends StatelessWidget {
-
   const TransactionSummaryCard({
-    required this.transactions, required this.title, required this.icon, required this.color, super.key,
+    required this.transactions,
+    required this.title,
+    required this.icon,
+    required this.color,
+    super.key,
   });
   final List<Transaction> transactions;
   final String title;
@@ -19,7 +22,8 @@ class TransactionSummaryCard extends StatelessWidget {
   Widget build(final BuildContext context) {
     final double totalAmount = transactions.fold<double>(
       0,
-      (final double sum, final Transaction transaction) => sum + transaction.amount,
+      (final double sum, final Transaction transaction) =>
+          sum + transaction.amount,
     );
 
     return Container(
@@ -65,9 +69,10 @@ class TransactionSummaryCard extends StatelessWidget {
 }
 
 class TransactionFilterChips extends StatelessWidget {
-
   const TransactionFilterChips({
-    required this.selectedFilter, required this.onFilterChanged, super.key,
+    required this.selectedFilter,
+    required this.onFilterChanged,
+    super.key,
   });
   final String selectedFilter;
   final Function(String) onFilterChanged;
@@ -111,9 +116,10 @@ class TransactionFilterChips extends StatelessWidget {
 }
 
 class TransactionChart extends StatelessWidget {
-
   const TransactionChart({
-    required this.transactions, required this.period, super.key,
+    required this.transactions,
+    required this.period,
+    super.key,
   });
   final List<Transaction> transactions;
   final String period;
@@ -122,7 +128,7 @@ class TransactionChart extends StatelessWidget {
   Widget build(final BuildContext context) {
     // Group transactions by date
     final Map<String, double> groupedTransactions = _groupTransactionsByDate();
-    
+
     return Container(
       height: 200,
       padding: const EdgeInsets.all(AppStyles.spacingM),
@@ -154,14 +160,14 @@ class TransactionChart extends StatelessWidget {
 
   Map<String, double> _groupTransactionsByDate() {
     final Map<String, double> grouped = <String, double>{};
-    
+
     for (final Transaction transaction in transactions) {
       if (transaction.type == TransactionType.income) {
         final String dateKey = AppDateUtils.formatDate(transaction.createdAt);
         grouped[dateKey] = (grouped[dateKey] ?? 0) + transaction.amount;
       }
     }
-    
+
     return grouped;
   }
 
@@ -172,13 +178,14 @@ class TransactionChart extends StatelessWidget {
       );
     }
 
-    final double maxAmount = data.values.reduce((final double a, final double b) => a > b ? a : b);
-    
+    final double maxAmount =
+        data.values.reduce((final double a, final double b) => a > b ? a : b);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: data.entries.map((final MapEntry<String, double> entry) {
         final double height = (entry.value / maxAmount) * 120;
-        
+
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -207,9 +214,9 @@ class TransactionChart extends StatelessWidget {
 }
 
 class TransactionStatusBadge extends StatelessWidget {
-
   const TransactionStatusBadge({
-    required this.status, super.key,
+    required this.status,
+    super.key,
   });
   final TransactionStatus status;
 
@@ -217,7 +224,7 @@ class TransactionStatusBadge extends StatelessWidget {
   Widget build(final BuildContext context) {
     Color backgroundColor;
     Color textColor;
-    
+
     switch (status) {
       case TransactionStatus.completed:
         backgroundColor = AppColors.success.withOpacity(0.1);
@@ -251,9 +258,9 @@ class TransactionStatusBadge extends StatelessWidget {
 }
 
 class TransactionTypeIcon extends StatelessWidget {
-
   const TransactionTypeIcon({
-    required this.type, super.key,
+    required this.type,
+    super.key,
     this.size = 24,
   });
   final TransactionType type;
@@ -261,22 +268,22 @@ class TransactionTypeIcon extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-      width: size + 16,
-      height: size + 16,
-      decoration: BoxDecoration(
-        color: type == TransactionType.income
-            ? AppColors.success.withOpacity(0.1)
-            : AppColors.error.withOpacity(0.1),
-        borderRadius: BorderRadius.circular((size + 16) / 2),
-      ),
-      child: Icon(
-        type == TransactionType.income
-            ? Icons.arrow_downward
-            : Icons.arrow_upward,
-        size: size,
-        color: type == TransactionType.income
-            ? AppColors.success
-            : AppColors.error,
-      ),
-    );
+        width: size + 16,
+        height: size + 16,
+        decoration: BoxDecoration(
+          color: type == TransactionType.income
+              ? AppColors.success.withOpacity(0.1)
+              : AppColors.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular((size + 16) / 2),
+        ),
+        child: Icon(
+          type == TransactionType.income
+              ? Icons.arrow_downward
+              : Icons.arrow_upward,
+          size: size,
+          color: type == TransactionType.income
+              ? AppColors.success
+              : AppColors.error,
+        ),
+      );
 }

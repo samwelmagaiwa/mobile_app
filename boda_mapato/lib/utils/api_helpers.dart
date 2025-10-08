@@ -10,9 +10,9 @@ class ApiHelpers {
 
   // Common headers
   static Map<String, String> get defaultHeaders => <String, String>{
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-  };
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
 
   // Handle HTTP response
   static Map<String, dynamic> handleResponse(final http.Response response) {
@@ -28,7 +28,7 @@ class ApiHelpers {
           errors: data["errors"],
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(
         message: "Failed to parse response: $e",
@@ -56,18 +56,26 @@ class ApiHelpers {
 
     final String queryParams = params.entries
         .where((final MapEntry<String, dynamic> entry) => entry.value != null)
-        .map((final MapEntry<String, dynamic> entry) => "${entry.key}=${Uri.encodeComponent(entry.value.toString())}")
+        .map(
+          (final MapEntry<String, dynamic> entry) =>
+              "${entry.key}=${Uri.encodeComponent(entry.value.toString())}",
+        )
         .join("&");
 
     return queryParams.isNotEmpty ? "?$queryParams" : "";
   }
 
   // Build URL with query parameters
-  static String buildUrl(final String baseUrl, final String endpoint, [final Map<String, dynamic>? params]) {
+  static String buildUrl(
+    final String baseUrl,
+    final String endpoint, [
+    final Map<String, dynamic>? params,
+  ]) {
     final String url = baseUrl.endsWith("/") ? baseUrl : "$baseUrl/";
-    final String cleanEndpoint = endpoint.startsWith("/") ? endpoint.substring(1) : endpoint;
+    final String cleanEndpoint =
+        endpoint.startsWith("/") ? endpoint.substring(1) : endpoint;
     final String queryString = params != null ? buildQueryString(params) : "";
-    
+
     return "$url$cleanEndpoint$queryString";
   }
 
@@ -78,34 +86,36 @@ class ApiHelpers {
     final Duration delay = const Duration(seconds: 1),
   }) async {
     int attempts = 0;
-    
+
     while (attempts < maxRetries) {
       try {
         return await apiCall();
-      } catch (e) {
+      } on Exception catch (e) {
         attempts++;
-        
+
         if (attempts >= maxRetries) {
           rethrow;
         }
-        
+
         // Don"t retry on client errors (4xx)
         if (e is ApiException && e.statusCode >= 400 && e.statusCode < 500) {
           rethrow;
         }
-        
+
         await Future.delayed(delay * attempts);
       }
     }
-    
+
     throw Exception("Max retries exceeded");
   }
 
   // Check if response is successful
-  static bool isSuccessResponse(final int statusCode) => statusCode >= 200 && statusCode < 300;
+  static bool isSuccessResponse(final int statusCode) =>
+      statusCode >= 200 && statusCode < 300;
 
   // Check if response is client error
-  static bool isClientError(final int statusCode) => statusCode >= 400 && statusCode < 500;
+  static bool isClientError(final int statusCode) =>
+      statusCode >= 400 && statusCode < 500;
 
   // Check if response is server error
   static bool isServerError(final int statusCode) => statusCode >= 500;
@@ -117,7 +127,7 @@ class ApiHelpers {
     }
 
     final List<String> errorMessages = <String>[];
-    
+
     errors.forEach((final String field, final messages) {
       if (messages is List) {
         errorMessages.addAll(messages.cast<String>());
@@ -134,7 +144,7 @@ class ApiHelpers {
     try {
       jsonDecode(jsonString);
       return true;
-    } catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -144,7 +154,7 @@ class ApiHelpers {
     try {
       final decoded = jsonDecode(jsonString);
       return decoded is Map<String, dynamic> ? decoded : null;
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -153,7 +163,7 @@ class ApiHelpers {
   static String? safeJsonEncode(final object) {
     try {
       return jsonEncode(object);
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -166,7 +176,7 @@ class ApiHelpers {
         return uri.toString();
       }
       return null;
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -189,7 +199,11 @@ class ApiHelpers {
   }
 
   // Log API request (for debugging)
-  static void logRequest(final String method, final String url, [final Map<String, dynamic>? data]) {
+  static void logRequest(
+    final String method,
+    final String url, [
+    final Map<String, dynamic>? data,
+  ]) {
     debugPrint("API Request: $method $url");
     if (data != null) {
       debugPrint("Data: ${jsonEncode(data)}");
@@ -209,16 +223,17 @@ class ApiHelpers {
     final Map<String, String>? headers,
     final Map<String, String>? fields,
   }) {
-    final http.MultipartRequest request = http.MultipartRequest(method, Uri.parse(url));
-    
+    final http.MultipartRequest request =
+        http.MultipartRequest(method, Uri.parse(url));
+
     if (headers != null) {
       request.headers.addAll(headers);
     }
-    
+
     if (fields != null) {
       request.fields.addAll(fields);
     }
-    
+
     return request;
   }
 
@@ -235,7 +250,9 @@ class ApiHelpers {
   }
 
   // Parse pagination info from response
-  static PaginationInfo? parsePaginationInfo(final Map<String, dynamic> response) {
+  static PaginationInfo? parsePaginationInfo(
+    final Map<String, dynamic> response,
+  ) {
     final meta = response["meta"];
     if (meta == null) return null;
 
@@ -255,17 +272,17 @@ class ApiHelpers {
     final int perPage = 10,
     final String? sortBy,
     final String? sortOrder,
-  }) => <String, dynamic>{
-      "page": page,
-      "per_page": perPage,
-      if (sortBy != null) "sort_by": sortBy,
-      if (sortOrder != null) "sort_order": sortOrder,
-    };
+  }) =>
+      <String, dynamic>{
+        "page": page,
+        "per_page": perPage,
+        if (sortBy != null) "sort_by": sortBy,
+        if (sortOrder != null) "sort_order": sortOrder,
+      };
 }
 
 // Custom exception classes
 class ApiException implements Exception {
-
   const ApiException({
     required this.message,
     required this.statusCode,
@@ -280,7 +297,6 @@ class ApiException implements Exception {
 }
 
 class NetworkException implements Exception {
-
   const NetworkException(this.message);
   final String message;
 
@@ -290,7 +306,6 @@ class NetworkException implements Exception {
 
 // Pagination info class
 class PaginationInfo {
-
   const PaginationInfo({
     required this.currentPage,
     required this.lastPage,
@@ -309,14 +324,14 @@ class PaginationInfo {
   bool get hasNextPage => currentPage < lastPage;
   bool get hasPreviousPage => currentPage > 1;
   int get totalPages => lastPage;
-  
+
   @override
-  String toString() => "Page $currentPage of $lastPage ($from-$to of $total items)";
+  String toString() =>
+      "Page $currentPage of $lastPage ($from-$to of $total items)";
 }
 
 // API response wrapper
 class ApiResponse<T> {
-
   const ApiResponse({
     required this.data,
     this.message,
@@ -326,13 +341,14 @@ class ApiResponse<T> {
 
   factory ApiResponse.fromJson(
     final Map<String, dynamic> json,
-    final T Function(dynamic) fromJsonT,
-  ) => ApiResponse<T>(
-      data: fromJsonT(json["data"]),
-      message: json["message"],
-      success: json["success"] ?? true,
-      pagination: ApiHelpers.parsePaginationInfo(json),
-    );
+    final T Function(Map<String, dynamic>) fromJsonT,
+  ) =>
+      ApiResponse<T>(
+        data: fromJsonT(json["data"]),
+        message: json["message"],
+        success: json["success"] ?? true,
+        pagination: ApiHelpers.parsePaginationInfo(json),
+      );
   final T data;
   final String? message;
   final bool success;

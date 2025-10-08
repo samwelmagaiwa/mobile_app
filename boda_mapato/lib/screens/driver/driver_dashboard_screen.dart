@@ -33,9 +33,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     });
 
     try {
-      // TODO: Load dashboard data from API
+      // TODO(dev): Load dashboard data from API
       await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-      
+
       // Mock data
       _dashboardData = <String, dynamic>{
         "assigned_vehicle": <String, String>{
@@ -43,14 +43,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           "type": "bajaji",
           "plate_number": "T123ABC",
         },
-        "payments_today": 15000.0,
-        "payments_this_week": 85000.0,
-        "payments_this_month": 320000.0,
+        "payments_today": 15000,
+        "payments_this_week": 85000,
+        "payments_this_month": 320000,
         "total_trips": 156,
-        "total_earnings": 1250000.0,
+        "total_earnings": 1250000,
         "rating": 4.5,
       };
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -68,175 +68,122 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   @override
   Widget build(final BuildContext context) => ResponsiveScaffold(
-      backgroundColor: AppColors.background,
-      body: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: Text(
-            "Dashboard ya Dereva",
-            style: AppStyles.heading2Responsive(context).copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          toolbarHeight: ResponsiveUtils.getResponsiveAppBarHeight(context),
-          actions: <Widget>[
-            IconButton(
-              onPressed: _loadDashboardData,
-              icon: Icon(
-                Icons.refresh,
-                size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+        backgroundColor: AppColors.background,
+        body: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(
+              "Dashboard ya Dereva",
+              style: AppStyles.heading2Responsive(context)
+                  .copyWith(color: Colors.white),
+            ),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            toolbarHeight: ResponsiveUtils.getResponsiveAppBarHeight(context),
+            actions: <Widget>[
+              IconButton(
+                onPressed: _loadDashboardData,
+                icon: Icon(
+                  Icons.refresh,
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                ),
               ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (final String value) {
-                if (value == "logout") {
-                  _handleLogout();
-                }
-              },
-              itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
-                PopupMenuItem(
-                  value: "logout",
-                  child: ResponsiveRow(
-                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                    children: <Widget>[
-                      Icon(
-                        Icons.logout,
-                        color: AppColors.error,
-                        size: ResponsiveUtils.getResponsiveIconSize(context, 20),
-                      ),
-                      Text(
-                        "Toka",
-                        style: AppStyles.bodyMediumResponsive(context),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        body: _isLoading
-            ? Center(
-                child: SizedBox(
-                  width: ResponsiveUtils.getResponsiveIconSize(context, 40),
-                  height: ResponsiveUtils.getResponsiveIconSize(context, 40),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3.w,
-                  ),
-                ),
-              )
-            : RefreshIndicator(
-                onRefresh: _loadDashboardData,
-                child: SingleChildScrollView(
-                  padding: ResponsiveUtils.getResponsivePadding(context),
-                  child: ResponsiveColumn(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 24),
-                    children: <Widget>[
-                      // Welcome message
-                      CustomCard(
-child: ResponsiveWrapper(
-                          child: ResponsiveRow(
-                            spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                            children: <Widget>[
-                              Icon(
-                                Icons.person,
-                                size: ResponsiveUtils.getResponsiveIconSize(context, 48),
-                                color: AppColors.primary,
-                              ),
-                              Expanded(
-                                child: ResponsiveColumn(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                                  children: <Widget>[
-                                    Text(
-                                      "Karibu, Dereva!",
-                                      style: AppStyles.heading3Responsive(context),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                    Text(
-                                      "Angalia takwimu zako za malipo",
-                                      style: AppStyles.bodyMediumResponsive(context).copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+              PopupMenuButton<String>(
+                onSelected: (final String value) {
+                  if (value == "logout") {
+                    _handleLogout();
+                  }
+                },
+                itemBuilder: (final BuildContext context) =>
+                    <PopupMenuEntry<String>>[
+                  PopupMenuItem(
+                    value: "logout",
+                    child: ResponsiveRow(
+                      spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                      children: <Widget>[
+                        Icon(
+                          Icons.logout,
+                          color: AppColors.error,
+                          size: ResponsiveUtils.getResponsiveIconSize(
+                            context,
+                            20,
                           ),
                         ),
-                      ),
-
-                      // Assigned Vehicle
-                      if (_dashboardData["assigned_vehicle"] != null) ...<Widget>[
                         Text(
-                          "Gari Lako",
-                          style: AppStyles.heading3Responsive(context),
+                          "Toka",
+                          style: AppStyles.bodyMediumResponsive(context),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          body: _isLoading
+              ? Center(
+                  child: SizedBox(
+                    width: ResponsiveUtils.getResponsiveIconSize(context, 40),
+                    height: ResponsiveUtils.getResponsiveIconSize(context, 40),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3.w,
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadDashboardData,
+                  child: SingleChildScrollView(
+                    padding: ResponsiveUtils.getResponsivePadding(context),
+                    child: ResponsiveColumn(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing:
+                          ResponsiveUtils.getResponsiveSpacing(context, 24),
+                      children: <Widget>[
+                        // Welcome message
                         CustomCard(
-child: ResponsiveWrapper(
+                          child: ResponsiveWrapper(
                             child: ResponsiveRow(
-                              spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+                              spacing: ResponsiveUtils.getResponsiveSpacing(
+                                context,
+                                16,
+                              ),
                               children: <Widget>[
-                                Container(
-                                  width: ResponsiveUtils.getResponsiveIconSize(context, 60),
-                                  height: ResponsiveUtils.getResponsiveIconSize(context, 60),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(
-                                      ResponsiveUtils.getResponsiveBorderRadius(context, 12),
-                                    ),
+                                Icon(
+                                  Icons.person,
+                                  size: ResponsiveUtils.getResponsiveIconSize(
+                                    context,
+                                    48,
                                   ),
-                                  child: Icon(
-                                    _getVehicleIcon(_dashboardData["assigned_vehicle"]["type"]),
-                                    color: AppColors.secondary,
-                                    size: ResponsiveUtils.getResponsiveIconSize(context, 32),
-                                  ),
+                                  color: AppColors.primary,
                                 ),
                                 Expanded(
                                   child: ResponsiveColumn(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    spacing:
+                                        ResponsiveUtils.getResponsiveSpacing(
+                                      context,
+                                      8,
+                                    ),
                                     children: <Widget>[
                                       Text(
-                                        _dashboardData["assigned_vehicle"]["name"],
-                                        style: AppStyles.bodyLargeResponsive(context).copyWith(
-                                          fontWeight: FontWeight.w600,
+                                        "Karibu, Dereva!",
+                                        style: AppStyles.heading3Responsive(
+                                          context,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                         maxLines: 1,
                                       ),
                                       Text(
-                                        "Nambari: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
-                                        style: AppStyles.bodyMediumResponsive(context).copyWith(
+                                        "Angalia takwimu zako za malipo",
+                                        style: AppStyles.bodyMediumResponsive(
+                                          context,
+                                        ).copyWith(
                                           color: AppColors.textSecondary,
                                         ),
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                                          vertical: ResponsiveUtils.getResponsiveSpacing(context, 4),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.success.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            ResponsiveUtils.getResponsiveBorderRadius(context, 4),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Inatumika",
-                                          style: AppStyles.bodySmallResponsive(context).copyWith(
-                                            color: AppColors.success,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
                                       ),
                                     ],
                                   ),
@@ -245,165 +192,304 @@ child: ResponsiveWrapper(
                             ),
                           ),
                         ),
-                      ],
 
-                      // Payment Statistics
-                      Text(
-                        "Takwimu za Malipo",
-                        style: AppStyles.heading3Responsive(context),
-                      ),
-                      CustomStatCard(
-                        title: "Malipo ya Leo",
-                        value: "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
-                        icon: Icons.today,
-                        color: AppColors.success,
-                      ),
-                      ResponsiveRow(
-                        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                        children: <Widget>[
-                          Expanded(
-                            child: CustomStatCard(
-                              title: "Wiki Hii",
-                              value: "TSh ${(_dashboardData["payments_this_week"] ?? 0).toStringAsFixed(0)}",
-                              icon: Icons.date_range,
-                              color: AppColors.info,
-                            ),
+                        // Assigned Vehicle
+                        if (_dashboardData["assigned_vehicle"] !=
+                            null) ...<Widget>[
+                          Text(
+                            "Gari Lako",
+                            style: AppStyles.heading3Responsive(context),
                           ),
-                          Expanded(
-                            child: CustomStatCard(
-                              title: "Mwezi Huu",
-                              value: "TSh ${(_dashboardData["payments_this_month"] ?? 0).toStringAsFixed(0)}",
-                              icon: Icons.calendar_month,
-                              color: AppColors.warning,
+                          CustomCard(
+                            child: ResponsiveWrapper(
+                              child: ResponsiveRow(
+                                spacing: ResponsiveUtils.getResponsiveSpacing(
+                                  context,
+                                  16,
+                                ),
+                                children: <Widget>[
+                                  Container(
+                                    width:
+                                        ResponsiveUtils.getResponsiveIconSize(
+                                      context,
+                                      60,
+                                    ),
+                                    height:
+                                        ResponsiveUtils.getResponsiveIconSize(
+                                      context,
+                                      60,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          AppColors.secondary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(
+                                        ResponsiveUtils
+                                            .getResponsiveBorderRadius(
+                                          context,
+                                          12,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      _getVehicleIcon(
+                                        _dashboardData["assigned_vehicle"]
+                                            ["type"],
+                                      ),
+                                      color: AppColors.secondary,
+                                      size:
+                                          ResponsiveUtils.getResponsiveIconSize(
+                                        context,
+                                        32,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ResponsiveColumn(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      spacing:
+                                          ResponsiveUtils.getResponsiveSpacing(
+                                        context,
+                                        4,
+                                      ),
+                                      children: <Widget>[
+                                        Text(
+                                          _dashboardData["assigned_vehicle"]
+                                              ["name"],
+                                          style: AppStyles.bodyLargeResponsive(
+                                            context,
+                                          ).copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        Text(
+                                          "Nambari: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
+                                          style: AppStyles.bodyMediumResponsive(
+                                            context,
+                                          ).copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: ResponsiveUtils
+                                                .getResponsiveSpacing(
+                                              context,
+                                              8,
+                                            ),
+                                            vertical: ResponsiveUtils
+                                                .getResponsiveSpacing(
+                                              context,
+                                              4,
+                                            ),
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              ResponsiveUtils
+                                                  .getResponsiveBorderRadius(
+                                                context,
+                                                4,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            "Inatumika",
+                                            style:
+                                                AppStyles.bodySmallResponsive(
+                                              context,
+                                            ).copyWith(
+                                              color: AppColors.success,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
-                      ),
 
-                      // Performance Stats
-                      Text(
-                        "Utendaji Wako",
-                        style: AppStyles.heading3Responsive(context),
-                      ),
-                      ResponsiveRow(
-                        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                        children: <Widget>[
-                          Expanded(
-                            child: CustomStatCard(
-                              title: "Jumla ya Safari",
-                              value: "${_dashboardData["total_trips"] ?? 0}",
-                              icon: Icons.route,
+                        // Payment Statistics
+                        Text(
+                          "Takwimu za Malipo",
+                          style: AppStyles.heading3Responsive(context),
+                        ),
+                        CustomStatCard(
+                          title: "Malipo ya Leo",
+                          value:
+                              "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
+                          icon: Icons.today,
+                          color: AppColors.success,
+                        ),
+                        ResponsiveRow(
+                          spacing:
+                              ResponsiveUtils.getResponsiveSpacing(context, 16),
+                          children: <Widget>[
+                            Expanded(
+                              child: CustomStatCard(
+                                title: "Wiki Hii",
+                                value:
+                                    "TSh ${(_dashboardData["payments_this_week"] ?? 0).toStringAsFixed(0)}",
+                                icon: Icons.date_range,
+                                color: AppColors.info,
+                              ),
+                            ),
+                            Expanded(
+                              child: CustomStatCard(
+                                title: "Mwezi Huu",
+                                value:
+                                    "TSh ${(_dashboardData["payments_this_month"] ?? 0).toStringAsFixed(0)}",
+                                icon: Icons.calendar_month,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Performance Stats
+                        Text(
+                          "Utendaji Wako",
+                          style: AppStyles.heading3Responsive(context),
+                        ),
+                        ResponsiveRow(
+                          spacing:
+                              ResponsiveUtils.getResponsiveSpacing(context, 16),
+                          children: <Widget>[
+                            Expanded(
+                              child: CustomStatCard(
+                                title: "Jumla ya Safari",
+                                value: "${_dashboardData["total_trips"] ?? 0}",
+                                icon: Icons.route,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            Expanded(
+                              child: CustomStatCard(
+                                title: "Ukadiriaji",
+                                value: "${_dashboardData["rating"] ?? 0}/5",
+                                icon: Icons.star,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Quick Actions
+                        Text(
+                          "Vitendo vya Haraka",
+                          style: AppStyles.heading3Responsive(context),
+                        ),
+                        ResponsiveGridView(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: ResponsiveUtils.getResponsiveValue(
+                            context,
+                            mobile: 2,
+                            tablet: 3,
+                            desktop: 4,
+                          ),
+                          childAspectRatio: ResponsiveUtils.getResponsiveValue(
+                            context,
+                            mobile: 1.2,
+                            tablet: 1.1,
+                            desktop: 1,
+                          ),
+                          spacing:
+                              ResponsiveUtils.getResponsiveSpacing(context, 16),
+                          children: <Widget>[
+                            _QuickActionCard(
+                              title: "Omba Malipo",
+                              icon: Icons.request_quote,
+                              color: AppColors.success,
+                              onTap: _showPaymentRequestDialog,
+                            ),
+                            _QuickActionCard(
+                              title: "Historia ya Malipo",
+                              icon: Icons.history,
                               color: AppColors.primary,
+                              onTap: _navigateToPaymentHistory,
                             ),
-                          ),
-                          Expanded(
-                            child: CustomStatCard(
-                              title: "Ukadiriaji",
-                              value: "${_dashboardData["rating"] ?? 0.0}/5.0",
-                              icon: Icons.star,
+                            _QuickActionCard(
+                              title: "Risiti",
+                              icon: Icons.receipt,
+                              color: AppColors.info,
+                              onTap: _navigateToReceipts,
+                            ),
+                            _QuickActionCard(
+                              title: "Vikumbusho",
+                              icon: Icons.notifications,
                               color: AppColors.warning,
+                              onTap: _navigateToReminders,
                             ),
-                          ),
-                        ],
-                      ),
-
-                      // Quick Actions
-                      Text(
-                        "Vitendo vya Haraka",
-                        style: AppStyles.heading3Responsive(context),
-                      ),
-                      ResponsiveGridView(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: ResponsiveUtils.getResponsiveValue(
-                          context,
-                          mobile: 2,
-                          tablet: 3,
-                          desktop: 4,
+                          ],
                         ),
-                        childAspectRatio: ResponsiveUtils.getResponsiveValue(
-                          context,
-                          mobile: 1.2,
-                          tablet: 1.1,
-                          desktop: 1,
-                        ),
-                        spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                        children: <Widget>[
-                          _QuickActionCard(
-                            title: "Omba Malipo",
-                            icon: Icons.request_quote,
-                            color: AppColors.success,
-                            onTap: _showPaymentRequestDialog,
-                          ),
-                          _QuickActionCard(
-                            title: "Historia ya Malipo",
-                            icon: Icons.history,
-                            color: AppColors.primary,
-                            onTap: _navigateToPaymentHistory,
-                          ),
-                          _QuickActionCard(
-                            title: "Risiti",
-                            icon: Icons.receipt,
-                            color: AppColors.info,
-                            onTap: _navigateToReceipts,
-                          ),
-                          _QuickActionCard(
-                            title: "Vikumbusho",
-                            icon: Icons.notifications,
-                            color: AppColors.warning,
-                            onTap: _navigateToReminders,
-                          ),
-                        ],
-                      ),
 
-                      // Total Earnings Card
-                      CustomCard(
-                        child: ResponsiveContainer(
-                          child: ResponsiveColumn(
-                            spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                            children: <Widget>[
-                              Icon(
-                                Icons.account_balance_wallet,
-                                size: ResponsiveUtils.getResponsiveIconSize(context, 48),
-                                color: AppColors.success,
+                        // Total Earnings Card
+                        CustomCard(
+                          child: ResponsiveContainer(
+                            child: ResponsiveColumn(
+                              spacing: ResponsiveUtils.getResponsiveSpacing(
+                                context,
+                                16,
                               ),
-                              Text(
-                                "Jumla ya Mapato",
-                                style: AppStyles.bodyLargeResponsive(context),
-                              ),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  "TSh ${(_dashboardData["total_earnings"] ?? 0).toStringAsFixed(0)}",
-                                  style: AppStyles.heading1Responsive(context).copyWith(
-                                    color: AppColors.success,
-                                    fontWeight: FontWeight.bold,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.account_balance_wallet,
+                                  size: ResponsiveUtils.getResponsiveIconSize(
+                                    context,
+                                    48,
+                                  ),
+                                  color: AppColors.success,
+                                ),
+                                Text(
+                                  "Jumla ya Mapato",
+                                  style: AppStyles.bodyLargeResponsive(context),
+                                ),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    "TSh ${(_dashboardData["total_earnings"] ?? 0).toStringAsFixed(0)}",
+                                    style: AppStyles.heading1Responsive(context)
+                                        .copyWith(
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                Text(
+                                  "Tangu uanze kufanya kazi",
+                                  style: AppStyles.bodySmallResponsive(context)
+                                      .copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
-                              ),
-                              Text(
-                                "Tangu uanze kufanya kazi",
-                                style: AppStyles.bodySmallResponsive(context).copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-      ),
-    );
+        ),
+      );
 
   IconData _getVehicleIcon(final String type) {
     switch (type) {
       case "bajaji":
-        return Icons.directions_car; // three_wheeler not available, using car icon
+        return Icons
+            .directions_car; // three_wheeler not available, using car icon
       case "pikipiki":
         return Icons.motorcycle;
       case "gari":
@@ -433,13 +519,13 @@ child: ResponsiveWrapper(
   }
 
   Future<void> _handleLogout() async {
-    final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final AuthProvider authProvider =
+        Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
   }
 }
 
 class _QuickActionCard extends StatelessWidget {
-
   const _QuickActionCard({
     required this.title,
     required this.icon,
@@ -453,8 +539,9 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double iconContainerSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
-    
+    final double iconContainerSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 48);
+
     return CustomCard(
       onTap: onTap,
       child: ResponsiveContainer(
@@ -520,19 +607,20 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
     });
 
     try {
-      // TODO: Submit payment request to API
+      // TODO(dev): Submit payment request to API
       await Future.delayed(const Duration(seconds: 2)); // Simulate API call
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Ombi la malipo limetumwa. Inasubiri idhini ya admin."),
+            content:
+                Text("Ombi la malipo limetumwa. Inasubiri idhini ya admin."),
             backgroundColor: AppColors.success,
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -552,117 +640,117 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
 
   @override
   Widget build(final BuildContext context) => Dialog(
-      child: ConstrainedBox(
-        constraints: AppStyles.dialogConstraints(context),
-        child: ResponsiveContainer(
-          child: Form(
-            key: _formKey,
-            child: ResponsiveColumn(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-              children: <Widget>[
-                Text(
-                  "Omba Malipo",
-                  style: AppStyles.heading3Responsive(context),
-                ),
-              
-                TextFormField(
-                  controller: _amountController,
-                  style: AppStyles.bodyMediumResponsive(context),
-                  decoration: AppStyles.inputDecoration(context).copyWith(
-                    labelText: "Kiasi (TSh)",
-                    prefixText: "TSh ",
+        child: ConstrainedBox(
+          constraints: AppStyles.dialogConstraints(context),
+          child: ResponsiveContainer(
+            child: Form(
+              key: _formKey,
+              child: ResponsiveColumn(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+                children: <Widget>[
+                  Text(
+                    "Omba Malipo",
+                    style: AppStyles.heading3Responsive(context),
                   ),
-                  keyboardType: TextInputType.number,
-                  validator: (final String? value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Kiasi kinahitajika";
-                    }
-                    if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                      return "Kiasi si sahihi";
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _descriptionController,
-                  style: AppStyles.bodyMediumResponsive(context),
-                  decoration: AppStyles.inputDecoration(context).copyWith(
-                    labelText: "Maelezo",
+                  TextFormField(
+                    controller: _amountController,
+                    style: AppStyles.bodyMediumResponsive(context),
+                    decoration: AppStyles.inputDecoration(context).copyWith(
+                      labelText: "Kiasi (TSh)",
+                      prefixText: "TSh ",
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (final String? value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Kiasi kinahitajika";
+                      }
+                      if (double.tryParse(value) == null ||
+                          double.parse(value) <= 0) {
+                        return "Kiasi si sahihi";
+                      }
+                      return null;
+                    },
                   ),
-                  maxLines: 3,
-                  validator: (final String? value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Maelezo yanahitajika";
-                    }
-                    return null;
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  value: _paymentMethod,
-                  style: AppStyles.bodyMediumResponsive(context),
-                  decoration: AppStyles.inputDecoration(context).copyWith(
-                    labelText: "Njia ya Malipo",
+                  TextFormField(
+                    controller: _descriptionController,
+                    style: AppStyles.bodyMediumResponsive(context),
+                    decoration: AppStyles.inputDecoration(context).copyWith(
+                      labelText: "Maelezo",
+                    ),
+                    maxLines: 3,
+                    validator: (final String? value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Maelezo yanahitajika";
+                      }
+                      return null;
+                    },
                   ),
-                  items: <DropdownMenuItem<String>>[
-                    DropdownMenuItem(
-                      value: "cash",
-                      child: Text(
-                        "Fedha Taslimu",
-                        style: AppStyles.bodyMediumResponsive(context),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
+                  DropdownButtonFormField<String>(
+                    value: _paymentMethod,
+                    style: AppStyles.bodyMediumResponsive(context),
+                    decoration: AppStyles.inputDecoration(context).copyWith(
+                      labelText: "Njia ya Malipo",
                     ),
-                    DropdownMenuItem(
-                      value: "mobile_money",
-                      child: Text(
-                        "Pesa za Simu",
-                        style: AppStyles.bodyMediumResponsive(context),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                    items: <DropdownMenuItem<String>>[
+                      DropdownMenuItem(
+                        value: "cash",
+                        child: Text(
+                          "Fedha Taslimu",
+                          style: AppStyles.bodyMediumResponsive(context),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                    ),
-                    DropdownMenuItem(
-                      value: "bank_transfer",
-                      child: Text(
-                        "Uhamisho wa Benki",
-                        style: AppStyles.bodyMediumResponsive(context),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                      DropdownMenuItem(
+                        value: "mobile_money",
+                        child: Text(
+                          "Pesa za Simu",
+                          style: AppStyles.bodyMediumResponsive(context),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                    ),
-                  ],
-                  onChanged: (final String? value) {
-                    setState(() {
-                      _paymentMethod = value!;
-                    });
-                  },
-                ),
-                ResponsiveRow(
-                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                  children: <Widget>[
-                    Expanded(
-                      child: CustomButton(
-                        text: "Ghairi",
-                        onPressed: () => Navigator.pop(context),
-                        isOutlined: true,
+                      DropdownMenuItem(
+                        value: "bank_transfer",
+                        child: Text(
+                          "Uhamisho wa Benki",
+                          style: AppStyles.bodyMediumResponsive(context),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: CustomButton(
-                        text: _isLoading ? "Inatuma..." : "Tuma Ombi",
-                        onPressed: _isLoading ? null : _submitPaymentRequest,
-                        isLoading: _isLoading,
+                    ],
+                    onChanged: (final String? value) {
+                      setState(() {
+                        _paymentMethod = value!;
+                      });
+                    },
+                  ),
+                  ResponsiveRow(
+                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+                    children: <Widget>[
+                      Expanded(
+                        child: CustomButton(
+                          text: "Ghairi",
+                          onPressed: () => Navigator.pop(context),
+                          isOutlined: true,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      Expanded(
+                        child: CustomButton(
+                          text: _isLoading ? "Inatuma..." : "Tuma Ombi",
+                          onPressed: _isLoading ? null : _submitPaymentRequest,
+                          isLoading: _isLoading,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 }

@@ -7,9 +7,9 @@ import "../utils/responsive_utils.dart";
 import "responsive_wrapper.dart";
 
 class TransactionTile extends StatelessWidget {
-
   const TransactionTile({
-    required this.transaction, super.key,
+    required this.transaction,
+    super.key,
     this.showDate = false,
     this.onTap,
     this.onLongPress,
@@ -22,7 +22,7 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
-    
+
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -46,7 +46,7 @@ class TransactionTile extends StatelessWidget {
                 size: ResponsiveUtils.getResponsiveIconSize(context, 24),
               ),
             ),
-            
+
             // Transaction Details
             Expanded(
               child: ResponsiveColumn(
@@ -72,13 +72,15 @@ class TransactionTile extends StatelessWidget {
                       if (showDate) ...<Widget>[
                         Text(
                           " • ",
-                          style: AppStyles.bodySmallResponsive(context).copyWith(
+                          style:
+                              AppStyles.bodySmallResponsive(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                         Text(
                           AppDateUtils.formatDate(transaction.createdAt),
-                          style: AppStyles.bodySmallResponsive(context).copyWith(
+                          style:
+                              AppStyles.bodySmallResponsive(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -88,8 +90,10 @@ class TransactionTile extends StatelessWidget {
                   if (transaction.status != TransactionStatus.completed)
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                        vertical: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                        horizontal:
+                            ResponsiveUtils.getResponsiveSpacing(context, 8),
+                        vertical:
+                            ResponsiveUtils.getResponsiveSpacing(context, 4),
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor().withOpacity(0.1),
@@ -108,7 +112,7 @@ class TransactionTile extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Amount and Time
             ResponsiveColumn(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -169,9 +173,13 @@ class TransactionTile extends StatelessWidget {
 }
 
 class TransactionSummaryTile extends StatelessWidget {
-
   const TransactionSummaryTile({
-    required this.title, required this.amount, required this.count, required this.color, required this.icon, super.key,
+    required this.title,
+    required this.amount,
+    required this.count,
+    required this.color,
+    required this.icon,
+    super.key,
     this.onTap,
   });
   final String title;
@@ -184,7 +192,7 @@ class TransactionSummaryTile extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final double iconSize = ResponsiveUtils.getResponsiveIconSize(context, 48);
-    
+
     return InkWell(
       onTap: onTap,
       child: ResponsiveWrapper(
@@ -206,7 +214,6 @@ class TransactionSummaryTile extends StatelessWidget {
                 size: ResponsiveUtils.getResponsiveIconSize(context, 24),
               ),
             ),
-            
             Expanded(
               child: ResponsiveColumn(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +238,6 @@ class TransactionSummaryTile extends StatelessWidget {
                 ],
               ),
             ),
-            
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
@@ -250,9 +256,9 @@ class TransactionSummaryTile extends StatelessWidget {
 }
 
 class TransactionListHeader extends StatelessWidget {
-
   const TransactionListHeader({
-    required this.title, super.key,
+    required this.title,
+    super.key,
     this.subtitle,
     this.trailing,
   });
@@ -262,38 +268,38 @@ class TransactionListHeader extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-      padding: ResponsiveUtils.getResponsiveCardPadding(context),
-      color: AppColors.background,
-      child: ResponsiveRow(
-        children: <Widget>[
-          Expanded(
-            child: ResponsiveColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
-              children: <Widget>[
-                Text(
-                  title,
-                  style: AppStyles.bodyMediumResponsive(context).copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                if (subtitle != null)
+        padding: ResponsiveUtils.getResponsiveCardPadding(context),
+        color: AppColors.background,
+        child: ResponsiveRow(
+          children: <Widget>[
+            Expanded(
+              child: ResponsiveColumn(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: ResponsiveUtils.getResponsiveSpacing(context, 4),
+                children: <Widget>[
                   Text(
-                    subtitle!,
-                    style: AppStyles.bodySmallResponsive(context).copyWith(
-                      color: AppColors.textHint,
+                    title,
+                    style: AppStyles.bodyMediumResponsive(context).copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
+                    maxLines: 1,
                   ),
-              ],
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      style: AppStyles.bodySmallResponsive(context).copyWith(
+                        color: AppColors.textHint,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                ],
+              ),
             ),
-          ),
-          if (trailing != null) trailing!,
-        ],
-      ),
-    );
+            if (trailing != null) trailing!,
+          ],
+        ),
+      );
 }

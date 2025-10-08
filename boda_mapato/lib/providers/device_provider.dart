@@ -23,20 +23,24 @@ class DeviceProvider extends ChangeNotifier {
 
     try {
       final Map<String, dynamic> resp = await _api.getDevices();
-      final data = resp["data"];
-      List list = <dynamic>[];
+      final dynamic data = resp["data"];
+      List<dynamic> list = <dynamic>[];
       if (data is List) {
         list = data;
       } else if (data is Map && data["data"] is List) {
         // Handle paginated structure { data: { data: [...] } }
         list = data["data"];
       }
-      _devices = list.map<Device>((final j) => Device.fromJson(j as Map<String, dynamic>)).toList();
+      _devices = list
+          .map<Device>(
+            (final j) => Device.fromJson(j as Map<String, dynamic>),
+          )
+          .toList();
       // Set first device as selected if none is selected
       if (_selectedDevice == null && _devices.isNotEmpty) {
         _selectedDevice = _devices.first;
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to load devices: $e");
       // Use mock data for development
       _loadMockDevices();
@@ -48,17 +52,19 @@ class DeviceProvider extends ChangeNotifier {
   // Add new device
   Future<bool> addDevice(final Device device) async {
     try {
-      final Map<String, dynamic> resp = await _api.createDevice(device.toJson());
-      final Map<String, dynamic> createdJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      final Map<String, dynamic> resp =
+          await _api.createDevice(device.toJson());
+      final Map<String, dynamic> createdJson =
+          (resp["data"] ?? resp) as Map<String, dynamic>;
       final Device newDevice = Device.fromJson(createdJson);
       _devices.add(newDevice);
-      
+
       // Set as selected if it"s the first device
       _selectedDevice ??= newDevice;
-      
+
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to add device: $e");
       // Add to local list for development
       _devices.add(device);
@@ -71,22 +77,25 @@ class DeviceProvider extends ChangeNotifier {
   // Update device
   Future<bool> updateDevice(final Device device) async {
     try {
-      final Map<String, dynamic> resp = await _api.updateDevice(device.id, device.toJson());
-      final Map<String, dynamic> updatedJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      final Map<String, dynamic> resp =
+          await _api.updateDevice(device.id, device.toJson());
+      final Map<String, dynamic> updatedJson =
+          (resp["data"] ?? resp) as Map<String, dynamic>;
       final Device updatedDevice = Device.fromJson(updatedJson);
-      final int index = _devices.indexWhere((final Device d) => d.id == device.id);
+      final int index =
+          _devices.indexWhere((final Device d) => d.id == device.id);
       if (index != -1) {
         _devices[index] = updatedDevice;
-        
+
         // Update selected device if it"s the same
         if (_selectedDevice?.id == device.id) {
           _selectedDevice = updatedDevice;
         }
-        
+
         notifyListeners();
       }
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to update device: $e");
       return false;
     }
@@ -97,15 +106,15 @@ class DeviceProvider extends ChangeNotifier {
     try {
       await _api.deleteDevice(id);
       _devices.removeWhere((final Device d) => d.id == id);
-      
+
       // Clear selected device if it was deleted
       if (_selectedDevice?.id == id) {
         _selectedDevice = _devices.isNotEmpty ? _devices.first : null;
       }
-      
+
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to delete device: $e");
       return false;
     }
@@ -118,16 +127,20 @@ class DeviceProvider extends ChangeNotifier {
   }
 
   // Get devices by type
-  List<Device> getDevicesByType(final DeviceType type) => _devices.where((final Device d) => d.type == type).toList();
+  List<Device> getDevicesByType(final DeviceType type) =>
+      _devices.where((final Device d) => d.type == type).toList();
 
   // Get active devices
-  List<Device> getActiveDevices() => _devices.where((final Device d) => d.isActive).toList();
+  List<Device> getActiveDevices() =>
+      _devices.where((final Device d) => d.isActive).toList();
 
   // Get device by ID
   Device? getDeviceById(final String id) {
     try {
       return _devices.firstWhere((final Device d) => d.id == id);
-    } catch (e) {
+    } on StateError {
+      return null;
+    } on Exception {
       return null;
     }
   }
@@ -135,7 +148,8 @@ class DeviceProvider extends ChangeNotifier {
   // Get device statistics
   Map<String, dynamic> getDeviceStats() {
     final int totalDevices = _devices.length;
-    final int activeDevices = _devices.where((final Device d) => d.isActive).length;
+    final int activeDevices =
+        _devices.where((final Device d) => d.isActive).length;
     final Map<DeviceType, int> devicesByType = <DeviceType, int>{};
 
     for (final Device device in _devices) {
@@ -153,40 +167,56 @@ class DeviceProvider extends ChangeNotifier {
   // Toggle device active status
   Future<bool> toggleDeviceStatus(final String id) async {
     final Device? device = getDeviceById(id);
-    if (device == null) return false;
+    if (device == null) {
+      return false;
+    }
 
     final Device updatedDevice = device.copyWith(isActive: !device.isActive);
-    return await updateDevice(updatedDevice);
+    return updateDevice(updatedDevice);
   }
 
   // Search devices
   List<Device> searchDevices(final String query) {
-    if (query.isEmpty) return _devices;
+    if (query.isEmpty) {
+      return _devices;
+    }
 
-    return _devices.where((final Device device) => device.name.toLowerCase().contains(query.toLowerCase()) ||
-          device.plateNumber.toLowerCase().contains(query.toLowerCase()) ||
-          device.type.name.toLowerCase().contains(query.toLowerCase()),).toList();
+    return _devices
+        .where(
+          (final Device device) =>
+              device.name.toLowerCase().contains(query.toLowerCase()) ||
+              device.plateNumber.toLowerCase().contains(query.toLowerCase()) ||
+              device.type.name.toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList();
   }
 
   // Sort devices
   void sortDevices(final String sortBy, {final bool ascending = true}) {
     switch (sortBy) {
       case "name":
-        _devices.sort((final Device a, final Device b) => ascending
-            ? a.name.compareTo(b.name)
-            : b.name.compareTo(a.name),);
+        _devices.sort(
+          (final Device a, final Device b) =>
+              ascending ? a.name.compareTo(b.name) : b.name.compareTo(a.name),
+        );
       case "type":
-        _devices.sort((final Device a, final Device b) => ascending
-            ? a.type.name.compareTo(b.type.name)
-            : b.type.name.compareTo(a.type.name),);
+        _devices.sort(
+          (final Device a, final Device b) => ascending
+              ? a.type.name.compareTo(b.type.name)
+              : b.type.name.compareTo(a.type.name),
+        );
       case "plateNumber":
-        _devices.sort((final Device a, final Device b) => ascending
-            ? a.plateNumber.compareTo(b.plateNumber)
-            : b.plateNumber.compareTo(a.plateNumber),);
+        _devices.sort(
+          (final Device a, final Device b) => ascending
+              ? a.plateNumber.compareTo(b.plateNumber)
+              : b.plateNumber.compareTo(a.plateNumber),
+        );
       case "createdAt":
-        _devices.sort((final Device a, final Device b) => ascending
-            ? a.createdAt.compareTo(b.createdAt)
-            : b.createdAt.compareTo(a.createdAt),);
+        _devices.sort(
+          (final Device a, final Device b) => ascending
+              ? a.createdAt.compareTo(b.createdAt)
+              : b.createdAt.compareTo(a.createdAt),
+        );
       default:
         break;
     }
@@ -198,13 +228,18 @@ class DeviceProvider extends ChangeNotifier {
     final Map<DeviceType, int> counts = <DeviceType, int>{};
     final int total = _devices.length;
 
-    if (total == 0) return <DeviceType, double>{};
+    if (total == 0) {
+      return <DeviceType, double>{};
+    }
 
     for (final Device device in _devices) {
       counts[device.type] = (counts[device.type] ?? 0) + 1;
     }
 
-    return counts.map((final DeviceType type, final int count) => MapEntry(type, count / total * 100));
+    return counts.map<DeviceType, double>(
+      (final DeviceType type, final int count) =>
+          MapEntry<DeviceType, double>(type, count / total * 100),
+    );
   }
 
   // Helper methods

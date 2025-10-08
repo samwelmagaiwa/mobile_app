@@ -1,6 +1,6 @@
 import "package:intl/intl.dart";
 
-class AppDateUtils {
+mixin AppDateUtils {
   // Date formatters
   static final DateFormat _dateFormatter = DateFormat("dd/MM/yyyy");
   static final DateFormat _timeFormatter = DateFormat("HH:mm");
@@ -16,16 +16,20 @@ class AppDateUtils {
   static String formatTime(final DateTime date) => _timeFormatter.format(date);
 
   // Format date and time
-  static String formatDateTime(final DateTime date) => _dateTimeFormatter.format(date);
+  static String formatDateTime(final DateTime date) =>
+      _dateTimeFormatter.format(date);
 
   // Format month and year
-  static String formatMonthYear(final DateTime date) => _monthYearFormatter.format(date);
+  static String formatMonthYear(final DateTime date) =>
+      _monthYearFormatter.format(date);
 
   // Format day and month
-  static String formatDayMonth(final DateTime date) => _dayMonthFormatter.format(date);
+  static String formatDayMonth(final DateTime date) =>
+      _dayMonthFormatter.format(date);
 
   // Format full date
-  static String formatFullDate(final DateTime date) => _fullDateFormatter.format(date);
+  static String formatFullDate(final DateTime date) =>
+      _fullDateFormatter.format(date);
 
   // Get relative time (e.g., "2 hours ago", "Yesterday")
   static String getRelativeTime(final DateTime date) {
@@ -42,11 +46,17 @@ class AppDateUtils {
       final int weeks = (difference.inDays / 7).floor();
       return weeks == 1 ? "Wiki moja iliyopita" : "Wiki $weeks zilizopita";
     } else if (difference.inDays > 0) {
-      return difference.inDays == 1 ? "Jana" : "Siku ${difference.inDays} zilizopita";
+      return difference.inDays == 1
+          ? "Jana"
+          : "Siku ${difference.inDays} zilizopita";
     } else if (difference.inHours > 0) {
-      return difference.inHours == 1 ? "Saa moja iliyopita" : "Saa ${difference.inHours} zilizopita";
+      return difference.inHours == 1
+          ? "Saa moja iliyopita"
+          : "Saa ${difference.inHours} zilizopita";
     } else if (difference.inMinutes > 0) {
-      return difference.inMinutes == 1 ? "Dakika moja iliyopita" : "Dakika ${difference.inMinutes} zilizopita";
+      return difference.inMinutes == 1
+          ? "Dakika moja iliyopita"
+          : "Dakika ${difference.inMinutes} zilizopita";
     } else {
       return "Sasa hivi";
     }
@@ -55,17 +65,17 @@ class AppDateUtils {
   // Check if date is today
   static bool isToday(final DateTime date) {
     final DateTime now = DateTime.now();
-    return date.year == now.year && 
-           date.month == now.month && 
-           date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   // Check if date is yesterday
   static bool isYesterday(final DateTime date) {
     final DateTime yesterday = DateTime.now().subtract(const Duration(days: 1));
-    return date.year == yesterday.year && 
-           date.month == yesterday.month && 
-           date.day == yesterday.day;
+    return date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day;
   }
 
   // Check if date is this week
@@ -73,9 +83,9 @@ class AppDateUtils {
     final DateTime now = DateTime.now();
     final DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     final DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
-    
+
     return date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-           date.isBefore(endOfWeek.add(const Duration(days: 1)));
+        date.isBefore(endOfWeek.add(const Duration(days: 1)));
   }
 
   // Check if date is this month
@@ -91,10 +101,12 @@ class AppDateUtils {
   }
 
   // Get start of day
-  static DateTime startOfDay(final DateTime date) => DateTime(date.year, date.month, date.day);
+  static DateTime startOfDay(final DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   // Get end of day
-  static DateTime endOfDay(final DateTime date) => DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+  static DateTime endOfDay(final DateTime date) =>
+      DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
 
   // Get start of week (Monday)
   static DateTime startOfWeek(final DateTime date) {
@@ -109,11 +121,12 @@ class AppDateUtils {
   }
 
   // Get start of month
-  static DateTime startOfMonth(final DateTime date) => DateTime(date.year, date.month);
+  static DateTime startOfMonth(final DateTime date) =>
+      DateTime(date.year, date.month);
 
   // Get end of month
   static DateTime endOfMonth(final DateTime date) {
-    final DateTime nextMonth = date.month == 12 
+    final DateTime nextMonth = date.month == 12
         ? DateTime(date.year + 1)
         : DateTime(date.year, date.month + 1);
     return nextMonth.subtract(const Duration(days: 1));
@@ -123,10 +136,12 @@ class AppDateUtils {
   static DateTime startOfYear(final DateTime date) => DateTime(date.year);
 
   // Get end of year
-  static DateTime endOfYear(final DateTime date) => DateTime(date.year, 12, 31, 23, 59, 59, 999);
+  static DateTime endOfYear(final DateTime date) =>
+      DateTime(date.year, 12, 31, 23, 59, 59, 999);
 
   // Get days in month
-  static int getDaysInMonth(final int year, final int month) => DateTime(year, month + 1, 0).day;
+  static int getDaysInMonth(final int year, final int month) =>
+      DateTime(year, month + 1, 0).day;
 
   // Get week number of year
   static int getWeekOfYear(final DateTime date) {
@@ -139,7 +154,7 @@ class AppDateUtils {
   static DateTime? parseDate(final String dateString) {
     try {
       return _dateFormatter.parse(dateString);
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -150,7 +165,7 @@ class AppDateUtils {
       final DateTime now = DateTime.now();
       final DateTime time = _timeFormatter.parse(timeString);
       return DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -159,7 +174,7 @@ class AppDateUtils {
   static DateTime? parseDateTime(final String dateTimeString) {
     try {
       return _dateTimeFormatter.parse(dateTimeString);
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }
@@ -168,19 +183,19 @@ class AppDateUtils {
   static int getAge(final DateTime birthDate) {
     final DateTime now = DateTime.now();
     int age = now.year - birthDate.year;
-    
-    if (now.month < birthDate.month || 
+
+    if (now.month < birthDate.month ||
         (now.month == birthDate.month && now.day < birthDate.day)) {
       age--;
     }
-    
+
     return age;
   }
 
   // Get time difference in human readable format
   static String getTimeDifference(final DateTime start, final DateTime end) {
     final Duration difference = end.difference(start);
-    
+
     if (difference.inDays > 0) {
       return "${difference.inDays} siku";
     } else if (difference.inHours > 0) {
@@ -193,26 +208,33 @@ class AppDateUtils {
   }
 
   // Check if date is in range
-  static bool isDateInRange(final DateTime date, final DateTime start, final DateTime end) => date.isAfter(start.subtract(const Duration(days: 1))) &&
-           date.isBefore(end.add(const Duration(days: 1)));
+  static bool isDateInRange(
+    final DateTime date,
+    final DateTime start,
+    final DateTime end,
+  ) =>
+      date.isAfter(start.subtract(const Duration(days: 1))) &&
+      date.isBefore(end.add(const Duration(days: 1)));
 
   // Get next occurrence of weekday
   static DateTime getNextWeekday(final DateTime date, final int weekday) {
     final int daysUntilWeekday = (weekday - date.weekday) % 7;
-    return date.add(Duration(days: daysUntilWeekday == 0 ? 7 : daysUntilWeekday));
+    return date
+        .add(Duration(days: daysUntilWeekday == 0 ? 7 : daysUntilWeekday));
   }
 
   // Get previous occurrence of weekday
   static DateTime getPreviousWeekday(final DateTime date, final int weekday) {
     final int daysSinceWeekday = (date.weekday - weekday) % 7;
-    return date.subtract(Duration(days: daysSinceWeekday == 0 ? 7 : daysSinceWeekday));
+    return date
+        .subtract(Duration(days: daysSinceWeekday == 0 ? 7 : daysSinceWeekday));
   }
 
   // Format duration
   static String formatDuration(final Duration duration) {
     final int hours = duration.inHours;
     final int minutes = duration.inMinutes.remainder(60);
-    
+
     if (hours > 0) {
       return "${hours}h ${minutes}m";
     } else {
@@ -224,14 +246,15 @@ class AppDateUtils {
   static int getBusinessDays(final DateTime start, final DateTime end) {
     int businessDays = 0;
     DateTime current = start;
-    
+
     while (current.isBefore(end) || current.isAtSameMomentAs(end)) {
-      if (current.weekday < 6) { // Monday = 1, Friday = 5
+      if (current.weekday < 6) {
+        // Monday = 1, Friday = 5
         businessDays++;
       }
       current = current.add(const Duration(days: 1));
     }
-    
+
     return businessDays;
   }
 }

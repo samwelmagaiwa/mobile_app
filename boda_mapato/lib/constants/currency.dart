@@ -2,16 +2,16 @@
 mixin CurrencyConstants {
   /// The currency code used throughout the app
   static const String currencyCode = "TSH";
-  
+
   /// The currency symbol
   static const String currencySymbol = "TSH";
-  
+
   /// Full currency name
   static const String currencyName = "Tanzanian Shilling";
-  
+
   /// Country code for phone numbers
   static const String countryCode = "+255";
-  
+
   /// Currency formatting utility
   static String formatCurrency(final double amount) {
     if (amount >= 1000000) {
@@ -22,15 +22,15 @@ mixin CurrencyConstants {
       return "$currencySymbol ${amount.toStringAsFixed(0)}";
     }
   }
-  
+
   /// Format currency with full amount (no abbreviation)
-  static String formatCurrencyFull(final double amount) => 
-    "$currencySymbol ${amount.toStringAsFixed(0)}";
-  
+  static String formatCurrencyFull(final double amount) =>
+      "$currencySymbol ${amount.toStringAsFixed(0)}";
+
   /// Format currency for display in forms
-  static String formatCurrencyInput(final double amount) => 
-    amount.toStringAsFixed(0);
-  
+  static String formatCurrencyInput(final double amount) =>
+      amount.toStringAsFixed(0);
+
   /// Parse currency string to double
   static double parseCurrency(final String currencyString) {
     // Remove currency symbol and any formatting
@@ -39,38 +39,37 @@ mixin CurrencyConstants {
         .replaceAll(",", "")
         .replaceAll(" ", "")
         .trim();
-    
+
     // Handle K and M suffixes
     if (cleanString.endsWith("K")) {
-      final double value = 
-        double.tryParse(cleanString.replaceAll("K", "")) ?? 0;
+      final double value =
+          double.tryParse(cleanString.replaceAll("K", "")) ?? 0;
       return value * 1000;
     } else if (cleanString.endsWith("M")) {
-      final double value = 
-        double.tryParse(cleanString.replaceAll("M", "")) ?? 0;
+      final double value =
+          double.tryParse(cleanString.replaceAll("M", "")) ?? 0;
       return value * 1000000;
     }
-    
+
     return double.tryParse(cleanString) ?? 0;
   }
-  
+
   /// Validate currency amount
-  static bool isValidAmount(final double amount) => 
-    amount >= 0 && amount <= 999999999; // Max 999M TSH
-  
+  static bool isValidAmount(final double amount) =>
+      amount >= 0 && amount <= 999999999; // Max 999M TSH
+
   /// Get currency display text for UI
-  static String getCurrencyDisplayText() => 
-    "$currencyName ($currencySymbol)";
+  static String getCurrencyDisplayText() => "$currencyName ($currencySymbol)";
 }
 
 /// Extension methods for double to add currency formatting
 extension CurrencyExtension on double {
   /// Format this double as currency
   String toCurrency() => CurrencyConstants.formatCurrency(this);
-  
+
   /// Format this double as full currency (no abbreviation)
   String toCurrencyFull() => CurrencyConstants.formatCurrencyFull(this);
-  
+
   /// Check if this amount is valid
   bool isValidCurrency() => CurrencyConstants.isValidAmount(this);
 }

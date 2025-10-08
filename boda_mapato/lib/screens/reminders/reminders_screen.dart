@@ -1,12 +1,10 @@
+import "dart:ui";
 import "package:flutter/material.dart";
 
-import "../../constants/colors.dart";
-import "../../constants/strings.dart";
-import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
+import "../../utils/responsive_helper.dart";
+import "../../services/api_service.dart";
 import "../../models/reminder.dart";
-import "../../widgets/custom_button.dart";
-import "../../widgets/custom_card.dart";
-import "../../widgets/reminder_tile.dart";
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -16,209 +14,568 @@ class RemindersScreen extends StatefulWidget {
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
-  final List<Reminder> _reminders = <Reminder>[]; // This would come from a provider
-  
+  final ApiService _apiService = ApiService();
+  bool _isLoading = true;
+  List<Reminder> _reminders = <Reminder>[];
+  List<Reminder> _filteredReminders = <Reminder>[];
+  String _searchQuery = "";
+  String _selectedFilter = "all"; // all, active, overdue, completed
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReminders();
+  }
+
+  Future<void> _loadReminders() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _apiService.getReminders();
+      
+      // Handle the API response structure
+      List<dynamic> remindersList;
+      if (response['data'] is List) {
+        remindersList = response['data'] as List<dynamic>;
+      } else if (response['data'] is Map<String, dynamic> && response['data']['data'] is List) {
+        remindersList = response['data']['data'] as List<dynamic>;
+      } else {
+        remindersList = <dynamic>[];
+      }
+      
+      if (mounted) {
+        setState(() {
+          _reminders.clear();
+          _reminders.addAll(
+            remindersList.map((dynamic json) => Reminder.fromJson(json as Map<String, dynamic>)).toList(),
+          );
+          _filterReminders();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Hitilafu katika kupakia mikumbusho: $e"),
+            backgroundColor: ThemeConstants.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  void _filterReminders() {
+    setState(() {
+      _filteredReminders = _reminders.where((reminder) {
+        final bool matchesSearch = _searchQuery.isEmpty ||
+            reminder.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            reminder.message.toLowerCase().contains(_searchQuery.toLowerCase());
+
+        final bool matchesFilter = _selectedFilter == "all" ||
+            (_selectedFilter == "active" && reminder.isActive) ||
+            (_selectedFilter == "overdue" && reminder.isOverdue) ||
+            (_selectedFilter == "completed" && reminder.status == ReminderStatus.completed);
+
+        return matchesSearch && matchesFilter;
+      }).toList();
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+    _filterReminders();
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
+    _filterReminders();
+  }
+
   void _showAddReminderDialog() {
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (final BuildContext context) => const _AddReminderSheet(),
-    );
+      builder: (BuildContext context) => _AddReminderDialog(
+        apiService: _apiService,
+      ),
+    ).then((bool? result) {
+      if (result == true) {
+        _loadReminders(); // Refresh reminders if one was added
+      }
+    });
+  }
+
+  Future<void> _deleteReminder(String reminderId) async {
+    try {
+      await _apiService.deleteReminder(reminderId);
+      _loadReminders();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Kikumbusho kimefutwa"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Hitilafu katika kufuta kikumbusho: $e"),
+            backgroundColor: ThemeConstants.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _markAsCompleted(String reminderId) async {
+    try {
+      await _apiService.updateReminder(reminderId, {
+        'status': 'completed'
+      });
+      _loadReminders();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Kikumbusho kimekamilika"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Hitilafu katika kubadilisha hali ya kikumbusho: $e"),
+            backgroundColor: ThemeConstants.errorRed,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(final BuildContext context) {
-    final List<Reminder> activeReminders = _reminders.where((final Reminder r) => r.isActive).toList();
-    final List<Reminder> upcomingReminders = activeReminders.where((final Reminder r) => r.isUpcoming).toList();
-    final List<Reminder> overdueReminders = activeReminders.where((final Reminder r) => r.isOverdue).toList();
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.reminders,
-          style: AppStyles.heading2,
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppStyles.spacingM),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Summary Cards
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _SummaryCard(
-                    title: "Vikumbusho vya Sasa",
-                    count: activeReminders.length,
-                    icon: Icons.notifications_active,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: AppStyles.spacingM),
-                Expanded(
-                  child: _SummaryCard(
-                    title: "Vilivyochelewa",
-                    count: overdueReminders.length,
-                    icon: Icons.warning,
-                    color: AppColors.error,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: AppStyles.spacingL),
-            
-            // Overdue Reminders
-            if (overdueReminders.isNotEmpty) ...<Widget>[
-              const Row(
+    ResponsiveHelper.init(context);
+    
+    final activeReminders = _filteredReminders.where((r) => r.isActive).toList();
+    final overdueReminders = _filteredReminders.where((r) => r.isOverdue).toList();
+    final upcomingReminders = _filteredReminders.where((r) => r.isUpcoming).toList();
+    
+    return ThemeConstants.buildResponsiveScaffold(
+      context,
+      title: "Mikumbusho",
+      body: _isLoading 
+        ? ThemeConstants.buildResponsiveLoadingWidget(context)
+        : RefreshIndicator(
+            onRefresh: _loadReminders,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Icon(
-                    Icons.warning,
-                    color: AppColors.error,
-                    size: 20,
-                  ),
-                  SizedBox(width: AppStyles.spacingS),
-                  Text(
-                    "Vikumbusho vilivyochelewa",
-                    style: AppStyles.heading3,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppStyles.spacingM),
-              ...overdueReminders.map((final Reminder reminder) => Padding(
-                padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
-                child: CustomCard(
-                  child: ReminderTile(
-                    reminder: reminder,
-                    isOverdue: true,
-                  ),
-                ),
-              ),),
-              const SizedBox(height: AppStyles.spacingL),
-            ],
-            
-            // Upcoming Reminders
-            const Text(
-              "Vikumbusho vya Baadaye",
-              style: AppStyles.heading3,
-            ),
-            const SizedBox(height: AppStyles.spacingM),
-            
-            if (upcomingReminders.isEmpty)
-              CustomCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppStyles.spacingL),
-                  child: Column(
+                  // Summary Cards
+                  Row(
                     children: <Widget>[
-                      const Icon(
-                        Icons.notifications_none,
-                        size: 48,
-                        color: AppColors.textHint,
-                      ),
-                      const SizedBox(height: AppStyles.spacingM),
-                      Text(
-                        "Hakuna vikumbusho vya baadaye",
-                        style: AppStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                      Expanded(
+                        child: _SummaryCard(
+                          title: "Vikumbusho vya Sasa",
+                          count: activeReminders.length,
+                          icon: Icons.notifications_active,
+                          color: ThemeConstants.primaryBlue,
                         ),
                       ),
-                      const SizedBox(height: AppStyles.spacingM),
-                      CustomButton(
-                        text: AppStrings.newReminder,
-                        onPressed: _showAddReminderDialog,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _SummaryCard(
+                          title: "Vilivyochelewa",
+                          count: overdueReminders.length,
+                          icon: Icons.warning,
+                          color: ThemeConstants.errorRed,
+                        ),
                       ),
                     ],
                   ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Search and Filter Section
+                  _buildSearchAndFilter(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Reminders List
+                  if (_filteredReminders.isEmpty)
+                    _buildEmptyState()
+                  else
+                    _buildRemindersList(overdueReminders, upcomingReminders),
+                ],
+              ),
+            ),
+          ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddReminderDialog,
+        backgroundColor: ThemeConstants.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+  
+  Widget _buildSearchAndFilter() {
+    return ThemeConstants.buildGlassCardStatic(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: <Widget>[
+            // Search Field
+            TextField(
+              onChanged: _onSearchChanged,
+              style: ThemeConstants.bodyStyle,
+              decoration: InputDecoration(
+                hintText: "Tafuta kikumbusho...",
+                hintStyle: ThemeConstants.bodyStyle.copyWith(
+                  color: ThemeConstants.textSecondary,
                 ),
-              )
-            else
-              ...upcomingReminders.map((final Reminder reminder) => Padding(
-                padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
-                child: CustomCard(
-                  child: ReminderTile(reminder: reminder),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: ThemeConstants.textSecondary,
                 ),
-              ),),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: ThemeConstants.textSecondary.withOpacity(0.3),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: ThemeConstants.textSecondary.withOpacity(0.3),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: ThemeConstants.primaryBlue,
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Filter Chips
+            Wrap(
+              spacing: 8,
+              children: <Widget>[
+                _buildFilterChip("all", "Yote"),
+                _buildFilterChip("active", "Hai"),
+                _buildFilterChip("overdue", "Yamechelewa"),
+                _buildFilterChip("completed", "Yamekamilika"),
+              ],
+            ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddReminderDialog,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+    );
+  }
+  
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _selectedFilter == value;
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : ThemeConstants.textPrimary,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (selected) => _onFilterChanged(value),
+      backgroundColor: Colors.transparent,
+      selectedColor: ThemeConstants.primaryBlue,
+      checkmarkColor: Colors.white,
+      side: BorderSide(
+        color: isSelected 
+          ? ThemeConstants.primaryBlue 
+          : ThemeConstants.textSecondary.withOpacity(0.3),
+      ),
+    );
+  }
+  
+  Widget _buildEmptyState() {
+    return ThemeConstants.buildGlassCardStatic(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: <Widget>[
+            const Icon(
+              Icons.notifications_none,
+              size: 48,
+              color: ThemeConstants.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Hakuna Vikumbusho",
+              style: ThemeConstants.headingStyle,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Bofya kitufe cha + kuongeza kikumbusho kipya",
+              style: ThemeConstants.bodyStyle.copyWith(
+                color: ThemeConstants.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _showAddReminderDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeConstants.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24, 
+                  vertical: 12,
+                ),
+              ),
+              child: const Text("Kikumbusho Kipya"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildRemindersList(List<Reminder> overdueReminders, List<Reminder> upcomingReminders) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        // Overdue Reminders Section
+        if (overdueReminders.isNotEmpty) ...<Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.warning,
+                color: ThemeConstants.errorRed,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                "Vikumbusho Vilivyochelewa",
+                style: ThemeConstants.headingStyle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...overdueReminders.map((reminder) => _buildReminderCard(reminder, isOverdue: true)),
+          const SizedBox(height: 24),
+        ],
+        
+        // Active Reminders Section
+        if (upcomingReminders.isNotEmpty) ...<Widget>[
+          const Text(
+            "Vikumbusho vya Baadaye",
+            style: ThemeConstants.headingStyle,
+          ),
+          const SizedBox(height: 12),
+          ...upcomingReminders.map((reminder) => _buildReminderCard(reminder)),
+        ],
+      ],
+    );
+  }
+  
+  Widget _buildReminderCard(Reminder reminder, {bool isOverdue = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ThemeConstants.buildGlassCardStatic(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    isOverdue ? Icons.warning : Icons.notification_important,
+                    color: isOverdue ? ThemeConstants.errorRed : ThemeConstants.primaryBlue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      reminder.title,
+                      style: ThemeConstants.headingStyle.copyWith(
+                        color: isOverdue ? ThemeConstants.errorRed : ThemeConstants.textPrimary,
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: ThemeConstants.textSecondary,
+                    ),
+                    onSelected: (String value) {
+                      switch (value) {
+                        case 'complete':
+                          _markAsCompleted(reminder.id);
+                          break;
+                        case 'delete':
+                          _showDeleteConfirmation(reminder.id);
+                          break;
+                      }
+                    },
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      if (reminder.isActive)
+                        const PopupMenuItem<String>(
+                          value: 'complete',
+                          child: Row(
+                            children: <Widget>[
+                              Icon(Icons.check, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Kamilisha'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Futa'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                reminder.message,
+                style: ThemeConstants.bodyStyle.copyWith(
+                  color: ThemeConstants.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: ThemeConstants.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${reminder.reminderTime.day}/${reminder.reminderTime.month}/${reminder.reminderTime.year}",
+                    style: ThemeConstants.captionStyle,
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(reminder.status).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      reminder.status.name.toUpperCase(),
+                      style: ThemeConstants.captionStyle.copyWith(
+                        color: _getStatusColor(reminder.status),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Color _getStatusColor(ReminderStatus status) {
+    switch (status) {
+      case ReminderStatus.active:
+        return ThemeConstants.primaryBlue;
+      case ReminderStatus.completed:
+        return Colors.green;
+      case ReminderStatus.cancelled:
+        return ThemeConstants.errorRed;
+    }
+  }
+  
+  void _showDeleteConfirmation(String reminderId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: ThemeConstants.cardColor,
+        title: const Text(
+          "Futa Kikumbusho",
+          style: ThemeConstants.headingStyle,
+        ),
+        content: Text(
+          "Je, una uhakika unataka kufuta kikumbusho hiki?",
+          style: ThemeConstants.bodyStyle.copyWith(
+            color: ThemeConstants.textSecondary,
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              "Ghairi",
+              style: ThemeConstants.bodyStyle.copyWith(
+                color: ThemeConstants.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteReminder(reminderId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeConstants.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Futa"),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-
-  const _SummaryCard({
-    required this.title,
-    required this.count,
-    required this.icon,
-    required this.color,
-  });
-  final String title;
-  final int count;
-  final IconData icon;
-  final Color color;
+class _AddReminderDialog extends StatefulWidget {
+  const _AddReminderDialog({required this.apiService});
+  
+  final ApiService apiService;
 
   @override
-  Widget build(final BuildContext context) => CustomCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppStyles.spacingM),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: AppStyles.spacingS),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: AppStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppStyles.spacingS),
-            Text(
-              count.toString(),
-              style: AppStyles.heading2.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  State<_AddReminderDialog> createState() => _AddReminderDialogState();
 }
 
-class _AddReminderSheet extends StatefulWidget {
-  const _AddReminderSheet();
-
-  @override
-  State<_AddReminderSheet> createState() => _AddReminderSheetState();
-}
-
-class _AddReminderSheetState extends State<_AddReminderSheet> {
+class _AddReminderDialogState extends State<_AddReminderDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
-  DateTime _selectedDateTime = DateTime.now().add(const Duration(hours: 1));
-  ReminderType _selectedType = ReminderType.oneTime;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  String _selectedPriority = 'medium';
   bool _isLoading = false;
 
   @override
@@ -228,31 +585,57 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
     super.dispose();
   }
 
-  Future<void> _selectDateTime() async {
-    final DateTime? date = await showDatePicker(
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDateTime,
+      initialDate: _selectedDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: ThemeConstants.primaryBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (date != null && mounted) {
-      final TimeOfDay? time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-      );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
 
-      if (time != null && mounted) {
-        setState(() {
-          _selectedDateTime = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            time.hour,
-            time.minute,
-          );
-        });
-      }
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: ThemeConstants.primaryBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedTime = picked;
+      });
     }
   }
 
@@ -264,15 +647,30 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
     });
 
     try {
-      // Simulate saving reminder
-      await Future.delayed(const Duration(seconds: 1));
+      // Combine date and time
+      final reminderDateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+      final reminderData = {
+        'title': _titleController.text.trim(),
+        'message': _messageController.text.trim(),
+        'reminder_date': reminderDateTime.toIso8601String(),
+        'priority': _selectedPriority,
+      };
+
+      await widget.apiService.addReminder(reminderData);
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Return true to indicate success
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(AppStrings.reminderSet),
-            backgroundColor: AppColors.success,
+            content: Text("Kikumbusho kimeongezwa"),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -280,8 +678,8 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: AppColors.error,
+            content: Text("Hitilafu katika kuongeza kikumbusho: $e"),
+            backgroundColor: ThemeConstants.errorRed,
           ),
         );
       }
@@ -295,152 +693,382 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
   }
 
   @override
-  Widget build(final BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppStyles.spacingM),
-        decoration: BoxDecoration(
-          color: Colors.white,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: ThemeConstants.primaryBlue,
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppStyles.radiusL(context)),
+            top: Radius.circular(20),
           ),
         ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                AppStrings.newReminder,
-                style: AppStyles.heading2,
-              ),
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Title
-              TextFormField(
-                controller: _titleController,
-                decoration: AppStyles.inputDecoration(context).copyWith(
-                  labelText: AppStrings.reminderTitle,
-                  hintText: "Mfano: Kukusanya Mapato",
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Header
+            Row(
+              children: <Widget>[
+                const Text(
+                  "Kikumbusho Kipya",
+                  style: ThemeConstants.headingStyle,
                 ),
-                validator: (final String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Message
-              TextFormField(
-                controller: _messageController,
-                decoration: AppStyles.inputDecoration(context).copyWith(
-                  labelText: AppStrings.reminderMessage,
-                  hintText: "Maelezo ya kikumbusho",
-                ),
-                maxLines: 3,
-                validator: (final String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Date and Time
-              InkWell(
-                onTap: _selectDateTime,
-                child: Container(
-                  padding: const EdgeInsets.all(AppStyles.spacingM),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.textHint),
-                    borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.close,
+                    color: ThemeConstants.textPrimary,
                   ),
-                  child: Row(
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Form in scrollable area
+            Flexible(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const Icon(
-                        Icons.schedule,
-                        color: AppColors.textSecondary,
+              
+              const SizedBox(height: 24),
+
+                      // Title Field
+                      TextFormField(
+                        controller: _titleController,
+                        style: ThemeConstants.bodyStyle,
+                        decoration: InputDecoration(
+                          labelText: "Kichwa cha Kikumbusho",
+                          labelStyle: ThemeConstants.bodyStyle.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                          hintText: "Mfano: Kukusanya Mapato",
+                          hintStyle: ThemeConstants.bodyStyle.copyWith(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                          filled: true,
+                          fillColor: ThemeConstants.primaryBlue.withOpacity(0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                validator: (String? value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Kichwa ni lazima";
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+                      // Message Field
+                      TextFormField(
+                        controller: _messageController,
+                        style: ThemeConstants.bodyStyle,
+                        decoration: InputDecoration(
+                          labelText: "Ujumbe wa Kikumbusho",
+                          labelStyle: ThemeConstants.bodyStyle.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                          hintText: "Maelezo ya kikumbusho",
+                          hintStyle: ThemeConstants.bodyStyle.copyWith(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                          filled: true,
+                          fillColor: ThemeConstants.primaryBlue.withOpacity(0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        maxLines: 3,
+                        validator: (String? value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Ujumbe ni lazima";
+                          }
+                          return null;
+                        },
                       ),
-                      const SizedBox(width: AppStyles.spacingM),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              AppStrings.reminderTime,
-                              style: AppStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                      
+                      const SizedBox(height: 16),
+
+                      // Date and Time Selectors
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: InkWell(
+                              onTap: _selectDate,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      "Tarehe",
+                                      style: ThemeConstants.captionStyle.copyWith(
+                                        color: ThemeConstants.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: <Widget>[
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 16,
+                                          color: ThemeConstants.textPrimary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                                          style: ThemeConstants.bodyStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            Text(
-                              "${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, "0")}",
-                              style: AppStyles.bodyMedium,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              onTap: _selectTime,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      "Muda",
+                                      style: ThemeConstants.captionStyle.copyWith(
+                                        color: ThemeConstants.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: <Widget>[
+                                        const Icon(
+                                          Icons.access_time,
+                                          size: 16,
+                                          color: ThemeConstants.textPrimary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "${_selectedTime.hour}:${_selectedTime.minute.toString().padLeft(2, '0')}",
+                                          style: ThemeConstants.bodyStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Priority Selector
+                      Text(
+                        "Kipaumbele",
+                        style: ThemeConstants.bodyStyle.copyWith(
+                          color: ThemeConstants.textSecondary,
                         ),
                       ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: AppColors.textSecondary,
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedPriority,
+                          style: ThemeConstants.bodyStyle,
+                          dropdownColor: ThemeConstants.primaryBlue,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'low', child: Text('Chini')),
+                            DropdownMenuItem(value: 'medium', child: Text('Wastani')),
+                            DropdownMenuItem(value: 'high', child: Text('Juu')),
+                            DropdownMenuItem(value: 'urgent', child: Text('Dharura')),
+                          ],
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPriority = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Save Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _saveReminder,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: const BorderSide(
+                                color: Colors.white,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  "Hifadhi Kikumbusho",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Reminder Type
-              const Text(
-                "Aina ya Kikumbusho",
-                style: AppStyles.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(final BuildContext context) => ThemeConstants.buildGlassCardStatic(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: ThemeConstants.captionStyle.copyWith(
+                        color: ThemeConstants.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppStyles.spacingS),
-              DropdownButtonFormField<ReminderType>(
-                value: _selectedType,
-                decoration: AppStyles.inputDecoration(context),
-                items: ReminderType.values
-                    .map((final ReminderType type) => DropdownMenuItem<ReminderType>(
-                          value: type,
-                          child: Text(
-                            type.name,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),)
-                    .toList(),
-                onChanged: (final ReminderType? value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedType = value;
-                    });
-                  }
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  text: _isLoading ? AppStrings.loading : AppStrings.save,
-                  onPressed: _isLoading ? null : _saveReminder,
-                  isLoading: _isLoading,
+              const SizedBox(height: 8),
+              Text(
+                count.toString(),
+                style: ThemeConstants.headingStyle.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
+      );
 }

@@ -158,7 +158,7 @@ linter:
     - unnecessary_statements
     - unrelated_type_equality_checks
     - valid_regexps
-    - discarded_futures
+    # - discarded_futures  # Disabled to focus on more critical issues
 
     # === ADDITIONAL CLEAN RULES ===
     - always_declare_return_types

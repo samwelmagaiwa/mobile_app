@@ -5,9 +5,9 @@ import "../constants/styles.dart";
 import "../utils/responsive_utils.dart";
 
 class CustomButton extends StatelessWidget {
-
   const CustomButton({
-    required this.text, super.key,
+    required this.text,
+    super.key,
     this.onPressed,
     this.backgroundColor,
     this.textColor,
@@ -31,9 +31,12 @@ class CustomButton extends StatelessWidget {
   Widget build(final BuildContext context) {
     final Color effectiveBackgroundColor = backgroundColor ?? AppColors.primary;
     final Color effectiveTextColor = textColor ?? Colors.white;
-    final double responsiveHeight = height ?? ResponsiveUtils.getResponsiveButtonHeight(context);
-    final double responsiveIconSize = ResponsiveUtils.getResponsiveIconSize(context, 18);
-    final double responsiveProgressSize = ResponsiveUtils.getResponsiveIconSize(context, 16);
+    final double responsiveHeight =
+        height ?? ResponsiveUtils.getResponsiveButtonHeight(context);
+    final double responsiveIconSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 18);
+    final double responsiveProgressSize =
+        ResponsiveUtils.getResponsiveIconSize(context, 16);
 
     if (isOutlined) {
       return ConstrainedBox(
@@ -68,7 +71,9 @@ class CustomButton extends StatelessWidget {
                     height: responsiveProgressSize,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.w,
-                      valueColor: AlwaysStoppedAnimation<Color>(effectiveBackgroundColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        effectiveBackgroundColor,
+                      ),
                     ),
                   )
                 : icon != null
@@ -119,7 +124,8 @@ class CustomButton extends StatelessWidget {
                   height: responsiveProgressSize,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.w,
-                    valueColor: AlwaysStoppedAnimation<Color>(effectiveTextColor),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(effectiveTextColor),
                   ),
                 )
               : icon != null
@@ -142,9 +148,9 @@ class CustomButton extends StatelessWidget {
 }
 
 class CustomIconButton extends StatelessWidget {
-
   const CustomIconButton({
-    required this.icon, super.key,
+    required this.icon,
+    super.key,
     this.onPressed,
     this.backgroundColor,
     this.iconColor,
@@ -160,10 +166,12 @@ class CustomIconButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double responsiveSize = ResponsiveUtils.getResponsiveIconSize(context, size);
+    final double responsiveSize =
+        ResponsiveUtils.getResponsiveIconSize(context, size);
     final double responsiveIconSize = responsiveSize * 0.5;
-    final double responsiveBlurRadius = ResponsiveUtils.getResponsiveSpacing(context, 4);
-    
+    final double responsiveBlurRadius =
+        ResponsiveUtils.getResponsiveSpacing(context, 4);
+
     final Container button = Container(
       width: responsiveSize,
       height: responsiveSize,
@@ -206,9 +214,9 @@ class CustomIconButton extends StatelessWidget {
 }
 
 class CustomTextButton extends StatelessWidget {
-
   const CustomTextButton({
-    required this.text, super.key,
+    required this.text,
+    super.key,
     this.onPressed,
     this.textColor,
     this.fontWeight,
@@ -220,27 +228,27 @@ class CustomTextButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.symmetric(
-          horizontal: ResponsiveUtils.getResponsiveSpacing(context, 16),
-          vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            ResponsiveUtils.getResponsiveBorderRadius(context, 4),
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.symmetric(
+            horizontal: ResponsiveUtils.getResponsiveSpacing(context, 16),
+            vertical: ResponsiveUtils.getResponsiveSpacing(context, 8),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              ResponsiveUtils.getResponsiveBorderRadius(context, 4),
+            ),
           ),
         ),
-      ),
-      child: Text(
-        text,
-        style: AppStyles.bodyMediumResponsive(context).copyWith(
-          color: textColor ?? AppColors.primary,
-          fontWeight: fontWeight ?? FontWeight.w600,
+        child: Text(
+          text,
+          style: AppStyles.bodyMediumResponsive(context).copyWith(
+            color: textColor ?? AppColors.primary,
+            fontWeight: fontWeight ?? FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
-        textAlign: TextAlign.center,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-    );
+      );
 }

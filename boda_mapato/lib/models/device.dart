@@ -1,4 +1,6 @@
-﻿enum DeviceType {
+import "package:flutter/foundation.dart";
+
+enum DeviceType {
   bajaji,
   pikipiki,
   gari,
@@ -30,8 +32,7 @@ extension DeviceTypeExtension on DeviceType {
 
 @immutable
 class Device {
-
-  Device({
+  const Device({
     required this.id,
     required this.name,
     required this.type,
@@ -44,20 +45,20 @@ class Device {
   });
 
   factory Device.fromJson(final Map<String, dynamic> json) => Device(
-      id: (json["id"] as String?) ?? "",
-      name: (json["name"] as String?) ?? "",
-      type: _parseDeviceType(json["type"] as String?),
-      plateNumber: (json["plate_number"] as String?) ?? "",
-      driverId: (json["driver_id"] as String?) ?? "",
-      createdAt: DateTime.parse(
-        (json["created_at"] as String?) ?? DateTime.now().toIso8601String(),
-      ),
-      updatedAt: DateTime.parse(
-        (json["updated_at"] as String?) ?? DateTime.now().toIso8601String(),
-      ),
-      isActive: (json["is_active"] as bool?) ?? true,
-      description: json["description"] as String?,
-    );
+        id: (json["id"] as String?) ?? "",
+        name: (json["name"] as String?) ?? "",
+        type: _parseDeviceType(json["type"] as String?),
+        plateNumber: (json["plate_number"] as String?) ?? "",
+        driverId: (json["driver_id"] as String?) ?? "",
+        createdAt: DateTime.parse(
+          (json["created_at"] as String?) ?? DateTime.now().toIso8601String(),
+        ),
+        updatedAt: DateTime.parse(
+          (json["updated_at"] as String?) ?? DateTime.now().toIso8601String(),
+        ),
+        isActive: (json["is_active"] as bool?) ?? true,
+        description: json["description"] as String?,
+      );
   final String id;
   final String name;
   final DeviceType type;
@@ -82,16 +83,16 @@ class Device {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-      "id": id,
-      "name": name,
-      "type": type.name.toLowerCase(),
-      "plate_number": plateNumber,
-      "driver_id": driverId,
-      "created_at": createdAt.toIso8601String(),
-      "updated_at": updatedAt.toIso8601String(),
-      "is_active": isActive,
-      "description": description,
-    };
+        "id": id,
+        "name": name,
+        "type": type.name.toLowerCase(),
+        "plate_number": plateNumber,
+        "driver_id": driverId,
+        "created_at": createdAt.toIso8601String(),
+        "updated_at": updatedAt.toIso8601String(),
+        "is_active": isActive,
+        "description": description,
+      };
 
   Device copyWith({
     final String? id,
@@ -103,21 +104,21 @@ class Device {
     final DateTime? updatedAt,
     final bool? isActive,
     final String? description,
-  }) => Device(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      type: type ?? this.type,
-      plateNumber: plateNumber ?? this.plateNumber,
-      driverId: driverId ?? this.driverId,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      isActive: isActive ?? this.isActive,
-      description: description ?? this.description,
-    );
+  }) =>
+      Device(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        type: type ?? this.type,
+        plateNumber: plateNumber ?? this.plateNumber,
+        driverId: driverId ?? this.driverId,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        isActive: isActive ?? this.isActive,
+        description: description ?? this.description,
+      );
 
   @override
-  String toString() =>
-      "Device(id: $id, name: $name, type: ${type.name}, "
+  String toString() => "Device(id: $id, name: $name, type: ${type.name}, "
       "plateNumber: $plateNumber, driverId: $driverId, isActive: $isActive)";
 
   @override

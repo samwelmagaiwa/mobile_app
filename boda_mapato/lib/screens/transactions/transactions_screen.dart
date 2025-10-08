@@ -34,7 +34,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _loadTransactions() async {
-    await Provider.of<TransactionProvider>(context, listen: false).loadTransactions();
+    await Provider.of<TransactionProvider>(context, listen: false)
+        .loadTransactions();
   }
 
   void _showAddTransactionDialog() {
@@ -48,121 +49,130 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(final BuildContext context) => Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.transactions,
-          style: AppStyles.heading2,
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            AppStrings.transactions,
+            style: AppStyles.heading2,
           ),
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(AppStyles.spacingM),
-            color: AppColors.primary,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: AppStrings.search,
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              onChanged: (final String value) {
-                Provider.of<TransactionProvider>(context, listen: false)
-                    .filterTransactions(value);
-              },
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: _showFilterDialog,
             ),
-          ),
-          
-          // Transactions List
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadTransactions,
-              child: Consumer<TransactionProvider>(
-                builder: (final BuildContext context, final TransactionProvider transactionProvider, final Widget? child) {
-                  final List<Transaction> transactions = transactionProvider.filteredTransactions;
-                  
-                  if (transactionProvider.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  
-                  if (transactions.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          const Icon(
-                            Icons.receipt_long,
-                            size: 64,
-                            color: AppColors.textHint,
-                          ),
-                          const SizedBox(height: AppStyles.spacingM),
-                          Text(
-                            AppStrings.noDataFound,
-                            style: AppStyles.bodyLarge.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(AppStyles.spacingM),
-                    itemCount: transactions.length,
-                    itemBuilder: (final BuildContext context, final int index) {
-                      final Transaction transaction = transactions[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
-                        child: CustomCard(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (final BuildContext context) => TransactionDetailScreen(
-                                  transaction: transaction,
-                                ),
-                              ),
-                            );
-                          },
-                          child: TransactionTile(
-                            transaction: transaction,
-                            showDate: true,
-                          ),
-                        ),
-                      );
-                    },
-                  );
+          ],
+        ),
+        body: Column(
+          children: <Widget>[
+            // Search Bar
+            Container(
+              padding: const EdgeInsets.all(AppStyles.spacingM),
+              color: AppColors.primary,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: AppStrings.search,
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppStyles.radiusM(context)),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                onChanged: (final String value) {
+                  Provider.of<TransactionProvider>(context, listen: false)
+                      .filterTransactions(value);
                 },
               ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTransactionDialog,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
+
+            // Transactions List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadTransactions,
+                child: Consumer<TransactionProvider>(
+                  builder: (
+                    final BuildContext context,
+                    final TransactionProvider transactionProvider,
+                    final Widget? child,
+                  ) {
+                    final List<Transaction> transactions =
+                        transactionProvider.filteredTransactions;
+
+                    if (transactionProvider.isLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    if (transactions.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.receipt_long,
+                              size: 64,
+                              color: AppColors.textHint,
+                            ),
+                            const SizedBox(height: AppStyles.spacingM),
+                            Text(
+                              AppStrings.noDataFound,
+                              style: AppStyles.bodyLarge.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(AppStyles.spacingM),
+                      itemCount: transactions.length,
+                      itemBuilder:
+                          (final BuildContext context, final int index) {
+                        final Transaction transaction = transactions[index];
+                        return Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: AppStyles.spacingM),
+                          child: CustomCard(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (final BuildContext context) =>
+                                      TransactionDetailScreen(
+                                    transaction: transaction,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: TransactionTile(
+                              transaction: transaction,
+                              showDate: true,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddTransactionDialog,
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      );
 
   void _showFilterDialog() {
     showDialog(
@@ -213,7 +223,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 }
 
 class _FilterOption extends StatelessWidget {
-
   const _FilterOption({
     required this.title,
     required this.value,
@@ -227,11 +236,11 @@ class _FilterOption extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => RadioListTile<String>(
-      title: Text(title),
-      value: value,
-      groupValue: selectedValue,
-      onChanged: onChanged,
-    );
+        title: Text(title),
+        value: value,
+        groupValue: selectedValue,
+        onChanged: onChanged,
+      );
 }
 
 class _AddTransactionSheet extends StatefulWidget {
@@ -290,7 +299,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -310,128 +319,128 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
 
   @override
   Widget build(final BuildContext context) => Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(AppStyles.spacingM),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppStyles.radiusL(context)),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppStyles.spacingM),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppStyles.radiusL(context)),
+            ),
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  AppStrings.newTransaction,
+                  style: AppStyles.heading2,
+                ),
+                const SizedBox(height: AppStyles.spacingL),
+
+                // Transaction Type
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: RadioListTile<TransactionType>(
+                        title: const Text(AppStrings.income),
+                        value: TransactionType.income,
+                        groupValue: _selectedType,
+                        onChanged: (final TransactionType? value) {
+                          setState(() {
+                            _selectedType = value!;
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<TransactionType>(
+                        title: const Text(AppStrings.expense),
+                        value: TransactionType.expense,
+                        groupValue: _selectedType,
+                        onChanged: (final TransactionType? value) {
+                          setState(() {
+                            _selectedType = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppStyles.spacingM),
+
+                // Amount
+                TextFormField(
+                  controller: _amountController,
+                  decoration: AppStyles.inputDecoration(context).copyWith(
+                    labelText: AppStrings.amount,
+                    prefixText: "TSh ",
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (final String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return AppStrings.fieldRequired;
+                    }
+                    if (double.tryParse(value) == null) {
+                      return AppStrings.invalidAmount;
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: AppStyles.spacingM),
+
+                // Description
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: AppStyles.inputDecoration(context).copyWith(
+                    labelText: AppStrings.description,
+                  ),
+                  validator: (final String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return AppStrings.fieldRequired;
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: AppStyles.spacingM),
+
+                // Category
+                TextFormField(
+                  controller: _categoryController,
+                  decoration: AppStyles.inputDecoration(context).copyWith(
+                    labelText: AppStrings.category,
+                  ),
+                  validator: (final String? value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return AppStrings.fieldRequired;
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: AppStyles.spacingL),
+
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveTransaction,
+                    style: AppStyles.primaryButton(context),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(AppStrings.save),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                AppStrings.newTransaction,
-                style: AppStyles.heading2,
-              ),
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Transaction Type
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: RadioListTile<TransactionType>(
-                      title: const Text(AppStrings.income),
-                      value: TransactionType.income,
-                      groupValue: _selectedType,
-                      onChanged: (final TransactionType? value) {
-                        setState(() {
-                          _selectedType = value!;
-                        });
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    child: RadioListTile<TransactionType>(
-                      title: const Text(AppStrings.expense),
-                      value: TransactionType.expense,
-                      groupValue: _selectedType,
-                      onChanged: (final TransactionType? value) {
-                        setState(() {
-                          _selectedType = value!;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Amount
-              TextFormField(
-                controller: _amountController,
-                decoration: AppStyles.inputDecoration(context).copyWith(
-                  labelText: AppStrings.amount,
-                  prefixText: "TSh ",
-                ),
-                keyboardType: TextInputType.number,
-                validator: (final String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  if (double.tryParse(value) == null) {
-                    return AppStrings.invalidAmount;
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: AppStyles.inputDecoration(context).copyWith(
-                  labelText: AppStrings.description,
-                ),
-                validator: (final String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingM),
-              
-              // Category
-              TextFormField(
-                controller: _categoryController,
-                decoration: AppStyles.inputDecoration(context).copyWith(
-                  labelText: AppStrings.category,
-                ),
-                validator: (final String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: AppStyles.spacingL),
-              
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveTransaction,
-                  style: AppStyles.primaryButton(context),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(AppStrings.save),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+      );
 }

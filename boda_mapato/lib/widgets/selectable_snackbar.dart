@@ -1,4 +1,4 @@
-﻿import "package:flutter/material.dart";
+import "package:flutter/material.dart";
 
 /// A utility class for creating SnackBars with selectable text content
 class SelectableSnackBar {
@@ -86,9 +86,9 @@ class SelectableSnackBar {
 
 /// A widget that displays selectable text in dialogs
 class SelectableDialogContent extends StatelessWidget {
-
   const SelectableDialogContent({
-    required this.text, super.key,
+    required this.text,
+    super.key,
     this.style,
     this.textAlign,
   });
@@ -98,17 +98,17 @@ class SelectableDialogContent extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SelectableText(
-      text,
-      style: style,
-      textAlign: textAlign,
-    );
+        text,
+        style: style,
+        textAlign: textAlign,
+      );
 }
 
 /// A widget for displaying selectable error messages
 class SelectableErrorText extends StatelessWidget {
-
   const SelectableErrorText({
-    required this.error, super.key,
+    required this.error,
+    super.key,
     this.style,
   });
   final String error;
@@ -116,40 +116,40 @@ class SelectableErrorText extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red[50],
-        border: Border.all(color: Colors.red[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(
-            Icons.error_outline,
-            color: Colors.red[600],
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SelectableText(
-              error,
-              style: style ??
-                  TextStyle(
-                    color: Colors.red[700],
-                    fontSize: 14,
-                  ),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          border: Border.all(color: Colors.red[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.error_outline,
+              color: Colors.red[600],
+              size: 20,
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(width: 8),
+            Expanded(
+              child: SelectableText(
+                error,
+                style: style ??
+                    TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 14,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 /// A widget for displaying selectable information text
 class SelectableInfoText extends StatelessWidget {
-
   const SelectableInfoText({
-    required this.text, super.key,
+    required this.text,
+    super.key,
     this.style,
     this.icon,
     this.backgroundColor,
@@ -165,33 +165,33 @@ class SelectableInfoText extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.blue[50],
-        border: Border.all(color: borderColor ?? Colors.blue[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: <Widget>[
-          if (icon != null) ...<Widget>[
-            Icon(
-              icon,
-              color: iconColor ?? Colors.blue[600],
-              size: 20,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? Colors.blue[50],
+          border: Border.all(color: borderColor ?? Colors.blue[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(
+                icon,
+                color: iconColor ?? Colors.blue[600],
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: SelectableText(
+                text,
+                style: style ??
+                    TextStyle(
+                      color: Colors.blue[700],
+                      fontSize: 14,
+                    ),
+              ),
             ),
-            const SizedBox(width: 8),
           ],
-          Expanded(
-            child: SelectableText(
-              text,
-              style: style ??
-                  TextStyle(
-                    color: Colors.blue[700],
-                    fontSize: 14,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
 }

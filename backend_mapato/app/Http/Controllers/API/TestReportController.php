@@ -401,4 +401,34 @@ class TestReportController extends Controller
             return ResponseHelper::error('Imeshindwa kutengeneza ripoti ya utendaji wa vifaa: ' . $e->getMessage(), 500);
         }
     }
+    
+    /**
+     * Test PDF export endpoint (placeholder)
+     */
+    public function testExportPdf(Request $request)
+    {
+        try {
+            // For now, return a success response indicating PDF would be generated
+            // In a real implementation, you would generate and return a PDF file
+            
+            $reportType = $request->get('report_type', 'revenue');
+            $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
+            $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
+            
+            return ResponseHelper::success([
+                'message' => "PDF ya ripoti ya $reportType imetengenezwa kikamilifu",
+                'report_type' => $reportType,
+                'date_range' => "$startDate hadi $endDate",
+                'pdf_url' => '/storage/reports/test_report.pdf', // Placeholder URL
+                'generated_at' => Carbon::now()->toISOString()
+            ], 'PDF ya ripoti imetengenezwa kikamilifu');
+            
+        } catch (\Exception $e) {
+            \Log::error('Test PDF export failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return ResponseHelper::error('Imeshindwa kutengeneza PDF ya ripoti: ' . $e->getMessage(), 500);
+        }
+    }
 }

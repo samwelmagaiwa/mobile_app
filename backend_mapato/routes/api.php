@@ -4,9 +4,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\AdminController;
+use App\Http\Controllers\API\AdminReportController;
 use App\Http\Controllers\API\DriverViewController;
 use App\Http\Controllers\API\DeviceController;
 use App\Http\Controllers\API\DriverController;
+use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\TransactionController;
 use App\Http\Controllers\API\ReceiptController;
 use App\Http\Controllers\API\ReportController;
@@ -35,6 +37,9 @@ Route::prefix('auth')->group(function () {
 
 // Temporary development routes (bypass authentication until database is set up)
 Route::prefix('admin')->group(function () {
+    // Dashboard (temporary - no auth required for testing)
+    Route::get('dashboard', [AdminController::class, 'publicDashboard']);
+    
     // Driver management (temporary - no auth required)
     Route::get('drivers', [AdminController::class, 'getDrivers']);
     Route::post('drivers', [AdminController::class, 'createDriver']);
@@ -48,6 +53,46 @@ Route::prefix('admin')->group(function () {
     // Vehicle management (temporary - no auth required)
     Route::get('vehicles', [AdminController::class, 'getVehicles']);
     Route::post('vehicles', [AdminController::class, 'createVehicle']);
+    
+    // Reminders management (temporary - no auth required)
+    Route::get('reminders', [AdminController::class, 'getReminders']);
+    Route::post('reminders', [AdminController::class, 'addReminder']);
+    Route::put('reminders/{id}', [AdminController::class, 'updateReminder']);
+    Route::delete('reminders/{id}', [AdminController::class, 'deleteReminder']);
+    
+    // Receipts management (temporary - no auth required) 
+    Route::get('receipts', [AdminController::class, 'getReceipts']);
+    
+    // Reports management (temporary - no auth required for testing)
+    Route::prefix('reports')->group(function () {
+        Route::get('dashboard', [AdminReportController::class, 'getDashboardReport']);
+        Route::get('revenue', [AdminReportController::class, 'getRevenueReport']);
+        Route::get('expenses', [AdminReportController::class, 'getExpenseReport']);
+        Route::get('profit-loss', [AdminReportController::class, 'getProfitLossReport']);
+        Route::get('device-performance', [AdminReportController::class, 'getDevicePerformanceReport']);
+        Route::post('export-pdf', [AdminReportController::class, 'exportToPdf']);
+    });
+    
+    // Analytics management (mobile-focused - no auth required for testing)
+    Route::prefix('analytics')->group(function () {
+        Route::get('overview', [AdminReportController::class, 'getAnalyticsOverview']);
+        Route::get('top-performers', [AdminReportController::class, 'getTopPerformers']);
+        Route::get('live', [AdminReportController::class, 'getLiveAnalytics']);
+        Route::get('trends', [AdminReportController::class, 'getRevenueReport']); // Reuse revenue for trends
+    });
+    
+    // Payment management (temporary - no auth required for testing)
+    Route::prefix('payments')->group(function () {
+        Route::get('drivers-with-debts', [PaymentController::class, 'getDriversWithDebts']);
+        Route::get('driver-debt-summary/{driverId}', [PaymentController::class, 'getDriverDebtSummary']);
+        Route::get('driver-debts/{driverId}', [PaymentController::class, 'getDriverDebtRecords']);
+        Route::post('record', [PaymentController::class, 'recordPayment']);
+        Route::get('history', [PaymentController::class, 'getPaymentHistory']);
+        Route::put('{paymentId}', [PaymentController::class, 'updatePayment']);
+        Route::delete('{paymentId}', [PaymentController::class, 'deletePayment']);
+        Route::get('summary', [PaymentController::class, 'getPaymentSummary']);
+        Route::put('mark-debt-paid/{debtId}', [PaymentController::class, 'markDebtAsPaid']);
+    });
 });
 
 // Protected routes (authentication required)
@@ -81,15 +126,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Reminders/Notes
             Route::post('reminders', [AdminController::class, 'addReminder']);
             
-            // Reports (admin view)
-            Route::prefix('reports')->group(function () {
-                Route::get('dashboard', [ReportController::class, 'dashboard']);
-                Route::get('revenue', [ReportController::class, 'revenue']);
-                Route::get('expenses', [ReportController::class, 'expenses']);
-                Route::get('profit-loss', [ReportController::class, 'profitLoss']);
-                Route::get('device-performance', [ReportController::class, 'devicePerformance']);
-                Route::post('export-pdf', [ReportController::class, 'exportPdf']);
-            });
+            // Reports (admin view) - DISABLED - Using temporary routes instead
+            // Route::prefix('reports')->group(function () {
+            //     Route::get('dashboard', [ReportController::class, 'dashboard']);
+            //     Route::get('revenue', [ReportController::class, 'revenue']);
+            //     Route::get('expenses', [ReportController::class, 'expenses']);
+            //     Route::get('profit-loss', [ReportController::class, 'profitLoss']);
+            //     Route::get('device-performance', [ReportController::class, 'devicePerformance']);
+            //     Route::post('export-pdf', [ReportController::class, 'exportPdf']);
+            // });
         });
     });
 
@@ -114,6 +159,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
     });
 
+    // Payment Receipt routes (all authenticated users)
+    Route::prefix('payment-receipts')->group(function () {
+        // Get pending receipts (payments without receipts generated)
+        Route::get('pending', [PaymentReceiptController::class, 'getPendingReceipts']);
+        
+        // Generate receipt for a payment
+        Route::post('generate', [PaymentReceiptController::class, 'generateReceipt']);
+        
+        // Get receipt preview
+        Route::get('{receiptId}/preview', [PaymentReceiptController::class, 'getReceiptPreview']);
+        
+        // Send receipt to driver
+        Route::post('send', [PaymentReceiptController::class, 'sendReceipt']);
+        
+        // Get all receipts with filtering options
+        Route::get('', [PaymentReceiptController::class, 'getReceipts']);
+        
+        // Get receipt by ID
+        Route::get('{receiptId}', [PaymentReceiptController::class, 'getReceiptPreview']);
+    });
+    
     // Common routes (all authenticated users)
     Route::prefix('common')->group(function () {
         // Basic user info
@@ -135,6 +201,12 @@ Route::get('health', function () {
 
 // Test routes for development
 Route::prefix('test')->group(function () {
+    // Test AdminReportController directly
+    Route::get('admin-reports/dashboard', [AdminReportController::class, 'getDashboardReport']);
+    Route::get('admin-reports/revenue', [AdminReportController::class, 'getRevenueReport']);
+    Route::get('admin-reports/expenses', [AdminReportController::class, 'getExpenseReport']);
+    Route::get('admin-reports/profit-loss', [AdminReportController::class, 'getProfitLossReport']);
+    Route::get('admin-reports/device-performance', [AdminReportController::class, 'getDevicePerformanceReport']);
     Route::get('otp-flow', [TestController::class, 'testOtpFlow']);
     Route::get('otp-status', [TestController::class, 'getOtpStatus']);
     Route::post('cleanup-otps', [TestController::class, 'cleanupOtps']);

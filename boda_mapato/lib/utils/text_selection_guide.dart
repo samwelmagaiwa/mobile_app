@@ -1,4 +1,4 @@
-﻿/*
+/*
  * TEXT SELECTION GUIDE FOR FLUTTER MOBILE APPS
  * ============================================
  * 
@@ -158,72 +158,76 @@ import "package:flutter_screenutil/flutter_screenutil.dart";
 
 /// Example implementations of selectable text widgets
 class TextSelectionExamples {
-  
   /// Example of selectable error message
   static Widget selectableErrorMessage(final String error) => Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: Colors.red[50],
-        border: Border.all(color: Colors.red[300]!),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(Icons.error_outline, color: Colors.red[600], size: 20.r),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: SelectableText(
-              error,
-              style: TextStyle(color: Colors.red[700], fontSize: 14.sp),
-            ),
-          ),
-        ],
-      ),
-    );
-
-  /// Example of selectable success message
-  static Widget selectableSuccessMessage(final String message) => Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: Colors.green[50],
-        border: Border.all(color: Colors.green[300]!),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(Icons.check_circle_outline, color: Colors.green[600], size: 20.r),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: SelectableText(
-              message,
-              style: TextStyle(color: Colors.green[700], fontSize: 14.sp),
-            ),
-          ),
-        ],
-      ),
-    );
-
-  /// Example of selectable info card
-  static Widget selectableInfoCard(final String title, final String content) => Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          border: Border.all(color: Colors.red[300]!),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
           children: <Widget>[
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
+            Icon(Icons.error_outline, color: Colors.red[600], size: 20.r),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: SelectableText(
+                error,
+                style: TextStyle(color: Colors.red[700], fontSize: 14.sp),
               ),
-            ),
-            SizedBox(height: 8.h),
-            SelectableText(
-              content,
-              style: TextStyle(fontSize: 14.sp),
             ),
           ],
         ),
-      ),
-    );
+      );
+
+  /// Example of selectable success message
+  static Widget selectableSuccessMessage(final String message) => Container(
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          border: Border.all(color: Colors.green[300]!),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.check_circle_outline,
+              color: Colors.green[600],
+              size: 20.r,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: SelectableText(
+                message,
+                style: TextStyle(color: Colors.green[700], fontSize: 14.sp),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  /// Example of selectable info card
+  static Widget selectableInfoCard(final String title, final String content) =>
+      Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.sp,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              SelectableText(
+                content,
+                style: TextStyle(fontSize: 14.sp),
+              ),
+            ],
+          ),
+        ),
+      );
 }

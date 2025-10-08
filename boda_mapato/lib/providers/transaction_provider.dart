@@ -26,22 +26,25 @@ class TransactionProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      await _api.initialize();
       final Map<String, dynamic> resp = await _api.getTransactions();
-      final data = resp["data"];
-      List list = <dynamic>[];
+      final dynamic data = resp["data"];
+      List<dynamic> list = <dynamic>[];
       if (data is List) {
         list = data;
       } else if (data is Map && data["data"] is List) {
         list = data["data"];
       }
       _transactions = list
-          .map<Transaction>((final j) => Transaction.fromJson(j as Map<String, dynamic>))
+          .map<Transaction>(
+            (final j) => Transaction.fromJson(j as Map<String, dynamic>),
+          )
           .toList();
       _applyFilters();
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to load transactions: $e");
-      // Use mock data for development
-      _loadMockTransactions();
+      _transactions = <Transaction>[]; // Empty list instead of mock data
+      _applyFilters();
     } finally {
       _setLoading(false);
     }
@@ -50,17 +53,17 @@ class TransactionProvider extends ChangeNotifier {
   // Add new transaction
   Future<bool> addTransaction(final Transaction transaction) async {
     try {
-      final Map<String, dynamic> resp = await _api.createTransaction(transaction.toJson());
-      final Map<String, dynamic> createdJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      await _api.initialize();
+      final Map<String, dynamic> resp =
+          await _api.createTransaction(transaction.toJson());
+      final Map<String, dynamic> createdJson =
+          (resp["data"] ?? resp) as Map<String, dynamic>;
       final Transaction newTransaction = Transaction.fromJson(createdJson);
       _transactions.insert(0, newTransaction);
       _applyFilters();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to add transaction: $e");
-      // Add to local list for development
-      _transactions.insert(0, transaction);
-      _applyFilters();
       return false;
     }
   }
@@ -68,16 +71,21 @@ class TransactionProvider extends ChangeNotifier {
   // Update transaction
   Future<bool> updateTransaction(final Transaction transaction) async {
     try {
-      final Map<String, dynamic> resp = await _api.updateTransaction(transaction.id, transaction.toJson());
-      final Map<String, dynamic> updatedJson = (resp["data"] ?? resp) as Map<String, dynamic>;
+      final Map<String, dynamic> resp = await _api.updateTransaction(
+        transaction.id,
+        transaction.toJson(),
+      );
+      final Map<String, dynamic> updatedJson =
+          (resp["data"] ?? resp) as Map<String, dynamic>;
       final Transaction updatedTransaction = Transaction.fromJson(updatedJson);
-      final int index = _transactions.indexWhere((final Transaction t) => t.id == transaction.id);
+      final int index = _transactions
+          .indexWhere((final Transaction t) => t.id == transaction.id);
       if (index != -1) {
         _transactions[index] = updatedTransaction;
         _applyFilters();
       }
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to update transaction: $e");
       return false;
     }
@@ -90,7 +98,7 @@ class TransactionProvider extends ChangeNotifier {
       _transactions.removeWhere((final Transaction t) => t.id == id);
       _applyFilters();
       return true;
-    } catch (e) {
+    } on Exception catch (e) {
       _setError("Failed to delete transaction: $e");
       return false;
     }
@@ -110,7 +118,8 @@ class TransactionProvider extends ChangeNotifier {
 
   // Apply filters and search
   void _applyFilters() {
-    _filteredTransactions = _transactions.where((final Transaction transaction) {
+    _filteredTransactions =
+        _transactions.where((final Transaction transaction) {
       // Apply search filter
       bool matchesSearch = true;
       if (_searchQuery.isNotEmpty) {
@@ -137,7 +146,8 @@ class TransactionProvider extends ChangeNotifier {
               transaction.createdAt.year == today.year;
         case "week":
           final DateTime now = DateTime.now();
-          final DateTime weekStart = now.subtract(Duration(days: now.weekday - 1));
+          final DateTime weekStart =
+              now.subtract(Duration(days: now.weekday - 1));
           matchesType = transaction.createdAt.isAfter(weekStart);
         case "month":
           final DateTime now = DateTime.now();
@@ -151,8 +161,11 @@ class TransactionProvider extends ChangeNotifier {
     }).toList();
 
     // Sort by date (newest first)
-    _filteredTransactions.sort((final Transaction a, final Transaction b) => b.createdAt.compareTo(a.createdAt));
-    
+    _filteredTransactions.sort(
+      (final Transaction a, final Transaction b) =>
+          b.createdAt.compareTo(a.createdAt),
+    );
+
     notifyListeners();
   }
 
@@ -197,8 +210,12 @@ class TransactionProvider extends ChangeNotifier {
 
   // Get recent transactions
   List<Transaction> getRecentTransactions(final int limit) {
-    final List<Transaction> sortedTransactions = List<Transaction>.from(_transactions);
-    sortedTransactions.sort((final Transaction a, final Transaction b) => b.createdAt.compareTo(a.createdAt));
+    final List<Transaction> sortedTransactions =
+        List<Transaction>.from(_transactions);
+    sortedTransactions.sort(
+      (final Transaction a, final Transaction b) =>
+          b.createdAt.compareTo(a.createdAt),
+    );
     return sortedTransactions.take(limit).toList();
   }
 
@@ -208,26 +225,38 @@ class TransactionProvider extends ChangeNotifier {
     final DateTime todayStart = DateTime(today.year, today.month, today.day);
 
     return _transactions
-        .where((final Transaction t) =>
-            t.deviceId == deviceId &&
-            t.type == TransactionType.income &&
-            t.status == TransactionStatus.completed &&
-            t.createdAt.isAfter(todayStart),)
-        .fold(0, (final double sum, final Transaction t) => sum + t.amount);
+        .where(
+          (final Transaction t) =>
+              t.deviceId == deviceId &&
+              t.type == TransactionType.income &&
+              t.status == TransactionStatus.completed &&
+              t.createdAt.isAfter(todayStart),
+        )
+        .fold(
+          0,
+          (final double sum, final Transaction t) => sum + t.amount,
+        );
   }
 
   // Get transactions by date range
   List<Transaction> getTransactionsByDateRange(
-      final DateTime startDate, final DateTime endDate,) => _transactions
-        .where((final Transaction t) =>
-            t.createdAt.isAfter(startDate) && t.createdAt.isBefore(endDate),)
-        .toList();
+    final DateTime startDate,
+    final DateTime endDate,
+  ) =>
+      _transactions
+          .where(
+            (final Transaction t) =>
+                t.createdAt.isAfter(startDate) && t.createdAt.isBefore(endDate),
+          )
+          .toList();
 
   // Get transactions by type
-  List<Transaction> getTransactionsByType(final TransactionType type) => _transactions.where((final Transaction t) => t.type == type).toList();
+  List<Transaction> getTransactionsByType(final TransactionType type) =>
+      _transactions.where((final Transaction t) => t.type == type).toList();
 
   // Get transactions by status
-  List<Transaction> getTransactionsByStatus(final TransactionStatus status) => _transactions.where((final Transaction t) => t.status == status).toList();
+  List<Transaction> getTransactionsByStatus(final TransactionStatus status) =>
+      _transactions.where((final Transaction t) => t.status == status).toList();
 
   // Get monthly revenue data for charts
   Map<String, double> getMonthlyRevenueData() {
@@ -237,7 +266,7 @@ class TransactionProvider extends ChangeNotifier {
     for (int i = 11; i >= 0; i--) {
       final DateTime month = DateTime(now.year, now.month - i);
       final String monthKey = "${month.month}/${month.year}";
-      monthlyData[monthKey] = 0.0;
+      monthlyData[monthKey] = 0;
     }
 
     for (final Transaction transaction in _transactions) {
@@ -270,62 +299,4 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load mock data for development
-  void _loadMockTransactions() {
-    final DateTime now = DateTime.now();
-    _transactions = <Transaction>[
-      Transaction(
-        id: "1",
-        amount: 5000,
-        type: TransactionType.income,
-        status: TransactionStatus.completed,
-        description: "Safari ya Kimbo",
-        category: "Abiria",
-        deviceId: "device1",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(hours: 2)),
-        updatedAt: now.subtract(const Duration(hours: 2)),
-        customerName: "John Doe",
-      ),
-      Transaction(
-        id: "2",
-        amount: 3000,
-        type: TransactionType.income,
-        status: TransactionStatus.completed,
-        description: "Safari ya Mwenge",
-        category: "Abiria",
-        deviceId: "device1",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(hours: 4)),
-        updatedAt: now.subtract(const Duration(hours: 4)),
-        customerName: "Jane Smith",
-      ),
-      Transaction(
-        id: "3",
-        amount: 15000,
-        type: TransactionType.expense,
-        status: TransactionStatus.completed,
-        description: "Mafuta",
-        category: "Matumizi",
-        deviceId: "device1",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(hours: 6)),
-        updatedAt: now.subtract(const Duration(hours: 6)),
-      ),
-      Transaction(
-        id: "4",
-        amount: 7500,
-        type: TransactionType.income,
-        status: TransactionStatus.completed,
-        description: "Safari ya Ubungo",
-        category: "Abiria",
-        deviceId: "device1",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(days: 1)),
-        updatedAt: now.subtract(const Duration(days: 1)),
-        customerName: "Peter Johnson",
-      ),
-    ];
-    _applyFilters();
-  }
 }
