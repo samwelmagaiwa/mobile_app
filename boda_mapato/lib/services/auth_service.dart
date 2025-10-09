@@ -6,8 +6,8 @@ import "package:shared_preferences/shared_preferences.dart";
 
 mixin AuthService {
   // API Configuration - Updated for Laravel backend
-  // For mobile device testing via USB debugging
-  static const String baseUrl = "http://192.168.1.5:8000/api";
+  // For mobile device testing via USB debugging on this PC (192.168.1.124)
+  static const String baseUrl = "http://192.168.1.124:8000/api";
 
   // Alternative URLs for different environments:
   // For development on localhost: "http://127.0.1:8000/api"

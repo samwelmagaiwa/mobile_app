@@ -191,6 +191,11 @@ class PendingReceiptItem {
   final String paymentPeriod;
   final String? remarks;
   final String recordedBy;
+  // New: outstanding debt info
+  final bool hasRemainingDebt;
+  final double remainingDebtTotal;
+  final int unpaidDaysCount;
+  final List<String> unpaidDates;
 
   PendingReceiptItem({
     required this.paymentId,
@@ -207,6 +212,10 @@ class PendingReceiptItem {
     required this.paymentPeriod,
     this.remarks,
     required this.recordedBy,
+    required this.hasRemainingDebt,
+    required this.remainingDebtTotal,
+    required this.unpaidDaysCount,
+    required this.unpaidDates,
   });
 
   factory PendingReceiptItem.fromJson(Map<String, dynamic> json) {
@@ -225,6 +234,10 @@ class PendingReceiptItem {
       paymentPeriod: json['payment_period'] ?? '',
       remarks: json['remarks'],
       recordedBy: json['recorded_by'] ?? '',
+      hasRemainingDebt: json['has_remaining_debt'] ?? false,
+      remainingDebtTotal: double.tryParse(json['remaining_debt_total']?.toString() ?? '0') ?? 0.0,
+      unpaidDaysCount: json['unpaid_days_count'] ?? 0,
+      unpaidDates: List<String>.from(json['unpaid_dates'] ?? const []),
     );
   }
 

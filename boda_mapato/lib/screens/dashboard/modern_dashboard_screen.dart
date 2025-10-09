@@ -612,9 +612,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             _buildActionButton(Icons.bar_chart, "Takwimu", () {
               Navigator.pushNamed(context, "/admin/analytics");
             }),
-            _buildActionButton(Icons.add, "Ongeza", () {
-              Navigator.pushNamed(context, "/admin/record-payment");
-            }),
             Builder(
               builder: (BuildContext context) => _buildActionButton(Icons.apps, "Menyu", () {
                 Scaffold.of(context).openDrawer();
@@ -789,14 +786,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, "/payments");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.add_circle,
-                  title: "Rekodi Malipo",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/record-payment");
                   },
                 ),
                 _buildDrawerItem(

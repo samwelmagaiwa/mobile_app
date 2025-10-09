@@ -715,8 +715,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         Navigator.pushNamed(context, "/admin/analytics");
       case "reminders":
         Navigator.pushNamed(context, "/admin/reminders");
-      case "record_payment":
-        Navigator.pushNamed(context, "/admin/record-payment");
       default:
         _showComingSoonDialog(page);
     }

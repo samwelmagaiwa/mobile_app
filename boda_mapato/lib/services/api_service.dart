@@ -6,7 +6,7 @@ import "package:shared_preferences/shared_preferences.dart";
 class ApiService {
   // API Configuration - Updated for Laravel backend
   // For development on localhost (when running flutter on same machine)
-  static const String baseUrl = "http://192.168.1.5:8000/api";
+  static const String baseUrl = "http://192.168.1.124:8000/api";
   static const String webBaseUrl = "http://127.0.1:8000";
 
   // Alternative URLs for different environments:

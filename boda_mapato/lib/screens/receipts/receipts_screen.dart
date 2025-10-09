@@ -498,6 +498,32 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                         ),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    // Covered dates this payment is for
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Deni la Tarehe:',
+                          style: TextStyle(
+                            color: ThemeConstants.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _formatCoveredDays(receipt.coveredDays),
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              color: ThemeConstants.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     if (receipt.formattedPaymentChannel.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Row(
@@ -524,7 +550,45 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                   ],
                 ),
               ),
-              
+              if (receipt.hasRemainingDebt) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ThemeConstants.errorRed.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ThemeConstants.errorRed.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: ThemeConstants.errorRed, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Deni lililosalia: TSh ' +
+                                  _formatAmount(receipt.remainingDebtTotal) +
+                                  ' (siku ' + receipt.unpaidDaysCount.toString() + ')',
+                              style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            if (receipt.unpaidDates.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tarehe: ' + receipt.unpaidDates.map(_formatDate).join(', '),
+                                style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 11, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               
               // Action button
@@ -688,6 +752,29 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
         ),
       ),
     );
+  }
+
+  String _formatCoveredDays(List<String> days) {
+    if (days.isEmpty) return '-';
+    if (days.length == 1) return _formatDate(days.first);
+    final String first = _formatDate(days.first);
+    final String last = _formatDate(days.last);
+    return '$first - $last (siku ${days.length})';
+  }
+
+  String _formatDate(String isoOrYmd) {
+    // Accept either 'YYYY-MM-DD' or already formatted strings
+    try {
+      final DateTime d = DateTime.tryParse(isoOrYmd) ?? DateTime.now();
+      return '${d.day}/${d.month}/${d.year}';
+    } catch (_) {
+      return isoOrYmd;
+    }
+  }
+
+  String _formatAmount(double v) {
+    final s = v.toStringAsFixed(0);
+    return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
 
   void _navigateToReceiptDetail(PendingReceiptItem receipt) {

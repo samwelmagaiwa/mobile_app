@@ -223,6 +223,12 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             _row('Muda Uliolipwa', r.paymentPeriod),
             const SizedBox(height: 8),
             _row('Siku Zilizofunikwa', r.coveredDaysCount.toString()),
+            const SizedBox(height: 8),
+            _row('Deni la Tarehe', _formatCoveredDays(r.coveredDays)),
+            if (r.hasRemainingDebt) ...[
+              const SizedBox(height: 8),
+              _debtNotice(r.remainingDebtTotal, r.unpaidDaysCount, r.unpaidDates),
+            ],
             if ((r.remarks ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
               _row('Maelezo', r.remarks!),
@@ -359,21 +365,76 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     );
   }
 
+  String _formatCoveredDays(List<String> days) {
+    if (days.isEmpty) return '-';
+    if (days.length == 1) return _formatDate(days.first);
+    final String first = _formatDate(days.first);
+    final String last = _formatDate(days.last);
+    return '$first - $last (siku ${days.length})';
+  }
+
+  String _formatDate(String isoOrYmd) {
+    try {
+      final DateTime d = DateTime.tryParse(isoOrYmd) ?? DateTime.now();
+      return '${d.day}/${d.month}/${d.year}';
+    } catch (_) {
+      return isoOrYmd;
+    }
+  }
+
+  String _formatAmount(double v) {
+    final s = v.toStringAsFixed(0);
+    return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  }
+
+  Widget _debtNotice(double remaining, int days, List<String> sampleDates) {
+    final sample = sampleDates.isNotEmpty ? ' — ' + sampleDates.map(_formatDate).join(', ') : '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: ThemeConstants.errorRed.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ThemeConstants.errorRed.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: ThemeConstants.errorRed, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Deni lililosalia: TSh ' + _formatAmount(remaining) + ' (siku ' + days.toString() + ')' + sample,
+              style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _methodChip(ReceiptSendMethod method, IconData icon) {
-    final selected = _sendMethod == method;
+    final bool selected = _sendMethod == method;
+    const Color base = Color(0xFF191970); // Midnight Blue
+    final Color bgColor = selected ? ThemeConstants.primaryOrange : base;
+    final Color textColor = Colors.white;
+    final Color iconColor = Colors.white;
+    final Color borderColor = selected
+        ? Colors.white.withOpacity(0.6)
+        : Colors.white.withOpacity(0.2);
+
     return ChoiceChip(
       label: Text(method.displayName),
       selected: selected,
-      avatar: Icon(icon, color: selected ? Colors.white : ThemeConstants.textSecondary, size: 18),
-      selectedColor: ThemeConstants.primaryOrange,
+      avatar: Icon(icon, color: iconColor, size: 18),
+      selectedColor: bgColor, // when selected
       labelStyle: TextStyle(
-        color: selected ? Colors.white : ThemeConstants.textSecondary,
+        color: textColor,
         fontWeight: FontWeight.w600,
       ),
-      backgroundColor: Colors.white.withOpacity(0.08),
+      backgroundColor: bgColor, // when not selected
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.white.withOpacity(0.2)),
+        side: BorderSide(color: borderColor),
       ),
       onSelected: (_) {
         setState(() {

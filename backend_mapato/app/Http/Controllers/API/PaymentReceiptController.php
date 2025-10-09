@@ -4,12 +4,13 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\DebtRecord;
 use App\Models\PaymentReceipt;
-use App\Models\Driver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class PaymentReceiptController extends Controller
 {
@@ -31,6 +32,24 @@ class PaymentReceiptController extends Controller
             $pending = $payments->map(function (Payment $p) {
                 $coveredDays = $p->covers_days ?? [];
                 $coveredDaysCount = count($coveredDays);
+                // Compute remaining outstanding debt for this driver (after this payment)
+                // Remaining = SUM(expected_amount - paid_amount) for unpaid records
+                $remainingDebtTotal = (float) DebtRecord::unpaid()
+                    ->where('driver_id', $p->driver_id)
+                    ->selectRaw('COALESCE(SUM(expected_amount - paid_amount),0) as total')
+                    ->value('total');
+
+                // Get all unpaid dates for this driver (ordered)
+                $unpaidDates = DebtRecord::unpaid()
+                    ->where('driver_id', $p->driver_id)
+                    ->orderBy('earning_date')
+                    ->pluck('earning_date')
+                    ->map(function ($d) { return Carbon::parse($d)->format('Y-m-d'); })
+                    ->values()
+                    ->toArray();
+
+                $unpaidDaysCount = count($unpaidDates);
+
                 return [
                     'payment_id' => (string) $p->id,
                     'reference_number' => $p->reference_number,
@@ -51,6 +70,11 @@ class PaymentReceiptController extends Controller
                     'payment_period' => $this->formatPeriod($coveredDaysCount),
                     'remarks' => $p->remarks,
                     'recorded_by' => $p->recordedBy->name ?? '',
+                    // New outstanding debt indicators
+                    'has_remaining_debt' => $remainingDebtTotal > 0,
+                    'remaining_debt_total' => $remainingDebtTotal,
+                    'unpaid_days_count' => $unpaidDaysCount,
+                    'unpaid_dates' => $unpaidDates,
                 ];
             });
 

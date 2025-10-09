@@ -19,13 +19,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
-    
-    'allowed_origins_patterns' => [
-        'http://192.168.1.*:*',
+'allowed_origins' => [
+        'http://localhost:19672',
         'http://localhost:*',
         'http://127.0.0.1:*',
+        'http://192.168.1.*:*',
     ],
+    
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
@@ -33,6 +34,7 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    // Using bearer tokens; cookies not required. Keep credentials disabled to allow wildcard-like origins above.
+    'supports_credentials' => false,
 
 ];

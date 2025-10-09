@@ -10,7 +10,6 @@ import "providers/auth_provider.dart";
 import "providers/device_provider.dart";
 import "providers/transaction_provider.dart";
 import "screens/admin/admin_dashboard_screen.dart";
-import "screens/admin/record_payment_screen.dart";
 import "screens/admin/drivers_management_screen.dart";
 import "screens/admin/vehicles_management_screen.dart";
 import "screens/admin/payments_management_screen.dart";
@@ -85,8 +84,6 @@ class BodaMapatoApp extends StatelessWidget {
                   const PaymentsManagementScreen(),
               "/payments": (final BuildContext context) =>
                   const PaymentsScreen(),
-              "/admin/record-payment": (final BuildContext context) =>
-                  const RecordPaymentScreen(),
               "/admin/analytics": (final BuildContext context) =>
                   const AnalyticsScreen(),
               "/admin/reports": (final BuildContext context) =>

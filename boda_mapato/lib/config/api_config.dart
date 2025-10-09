@@ -15,7 +15,7 @@ mixin ApiConfig {
       case Environment.local:
         return "http://127.0.1:8000/api";
       case Environment.network:
-        return "http://192.168.1.5:8000/api";
+        return "http://192.168.1.124:8000/api";
       case Environment.emulator:
         return "http://10.2.2:8000/api";
       case Environment.production:
@@ -31,7 +31,7 @@ mixin ApiConfig {
       case Environment.local:
         return "http://127.0.1:8000";
       case Environment.network:
-        return "http://192.168.1.5:8000";
+        return "http://192.168.1.124:8000";
       case Environment.emulator:
         return "http://10.2.2:8000";
       case Environment.production:
