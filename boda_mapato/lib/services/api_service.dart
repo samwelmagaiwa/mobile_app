@@ -14,8 +14,9 @@ class ApiService {
   // For Android emulator: "http://10.2.2:8000/api";
   // For iOS simulator: "http://127.0.1:8000/api";
 
-  // Timeout duration
-  static const Duration timeoutDuration = Duration(seconds: 30);
+  // Timeout duration - reduced for better UX
+  static const Duration timeoutDuration = Duration(seconds: 15);
+  static const Duration connectionTimeout = Duration(seconds: 10);
 
   // Headers
   Map<String, String> get _headers => <String, String>{
@@ -43,6 +44,21 @@ class ApiService {
     // No need to store it in instance variable
   }
 
+  // Quick connectivity test with shorter timeout
+  Future<bool> testConnectivity() async {
+    try {
+      final http.Response response = await http
+          .get(
+            Uri.parse("$baseUrl/health"),
+            headers: _headers,
+          )
+          .timeout(connectionTimeout);
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Set auth token
   Future<void> setAuthToken(final String token) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -56,6 +72,13 @@ class ApiService {
   }
 
   // Generic HTTP methods
+  Future<Map<String, dynamic>> get(
+    final String endpoint, {
+    final bool requireAuth = true,
+  }) async {
+    return _get(endpoint, requireAuth: requireAuth);
+  }
+
   Future<Map<String, dynamic>> _get(
     final String endpoint, {
     final bool requireAuth = true,
@@ -71,10 +94,12 @@ class ApiService {
           .timeout(timeoutDuration);
 
       return _handleResponse(response);
-    } on SocketException {
-      throw ApiException("Hakuna muunganisho wa mtandao");
-    } on HttpException {
-      throw ApiException("Hitilafu ya seva");
+    } on SocketException catch (e) {
+      throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
+    } on HttpException catch (e) {
+      throw ApiException("Hitilafu ya seva: ${e.message}");
+    } on FormatException catch (e) {
+      throw ApiException("Jibu la seva halieleweki: ${e.message}");
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -97,10 +122,12 @@ class ApiService {
           .timeout(timeoutDuration);
 
       return _handleResponse(response);
-    } on SocketException {
-      throw ApiException("Hakuna muunganisho wa mtandao");
-    } on HttpException {
-      throw ApiException("Hitilafu ya seva");
+    } on SocketException catch (e) {
+      throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
+    } on HttpException catch (e) {
+      throw ApiException("Hitilafu ya seva: ${e.message}");
+    } on FormatException catch (e) {
+      throw ApiException("Jibu la seva halieleweki: ${e.message}");
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -121,10 +148,12 @@ class ApiService {
           .timeout(timeoutDuration);
 
       return _handleResponse(response);
-    } on SocketException {
-      throw ApiException("Hakuna muunganisho wa mtandao");
-    } on HttpException {
-      throw ApiException("Hitilafu ya seva");
+    } on SocketException catch (e) {
+      throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
+    } on HttpException catch (e) {
+      throw ApiException("Hitilafu ya seva: ${e.message}");
+    } on FormatException catch (e) {
+      throw ApiException("Jibu la seva halieleweki: ${e.message}");
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -141,10 +170,12 @@ class ApiService {
           .timeout(timeoutDuration);
 
       return _handleResponse(response);
-    } on SocketException {
-      throw ApiException("Hakuna muunganisho wa mtandao");
-    } on HttpException {
-      throw ApiException("Hitilafu ya seva");
+    } on SocketException catch (e) {
+      throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
+    } on HttpException catch (e) {
+      throw ApiException("Hitilafu ya seva: ${e.message}");
+    } on FormatException catch (e) {
+      throw ApiException("Jibu la seva halieleweki: ${e.message}");
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -272,6 +303,153 @@ class ApiService {
 
   Future<Map<String, dynamic>> deleteDriver(final String driverId) async =>
       _delete("/admin/drivers/$driverId");
+
+  // Driver History endpoints
+  Future<Map<String, dynamic>> getDriverHistory({
+    required final String driverId,
+    final DateTime? startDate,
+    final DateTime? endDate,
+  }) async {
+    String endpoint = "/admin/drivers/$driverId/history";
+    final List<String> params = <String>[];
+
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
+
+    if (params.isNotEmpty) {
+      endpoint += "?${params.join("&")}";
+    }
+
+    return _get(endpoint);
+  }
+
+  Future<Map<String, dynamic>> getDriverFinancialSummary(
+    final String driverId, {
+    final DateTime? startDate,
+    final DateTime? endDate,
+  }) async {
+    String endpoint = "/admin/drivers/$driverId/financial-summary";
+    final List<String> params = <String>[];
+
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
+
+    if (params.isNotEmpty) {
+      endpoint += "?${params.join("&")}";
+    }
+
+    return _get(endpoint);
+  }
+
+  Future<Map<String, dynamic>> getDriverPerformanceMetrics(
+    final String driverId,
+  ) async =>
+      _get("/admin/drivers/$driverId/performance-metrics");
+
+  Future<Map<String, dynamic>> getDriverTripsHistory({
+    required final String driverId,
+    final int page = 1,
+    final int limit = 50,
+    final DateTime? startDate,
+    final DateTime? endDate,
+    final String? status,
+  }) async {
+    String endpoint = "/admin/drivers/$driverId/trips?page=$page&limit=$limit";
+
+    if (startDate != null) {
+      endpoint += "&start_date=${startDate.toIso8601String().split('T')[0]}";
+    }
+    if (endDate != null) {
+      endpoint += "&end_date=${endDate.toIso8601String().split('T')[0]}";
+    }
+    if (status != null) {
+      endpoint += "&status=$status";
+    }
+
+    return _get(endpoint);
+  }
+
+  Future<Map<String, dynamic>> getDriverStatusHistory({
+    required final String driverId,
+    final int page = 1,
+    final int limit = 20,
+  }) async =>
+      _get("/admin/drivers/$driverId/status-history?page=$page&limit=$limit");
+
+  Future<Map<String, dynamic>> getDriverPaymentTrends({
+    required final String driverId,
+    final String period = "monthly", // daily, weekly, monthly, yearly
+    final int months = 12,
+  }) async =>
+      _get("/admin/drivers/$driverId/payment-trends?period=$period&months=$months");
+
+  Future<Map<String, dynamic>> getDriverDebtTrends({
+    required final String driverId,
+    final String period = "monthly",
+    final int months = 12,
+  }) async =>
+      _get("/admin/drivers/$driverId/debt-trends?period=$period&months=$months");
+
+  Future<Map<String, dynamic>> updateDriverPerformanceMetrics(
+    final String driverId,
+  ) async =>
+      _put("/admin/drivers/$driverId/recalculate-metrics", <String, dynamic>{});
+
+  // Driver Agreement endpoints
+  Future<Map<String, dynamic>> getDriverAgreements({
+    final int page = 1,
+    final int limit = 20,
+    final String? status,
+    final String? agreementType,
+  }) async {
+    String endpoint = "/admin/driver-agreements?page=$page&limit=$limit";
+    if (status != null) endpoint += "&status=$status";
+    if (agreementType != null) endpoint += "&agreement_type=$agreementType";
+    return _get(endpoint);
+  }
+
+  Future<Map<String, dynamic>> createDriverAgreement(
+    final Map<String, dynamic> agreementData,
+  ) async =>
+      _post("/admin/driver-agreements", agreementData);
+
+  Future<Map<String, dynamic>> getDriverAgreement(final String agreementId) async =>
+      _get("/admin/driver-agreements/$agreementId");
+
+  Future<Map<String, dynamic>> updateDriverAgreement(
+    final String agreementId,
+    final Map<String, dynamic> agreementData,
+  ) async =>
+      _put("/admin/driver-agreements/$agreementId", agreementData);
+
+  Future<Map<String, dynamic>> deleteDriverAgreement(
+    final String agreementId,
+  ) async =>
+      _delete("/admin/driver-agreements/$agreementId");
+
+  Future<Map<String, dynamic>> getDriverAgreementByDriverId(
+    final String driverId,
+  ) async =>
+      _get("/admin/driver-agreements/driver/$driverId");
+
+  Future<Map<String, dynamic>> terminateDriverAgreement(
+    final String agreementId,
+    final Map<String, dynamic> terminationData,
+  ) async =>
+      _put("/admin/driver-agreements/$agreementId/terminate", terminationData);
+
+  Future<Map<String, dynamic>> previewDriverAgreementCalculation(
+    final Map<String, dynamic> calculationData,
+  ) async =>
+      _post("/admin/driver-agreements/calculate-preview", calculationData);
 
   // Vehicle management endpoints
   Future<Map<String, dynamic>> getVehicles({
@@ -477,6 +655,61 @@ class ApiService {
     final int limit = 50,
   }) async =>
       _get("/admin/payments/drivers-with-debts?page=$page&limit=$limit");
+
+  // Debts management endpoints
+  Future<Map<String, dynamic>> getDebtDrivers({
+    final int page = 1,
+    final int limit = 50,
+    final String? query,
+  }) async {
+    String endpoint = "/admin/debts/drivers?page=$page&limit=$limit";
+    if (query != null && query.isNotEmpty) {
+      endpoint += "&q=${Uri.encodeComponent(query)}";
+    }
+    return _get(endpoint);
+  }
+
+  Future<Map<String, dynamic>> createDebts({
+    required String driverId,
+    List<String>? dates, // YYYY-MM-DD (legacy mode)
+    double? amount, // legacy mode
+    List<Map<String, dynamic>>? items, // [{date: YYYY-MM-DD, amount: 10000}]
+    String? notes,
+    bool promisedToPay = false,
+    DateTime? promiseToPayAt,
+  }) async {
+    final Map<String, dynamic> payload = <String, dynamic>{
+      "driver_id": driverId,
+      if (items != null) "items": items,
+      if (dates != null) "dates": dates,
+      if (amount != null) "amount": amount,
+      if (notes != null && notes.isNotEmpty) "notes": notes,
+      if (promisedToPay) "promised_to_pay": true,
+      if (promiseToPayAt != null) "promise_to_pay_at": promiseToPayAt.toIso8601String(),
+    };
+    return _post("/admin/debts/bulk-create", payload);
+  }
+
+  Future<Map<String, dynamic>> updateDebtRecord({
+    required String debtId,
+    String? earningDate,
+    double? expectedAmount,
+    String? notes,
+    bool? promisedToPay,
+    DateTime? promiseToPayAt,
+  }) async {
+    final Map<String, dynamic> payload = <String, dynamic>{
+      if (earningDate != null) "earning_date": earningDate,
+      if (expectedAmount != null) "expected_amount": expectedAmount,
+      if (notes != null) "notes": notes,
+      if (promisedToPay != null) "promised_to_pay": promisedToPay,
+      if (promiseToPayAt != null) "promise_to_pay_at": promiseToPayAt.toIso8601String(),
+    };
+    return _put("/admin/debts/records/$debtId", payload);
+  }
+
+  Future<Map<String, dynamic>> deleteDebtRecord(String debtId) async =>
+      _delete("/admin/debts/records/$debtId");
 
   Future<Map<String, dynamic>> getDriverDebtSummary(
     final String driverId,

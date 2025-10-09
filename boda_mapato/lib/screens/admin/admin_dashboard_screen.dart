@@ -637,6 +637,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               _buildNavItem(icon: Icons.directions_car, title: "Magari", page: "vehicles", badge: "${_dashboardData["total_vehicles"] ?? 0}"),
               const Divider(color: Colors.white24, height: 16),
               _buildNavItem(icon: Icons.payment, title: "Malipo", page: "payments", badge: "${_dashboardData["pending_payments"] ?? 0}"),
+              _buildNavItem(icon: Icons.assignment_turned_in, title: "Rekodi Madeni", page: "debts"),
               _buildNavItem(icon: Icons.receipt, title: "Risiti", page: "receipts"),
               _buildNavItem(icon: Icons.swap_horiz, title: "Miamala", page: "transactions"),
               const Divider(color: Colors.white24, height: 16),
@@ -709,6 +710,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         Navigator.pushNamed(context, "/admin/vehicles");
       case "payments":
         Navigator.pushNamed(context, "/admin/payments");
+      case "debts":
+        Navigator.pushNamed(context, "/admin/debts");
       case "reports":
         Navigator.pushNamed(context, "/admin/reports");
       case "analytics":

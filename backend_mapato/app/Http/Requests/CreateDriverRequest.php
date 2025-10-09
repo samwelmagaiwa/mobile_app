@@ -27,7 +27,7 @@ class CreateDriverRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'phone' => 'required|string|max:20',
-            'license_number' => 'required|string|max:50|unique:drivers,license_number',
+'license_number' => 'nullable|string|max:50|unique:drivers,license_number',
             'vehicle_number' => 'nullable|string|max:50',
             'vehicle_type' => 'nullable|in:bajaji,pikipiki,gari',
             'status' => 'nullable|in:active,inactive',

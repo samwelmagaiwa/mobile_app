@@ -128,15 +128,17 @@ class PaymentReceipt extends Model
     public function getPreviewData(): array
     {
         return [
+            'id' => $this->id,
+            'receipt_id' => $this->id, // Alternative key for compatibility
             'receipt_number' => $this->receipt_number,
-            'driver_name' => $this->driver->name,
-            'driver_phone' => $this->driver->phone,
+            'driver_name' => $this->driver->name ?? '',
+            'driver_phone' => $this->driver->phone ?? '',
             'amount' => $this->amount,
             'payment_period' => $this->formatted_period,
-            'covered_days' => $this->covered_days,
-            'generated_at' => $this->generated_at->format('d/m/Y H:i'),
+            'covered_days' => $this->covered_days ?? [],
+            'generated_at' => optional($this->generated_at)->format('d/m/Y H:i') ?? '',
             'status' => $this->status,
-            'owner_name' => $this->generatedBy->name,
+            'owner_name' => $this->generatedBy->name ?? '',
         ];
     }
 

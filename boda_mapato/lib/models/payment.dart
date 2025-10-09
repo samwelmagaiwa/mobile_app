@@ -73,10 +73,9 @@ class Payment {
 }
 
 enum PaymentChannel {
-  cash('cash', 'Pesa Taslimu'),
-  mpesa('mpesa', 'M-Pesa'),
+  cash('cash', 'Mkononi'),
   bank('bank', 'Benki'),
-  mobile('mobile', 'Simu ya Mkono'),
+  mobile('mobile', 'Simu'),
   other('other', 'Nyingine');
 
   const PaymentChannel(this.value, this.displayName);
@@ -103,6 +102,9 @@ class DebtRecord {
   final String? paymentId;
   final DateTime? paidAt;
   final int daysOverdue;
+  final String? licenseNumber;
+  final bool promisedToPay;
+  final DateTime? promiseToPayAt;
 
   DebtRecord({
     this.id,
@@ -115,6 +117,9 @@ class DebtRecord {
     this.paymentId,
     this.paidAt,
     this.daysOverdue = 0,
+    this.licenseNumber,
+    this.promisedToPay = false,
+    this.promiseToPayAt,
   });
 
   double get remainingAmount => expectedAmount - paidAmount;
@@ -145,6 +150,11 @@ class DebtRecord {
             ? DateTime.tryParse(json['paid_at'].toString())
             : null,
         daysOverdue: int.tryParse(json['days_overdue']?.toString() ?? '0') ?? 0,
+        licenseNumber: json['license_number']?.toString(),
+        promisedToPay: json['promised_to_pay'] == true || json['promised_to_pay'] == 1,
+        promiseToPayAt: json['promise_to_pay_at'] != null
+            ? DateTime.tryParse(json['promise_to_pay_at'].toString())
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -158,6 +168,9 @@ class DebtRecord {
         'payment_id': paymentId,
         'paid_at': paidAt?.toIso8601String(),
         'days_overdue': daysOverdue,
+        'license_number': licenseNumber,
+        'promised_to_pay': promisedToPay,
+        'promise_to_pay_at': promiseToPayAt?.toIso8601String(),
       };
 
   DebtRecord copyWith({
@@ -171,6 +184,9 @@ class DebtRecord {
     String? paymentId,
     DateTime? paidAt,
     int? daysOverdue,
+    String? licenseNumber,
+    bool? promisedToPay,
+    DateTime? promiseToPayAt,
   }) =>
       DebtRecord(
         id: id ?? this.id,
@@ -183,6 +199,9 @@ class DebtRecord {
         paymentId: paymentId ?? this.paymentId,
         paidAt: paidAt ?? this.paidAt,
         daysOverdue: daysOverdue ?? this.daysOverdue,
+        licenseNumber: licenseNumber ?? this.licenseNumber,
+        promisedToPay: promisedToPay ?? this.promisedToPay,
+        promiseToPayAt: promiseToPayAt ?? this.promiseToPayAt,
       );
 }
 

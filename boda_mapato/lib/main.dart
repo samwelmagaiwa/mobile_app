@@ -8,6 +8,7 @@ import "constants/colors.dart";
 import "constants/styles.dart";
 import "providers/auth_provider.dart";
 import "providers/device_provider.dart";
+import "providers/debts_provider.dart";
 import "providers/transaction_provider.dart";
 import "screens/admin/admin_dashboard_screen.dart";
 import "screens/admin/drivers_management_screen.dart";
@@ -17,11 +18,11 @@ import "screens/payments/payments_screen.dart";
 import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
 import "screens/dashboard/modern_dashboard_screen.dart";
-import "screens/dashboard/modern_dashboard_test.dart";
 import "screens/driver/driver_dashboard_screen.dart";
 import "screens/reports/report_screen.dart";
 import "screens/reminders/reminders_screen.dart";
 import "screens/settings/settings_screen.dart";
+import "screens/admin/debts_management_screen.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,9 @@ class BodaMapatoApp extends StatelessWidget {
             ChangeNotifierProvider<DeviceProvider>(
               create: (final BuildContext _) => DeviceProvider(),
             ),
+            ChangeNotifierProvider<DebtsProvider>(
+              create: (final BuildContext _) => DebtsProvider(),
+            ),
           ],
           child: MaterialApp(
             title: "Boda Mapato",
@@ -74,8 +78,6 @@ class BodaMapatoApp extends StatelessWidget {
                   const AdminDashboardScreen(),
               "/modern-dashboard": (final BuildContext context) =>
                   const ModernDashboardScreen(),
-              "/modern-dashboard-test": (final BuildContext context) =>
-                  const ModernDashboardTest(),
               "/admin/drivers": (final BuildContext context) =>
                   const DriversManagementScreen(),
               "/admin/vehicles": (final BuildContext context) =>
@@ -90,6 +92,8 @@ class BodaMapatoApp extends StatelessWidget {
                   const ReportScreen(),
               "/admin/reminders": (final BuildContext context) =>
                   const RemindersScreen(),
+              "/admin/debts": (final BuildContext context) =>
+                  const DebtsManagementScreen(),
               "/settings": (final BuildContext context) =>
                   const SettingsScreen(),
             },
@@ -101,7 +105,6 @@ class BodaMapatoApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         primaryColor: AppColors.primary,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        fontFamily: "Inter",
 
         // Responsive theme components
         appBarTheme: AppStyles.appBarTheme(context),
@@ -120,17 +123,8 @@ class BodaMapatoApp extends StatelessWidget {
           style: AppStyles.secondaryButton(context),
         ),
 
-        // Text theme with responsive sizes
-        textTheme: TextTheme(
-          displayLarge: AppStyles.heading1Responsive(context),
-          displayMedium: AppStyles.heading2Responsive(context),
-          displaySmall: AppStyles.heading3Responsive(context),
-          headlineMedium: AppStyles.heading4Responsive(context),
-          bodyLarge: AppStyles.bodyLargeResponsive(context),
-          bodyMedium: AppStyles.bodyMediumResponsive(context),
-          bodySmall: AppStyles.bodySmallResponsive(context),
-          labelSmall: AppStyles.captionResponsive(context),
-        ),
+        // Text theme (keep Flutter defaults and app styles)
+        textTheme: Theme.of(context).textTheme,
 
         // Responsive spacing and sizing
         materialTapTargetSize: MaterialTapTargetSize.padded,

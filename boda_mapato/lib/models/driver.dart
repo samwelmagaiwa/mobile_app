@@ -16,6 +16,9 @@ class Driver {
     this.vehicleNumber,
     this.vehicleType,
     this.lastPayment,
+    this.totalDebt = 0,
+    this.unpaidDays = 0,
+    this.dueDates = const <String>[],
   });
 
   factory Driver.fromJson(final Map<String, dynamic> json) {
@@ -68,6 +71,12 @@ class Driver {
           : DateTime.now(),
       rating: parseDouble(json["rating"]),
       tripsCompleted: parseInt(json["trips_completed"]),
+      totalDebt: parseDouble(json["total_debt"]),
+      unpaidDays: parseInt(json["unpaid_days"]),
+      dueDates: (json["due_dates"] as List<dynamic>?)
+              ?.map((dynamic e) => e.toString())
+              .toList() ??
+          const <String>[],
     );
   }
   final String id;
@@ -83,6 +92,10 @@ class Driver {
   final DateTime joinedDate;
   final double rating;
   final int tripsCompleted;
+  // Debt summary (optional; present on payments/debts lists)
+  final double totalDebt;
+  final int unpaidDays;
+  final List<String> dueDates; // ordered oldest->newest when provided
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         "id": id,
@@ -98,6 +111,9 @@ class Driver {
         "joined_date": joinedDate.toIso8601String(),
         "rating": rating,
         "trips_completed": tripsCompleted,
+        "total_debt": totalDebt,
+        "unpaid_days": unpaidDays,
+        "due_dates": dueDates,
       };
 
   Driver copyWith({
@@ -114,6 +130,9 @@ class Driver {
     final DateTime? joinedDate,
     final double? rating,
     final int? tripsCompleted,
+    final double? totalDebt,
+    final int? unpaidDays,
+    final List<String>? dueDates,
   }) =>
       Driver(
         id: id ?? this.id,
@@ -129,6 +148,9 @@ class Driver {
         joinedDate: joinedDate ?? this.joinedDate,
         rating: rating ?? this.rating,
         tripsCompleted: tripsCompleted ?? this.tripsCompleted,
+        totalDebt: totalDebt ?? this.totalDebt,
+        unpaidDays: unpaidDays ?? this.unpaidDays,
+        dueDates: dueDates ?? this.dueDates,
       );
 
   @override

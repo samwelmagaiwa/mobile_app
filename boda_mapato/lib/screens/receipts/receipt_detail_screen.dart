@@ -179,7 +179,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                   Text(
                     r.driver.phone,
                     style: const TextStyle(
-                      color: ThemeConstants.textSecondary,
+                      color: Colors.white,
                       fontSize: 14,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -316,6 +316,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             const SizedBox(height: 12),
             TextField(
               controller: _contactController,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: _sendMethod == ReceiptSendMethod.email
                     ? 'Barua Pepe ya Mpokeaji'
@@ -414,7 +415,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
 
   Widget _methodChip(ReceiptSendMethod method, IconData icon) {
     final bool selected = _sendMethod == method;
-    const Color base = Color(0xFF191970); // Midnight Blue
+    const Color base = Color(0xFF4169E1); // Midnight Blue
     final Color bgColor = selected ? ThemeConstants.primaryOrange : base;
     final Color textColor = Colors.white;
     final Color iconColor = Colors.white;

@@ -6,6 +6,8 @@ import '../../models/driver.dart';
 import '../../models/payment.dart';
 import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
+import 'package:provider/provider.dart';
+import '../../providers/debts_provider.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -16,6 +18,7 @@ class PaymentsScreen extends StatefulWidget {
 
 class _PaymentsScreenState extends State<PaymentsScreen>
     with TickerProviderStateMixin {
+  bool _listeningProvider = false;
   final ApiService _apiService = ApiService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   
@@ -81,6 +84,26 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     ));
 
     _fadeController.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_listeningProvider) {
+      _listeningProvider = true;
+      try {
+        final DebtsProvider dp = Provider.of<DebtsProvider>(context, listen: false);
+        dp.addListener(() async {
+          if (dp.shouldRefresh) {
+            await _loadDriversWithDebts();
+            if (_selectedDriver != null) {
+              await _loadDriverDebts(_selectedDriver!.id);
+            }
+            dp.consume();
+          }
+        });
+      } catch (_) {}
+    }
   }
 
   @override
@@ -226,6 +249,11 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       final response = await _apiService.recordPayment(paymentData);
       
       if (response['success'] == true) {
+        // Notify other parts (Rekodi Madeni) to refresh its list
+        try {
+          // ignore: use_build_context_synchronously
+          Provider.of<DebtsProvider>(context, listen: false).markChanged();
+        } catch (_) {}
         _showSuccessDialog();
       } else {
         throw Exception(response['message'] ?? 'Failed to record payment');
@@ -967,17 +995,28 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           ],
         ),
         const SizedBox(height: 12),
-        ...unpaidDebts.map((debt) => _buildDebtRecordCard(debt)),
+        _buildDebtRecordsGrid(unpaidDebts),
       ],
+    );
+  }
+
+  Widget _buildDebtRecordsGrid(List<DebtRecord> unpaidDebts) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: unpaidDebts.map((debt) {
+        return SizedBox(
+          width: (MediaQuery.of(context).size.width - 44) / 2, // Account for container padding (32) and wrap spacing (12)
+          child: _buildDebtRecordCard(debt),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildDebtRecordCard(DebtRecord debt) {
     final isSelected = _selectedDebts.contains(debt);
     
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ThemeConstants.buildGlassCard(
+    return ThemeConstants.buildGlassCard(
         onTap: () => _toggleDebtSelection(debt),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -1047,6 +1086,48 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         fontSize: 12,
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if ((debt.licenseNumber ?? '').isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.badge, size: 12, color: ThemeConstants.textSecondary),
+                                const SizedBox(width: 4),
+                                Text('Leseni: ${debt.licenseNumber}', style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 10)),
+                              ],
+                            ),
+                          ),
+                        if (debt.promisedToPay)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: ThemeConstants.warningAmber.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.event_available, size: 12, color: ThemeConstants.warningAmber),
+                                const SizedBox(width: 4),
+                                Text(
+                                  debt.promiseToPayAt == null ? 'Ahadi ya kulipa' : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
+                                  style: const TextStyle(color: ThemeConstants.warningAmber, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1069,8 +1150,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildPaymentForm() {
@@ -1184,41 +1264,47 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 ),
                 const SizedBox(height: 12),
                 
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: PaymentChannel.values.map((channel) {
                     final isSelected = _selectedChannel == channel;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedChannel = channel;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? ThemeConstants.primaryOrange
-                              : Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected
-                                ? ThemeConstants.primaryOrange
-                                : Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          channel.displayName,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : ThemeConstants.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedChannel = channel;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? ThemeConstants.primaryOrange
+                                  : Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? ThemeConstants.primaryOrange
+                                    : Colors.white.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                channel.displayName,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : ThemeConstants.textPrimary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -1412,13 +1498,18 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: ThemeConstants.errorRed.withOpacity(0.2),
+                      color: (driver.totalDebt > 0
+                              ? ThemeConstants.errorRed
+                              : ThemeConstants.successGreen)
+                          .withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'Ana deni',
+                    child: Text(
+                      driver.totalDebt > 0 ? 'Ana deni' : 'Hana deni',
                       style: TextStyle(
-                        color: ThemeConstants.errorRed,
+                        color: driver.totalDebt > 0
+                            ? ThemeConstants.errorRed
+                            : ThemeConstants.successGreen,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),

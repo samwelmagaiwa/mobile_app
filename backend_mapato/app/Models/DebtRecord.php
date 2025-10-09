@@ -21,6 +21,9 @@ class DebtRecord extends Model
         'paid_at',
         'days_overdue',
         'notes',
+        'license_number',
+        'promised_to_pay',
+        'promise_to_pay_at',
     ];
 
     protected $casts = [
@@ -29,11 +32,14 @@ class DebtRecord extends Model
         'paid_amount' => 'decimal:2',
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
+        'promised_to_pay' => 'boolean',
+        'promise_to_pay_at' => 'datetime',
     ];
 
     protected $dates = [
         'earning_date',
         'paid_at',
+        'promise_to_pay_at',
     ];
 
     /**
@@ -196,6 +202,9 @@ class DebtRecord extends Model
             'payment_id' => $this->payment_id,
             'paid_at' => $this->paid_at?->toISOString(),
             'notes' => $this->notes,
+'license_number' => $this->license_number,
+            'promised_to_pay' => (bool) ($this->promised_to_pay ?? false),
+            'promise_to_pay_at' => $this->promise_to_pay_at?->toISOString(),
         ];
     }
 

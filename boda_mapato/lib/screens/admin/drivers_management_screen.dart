@@ -7,6 +7,8 @@ import "../../models/driver.dart";
 import "../../services/api_service.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
+import "driver_agreement_screen.dart";
+import "driver_history_screen.dart";
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -663,6 +665,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         ],
                       ),
                     ),
+                    const PopupMenuItem(
+                      value: "history",
+                      child: Row(
+                        children: <Widget>[
+                          Icon(Icons.history, color: ThemeConstants.primaryOrange),
+                          SizedBox(width: 8),
+                          Text("Ona Historia"),
+                        ],
+                      ),
+                    ),
                     PopupMenuItem(
                       value: isActive ? "deactivate" : "activate",
                       child: Row(
@@ -827,6 +839,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         _showDriverDetails(driver);
       case "edit":
         _showEditDriverDialog(driver);
+      case "history":
+        _navigateToDriverHistory(driver);
       case "activate":
       case "deactivate":
         _toggleDriverStatus(driver);
@@ -952,6 +966,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToDriverHistory(final Driver driver) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DriverHistoryScreen(
+          driver: driver,
+        ),
       ),
     );
   }
@@ -1192,7 +1216,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         "status": _selectedStatus,
       };
 
-      await _apiService.createDriver(driverData);
+      final response = await _apiService.createDriver(driverData);
 
       if (mounted) {
         Navigator.pop(context);
@@ -1208,6 +1232,52 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
+
+        // Debug: Print the response
+        print('Driver creation response: $response');
+
+        // Navigate to Driver Agreement screen
+        if (response['status'] == 'success' && response['data'] != null) {
+          final String driverId = response['data']['id'] ?? '';
+          final String driverName = _nameController.text.trim();
+          
+          print('Driver ID extracted: $driverId');
+          print('Driver Name: $driverName');
+          
+          if (driverId.isNotEmpty) {
+            print('Navigating to Driver Agreement Screen');
+            try {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DriverAgreementScreen(
+                    driverId: driverId,
+                    driverName: driverName,
+                    onAgreementCreated: () {
+                      // Refresh the drivers list when agreement is created
+                      widget.onDriverAdded();
+                    },
+                  ),
+                ),
+              );
+              print('Successfully navigated to Driver Agreement Screen');
+            } catch (navError) {
+              print('Error navigating to Driver Agreement Screen: $navError');
+              // Show error to user
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Hitilafu katika kuongoza kwenye makubaliano: $navError'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } else {
+            print('Driver ID is empty, cannot navigate to agreement screen');
+          }
+        } else {
+          print('Response status is not success or data is null');
+          print('Status: ${response['status']}');
+          print('Data: ${response['data']}');
+        }
       }
     } on Exception catch (e) {
       if (mounted) {

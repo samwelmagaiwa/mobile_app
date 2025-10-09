@@ -21,48 +21,71 @@ class PaymentController extends Controller
     public function getDriversWithDebts(Request $request): JsonResponse
     {
         try {
-            $page = $request->get('page', 1);
-            $limit = min($request->get('limit', 50), 100);
+            $page = max((int) $request->get('page', 1), 1);
+            $limit = min((int) $request->get('limit', 50), 100);
+            $onlyWithDebts = $request->boolean('only_with_debts', false);
 
-            // Get drivers who have unpaid debt records
-            $driversWithDebts = Driver::whereHas('debtRecords', function ($query) {
-                $query->where('is_paid', false);
-            })
-            ->with(['debtRecords' => function ($query) {
+            // Load all drivers with their unpaid debt records and user relation for name/phone
+            $driversQuery = Driver::with(['user', 'debtRecords' => function ($query) {
                 $query->where('is_paid', false)
                       ->orderBy('earning_date', 'desc');
-            }])
-            ->paginate($limit, ['*'], 'page', $page);
+            }]);
 
-            $drivers = $driversWithDebts->items();
-            $formattedDrivers = collect($drivers)->map(function ($driver) {
-                $unpaidRecords = $driver->debtRecords;
-                $totalDebt = $unpaidRecords->sum('remaining_amount');
-                
+            $drivers = $driversQuery->get();
+
+            // Build formatted collection with totals and status
+            $formatted = $drivers->map(function ($driver) {
+                $unpaidRecords = $driver->debtRecords ?? collect();
+                $totalDebt = (float) $unpaidRecords->sum(function ($r) {
+                    // remaining_amount is an accessor (expected_amount - paid_amount)
+                    return (float) $r->remaining_amount;
+                });
+                $unpaidCount = $unpaidRecords->count();
+
                 return [
-                    'id' => $driver->id,
-                    'name' => $driver->name,
-                    'email' => $driver->email,
-                    'phone' => $driver->phone,
+                    'id' => (string) $driver->id,
+                    'name' => (string) ($driver->name ?? ''),
+                    'email' => (string) ($driver->email ?? ''),
+                    'phone' => (string) ($driver->phone ?? ''),
                     'vehicle_number' => $driver->vehicle_number,
                     'vehicle_type' => $driver->vehicle_type,
                     'status' => $driver->status,
                     'total_debt' => $totalDebt,
-                    'unpaid_days' => $unpaidRecords->count(),
+                    'unpaid_days' => $unpaidCount,
                     'overdue_days' => $unpaidRecords->where('is_overdue', true)->count(),
+                    'has_debt' => $totalDebt > 0,
+                    'status_text' => $totalDebt > 0 ? 'Ana deni' : 'Hana deni',
                 ];
             });
 
+            // Optionally filter to only those with debts
+            if ($onlyWithDebts) {
+                $formatted = $formatted->filter(fn ($d) => $d['has_debt']);
+            }
+
+            // Sort: drivers with debts first, then by total debt desc, then by name asc
+            $sorted = $formatted->sortBy([
+                ['has_debt', 'desc'],
+                ['total_debt', 'desc'],
+                ['name', 'asc'],
+            ])->values();
+
+            // Manual pagination on the sorted collection
+            $total = $sorted->count();
+            $offset = ($page - 1) * $limit;
+            $pagedDrivers = $sorted->slice($offset, $limit)->values();
+            $totalPages = (int) ceil($total / $limit ?: 1);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Drivers with debts retrieved successfully',
+                'message' => 'Drivers retrieved successfully',
                 'data' => [
-                    'drivers' => $formattedDrivers,
+                    'drivers' => $pagedDrivers,
                     'pagination' => [
-                        'current_page' => $driversWithDebts->currentPage(),
-                        'per_page' => $driversWithDebts->perPage(),
-                        'total' => $driversWithDebts->total(),
-                        'total_pages' => $driversWithDebts->lastPage(),
+                        'current_page' => $page,
+                        'per_page' => $limit,
+                        'total' => $total,
+                        'total_pages' => $totalPages,
                     ]
                 ]
             ]);
@@ -72,7 +95,7 @@ class PaymentController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch drivers with debts',
+                'message' => 'Failed to fetch drivers',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -236,30 +259,8 @@ public function getDriverDebtRecords(string $driverId, Request $request): JsonRe
                 $remainingAmount -= $amountToPay;
             }
 
-            // Auto-generate receipt for this payment (after computing paidDays)
-            try {
-                $receiptNumber = \App\Models\PaymentReceipt::generateReceiptNumber();
-                $receipt = \App\Models\PaymentReceipt::create([
-                    'receipt_number' => $receiptNumber,
-                    'payment_id' => $payment->id,
-                    'driver_id' => $driverId,
-                    'generated_by' => auth()->id() ?? 1,
-                    'amount' => $amount,
-                    'payment_period' => $this->formatPeriod(count($coversDays)),
-                    'covered_days' => $coversDays,
-                    'status' => 'generated',
-                    'generated_at' => now(),
-                    'receipt_data' => $this->buildReceiptDataForPayment($payment, $paidDays),
-                ]);
-                // Update payment with generated status
-                $payment->update(['receipt_status' => 'generated']);
-            } catch (\Throwable $ex) {
-                // Do not fail payment if receipt generation fails; just log
-                \Illuminate\Support\Facades\Log::warning('Auto receipt generation failed', [
-                    'payment_id' => $payment->id,
-                    'error' => $ex->getMessage(),
-                ]);
-            }
+            // Receipt will be generated manually later via the admin interface
+            // Keep payment in 'pending' status for receipt generation
 
             DB::commit();
 

@@ -789,6 +789,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   },
                 ),
                 _buildDrawerItem(
+                  icon: Icons.assignment_turned_in,
+                  title: "Rekodi Madeni",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, "/admin/debts");
+                  },
+                ),
+                _buildDrawerItem(
                   icon: Icons.analytics,
                   title: "Takwimu",
                   onTap: () {
