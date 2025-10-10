@@ -52,7 +52,10 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+'url' => env('APP_URL', 'http://localhost'),
+
+    // Organization phone for reports and contact information
+    'phone' => env('APP_PHONE', '+255743519104'),
 
     /*
     |--------------------------------------------------------------------------

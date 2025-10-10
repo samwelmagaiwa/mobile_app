@@ -5,6 +5,7 @@ import "package:provider/provider.dart";
 import "../../constants/colors.dart";
 import "../../constants/styles.dart";
 import "../../providers/auth_provider.dart";
+import "../../services/api_service.dart";
 import "../../utils/responsive_utils.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
@@ -33,23 +34,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     });
 
     try {
-      // TODO(dev): Load dashboard data from API
-      await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-
-      // Mock data
-      _dashboardData = <String, dynamic>{
-        "assigned_vehicle": <String, String>{
-          "name": "Bajaji ya Kwanza",
-          "type": "bajaji",
-          "plate_number": "T123ABC",
-        },
-        "payments_today": 15000,
-        "payments_this_week": 85000,
-        "payments_this_month": 320000,
-        "total_trips": 156,
-        "total_earnings": 1250000,
-        "rating": 4.5,
-      };
+      // Load real dashboard data from API
+      final Map<String, dynamic> response = await ApiService().getDashboardData();
+      
+      setState(() {
+        _dashboardData = response['data'] ?? <String, dynamic>{};
+      });
     } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -42,8 +42,6 @@ class DeviceProvider extends ChangeNotifier {
       }
     } on Exception catch (e) {
       _setError("Failed to load devices: $e");
-      // Use mock data for development
-      _loadMockDevices();
     } finally {
       _setLoading(false);
     }
@@ -66,10 +64,6 @@ class DeviceProvider extends ChangeNotifier {
       return true;
     } on Exception catch (e) {
       _setError("Failed to add device: $e");
-      // Add to local list for development
-      _devices.add(device);
-      _selectedDevice ??= device;
-      notifyListeners();
       return false;
     }
   }
@@ -258,50 +252,6 @@ class DeviceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load mock data for development
-  void _loadMockDevices() {
-    final DateTime now = DateTime.now();
-    _devices = <Device>[
-      Device(
-        id: "device1",
-        name: "Bajaji ya Kwanza",
-        type: DeviceType.bajaji,
-        plateNumber: "T123ABC",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(days: 30)),
-        updatedAt: now.subtract(const Duration(days: 1)),
-        description: "Bajaji ya kijani ya abiria",
-      ),
-      Device(
-        id: "device2",
-        name: "Pikipiki Haraka",
-        type: DeviceType.pikipiki,
-        plateNumber: "MC456DEF",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(days: 20)),
-        updatedAt: now.subtract(const Duration(days: 2)),
-        description: "Pikipiki ya nyekundu ya haraka",
-      ),
-      Device(
-        id: "device3",
-        name: "Gari la Mizigo",
-        type: DeviceType.gari,
-        plateNumber: "T789GHI",
-        driverId: "driver1",
-        createdAt: now.subtract(const Duration(days: 10)),
-        updatedAt: now.subtract(const Duration(days: 3)),
-        description: "Gari la mizigo na abiria",
-        isActive: false,
-      ),
-    ];
-
-    // Set first device as selected
-    if (_devices.isNotEmpty) {
-      _selectedDevice = _devices.first;
-    }
-
-    notifyListeners();
-  }
 
   // Clear all data
   void clearData() {

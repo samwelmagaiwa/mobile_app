@@ -554,6 +554,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       data: _dashboardData["weekly_earnings"] ??
                           <double>[0, 0, 0, 0, 0, 0, 0],
                       animationValue: _chartAnimation.value,
+                      yAxisMax: 6000000, // Ensure scale supports up to 6M and beyond
                     ),
                     child: Container(),
                   ),
@@ -822,6 +823,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                     Navigator.pushNamed(context, "/admin/reminders");
                   },
                 ),
+                _buildDrawerItem(
+                  icon: Icons.chat,
+                  title: "Mawasiliano",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, "/admin/communications");
+                  },
+                ),
                 const Divider(color: textSecondary),
                 _buildDrawerItem(
                   icon: Icons.settings,
@@ -1030,13 +1039,27 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 // Custom Chart Painter
 class ChartPainter extends CustomPainter {
 
-  ChartPainter({required this.data, required this.animationValue});
+  ChartPainter({required this.data, required this.animationValue, this.yAxisMax});
   final List<dynamic> data;
   final double animationValue;
+  // Optional Y-axis maximum. If null, a nice rounded ceiling above data max is used.
+  final double? yAxisMax;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
+
+    // Layout paddings to make space for Y-axis labels
+    const double leftPad = 44.0;
+    const double rightPad = 12.0;
+    const double topPad = 8.0;
+    const double bottomPad = 28.0;
+
+    final double chartWidth = (size.width - leftPad - rightPad).clamp(1.0, double.infinity);
+    final double chartHeight = (size.height - topPad - bottomPad).clamp(1.0, double.infinity);
+    final double chartLeft = leftPad;
+    final double chartRight = leftPad + chartWidth;
+    final double chartBottom = size.height - bottomPad;
 
     final Paint paint = Paint()
       ..color = Colors.white.withOpacity(0.8)
@@ -1052,71 +1075,113 @@ class ChartPainter extends CustomPainter {
           Colors.white.withOpacity(0.3),
           Colors.white.withOpacity(0.05),
         ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ).createShader(Rect.fromLTWH(chartLeft, topPad, chartWidth, chartHeight))
       ..style = PaintingStyle.fill;
 
     final Path path = Path();
     final Path fillPath = Path();
 
-    final double maxValue =
+    final double dataMax =
         data.map((dynamic e) => _toDoubleStatic(e)).reduce(math.max);
-    final double minValue =
-        data.map((dynamic e) => _toDoubleStatic(e)).reduce(math.min);
-    final double range = maxValue - minValue;
 
-    if (range == 0) return;
+    // Determine the display max: at least yAxisMax (e.g., 6M), or a rounded-up nice number above data
+    double displayMax = yAxisMax ?? dataMax;
+    // Add 10% headroom above data if our desired max equals the data max
+    if ((yAxisMax == null) || (displayMax <= dataMax)) {
+      displayMax = _niceCeil((dataMax <= 0 ? 1 : dataMax) * 1.1);
+    }
+    // Ensure the displayMax is at least the provided yAxisMax (for 6M cap)
+    if (yAxisMax != null && displayMax < yAxisMax!) {
+      displayMax = yAxisMax!;
+    }
 
-    final double stepX = size.width / (data.length - 1);
+    if (displayMax <= 0) return;
+
+    // Draw horizontal gridlines and Y-axis labels (6 ticks including 0)
+    const int tickCount = 6;
+    final Paint gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.15)
+      ..strokeWidth = 1;
+
+    for (int i = 0; i < tickCount; i++) {
+      final double t = i / (tickCount - 1);
+      final double value = displayMax * (1 - t); // top to bottom labels
+      final double y = topPad + chartHeight * t;
+
+      // grid line
+      canvas.drawLine(Offset(chartLeft, y), Offset(chartRight, y), gridPaint);
+
+      // label
+      final TextPainter label = TextPainter(
+        text: TextSpan(
+          text: _formatShort(value),
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: leftPad - 6);
+      label.paint(canvas, Offset(0, y - label.height / 2));
+    }
+
+    final double stepX = chartWidth / (data.length - 1);
 
     for (int i = 0; i < data.length; i++) {
       final double value = _toDoubleStatic(data[i]);
-      final double normalizedValue = (value - minValue) / range;
-      final double x = i * stepX;
-      final double y = size.height -
-          (normalizedValue * size.height * 0.8 + size.height * 0.1);
+      // Normalize from 0 to displayMax so the baseline is zero and scale is flexible
+      final double normalizedValue = (value / displayMax).clamp(0.0, 1.0);
+      final double x = chartLeft + i * stepX;
+      final double y = chartBottom - (normalizedValue * chartHeight);
 
-      final double animatedX = x * animationValue;
-      final double animatedY = y + (size.height - y) * (1 - animationValue);
+      final double animatedX = chartLeft + (x - chartLeft) * animationValue;
+      final double animatedY = y + (chartBottom - y) * (1 - animationValue);
 
       if (i == 0) {
         path.moveTo(animatedX, animatedY);
-        fillPath.moveTo(animatedX, size.height);
+        fillPath.moveTo(animatedX, chartBottom);
         fillPath.lineTo(animatedX, animatedY);
       } else {
         path.lineTo(animatedX, animatedY);
         fillPath.lineTo(animatedX, animatedY);
       }
 
-      // Draw data points
-      if (animationValue > 0.8 && i % 2 == 0) {
-        canvas.drawCircle(
-          Offset(animatedX, animatedY),
-          4,
-          Paint()..color = Colors.white,
-        );
+      // Draw data point marker (kept as-is)
+      canvas.drawCircle(
+        Offset(animatedX, animatedY),
+        4,
+        Paint()..color = Colors.white,
+      );
 
-        // Draw value labels
-        final TextPainter textPainter = TextPainter(
-          text: TextSpan(
-            text: "TSH ${value.toStringAsFixed(0)}",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+      // Always-visible, rotated green amount label above each point/bar
+      final TextPainter textPainter = TextPainter(
+        text: TextSpan(
+          text: value.toStringAsFixed(0),
+          style: const TextStyle(
+            color: Color(0xFF00FF00), // bright green
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
-          textDirection: TextDirection.ltr,
-        );
-        textPainter.layout();
-        textPainter.paint(
-          canvas,
-          Offset(animatedX - textPainter.width / 2, animatedY - 25),
-        );
-      }
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+
+      // Position label directly above the bar/point and rotate 90° clockwise
+      canvas.save();
+      // Translate to a point above the data point
+      final double labelYOffset = 20.0;
+      canvas.translate(animatedX, animatedY - labelYOffset);
+      // Rotate clockwise 90 degrees so text reads left-to-right when head tilted right
+      canvas.rotate(math.pi / 2);
+      // Draw centered, with text positioned above the anchor point
+      textPainter.paint(
+        canvas,
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
+      );
+      canvas.restore();
+      
     }
 
     // Complete the fill path
-    fillPath.lineTo(size.width * animationValue, size.height);
+    fillPath.lineTo(chartLeft + chartWidth * animationValue, chartBottom);
     fillPath.close();
 
     // Draw fill first, then stroke
@@ -1136,5 +1201,33 @@ class ChartPainter extends CustomPainter {
       return double.tryParse(value) ?? 0.0;
     }
     return 0.0;
+  }
+
+  static String _formatShort(double value) {
+    if (value >= 1000000) {
+      return "${(value / 1000000).toStringAsFixed(1)}M";
+    }
+    if (value >= 1000) {
+      return "${(value / 1000).round()}K";
+    }
+    return value.round().toString();
+  }
+
+  // Compute a "nice" rounded-up ceiling for axis max (1, 2, or 5 times a power of 10)
+  static double _niceCeil(double value) {
+    if (value <= 0) return 1;
+    final double exponent = (math.log(value) / math.ln10).floorToDouble();
+    final double fraction = value / math.pow(10, exponent);
+    double niceFraction;
+    if (fraction <= 1) {
+      niceFraction = 1;
+    } else if (fraction <= 2) {
+      niceFraction = 2;
+    } else if (fraction <= 5) {
+      niceFraction = 5;
+    } else {
+      niceFraction = 10;
+    }
+    return niceFraction * math.pow(10, exponent) as double;
   }
 }

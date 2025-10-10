@@ -19,6 +19,8 @@ class Driver {
     this.totalDebt = 0,
     this.unpaidDays = 0,
     this.dueDates = const <String>[],
+    this.hasCompletedAgreement = false,
+    this.agreementStatus,
   });
 
   factory Driver.fromJson(final Map<String, dynamic> json) {
@@ -77,6 +79,10 @@ class Driver {
               ?.map((dynamic e) => e.toString())
               .toList() ??
           const <String>[],
+      hasCompletedAgreement: json["has_completed_agreement"] == true ||
+          json["agreement_status"] == "completed" ||
+          json["agreement_status"] == "active",
+      agreementStatus: json["agreement_status"]?.toString(),
     );
   }
   final String id;
@@ -96,6 +102,9 @@ class Driver {
   final double totalDebt;
   final int unpaidDays;
   final List<String> dueDates; // ordered oldest->newest when provided
+  // Agreement completion status
+  final bool hasCompletedAgreement;
+  final String? agreementStatus; // null, 'pending', 'completed', 'active', 'terminated'
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         "id": id,
@@ -114,6 +123,8 @@ class Driver {
         "total_debt": totalDebt,
         "unpaid_days": unpaidDays,
         "due_dates": dueDates,
+        "has_completed_agreement": hasCompletedAgreement,
+        "agreement_status": agreementStatus,
       };
 
   Driver copyWith({
@@ -133,6 +144,8 @@ class Driver {
     final double? totalDebt,
     final int? unpaidDays,
     final List<String>? dueDates,
+    final bool? hasCompletedAgreement,
+    final String? agreementStatus,
   }) =>
       Driver(
         id: id ?? this.id,
@@ -151,6 +164,8 @@ class Driver {
         totalDebt: totalDebt ?? this.totalDebt,
         unpaidDays: unpaidDays ?? this.unpaidDays,
         dueDates: dueDates ?? this.dueDates,
+        hasCompletedAgreement: hasCompletedAgreement ?? this.hasCompletedAgreement,
+        agreementStatus: agreementStatus ?? this.agreementStatus,
       );
 
   @override

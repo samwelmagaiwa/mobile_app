@@ -165,7 +165,7 @@ class DebtRecord extends Model
     /**
      * Create debt records for a driver for missing days
      */
-    public static function createMissingRecords(int $driverId, array $dates, float $expectedAmount): void
+    public static function createMissingRecords(string $driverId, array $dates, float $expectedAmount): void
     {
         foreach ($dates as $date) {
             self::firstOrCreate(
@@ -211,10 +211,36 @@ class DebtRecord extends Model
     /**
      * Get summary statistics for a driver's debt records
      */
-public static function getSummaryForDriver(string $driverId): array
+    public static function getSummaryForDriver(string $driverId): array
     {
         $records = self::byDriver($driverId)->get();
         
+        $totalDebt = $records->where('is_paid', false)->sum('remaining_amount');
+        $unpaidDays = $records->where('is_paid', false)->count();
+        $overdueDays = $records->where('is_overdue', true)->count();
+        $totalPaid = $records->sum('paid_amount');
+        $lastPayment = $records->where('is_paid', true)->max('paid_at');
+
+        return [
+            'driver_id' => $driverId,
+            'total_debt' => $totalDebt,
+            'unpaid_days' => $unpaidDays,
+            'overdue_days' => $overdueDays,
+            'total_paid' => $totalPaid,
+            'last_payment_date' => $lastPayment,
+            'debt_records' => $records->map->toApiResponse(),
+        ];
+    }
+
+    /**
+     * Get summary for a driver within a date range
+     */
+    public static function getSummaryForDriverInRange(string $driverId, string $startDate, string $endDate): array
+    {
+        $records = self::byDriver($driverId)
+            ->dateRange($startDate, $endDate)
+            ->get();
+
         $totalDebt = $records->where('is_paid', false)->sum('remaining_amount');
         $unpaidDays = $records->where('is_paid', false)->count();
         $overdueDays = $records->where('is_overdue', true)->count();

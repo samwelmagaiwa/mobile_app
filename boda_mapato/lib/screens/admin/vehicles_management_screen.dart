@@ -163,6 +163,17 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     );
   }
 
+  void _showSuccessSnackBar(final String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: ThemeConstants.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
   @override
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
@@ -527,8 +538,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
             const SizedBox(height: 16),
             Text(
               _searchQuery.isNotEmpty
-                  ? "Hakuna gari lililopatikana"
-                  : "Hakuna magari bado",
+                  ? "Hakuna chombo kilichopatikana"
+                  : "Hakuna vyombo bado",
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -539,7 +550,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
             Text(
               _searchQuery.isNotEmpty
                   ? "Jaribu kutafuta kwa jina lingine"
-                  : "Sajili gari la kwanza",
+                  : "Sajili chombo cha kwanza",
               style: const TextStyle(
                 fontSize: 14,
                 color: ThemeConstants.textSecondary, // Light text on blue background
@@ -551,7 +562,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 onPressed: _showAddVehicleDialog,
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: const Text(
-                  "Sajili Gari",
+                  "Sajili Chombo",
                   style: TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -814,7 +825,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(
-          "Sajili Gari",
+          "Sajili Chombo",
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       );
@@ -850,17 +861,23 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     switch (action) {
       case "view":
         _showVehicleDetails(vehicle);
+        break;
       case "edit":
         _showEditVehicleDialog(vehicle);
+        break;
       case "assign":
         _showAssignDriverDialog(vehicle);
+        break;
       case "unassign":
         _confirmUnassignDriver(vehicle);
+        break;
       case "activate":
       case "deactivate":
         _toggleVehicleStatus(vehicle);
+        break;
       case "delete":
         _confirmDeleteVehicle(vehicle);
+        break;
     }
   }
 
@@ -868,15 +885,22 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
+        backgroundColor: ThemeConstants.primaryBlue, // Blue background like other cards
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Maelezo ya ${vehicle.name}"),
+        title: Text(
+          "Maelezo ya ${vehicle.name}",
+          style: const TextStyle(
+            color: ThemeConstants.textPrimary, // White text on blue background
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               _buildDetailRow("Jina:", vehicle.name),
-              _buildDetailRow("Namba ya Gari:", vehicle.plateNumber),
+              _buildDetailRow("Namba ya Chombo:", vehicle.plateNumber),
               _buildDetailRow("Aina:", _getVehicleTypeDisplay(vehicle.type)),
               _buildDetailRow("Hali:", vehicle.isActive ? "Hai" : "Hahai"),
               _buildDetailRow(
@@ -893,7 +917,13 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Funga"),
+            child: const Text(
+              "Funga",
+              style: TextStyle(
+                color: ThemeConstants.textPrimary, // White text on blue background
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -911,7 +941,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 label,
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: Colors.black54,
+                  color: ThemeConstants.textSecondary, // Light text on blue background
                 ),
               ),
             ),
@@ -920,6 +950,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 value,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
+                  color: ThemeConstants.textPrimary, // White text on blue background
                 ),
               ),
             ),
@@ -943,37 +974,35 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   }
 
   void _showEditVehicleDialog(final Vehicle vehicle) {
-    // TODO: Implement edit vehicle dialog with real API call
     showDialog(
       context: context,
-      builder: (final BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Hariri ${vehicle.name}"),
-        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Sawa"),
-          ),
-        ],
+      builder: (final BuildContext context) => _EditVehicleDialog(
+        vehicle: vehicle,
+        onVehicleUpdated: (final Vehicle updated) {
+          final int idx = _vehicles.indexWhere((final v) => v.id == updated.id);
+          if (idx != -1) {
+            setState(() => _vehicles[idx] = updated);
+            _filterVehicles();
+          } else {
+            _loadVehicles(refresh: true);
+          }
+        },
       ),
     );
   }
 
   void _showAssignDriverDialog(final Vehicle vehicle) {
-    // TODO: Implement assign driver dialog
     showDialog(
       context: context,
-      builder: (final BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Weka Dereva kwa ${vehicle.name}"),
-        content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Sawa"),
-          ),
-        ],
+      builder: (final BuildContext context) => _AssignDriverDialog(
+        vehicle: vehicle,
+        onAssigned: (final Vehicle updated) {
+          final int idx = _vehicles.indexWhere((final v) => v.id == updated.id);
+          if (idx != -1) {
+            setState(() => _vehicles[idx] = updated);
+            _filterVehicles();
+          }
+        },
       ),
     );
   }
@@ -995,10 +1024,24 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              // TODO: Implement unassign driver API call
-              _showErrorSnackBar(
-                "Kipengele hiki kinatengenezwa. Subiri kidogo!",
-              );
+              try {
+                final res = await _apiService.unassignDriverFromVehicle(vehicle.id);
+                setState(() {
+                  final int idx = _vehicles.indexWhere((final v) => v.id == vehicle.id);
+                  if (idx != -1) {
+                    _vehicles[idx] = _vehicles[idx].copyWith(
+                      driverId: null,
+                      driverName: null,
+                      driverEmail: null,
+                      driverPhone: null,
+                    );
+                  }
+                });
+                _filterVehicles();
+                _showSuccessSnackBar("Dereva ameondolewa kwenye ${vehicle.plateNumber}");
+              } catch (e) {
+                _showErrorSnackBar("Imeshindikana kuondoa dereva: $e");
+              }
             },
             child: const Text(
               "Ondoa",
@@ -1031,10 +1074,20 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              // TODO(dev): Implement update vehicle status API call
-              _showErrorSnackBar(
-                "Kipengele hiki kinatengenezwa. Subiri kidogo!",
-              );
+              try {
+                final newActive = !isActive;
+                await _apiService.updateVehicle(vehicle.id, <String, dynamic>{
+                  "is_active": newActive,
+                });
+                setState(() {
+                  final int idx = _vehicles.indexWhere((final v) => v.id == vehicle.id);
+                  if (idx != -1) _vehicles[idx] = _vehicles[idx].copyWith(isActive: newActive);
+                });
+                _filterVehicles();
+                _showSuccessSnackBar(newActive ? "Chombo kimewashwa" : "Chombo kimezimwa");
+              } catch (e) {
+                _showErrorSnackBar("Imeshindikana kubadilisha hali ya chombo: $e");
+              }
             },
             child: Text(
               isActive ? "Zima" : "Washa",
@@ -1065,10 +1118,14 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              // TODO(dev): Implement delete vehicle API call
-              _showErrorSnackBar(
-                "Kipengele hiki kinatengenezwa. Subiri kidogo!",
-              );
+              try {
+                await _apiService.deleteVehicle(vehicle.id);
+                setState(() => _vehicles.removeWhere((final v) => v.id == vehicle.id));
+                _filterVehicles();
+                _showSuccessSnackBar("Chombo kimefutwa");
+              } catch (e) {
+                _showErrorSnackBar("Imeshindikana kufuta chombo: $e");
+              }
             },
             child: const Text(
               "Futa",
@@ -1099,6 +1156,304 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   }
 }
 
+// Edit Vehicle Dialog
+class _EditVehicleDialog extends StatefulWidget {
+  const _EditVehicleDialog({required this.vehicle, required this.onVehicleUpdated});
+  final Vehicle vehicle;
+  final void Function(Vehicle) onVehicleUpdated;
+
+  @override
+  State<_EditVehicleDialog> createState() => _EditVehicleDialogState();
+}
+
+class _EditVehicleDialogState extends State<_EditVehicleDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ApiService _apiService = ApiService();
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _plateController;
+  late final TextEditingController _descController;
+  late String _vehicleType;
+  late bool _isActive;
+  bool _saving = false;
+
+  final Map<String, String> _vehicleTypes = const {
+    'bajaji': 'Bajaji',
+    'pikipiki': 'Pikipiki',
+    'gari': 'Gari',
+  };
+
+  InputDecoration _inputDecoration(String label, {IconData? icon}) {
+    final OutlineInputBorder border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+    );
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+      prefixIcon: icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
+      filled: true,
+      fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final v = widget.vehicle;
+    _nameController = TextEditingController(text: v.name);
+    _plateController = TextEditingController(text: v.plateNumber);
+    _descController = TextEditingController(text: v.description ?? '');
+    _vehicleType = v.type;
+    _isActive = v.isActive;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _plateController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final payload = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'plate_number': _plateController.text.trim().toUpperCase(),
+        'type': _vehicleType,
+        'description': _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+        'is_active': _isActive,
+      };
+      await _apiService.updateVehicle(widget.vehicle.id, payload);
+      final updated = widget.vehicle.copyWith(
+        name: payload['name'] as String?,
+        plateNumber: payload['plate_number'] as String?,
+        type: payload['type'] as String?,
+        description: payload['description'] as String?,
+        isActive: payload['is_active'] as bool?,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onVehicleUpdated(updated);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Taarifa za chombo zimehifadhiwa.'),
+        backgroundColor: ThemeConstants.successGreen,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Hitilafu: $e'),
+        backgroundColor: ThemeConstants.errorRed,
+      ));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: ThemeConstants.primaryBlue,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Hariri ${widget.vehicle.name}', style: ThemeConstants.headingStyle),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                decoration: _inputDecoration('Jina', icon: Icons.drive_file_rename_outline),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Weka jina' : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _plateController,
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                decoration: _inputDecoration('Namba ya Chombo', icon: Icons.confirmation_number),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Weka namba ya chombo' : null,
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _vehicleType,
+                dropdownColor: ThemeConstants.primaryBlue,
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                items: _vehicleTypes.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (val) => setState(() => _vehicleType = val ?? _vehicleType),
+                decoration: _inputDecoration('Aina ya Chombo', icon: Icons.category),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _descController,
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                decoration: _inputDecoration('Maelezo (hiari)', icon: Icons.notes),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                value: _isActive,
+                title: Text(
+                  'Hali: ${_isActive ? 'Hai' : 'Hahai'}',
+                  style: const TextStyle(color: ThemeConstants.textPrimary),
+                ),
+                onChanged: (val) => setState(() => _isActive = val),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Ghairi', style: TextStyle(color: Colors.white)),
+        ),
+        ElevatedButton(
+          onPressed: _saving ? null : _save,
+          style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange, foregroundColor: Colors.white),
+          child: _saving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Hifadhi'),
+        ),
+      ],
+    );
+  }
+}
+
+// Assign Driver Dialog
+class _AssignDriverDialog extends StatefulWidget {
+  const _AssignDriverDialog({required this.vehicle, required this.onAssigned});
+  final Vehicle vehicle;
+  final void Function(Vehicle) onAssigned;
+
+  @override
+  State<_AssignDriverDialog> createState() => _AssignDriverDialogState();
+}
+
+class _AssignDriverDialogState extends State<_AssignDriverDialog> {
+  final ApiService _apiService = ApiService();
+  String? _selectedDriverId;
+  String? _selectedDriverName;
+  bool _loading = true;
+  List<Map<String, String>> _drivers = <Map<String, String>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDrivers();
+  }
+
+  Future<void> _loadDrivers() async {
+    try {
+      final res = await _apiService.getDrivers(page: 1, limit: 50);
+      final data = res['data'] ?? res;
+      final List<dynamic> list = data is Map<String, dynamic> ? (data['data'] ?? data['drivers'] ?? []) : (data as List<dynamic>? ?? []);
+      _drivers = list.map<Map<String, String>>((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        return {
+          'id': (m['id'] ?? '').toString(),
+          'name': (m['name'] ?? '').toString(),
+        };
+      }).toList();
+    } catch (e) {
+      _drivers = <Map<String, String>>[];
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _assign() async {
+    if (_selectedDriverId == null) return;
+    try {
+      await _apiService.assignDriverToVehicle(vehicleId: widget.vehicle.id, driverId: _selectedDriverId!);
+      final updated = widget.vehicle.copyWith(
+        driverId: _selectedDriverId,
+        driverName: _selectedDriverName,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onAssigned(updated);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Dereva amewekwa kwa chombo.'),
+        backgroundColor: ThemeConstants.successGreen,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Hitilafu: $e'),
+        backgroundColor: ThemeConstants.errorRed,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: ThemeConstants.primaryBlue,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Weka Dereva kwa ${widget.vehicle.name}', style: ThemeConstants.headingStyle),
+      content: _loading
+          ? const SizedBox(height: 64, child: Center(child: CircularProgressIndicator()))
+          : DropdownButtonFormField<String>(
+              value: _selectedDriverId,
+              dropdownColor: ThemeConstants.primaryBlue,
+              style: const TextStyle(color: Colors.white),
+              items: _drivers
+                  .map((d) => DropdownMenuItem<String>(
+                        value: d['id'],
+                        child: Text(
+                          d['name'] ?? '',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                setState(() {
+                  _selectedDriverId = val;
+                  _selectedDriverName = _drivers.firstWhere((e) => e['id'] == val)['name'];
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'Chagua Dereva',
+                labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                filled: true,
+                fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Ghairi', style: TextStyle(color: Colors.white)),
+        ),
+        ElevatedButton(
+          onPressed: _selectedDriverId == null ? null : _assign,
+          style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange, foregroundColor: Colors.white),
+          child: const Text('Weka'),
+        ),
+      ],
+    );
+  }
+}
+
 // Add Vehicle Dialog Widget
 class _AddVehicleDialog extends StatefulWidget {
   const _AddVehicleDialog({required this.onVehicleAdded});
@@ -1120,6 +1475,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
   // Form state
   bool _isLoading = false;
   String _selectedVehicleType = "bajaji";
+  bool _isActive = true;
 
   // Vehicle types
   final Map<String, String> _vehicleTypes = <String, String>{
@@ -1132,6 +1488,27 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
   static const Color primaryBlue = Color(0xFF1E40AF);
   static const Color successGreen = Color(0xFF10B981);
   static const Color errorRed = Color(0xFFEF4444);
+
+  InputDecoration _inputDecoration(String label, {IconData? icon, String? hint}) {
+    final OutlineInputBorder border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+    );
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+      hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
+      prefixIcon: icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
+      filled: true,
+      fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
 
   @override
   void dispose() {
@@ -1153,13 +1530,14 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
     try {
       await _apiService.initialize();
 
-      final Map<String, String?> vehicleData = <String, String?>{
+      final Map<String, dynamic> vehicleData = <String, dynamic>{
         "name": _nameController.text.trim(),
         "type": _selectedVehicleType,
         "plate_number": _plateNumberController.text.trim().toUpperCase(),
         "description": _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,
+        "is_active": _isActive,
       };
 
       await _apiService.createVehicle(vehicleData);
@@ -1171,7 +1549,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Gari ${_plateNumberController.text} limesajiliwa kikamilifu!",
+              "Chombo ${_plateNumberController.text} kimesajiliwa kikamilifu!",
             ),
             backgroundColor: successGreen,
             behavior: SnackBarBehavior.floating,
@@ -1184,7 +1562,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Hitilafu katika kusajili gari: $e"),
+            content: Text("Hitilafu katika kusajili chombo: $e"),
             backgroundColor: errorRed,
             behavior: SnackBarBehavior.floating,
             shape:
@@ -1205,6 +1583,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
   Widget build(final BuildContext context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
+          color: ThemeConstants.primaryBlue,
           constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1229,7 +1608,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
-                        "Sajili Gari Jipya",
+                        "Sajili Chombo Kipya",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -1260,13 +1639,11 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Vehicle name field
                         TextFormField(
                           controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: "Jina la Gari *",
-                            hintText: "Mfano: Bajaji ya Kwanza",
-                            prefixIcon: const Icon(Icons.label),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration(
+                            'Jina la Chombo *',
+                            hint: 'Mfano: Bajaji ya Kwanza',
+                            icon: Icons.label,
                           ),
                           validator: (final String? value) {
                             if (value == null || value.trim().isEmpty) {
@@ -1284,13 +1661,9 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Vehicle type dropdown
                         DropdownButtonFormField<String>(
                           value: _selectedVehicleType,
-                          decoration: InputDecoration(
-                            labelText: "Aina ya Gari *",
-                            prefixIcon: const Icon(Icons.category),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                          dropdownColor: ThemeConstants.primaryBlue,
+                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Aina ya Chombo *', icon: Icons.category),
                           items: _vehicleTypes.entries
                               .map(
                                 (final MapEntry<String, String> entry) =>
@@ -1316,21 +1689,15 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Plate number field
                         TextFormField(
                           controller: _plateNumberController,
-                          decoration: InputDecoration(
-                            labelText: "Namba ya Gari *",
-                            hintText: "T123ABC",
-                            prefixIcon: const Icon(Icons.confirmation_number),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Namba ya Chombo *', hint: 'T123ABC', icon: Icons.confirmation_number),
                           textCapitalization: TextCapitalization.characters,
                           validator: (final String? value) {
                             if (value == null || value.trim().isEmpty) {
-                              return "Namba ya gari ni lazima";
+                              return "Namba ya chombo ni lazima";
                             }
                             if (value.trim().length < 3) {
-                              return "Namba ya gari si sahihi";
+                              return "Namba ya chombo si sahihi";
                             }
                             return null;
                           },
@@ -1341,15 +1708,22 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Description field
                         TextFormField(
                           controller: _descriptionController,
-                          decoration: InputDecoration(
-                            labelText: "Maelezo (Hiari)",
-                            hintText: "Maelezo ya ziada kuhusu gari",
-                            prefixIcon: const Icon(Icons.description),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Maelezo (Hiari)', hint: 'Maelezo ya ziada kuhusu gari', icon: Icons.description),
                           maxLines: 3,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Status switch (Hali)
+                        SwitchListTile(
+                          value: _isActive,
+                          title: Text(
+                            'Hali: ${_isActive ? 'Hai' : 'Hahai'}',
+                            style: const TextStyle(color: ThemeConstants.textPrimary),
+                          ),
+                          onChanged: (val) => setState(() => _isActive = val),
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ],
                     ),
@@ -1360,9 +1734,9 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
               // Action buttons
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50], // Keep light grey footer like drivers page
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: ThemeConstants.primaryBlue,
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(16),
                     bottomRight: Radius.circular(16),
                   ),
@@ -1377,14 +1751,16 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Colors.grey),
+                            side: const BorderSide(color: Colors.white),
                           ),
+                          foregroundColor: Colors.white,
                         ),
                         child: const Text(
                           "Ghairi",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -1394,7 +1770,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: successGreen,
+                          backgroundColor: ThemeConstants.primaryOrange,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -1413,7 +1789,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                                 ),
                               )
                             : const Text(
-                                "Sajili Gari",
+                                "Sajili Chombo",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,

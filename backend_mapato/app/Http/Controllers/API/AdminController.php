@@ -8,11 +8,13 @@ use App\Models\Driver;
 use App\Models\Device;
 use App\Models\Transaction;
 use App\Models\Receipt;
+use App\Models\DriverAgreement;
 use App\Helpers\ResponseHelper;
 use App\Http\Requests\CreateDriverRequest;
 use App\Http\Requests\CreateVehicleRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AdminController extends Controller
 {
@@ -258,6 +260,15 @@ class AdminController extends Controller
                 // Calculate rating (placeholder - you can implement actual rating logic)
                 $rating = 4.5; // Default rating
                 
+                // Check agreement completion status
+                $activeAgreement = $driver ? $driver->driverAgreements()
+                    ->where('status', 'active')
+                    ->orWhere('status', 'completed')
+                    ->first() : null;
+                
+                $hasCompletedAgreement = $activeAgreement !== null;
+                $agreementStatus = $activeAgreement ? $activeAgreement->status : null;
+                
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -272,6 +283,8 @@ class AdminController extends Controller
                     'joined_date' => $user->created_at->toISOString(),
                     'rating' => $rating,
                     'trips_completed' => $tripsCompleted,
+                    'has_completed_agreement' => $hasCompletedAgreement,
+                    'agreement_status' => $agreementStatus,
                 ];
             });
 
@@ -400,11 +413,16 @@ class AdminController extends Controller
             $request->validate([
                 'name' => 'sometimes|string|max:255',
                 'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
+                // accept both phone_number and phone from clients
                 'phone_number' => 'sometimes|string|max:20',
+                'phone' => 'sometimes|string|max:20',
                 'status' => 'sometimes|in:active,inactive',
                 'license_number' => 'sometimes|string|max:50',
                 'address' => 'sometimes|string|max:500',
                 'emergency_contact' => 'sometimes|string|max:20',
+                // vehicle updates
+                'vehicle_number' => 'sometimes|string|max:20',
+                'vehicle_type' => 'sometimes|in:bajaji,pikipiki,gari',
             ]);
 
             $admin = $request->user();
@@ -423,7 +441,12 @@ class AdminController extends Controller
             $userData = [];
             if ($request->has('name')) $userData['name'] = $request->name;
             if ($request->has('email')) $userData['email'] = $request->email;
-            if ($request->has('phone_number')) $userData['phone_number'] = $request->phone_number;
+            // Map phone alias if provided
+            if ($request->has('phone_number')) {
+                $userData['phone_number'] = $request->phone_number;
+            } elseif ($request->has('phone')) {
+                $userData['phone_number'] = $request->phone;
+            }
             if ($request->has('status')) {
                 $userData['is_active'] = $request->status === 'active';
             }
@@ -444,14 +467,61 @@ class AdminController extends Controller
                 }
             }
 
+            // Handle vehicle update or assignment
+            if ($request->has('vehicle_number') && $request->has('vehicle_type')) {
+                $plate = strtoupper($request->vehicle_number);
+                $type = $request->vehicle_type;
+
+                // Find existing device by plate or current assigned device
+                $device = Device::where('plate_number', $plate)->first();
+                if (!$device && $user->device_id) {
+                    $device = Device::find($user->device_id);
+                }
+
+                if ($device) {
+                    // Ensure it's assigned to this driver
+                    if ($user->driver) {
+                        $device->driver_id = $user->driver->id;
+                    }
+                    $device->type = $type;
+                    $device->name = $type . ' - ' . $plate;
+                    $device->plate_number = $plate;
+                    $device->is_active = $user->is_active;
+                    $device->save();
+                } else {
+                    // Create a new device and assign
+                    $device = Device::create([
+                        'driver_id' => $user->driver?->id,
+                        'name' => $type . ' - ' . $plate,
+                        'type' => $type,
+                        'plate_number' => $plate,
+                        'description' => 'Vehicle assigned to ' . $user->name,
+                        'is_active' => $user->is_active,
+                    ]);
+                }
+
+                // Link to user for quick access
+                $user->update(['device_id' => $device->id]);
+            }
+
             // Load updated relationships
             $user->load(['driver', 'assignedDevice']);
 
-            return ResponseHelper::success([
+            // Return a unified payload consistent with getDriver
+            $driver = $user->driver;
+            $device = $user->assignedDevice;
+            $response = [
                 'id' => $user->id,
-                'user' => $user,
-                'message' => 'Driver updated successfully'
-            ], 'Driver updated successfully');
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone_number,
+                'license_number' => $driver?->license_number,
+                'vehicle_number' => $device?->plate_number,
+                'vehicle_type' => $device?->type,
+                'status' => $user->is_active ? 'active' : 'inactive',
+            ];
+
+            return ResponseHelper::success($response, 'Driver updated successfully');
 
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to update driver: ' . $e->getMessage(), 500);
@@ -518,12 +588,17 @@ class AdminController extends Controller
             // Build query for vehicles
             $query = Device::with(['driver.user']);
 
-            // If admin is authenticated, filter by admin's vehicles
+            // If admin is authenticated, include:
+            // - vehicles whose driver belongs to this admin, OR
+            // - unassigned vehicles (driver_id is null)
             if ($admin) {
-                $query->whereHas('driver', function ($q) use ($admin) {
-                    $q->whereHas('user', function ($userQuery) use ($admin) {
-                        $userQuery->where('created_by', $admin->id);
-                    });
+                $query->where(function ($scope) use ($admin) {
+                    $scope->whereHas('driver', function ($q) use ($admin) {
+                        $q->whereHas('user', function ($userQuery) use ($admin) {
+                            $userQuery->where('created_by', $admin->id);
+                        });
+                    })
+                    ->orWhereNull('driver_id');
                 });
             }
 
@@ -574,6 +649,90 @@ class AdminController extends Controller
 
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to retrieve vehicles: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update vehicle
+     */
+    public function updateVehicle(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'type' => 'sometimes|in:bajaji,pikipiki,gari',
+                'plate_number' => 'sometimes|string|max:20|unique:devices,plate_number,' . $id,
+                'description' => 'sometimes|nullable|string',
+                'is_active' => 'sometimes|boolean',
+                'driver_id' => 'sometimes|nullable|uuid|exists:drivers,id',
+            ]);
+
+            $vehicle = Device::findOrFail($id);
+
+            $update = $request->only(['name', 'type', 'plate_number', 'description', 'is_active']);
+            if (!empty($update)) {
+                $vehicle->update($update);
+            }
+
+            if ($request->has('driver_id')) {
+                $vehicle->driver_id = $request->driver_id; // can be null to unassign
+                $vehicle->save();
+
+                // Sync user's assigned device if possible
+                if ($request->driver_id) {
+                    $driver = Driver::find($request->driver_id);
+                    if ($driver) {
+                        $driver->user()?->update(['device_id' => $vehicle->id]);
+                    }
+                } else {
+                    // Unassign from any user currently pointing to this device
+                    \App\Models\User::where('device_id', $vehicle->id)->update(['device_id' => null]);
+                }
+            }
+
+            $vehicle->load('driver.user');
+
+            return ResponseHelper::success([
+                'id' => $vehicle->id,
+                'name' => $vehicle->name,
+                'type' => $vehicle->type,
+                'plate_number' => $vehicle->plate_number,
+                'description' => $vehicle->description,
+                'is_active' => $vehicle->is_active,
+                'driver' => $vehicle->driver ? [
+                    'id' => $vehicle->driver->id,
+                    'user_id' => $vehicle->driver->user_id,
+                    'name' => $vehicle->driver->user->name,
+                    'email' => $vehicle->driver->user->email,
+                    'phone' => $vehicle->driver->user->phone_number,
+                    'license_number' => $vehicle->driver->license_number,
+                ] : null,
+                'created_at' => $vehicle->created_at->toISOString(),
+                'updated_at' => $vehicle->updated_at->toISOString(),
+            ], 'Vehicle updated successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to update vehicle: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Unassign driver from vehicle
+     */
+    public function unassignDriverFromVehicle($id)
+    {
+        try {
+            $vehicle = Device::findOrFail($id);
+            $vehicle->driver_id = null;
+            $vehicle->save();
+            // Unlink any user currently assigned to this device
+            \App\Models\User::where('device_id', $vehicle->id)->update(['device_id' => null]);
+
+            return ResponseHelper::success([
+                'id' => $vehicle->id,
+                'driver' => null,
+            ], 'Driver unassigned successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to unassign driver: ' . $e->getMessage(), 500);
         }
     }
 
@@ -659,15 +818,26 @@ class AdminController extends Controller
 
             $admin = $request->user();
 
-            // Verify driver belongs to admin
-            $driver = User::where('id', $request->driver_id)
-                         ->where('created_by', $admin->id)
+            // Verify driver (restrict to admin's drivers only when authenticated)
+            $driverQuery = User::where('id', $request->driver_id)
                          ->where('role', 'driver')
-                         ->with('driver')
-                         ->firstOrFail();
+                         ->with('driver');
+            if ($admin) {
+                $driverQuery->where('created_by', $admin->id);
+            }
+            $driver = $driverQuery->first();
+            if (!$driver) {
+                return ResponseHelper::error('Driver not found or not managed by this admin', 404);
+            }
+            if (!$driver->driver) {
+                return ResponseHelper::error('Selected user is not a driver (profile missing)', 422);
+            }
 
             // Verify vehicle exists
-            $vehicle = Device::findOrFail($request->vehicle_id);
+            $vehicle = Device::find($request->vehicle_id);
+            if (!$vehicle) {
+                return ResponseHelper::error('Vehicle not found', 404);
+            }
 
             // Update assignments
             $vehicle->update(['driver_id' => $driver->driver->id]);
@@ -683,6 +853,22 @@ class AdminController extends Controller
 
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to assign driver to vehicle: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Delete vehicle
+     */
+    public function deleteVehicle($id)
+    {
+        try {
+            $vehicle = Device::findOrFail($id);
+            // Unlink any user pointing to this device
+            \App\Models\User::where('device_id', $vehicle->id)->update(['device_id' => null]);
+            $vehicle->delete();
+            return ResponseHelper::success(null, 'Vehicle deleted successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to delete vehicle: ' . $e->getMessage(), 500);
         }
     }
 
@@ -1175,16 +1361,12 @@ class AdminController extends Controller
 
             // For now, generate sample debt trend data
             // TODO: Replace with actual debt calculation logic when debt tracking is implemented
+            // Generate data in ascending month order (1-12)
             $trendData = [];
-            $now = now();
+            $currentYear = now()->year;
             
-            for ($i = $months - 1; $i >= 0; $i--) {
-                $periodStart = match($period) {
-                    'daily' => $now->copy()->subDays($i)->startOfDay(),
-                    'weekly' => $now->copy()->subWeeks($i)->startOfWeek(),
-                    'monthly' => $now->copy()->subMonths($i)->startOfMonth(),
-                    default => $now->copy()->subMonths($i)->startOfMonth(),
-                };
+            for ($month = 1; $month <= $months && $month <= 12; $month++) {
+                $periodStart = \Carbon\Carbon::create($currentYear, $month, 1)->startOfMonth();
                 
                 $periodLabel = match($period) {
                     'daily' => $periodStart->format('M d'),
@@ -1195,8 +1377,8 @@ class AdminController extends Controller
 
                 // Generate realistic debt amounts with some fluctuation
                 $baseAmount = 30000;
-                $variation = ($i % 3 == 0) ? 8000 : ($i % 2 == 0 ? -3000 : 5000);
-                $debtAmount = max(15000, min(60000, $baseAmount + $variation + ($i * 1000)));
+                $variation = ($month % 3 == 0) ? 8000 : ($month % 2 == 0 ? -3000 : 5000);
+                $debtAmount = max(15000, min(60000, $baseAmount + $variation + ($month * 1000)));
 
                 $trendData[] = [
                     'period' => $periodLabel,
@@ -1246,23 +1428,13 @@ class AdminController extends Controller
                 return ResponseHelper::error('Driver profile not found', 404);
             }
 
+            // Generate data in ascending month order (1-12)
             $trendData = [];
-            $now = now();
+            $currentYear = now()->year;
             
-            for ($i = $months - 1; $i >= 0; $i--) {
-                $periodStart = match($period) {
-                    'daily' => $now->copy()->subDays($i)->startOfDay(),
-                    'weekly' => $now->copy()->subWeeks($i)->startOfWeek(), 
-                    'monthly' => $now->copy()->subMonths($i)->startOfMonth(),
-                    default => $now->copy()->subMonths($i)->startOfMonth(),
-                };
-                
-                $periodEnd = match($period) {
-                    'daily' => $periodStart->copy()->endOfDay(),
-                    'weekly' => $periodStart->copy()->endOfWeek(),
-                    'monthly' => $periodStart->copy()->endOfMonth(),
-                    default => $periodStart->copy()->endOfMonth(),
-                };
+            for ($month = 1; $month <= $months && $month <= 12; $month++) {
+                $periodStart = \Carbon\Carbon::create($currentYear, $month, 1)->startOfMonth();
+                $periodEnd = $periodStart->copy()->endOfMonth();
                 
                 $periodLabel = match($period) {
                     'daily' => $periodStart->format('M d'),
@@ -1280,8 +1452,8 @@ class AdminController extends Controller
                 // If no actual data, generate sample data
                 if ($actualPayments == 0) {
                     $baseAmount = 15000;
-                    $variation = ($i % 4 == 0) ? 3000 : ($i % 3 == 0 ? -1000 : 2000);
-                    $paymentAmount = max(10000, min(35000, $baseAmount + $variation + ($i * 1500)));
+                    $variation = ($month % 4 == 0) ? 3000 : ($month % 3 == 0 ? -1000 : 2000);
+                    $paymentAmount = max(10000, min(35000, $baseAmount + $variation + ($month * 1500)));
                 } else {
                     $paymentAmount = $actualPayments;
                 }
@@ -1315,28 +1487,14 @@ class AdminController extends Controller
     }
 
     /**
-     * Get ultra-short month label for chart display
+     * Get month number label for chart display
      * 
      * @param \Carbon\Carbon $date
      * @return string
      */
     private function getUltraShortMonthLabel($date)
     {
-        $monthMap = [
-            1 => 'J',  // Jan
-            2 => 'F',  // Feb
-            3 => 'M',  // Mar
-            4 => 'A',  // Apr
-            5 => 'M',  // May
-            6 => 'J',  // Jun
-            7 => 'J',  // Jul
-            8 => 'A',  // Aug
-            9 => 'S',  // Sep
-            10 => 'O', // Oct
-            11 => 'N', // Nov
-            12 => 'D', // Dec
-        ];
-        
-        return $monthMap[$date->month];
+        // Return month number (1-12) for ascending order display
+        return (string) $date->month;
     }
 }

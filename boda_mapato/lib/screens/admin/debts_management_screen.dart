@@ -157,7 +157,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                         controller: _search,
                         style: const TextStyle(color: ThemeConstants.textPrimary),
                         decoration: InputDecoration(
-                          hintText: 'Tafuta dereva kwa jina, simu au namba ya gari',
+                          hintText: 'Tafuta dereva kwa jina, simu au namba ya chombo',
                           hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.08),

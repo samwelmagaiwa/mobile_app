@@ -59,6 +59,11 @@ dependencies:
   # Local storage
   shared_preferences: ^2.2.2
   
+  # PDF generation
+  pdf: ^3.10.7
+  # Google Fonts helper and printing utilities for PDFs
+  printing: ^5.13.4
+  
 
 dev_dependencies:
   flutter_test:

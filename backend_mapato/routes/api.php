@@ -15,6 +15,7 @@ use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\TestController;
 use App\Http\Controllers\API\TestReportController;
 use App\Http\Controllers\API\PaymentReceiptController;
+use App\Http\Controllers\API\CommunicationController;
 use App\Http\Controllers\DriverAgreementController;
 
 /*
@@ -62,6 +63,8 @@ Route::prefix('admin')->group(function () {
     // Driver trends and analytics
     Route::get('drivers/{driverId}/debt-trends', [AdminController::class, 'getDriverDebtTrends']);
     Route::get('drivers/{driverId}/payment-trends', [AdminController::class, 'getDriverPaymentTrends']);
+    // Driver history PDF (server-side PDF generation)
+    Route::get('drivers/{driverId}/history-pdf', [\App\Http\Controllers\API\DriverReportController::class, 'driverHistoryPdf']);
     
     // Payment management (temporary - no auth required)
     Route::post('record-payment', [AdminController::class, 'recordPayment']);
@@ -70,6 +73,9 @@ Route::prefix('admin')->group(function () {
     // Vehicle management (temporary - no auth required)
     Route::get('vehicles', [AdminController::class, 'getVehicles']);
     Route::post('vehicles', [AdminController::class, 'createVehicle']);
+    Route::put('vehicles/{id}', [AdminController::class, 'updateVehicle']);
+    Route::delete('vehicles/{id}', [AdminController::class, 'deleteVehicle']);
+    Route::post('vehicles/{id}/unassign', [AdminController::class, 'unassignDriverFromVehicle']);
     
     // Reminders management (temporary - no auth required)
     Route::get('reminders', [AdminController::class, 'getReminders']);
@@ -129,6 +135,18 @@ Route::prefix('admin')->group(function () {
         Route::delete('{id}', [DriverAgreementController::class, 'destroy']);
         Route::get('driver/{driverId}', [DriverAgreementController::class, 'getByDriver']);
         Route::post('calculate-preview', [DriverAgreementController::class, 'calculatePreview']);
+    });
+    
+    // Communications management (temporary - no auth required for testing)
+    Route::prefix('communications')->group(function () {
+        Route::get('', [CommunicationController::class, 'index']);
+        Route::post('', [CommunicationController::class, 'store']);
+        Route::get('summary', [CommunicationController::class, 'summary']);
+        Route::get('modes', [CommunicationController::class, 'modes']);
+        Route::get('driver/{driverId}', [CommunicationController::class, 'byDriver']);
+        Route::get('{id}', [CommunicationController::class, 'show']);
+        Route::put('{id}', [CommunicationController::class, 'update']);
+        Route::delete('{id}', [CommunicationController::class, 'destroy']);
     });
     
 });

@@ -75,6 +75,30 @@ class Driver extends Model
     }
 
     /**
+     * Get the communications for the driver.
+     */
+    public function communications()
+    {
+        return $this->hasMany(Communication::class);
+    }
+
+    /**
+     * Get the driver agreements.
+     */
+    public function driverAgreements()
+    {
+        return $this->hasMany(DriverAgreement::class);
+    }
+
+    /**
+     * Get the active driver agreement.
+     */
+    public function activeAgreement()
+    {
+        return $this->hasOne(DriverAgreement::class)->where('status', 'active');
+    }
+
+    /**
      * Get active devices for the driver.
      */
     public function activeDevices()
@@ -185,12 +209,18 @@ class Driver extends Model
 
     public function getVehicleNumberAttribute()
     {
-        return $this->user->assignedDevice->plate_number ?? null;
+        $device = $this->activeDevices()->latest('updated_at')->first()
+            ?? $this->devices()->latest('updated_at')->first()
+            ?? $this->user->assignedDevice;
+        return $device?->plate_number;
     }
 
     public function getVehicleTypeAttribute()
     {
-        return $this->user->assignedDevice->type ?? null;
+        $device = $this->activeDevices()->latest('updated_at')->first()
+            ?? $this->devices()->latest('updated_at')->first()
+            ?? $this->user->assignedDevice;
+        return $device?->type;
     }
 
     public function getStatusAttribute()

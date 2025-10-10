@@ -7,6 +7,11 @@ import "../../utils/responsive_helper.dart";
 import "../../services/api_service.dart";
 import "../../widgets/custom_button.dart";
 
+// Ensure compatibility with Material state properties used for theming
+// This keeps the file concise without refactoring every widget occurrence
+typedef WidgetState = MaterialState;
+typedef WidgetStateProperty<T> = MaterialStateProperty<T>;
+
 class DriverAgreementScreen extends StatefulWidget {
   const DriverAgreementScreen({
     required this.driverId,
@@ -30,7 +35,6 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
   // Form controllers - Updated field names as per requirements
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
-  final TextEditingController _yearOfCompletionController = TextEditingController();
   final TextEditingController _agreedAmountController = TextEditingController();
 
   // Form state variables
@@ -62,7 +66,6 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
   void dispose() {
     _startDateController.dispose();
     _endDateController.dispose();
-    _yearOfCompletionController.dispose();
     _agreedAmountController.dispose();
     super.dispose();
   }
@@ -72,7 +75,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     ResponsiveHelper.init(context);
     return Container(
       constraints: BoxConstraints(
-        minHeight: ResponsiveHelper.cardMinHeight,
+        // Remove large minimums so cards wrap content and reduce height
         maxWidth: ResponsiveHelper.maxCardWidth,
       ),
       decoration: BoxDecoration(
@@ -98,7 +101,19 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
             sigmaY: ResponsiveHelper.isMobile ? 6 : 8,
           ),
           child: Padding(
-            padding: ResponsiveHelper.cardPadding,
+            // Reduce vertical padding to keep text size while shrinking cards
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.isMobile
+                  ? ResponsiveHelper.wp(3)
+                  : (ResponsiveHelper.isTablet
+                      ? ResponsiveHelper.wp(2.5)
+                      : ResponsiveHelper.wp(2)),
+              vertical: ResponsiveHelper.isMobile
+                  ? ResponsiveHelper.wp(2)
+                  : (ResponsiveHelper.isTablet
+                      ? ResponsiveHelper.wp(2)
+                      : ResponsiveHelper.wp(1.5)),
+            ),
             child: child,
           ),
         ),
@@ -106,32 +121,35 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     );
   }
 
-  // Helper method for consistent form field styling
-  InputDecoration _getFormFieldDecoration(String labelText) {
+  // Helper method for consistent form field styling - matching driver registration blue theme
+  InputDecoration _getFormFieldDecoration(String labelText, {IconData? prefixIcon, Widget? suffixIcon}) {
     return InputDecoration(
       labelText: labelText,
-      labelStyle: ThemeConstants.responsiveSubHeadingStyle(context),
+      labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+      hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
+      prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: ThemeConstants.textSecondary) : null,
+      suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.transparent,
+      fillColor: ThemeConstants.primaryBlue.withOpacity(0.3),
       border: OutlineInputBorder(
-        borderSide: BorderSide(color: ThemeConstants.textSecondary),
         borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: ThemeConstants.textSecondary),
         borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: ThemeConstants.primaryOrange, width: 2),
         borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: ThemeConstants.errorRed),
         borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: ThemeConstants.errorRed, width: 2),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: ThemeConstants.errorRed, width: 2),
         borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: ThemeConstants.errorRed, width: 2),
       ),
     );
   }
@@ -142,6 +160,19 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       initialDate: _selectedStartDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)), // 5 years ahead
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: ThemeConstants.primaryOrange,
+              onPrimary: Colors.white,
+              surface: ThemeConstants.primaryBlue,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     
     if (picked != null) {
@@ -159,6 +190,19 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       initialDate: _selectedEndDate ?? DateTime.now().add(const Duration(days: 365)),
       firstDate: _selectedStartDate ?? DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)), // 5 years ahead
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: ThemeConstants.primaryOrange,
+              onPrimary: Colors.white,
+              surface: ThemeConstants.primaryBlue,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     
     if (picked != null) {
@@ -269,7 +313,6 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         if (_selectedAgreementType == "Kwa Mkataba") 
           ...<String, dynamic>{
             "end_date": _selectedEndDate!.toIso8601String(),
-            "year_of_completion": int.tryParse(_yearOfCompletionController.text) ?? 0,
             "total_profit": _totalProfit,
           },
       };
@@ -315,403 +358,473 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Makubaliano na Dereva",
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Driver info
-              if (widget.driverName != null)
-                _buildBlueBlendGlassCard(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          "Dereva:",
-                          style: ThemeConstants.responsiveSubHeadingStyle(context),
-                        ),
-                        ResponsiveHelper.verticalSpace(1),
-                        Text(
-                          widget.driverName!,
-                          style: ThemeConstants.responsiveHeadingStyle(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              
-              ResponsiveHelper.verticalSpace(3),
-
-              // Agreement type selection - Radio buttons in single row
-              _buildBlueBlendGlassCard(
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: Text(
-                          "Kwa Mkataba",
-                          style: ThemeConstants.responsiveBodyStyle(context),
-                        ),
-                        value: "Kwa Mkataba",
-                        groupValue: _selectedAgreementType,
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedAgreementType = value;
-                              _calculateTotalProfit();
-                            });
-                          }
-                        },
-                        dense: true,
-                        activeColor: ThemeConstants.primaryOrange,
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          checkboxTheme: CheckboxThemeData(
+            fillColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+              if (states.contains(MaterialState.selected)) {
+                return ThemeConstants.primaryOrange;
+              }
+              return Colors.transparent;
+            }),
+            checkColor: MaterialStateProperty.all<Color>(Colors.white),
+            side: const BorderSide(color: ThemeConstants.textSecondary, width: 1.5),
+          ),
+          radioTheme: RadioThemeData(
+            fillColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+              if (states.contains(MaterialState.selected)) {
+                return ThemeConstants.primaryOrange;
+              }
+              return Colors.white.withOpacity(0.7);
+            }),
+          ),
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: ResponsiveHelper.defaultPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                // Driver info
+                if (widget.driverName != null)
+                  _buildBlueBlendGlassCard(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            "Dereva:",
+                            style: ThemeConstants.responsiveSubHeadingStyle(context),
+                          ),
+                          ResponsiveHelper.verticalSpace(1),
+                          Text(
+                            widget.driverName!,
+                            style: ThemeConstants.responsiveHeadingStyle(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: Text(
-                          "Dei Waka",
-                          style: ThemeConstants.responsiveBodyStyle(context),
-                        ),
-                        value: "Dei Waka",
-                        groupValue: _selectedAgreementType,
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedAgreementType = value;
-                              _calculateTotalProfit();
-                            });
-                          }
-                        },
-                        dense: true,
-                        activeColor: ThemeConstants.primaryOrange,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              ResponsiveHelper.verticalSpace(3),
-
-              // Start Date (Tarehe ya Kuanza Kazi)
-              _buildBlueBlendGlassCard(
-                child: TextFormField(
-                  controller: _startDateController,
-                  style: ThemeConstants.responsiveBodyStyle(context),
-                  decoration: _getFormFieldDecoration("Tarehe ya Kuanza Kazi").copyWith(
-                    suffixIcon: const Icon(
-                      Icons.calendar_today,
-                      color: ThemeConstants.textPrimary,
-                    ),
                   ),
-                  readOnly: true,
-                  onTap: _selectStartDate,
-                  validator: (String? value) {
-                    if (value == null || value.isEmpty) {
-                      return "Chagua tarehe ya kuanza kazi";
-                    }
-                    return null;
-                  },
-                ),
-              ),
+                
+                ResponsiveHelper.verticalSpace(1.5),
 
-              ResponsiveHelper.verticalSpace(2),
-
-              // Weekend settings checkbox
-              _buildBlueBlendGlassCard(
-                child: CheckboxListTile(
-                  title: Text(
-                    "Wikendi Zinahesabika?",
-                    style: ThemeConstants.responsiveBodyStyle(context),
-                  ),
-                  value: _weekendsCountable,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _weekendsCountable = value ?? false;
-                      if (!_weekendsCountable) {
-                        _saturdayIncluded = false;
-                        _sundayIncluded = false;
-                      }
-                      _calculateTotalProfit();
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  activeColor: ThemeConstants.primaryOrange,
-                  checkColor: ThemeConstants.textPrimary,
-                ),
-              ),
-
-              // Weekend day selection (shown if weekends are countable)
-              if (_weekendsCountable) ...<Widget>[
-                ResponsiveHelper.verticalSpace(1),
+                // Agreement type selection - Radio buttons in single row
                 _buildBlueBlendGlassCard(
-                  child: Column(
+                  child: Row(
                     children: <Widget>[
-                      CheckboxListTile(
-                        title: Text(
-                          "Jumamosi",
-                          style: ThemeConstants.responsiveBodyStyle(context),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: Text(
+                            "Kwa Mkataba",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: "Kwa Mkataba",
+                          groupValue: _selectedAgreementType,
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedAgreementType = value;
+                                _calculateTotalProfit();
+                              });
+                            }
+                          },
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          splashRadius: 20,
+                          visualDensity: VisualDensity.compact,
+                          contentPadding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        value: _saturdayIncluded,
-                        onChanged: (bool? value) {
-                          setState(() {
-                            _saturdayIncluded = value ?? false;
-                            _calculateTotalProfit();
-                          });
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                        activeColor: ThemeConstants.primaryOrange,
-                        checkColor: ThemeConstants.textPrimary,
                       ),
-                      CheckboxListTile(
-                        title: Text(
-                          "Jumapili",
-                          style: ThemeConstants.responsiveBodyStyle(context),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: Text(
+                            "Dei Waka",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: "Dei Waka",
+                          groupValue: _selectedAgreementType,
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedAgreementType = value;
+                                _calculateTotalProfit();
+                              });
+                            }
+                          },
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          splashRadius: 20,
+                          visualDensity: VisualDensity.compact,
+                          contentPadding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        value: _sundayIncluded,
-                        onChanged: (bool? value) {
-                          setState(() {
-                            _sundayIncluded = value ?? false;
-                            _calculateTotalProfit();
-                          });
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                        activeColor: ThemeConstants.primaryOrange,
-                        checkColor: ThemeConstants.textPrimary,
                       ),
                     ],
                   ),
                 ),
-              ],
 
-              ResponsiveHelper.verticalSpace(3),
+                ResponsiveHelper.verticalSpace(1.5),
 
-              // Contract specific fields for "Kwa Mkataba"
-              if (_selectedAgreementType == "Kwa Mkataba") ...<Widget>[
-                // End Date
+                // Start Date (Tarehe ya Kuanza Kazi)
                 _buildBlueBlendGlassCard(
                   child: TextFormField(
-                    controller: _endDateController,
-                    style: ThemeConstants.responsiveBodyStyle(context),
-                    decoration: _getFormFieldDecoration("Tarehe ya Kumaliza").copyWith(
+                    controller: _startDateController,
+                    style: const TextStyle(color: ThemeConstants.textPrimary),
+                    decoration: _getFormFieldDecoration(
+                      "Tarehe ya Kuanza Kazi",
                       suffixIcon: const Icon(
                         Icons.calendar_today,
-                        color: ThemeConstants.textPrimary,
+                        color: ThemeConstants.textSecondary,
                       ),
                     ),
                     readOnly: true,
-                    onTap: _selectEndDate,
+                    onTap: _selectStartDate,
                     validator: (String? value) {
                       if (value == null || value.isEmpty) {
-                        return "Chagua tarehe ya kumaliza";
+                        return "Chagua tarehe ya kuanza kazi";
                       }
                       return null;
                     },
                   ),
                 ),
 
-                ResponsiveHelper.verticalSpace(2),
+                ResponsiveHelper.verticalSpace(1),
 
-                // Year of Completion
-                _buildBlueBlendGlassCard(
-                  child: TextFormField(
-                    controller: _yearOfCompletionController,
-                    style: ThemeConstants.responsiveBodyStyle(context),
-                    decoration: _getFormFieldDecoration("Mwaka wa Kumaliza"),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(4),
-                    ],
-                    validator: (String? value) {
-                      if (value == null || value.isEmpty) {
-                        return "Ingiza mwaka wa kumaliza";
-                      }
-                      final int? year = int.tryParse(value);
-                      if (year == null || year < DateTime.now().year) {
-                        return "Ingiza mwaka halali";
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-
-                ResponsiveHelper.verticalSpace(2),
-              ],
-
-              // Kiasi cha Makubaliano (Agreed Amount) - for both types
-              _buildBlueBlendGlassCard(
-                child: TextFormField(
-                  controller: _agreedAmountController,
-                  style: ThemeConstants.responsiveBodyStyle(context),
-                  decoration: _getFormFieldDecoration("Kiasi cha Makubaliano (TSh)").copyWith(
-                    prefixIcon: const Icon(
-                      Icons.attach_money,
-                      color: ThemeConstants.textPrimary,
-                    ),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  validator: (String? value) {
-                    if (value == null || value.isEmpty) {
-                      return "Ingiza kiasi cha makubaliano";
-                    }
-                    if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                      return "Ingiza kiasi halali";
-                    }
-                    return null;
-                  },
-                  onChanged: (String value) {
-                    _calculateTotalProfit();
-                  },
-                ),
-              ),
-
-              ResponsiveHelper.verticalSpace(2),
-
-              // Total Profit display for Kwa Mkataba
-              if (_selectedAgreementType == "Kwa Mkataba" && _totalProfit > 0) ...<Widget>[
-                _buildBlueBlendGlassCard(
-                  child: Container(
-                    width: double.infinity,
-                    padding: ResponsiveHelper.cardPadding,
-                    decoration: BoxDecoration(
-                      color: ThemeConstants.successGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: ThemeConstants.successGreen.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        const Icon(
-                          Icons.calculate,
-                          color: ThemeConstants.successGreen,
-                          size: 24,
+                if (_selectedAgreementType == "Kwa Mkataba") ...<Widget>[
+                  _buildBlueBlendGlassCard(
+                    child: TextFormField(
+                      controller: _endDateController,
+                      style: const TextStyle(color: ThemeConstants.textPrimary),
+                      decoration: _getFormFieldDecoration(
+                        "Tarehe ya Kumaliza",
+                        suffixIcon: const Icon(
+                          Icons.calendar_today,
+                          color: ThemeConstants.textSecondary,
                         ),
-                        ResponsiveHelper.horizontalSpace(2),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                "Faida Jumla",
-                                style: ThemeConstants.responsiveSubHeadingStyle(context).copyWith(
-                                  color: ThemeConstants.successGreen,
-                                ),
-                              ),
-                              ResponsiveHelper.verticalSpace(0.5),
-                              Text(
-                                "TSh ${NumberFormat('#,###').format(_totalProfit)}",
-                                style: ThemeConstants.responsiveHeadingStyle(context).copyWith(
-                                  color: ThemeConstants.successGreen,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      ),
+                      readOnly: true,
+                      onTap: _selectEndDate,
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) {
+                          return "Chagua tarehe ya kumaliza";
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  ResponsiveHelper.verticalSpace(1),
+                ],
+
+                // Weekend settings checkbox
+                _buildBlueBlendGlassCard(
+                  child: CheckboxListTile(
+                    title: Text(
+                      "Wikendi Zinahesabika?",
+                      style: ThemeConstants.responsiveBodyStyle(context),
+                    ),
+                    value: _weekendsCountable,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _weekendsCountable = value ?? false;
+                        if (!_weekendsCountable) {
+                          _saturdayIncluded = false;
+                          _sundayIncluded = false;
+                        }
+                        _calculateTotalProfit();
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: ThemeConstants.primaryOrange,
+                    checkColor: Colors.white,
+                    fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ThemeConstants.primaryOrange;
+                      }
+                      return Colors.white.withOpacity(0.7);
+                    }),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+
+                // Weekend day selection (shown if weekends are countable)
+                if (_weekendsCountable) ...<Widget>[
+                  ResponsiveHelper.verticalSpace(0.75),
+                  _buildBlueBlendGlassCard(
+                    child: Column(
+                      children: <Widget>[
+                        CheckboxListTile(
+                          title: Text(
+                            "Jumamosi",
+                            style: ThemeConstants.responsiveBodyStyle(context),
                           ),
+                          value: _saturdayIncluded,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _saturdayIncluded = value ?? false;
+                              _calculateTotalProfit();
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          checkColor: Colors.white,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        CheckboxListTile(
+                          title: Text(
+                            "Jumapili",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: _sundayIncluded,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _sundayIncluded = value ?? false;
+                              _calculateTotalProfit();
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          checkColor: Colors.white,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
                         ),
                       ],
                     ),
                   ),
+                ],
+
+                ResponsiveHelper.verticalSpace(1.5),
+
+
+                // Kiasi cha Makubaliano (Agreed Amount) - for both types
+                _buildBlueBlendGlassCard(
+                  child: TextFormField(
+                    controller: _agreedAmountController,
+                    style: const TextStyle(color: ThemeConstants.textPrimary),
+                    decoration: _getFormFieldDecoration(
+                      "Kiasi cha Makubaliano (TSh)",
+                      prefixIcon: Icons.attach_money,
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: <TextInputFormatter>[
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) {
+                        return "Ingiza kiasi cha makubaliano";
+                      }
+                      if (double.tryParse(value) == null || double.parse(value) <= 0) {
+                        return "Ingiza kiasi halali";
+                      }
+                      return null;
+                    },
+                    onChanged: (String value) {
+                      _calculateTotalProfit();
+                    },
+                  ),
+                ),
+
+                ResponsiveHelper.verticalSpace(1),
+
+                // Total Profit display for Kwa Mkataba
+                if (_selectedAgreementType == "Kwa Mkataba" && _totalProfit > 0) ...<Widget>[
+                  _buildBlueBlendGlassCard(
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveHelper.wp(2.5),
+                          vertical: ResponsiveHelper.wp(1.5),
+                        ),
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: ThemeConstants.successGreen.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(
+                            Icons.calculate,
+                            color: ThemeConstants.successGreen,
+                            size: 24,
+                          ),
+                          ResponsiveHelper.horizontalSpace(2),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  "Faida Jumla",
+                                  style: ThemeConstants.responsiveSubHeadingStyle(context).copyWith(
+                                    color: ThemeConstants.successGreen,
+                                  ),
+                                ),
+                                ResponsiveHelper.verticalSpace(0.5),
+                                Text(
+                                  "TSh ${NumberFormat('#,###').format(_totalProfit)}",
+                                  style: ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                                    color: ThemeConstants.successGreen,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  ResponsiveHelper.verticalSpace(1),
+                ],
+
+                ResponsiveHelper.verticalSpace(0.75),
+
+                // Payment frequency options
+                Text(
+                  "Mzunguko wa Malipo:",
+                  style: ThemeConstants.responsiveHeadingStyle(context),
+                ),
+                ResponsiveHelper.verticalSpace(0.75),
+
+                _buildBlueBlendGlassCard(
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            "Kila Siku",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: _dailyPayment,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _dailyPayment = value ?? false;
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          checkColor: Colors.white,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      Expanded(
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            "Kila Wiki",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: _weeklyPayment,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _weeklyPayment = value ?? false;
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          checkColor: Colors.white,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      Expanded(
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            "Kila Mwezi",
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                          ),
+                          value: _monthlyPayment,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _monthlyPayment = value ?? false;
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          activeColor: ThemeConstants.primaryOrange,
+                          checkColor: Colors.white,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return ThemeConstants.primaryOrange;
+                            }
+                            return Colors.white.withOpacity(0.7);
+                          }),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 ResponsiveHelper.verticalSpace(2),
-              ],
 
-              ResponsiveHelper.verticalSpace(1),
-
-              // Payment frequency options
-              Text(
-                "Mzunguko wa Malipo:",
-                style: ThemeConstants.responsiveHeadingStyle(context),
-              ),
-              ResponsiveHelper.verticalSpace(1),
-
-              _buildBlueBlendGlassCard(
-                child: Column(
-                  children: <Widget>[
-                    CheckboxListTile(
-                      title: Text(
-                        "Kila Siku",
-                        style: ThemeConstants.responsiveBodyStyle(context),
-                      ),
-                      value: _dailyPayment,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _dailyPayment = value ?? false;
-                        });
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: ThemeConstants.primaryOrange,
-                      checkColor: ThemeConstants.textPrimary,
-                      secondary: const Icon(
-                        Icons.today,
-                        color: ThemeConstants.textSecondary,
-                      ),
-                    ),
-                    CheckboxListTile(
-                      title: Text(
-                        "Kila Wiki",
-                        style: ThemeConstants.responsiveBodyStyle(context),
-                      ),
-                      value: _weeklyPayment,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _weeklyPayment = value ?? false;
-                        });
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: ThemeConstants.primaryOrange,
-                      checkColor: ThemeConstants.textPrimary,
-                      secondary: const Icon(
-                        Icons.date_range,
-                        color: ThemeConstants.textSecondary,
-                      ),
-                    ),
-                    CheckboxListTile(
-                      title: Text(
-                        "Kila Mwezi",
-                        style: ThemeConstants.responsiveBodyStyle(context),
-                      ),
-                      value: _monthlyPayment,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _monthlyPayment = value ?? false;
-                        });
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: ThemeConstants.primaryOrange,
-                      checkColor: ThemeConstants.textPrimary,
-                      secondary: const Icon(
-                        Icons.calendar_month,
-                        color: ThemeConstants.textSecondary,
-                      ),
-                    ),
-                  ],
+                // Save button
+                SizedBox(
+                  width: double.infinity,
+                  child: CustomButton(
+                    text: "Hifadhi Makubaliano",
+                    onPressed: _isLoading ? null : _saveAgreement,
+                    isLoading: _isLoading,
+                  ),
                 ),
+
+                ResponsiveHelper.verticalSpace(1),
+                ],
               ),
-
-              ResponsiveHelper.verticalSpace(4),
-
-              // Save button
-              SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  text: "Hifadhi Makubaliano",
-                  onPressed: _isLoading ? null : _saveAgreement,
-                  isLoading: _isLoading,
-                ),
-              ),
-
-              ResponsiveHelper.verticalSpace(2),
-            ],
+            ),
           ),
         ),
       ),

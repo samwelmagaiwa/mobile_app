@@ -23,6 +23,7 @@ import "screens/reports/report_screen.dart";
 import "screens/reminders/reminders_screen.dart";
 import "screens/settings/settings_screen.dart";
 import "screens/admin/debts_management_screen.dart";
+import "screens/admin/communications_screen.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +95,8 @@ class BodaMapatoApp extends StatelessWidget {
                   const RemindersScreen(),
               "/admin/debts": (final BuildContext context) =>
                   const DebtsManagementScreen(),
+              "/admin/communications": (final BuildContext context) =>
+                  const CommunicationsScreen(),
               "/settings": (final BuildContext context) =>
                   const SettingsScreen(),
             },

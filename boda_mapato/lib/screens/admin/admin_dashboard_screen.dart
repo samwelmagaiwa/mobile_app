@@ -645,6 +645,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               _buildNavItem(icon: Icons.trending_up, title: "Uchambuzi", page: "analytics"),
               const Divider(color: Colors.white24, height: 16),
               _buildNavItem(icon: Icons.notifications, title: "Mikumbuzi", page: "reminders"),
+              _buildNavItem(icon: Icons.chat, title: "Mawasiliano", page: "communications"),
               _buildNavItem(icon: Icons.settings, title: "Mipangilio", page: "settings"),
             ],
           ),
@@ -718,6 +719,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         Navigator.pushNamed(context, "/admin/analytics");
       case "reminders":
         Navigator.pushNamed(context, "/admin/reminders");
+      case "communications":
+        Navigator.pushNamed(context, "/admin/communications");
       default:
         _showComingSoonDialog(page);
     }

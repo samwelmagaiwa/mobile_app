@@ -640,11 +640,11 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           // Header
           ThemeConstants.buildGlassCardStatic(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: ThemeConstants.primaryOrange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -655,7 +655,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,13 +684,13 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
           // Search Bar
           ThemeConstants.buildGlassCard(
             onTap: () {},
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   const Icon(
@@ -722,7 +722,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           fillColor: Colors.transparent, // background handled by Container above
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                       ),
                     ),
@@ -732,7 +732,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ),
           
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           
           // Drivers List
           if (_isLoadingDrivers)
@@ -750,7 +750,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Widget _buildPaymentFormView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Form(
         key: _formKey,
         child: Column(
@@ -758,13 +758,13 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           children: [
             // Driver Info Header
             _buildDriverInfoHeader(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             
             // Payment Summary if debts loaded
             if (_driverPaymentSummary != null)
               _buildDebtSummaryCard(),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             
             // Debt Records Selection
             if (_isLoadingDebts)
@@ -772,7 +772,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             else if (_driverPaymentSummary != null)
               _buildDebtRecordsList(),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             
             // Payment Form
             if (_driverPaymentSummary != null && !_isLoadingDebts)
@@ -786,7 +786,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   Widget _buildDriverInfoHeader() {
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         child: Row(
           children: [
             IconButton(
@@ -842,7 +842,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -864,7 +864,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -885,7 +885,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               ],
             ),
             if (summary.lastPaymentDate != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildSummaryItem(
                 'Malipo ya Mwisho',
                 _formatDate(summary.lastPaymentDate!),
@@ -994,7 +994,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildDebtRecordsGrid(unpaidDebts),
       ],
     );
@@ -1019,7 +1019,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     return ThemeConstants.buildGlassCard(
         onTap: () => _toggleDebtSelection(debt),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: isSelected
@@ -1086,14 +1086,14 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 6),
+              const SizedBox(height: 4),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: [
                         if ((debt.licenseNumber ?? '').isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(10),
@@ -1109,7 +1109,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           ),
                         if (debt.promisedToPay)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: ThemeConstants.warningAmber.withOpacity(0.18),
                               borderRadius: BorderRadius.circular(10),
@@ -1133,7 +1133,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               ),
               if (debt.isOverdue)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
                     color: ThemeConstants.errorRed.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -1175,7 +1175,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         
         ThemeConstants.buildGlassCardStatic(
           child: Padding(
@@ -1192,7 +1192,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextFormField(
                   controller: _amountController,
                   keyboardType: TextInputType.number,
@@ -1251,7 +1251,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   },
                 ),
                 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 
                 // Payment Channel
                 const Text(
@@ -1262,7 +1262,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 
                 Row(
                   children: PaymentChannel.values.map((channel) {
@@ -1279,7 +1279,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 10,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
@@ -1312,7 +1312,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   }).toList(),
                 ),
                 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 
                 // Remarks Field
                 const Text(
@@ -1323,7 +1323,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextFormField(
                   controller: _remarksController,
                   maxLines: 3,
@@ -1374,7 +1374,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
                         color: (_isSubmittingPayment || _selectedDebts.isEmpty
@@ -1394,7 +1394,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       backgroundColor: Colors.transparent,
                       foregroundColor: Colors.white,
                       shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -1458,7 +1458,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

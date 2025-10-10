@@ -1,13 +1,14 @@
 import "dart:convert";
 import "dart:io";
+import "dart:typed_data";
 import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
 
 class ApiService {
   // API Configuration - Updated for Laravel backend
   // For development on localhost (when running flutter on same machine)
-  static const String baseUrl = "http://192.168.1.124:8000/api";
-  static const String webBaseUrl = "http://127.0.1:8000";
+  static const String baseUrl = "http://127.0.0.1/mobile_app/backend_mapato/public/api";
+  static const String webBaseUrl = "http://127.0.0.1/mobile_app/backend_mapato/public";
 
   // Alternative URLs for different environments:
   // For real device testing: "http://192.168.1.124:8000/api";
@@ -79,6 +80,49 @@ class ApiService {
     return _get(endpoint, requireAuth: requireAuth);
   }
 
+  // Fetch raw PDF bytes from API (application/pdf)
+  Future<Uint8List> getPdf(
+    final String endpoint, {
+    final bool requireAuth = true,
+  }) async {
+    try {
+      final Map<String, String> headers = requireAuth ? await _authHeaders : _headers;
+      final http.Response response = await http
+          .get(
+            Uri.parse("$baseUrl$endpoint"),
+            headers: {
+              ...headers,
+              "Accept": "application/pdf",
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200 && response.headers['content-type']?.contains('application/pdf') == true) {
+        return response.bodyBytes;
+      }
+      throw ApiException("Server returned status ${response.statusCode}");
+    } on SocketException catch (e) {
+      throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
+    } on Exception catch (e) {
+      throw ApiException("Hitilafu ya kupata PDF: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> post(
+    final String endpoint,
+    final Map<String, dynamic> data, {
+    final bool requireAuth = true,
+  }) async {
+    return _post(endpoint, data, requireAuth: requireAuth);
+  }
+
+  Future<Map<String, dynamic>> put(
+    final String endpoint,
+    final Map<String, dynamic> data,
+  ) async {
+    return _put(endpoint, data);
+  }
+
   Future<Map<String, dynamic>> _get(
     final String endpoint, {
     final bool requireAuth = true,
@@ -113,6 +157,7 @@ class ApiService {
     try {
       final Map<String, String> headers =
           requireAuth ? await _authHeaders : _headers;
+      
       final http.Response response = await http
           .post(
             Uri.parse("$baseUrl$endpoint"),
@@ -120,7 +165,7 @@ class ApiService {
             body: json.encode(data),
           )
           .timeout(timeoutDuration);
-
+      
       return _handleResponse(response);
     } on SocketException catch (e) {
       throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
@@ -213,9 +258,9 @@ class ApiService {
         }
         throw ApiException(data["message"] ?? "Data si sahihi");
       case 500:
-        throw ApiException("Hitilafu ya seva ya ndani");
+        throw ApiException(data["message"] ?? "Hitilafu ya seva ya ndani");
       default:
-        throw ApiException("Hitilafu isiyojulikana: ${response.statusCode}");
+        throw ApiException(data["message"] ?? "Hitilafu isiyojulikana: ${response.statusCode}");
     }
   }
 
@@ -290,10 +335,14 @@ class ApiService {
   }) async =>
       _get("/admin/drivers?page=$page&limit=$limit");
 
+  /// Get a single driver by ID
+  Future<Map<String, dynamic>> getDriverById(final String driverId) async =>
+      _get("/admin/drivers/$driverId");
+
   Future<Map<String, dynamic>> createDriver(
     final Map<String, dynamic> driverData,
   ) async =>
-      _post("/admin/drivers", driverData);
+      _post("/admin/drivers", driverData, requireAuth: false);
 
   Future<Map<String, dynamic>> updateDriver(
     final String driverId,
@@ -451,6 +500,24 @@ class ApiService {
   ) async =>
       _post("/admin/driver-agreements/calculate-preview", calculationData);
 
+  /// Check if a driver has completed their agreement
+  /// Returns true if driver has an active/completed agreement, false otherwise
+  Future<bool> hasDriverCompletedAgreement(final String driverId) async {
+    try {
+      final Map<String, dynamic> response = await getDriverAgreementByDriverId(driverId);
+      
+      // Check if there's agreement data and its status
+      if (response['status'] == 'success' && response['data'] != null) {
+        final String? agreementStatus = response['data']['status']?.toString();
+        return agreementStatus == 'active' || agreementStatus == 'completed';
+      }
+      return false;
+    } catch (e) {
+      // If no agreement found or error occurred, consider as not completed
+      return false;
+    }
+  }
+
   // Vehicle management endpoints
   Future<Map<String, dynamic>> getVehicles({
     final int page = 1,
@@ -468,6 +535,9 @@ class ApiService {
     final Map<String, dynamic> vehicleData,
   ) async =>
       _put("/admin/vehicles/$vehicleId", vehicleData);
+
+  Future<Map<String, dynamic>> unassignDriverFromVehicle(final String vehicleId) async =>
+      _post("/admin/vehicles/$vehicleId/unassign", <String, dynamic>{});
 
   Future<Map<String, dynamic>> deleteVehicle(final String vehicleId) async =>
       _delete("/admin/vehicles/$vehicleId");

@@ -1,7 +1,14 @@
 import "dart:ui";
+import "dart:typed_data";
+import "dart:convert";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
+import "package:flutter/foundation.dart" show kIsWeb;
 import "package:intl/intl.dart";
 import "package:fl_chart/fl_chart.dart";
+import "package:pdf/pdf.dart";
+import "package:pdf/widgets.dart" as pw;
+import "package:printing/printing.dart"; // For PdfGoogleFonts (Unicode fonts)
 import "../../constants/theme_constants.dart";
 import "../../utils/responsive_helper.dart";
 import "../../models/driver.dart";
@@ -35,11 +42,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   String _paymentConsistencyRating = "Consistent";
   int _averagePaymentDelay = 0;
   
-  // History data
-  List<PaymentRecord> _paymentHistory = [];
+  // History data (loaded from backend)
+  List<Payment> _paymentHistory = [];
   List<DebtRecord> _debtHistory = [];
   List<ChartData> _debtChartData = [];
   List<ChartData> _paymentChartData = [];
+
+  // Last generated PDF cache for opening
+  Uint8List? _lastGeneratedPdf;
+  String? _lastGeneratedPdfName;
 
   @override
   void initState() {
@@ -162,41 +173,44 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             months: 12,
           );
           
-          // Process API data into chart format
+          // Process API data into chart format - only use real API data
           if (debtTrends['status'] == 'success' && debtTrends['data'] != null) {
             _debtChartData = _processApiChartData(debtTrends['data']['data']);
           } else {
-            _debtChartData = _generateDebtData();
+            _debtChartData = []; // No fallback data
           }
           
           if (paymentTrends['status'] == 'success' && paymentTrends['data'] != null) {
             _paymentChartData = _processApiChartData(paymentTrends['data']['data']);
           } else {
-            _paymentChartData = _generatePaymentData();
+            _paymentChartData = []; // No fallback data
           }
           
           print('Successfully loaded chart data from API');
         } catch (apiError) {
-          // API endpoints don't exist or failed, fall back to generated data
-          print('Driver trend API endpoints failed, using generated data: $apiError');
+          // API endpoints don't exist or failed, show empty charts
+          print('Driver trend API endpoints failed: $apiError');
           setState(() {
             _apiEndpointsAvailable = false;
           });
-          _generateChartData();
+          _debtChartData = [];
+          _paymentChartData = [];
         }
       } else {
-        // API endpoints not available, use generated data directly
-        print('Driver API endpoints not available, using generated data');
-        _generateChartData();
+        // API endpoints not available, show empty charts
+        print('Driver API endpoints not available');
+        _debtChartData = [];
+        _paymentChartData = [];
       }
       
     } catch (e) {
-      // Fallback to generated data if any error occurs
-      print('Chart data loading failed, using generated data: $e');
+      // Show empty charts if any error occurs
+      print('Chart data loading failed: $e');
       setState(() {
         _apiEndpointsAvailable = false;
       });
-      _generateChartData();
+      _debtChartData = [];
+      _paymentChartData = [];
     }
   }
   
@@ -213,155 +227,142 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   }
 
   Future<void> _loadFinancialSummary() async {
-    // Simulate loading financial data
-    setState(() {
-      _totalAmountSubmitted = 450000.0;
-      _totalOutstandingDebt = 85000.0;
-      _totalDebtsRecorded = 320000.0;
-      _totalPaid = 365000.0;
-      _paymentConsistencyRating = "Late";
-      _averagePaymentDelay = 3;
-    });
+    try {
+      final summary = await _apiService.getDriverDebtSummary(widget.driver.id);
+      final data = summary['data'] ?? summary; // some endpoints wrap in data
+
+      // Compute totals
+      final List<dynamic> records = (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
+      double totalExpected = 0;
+      double totalPaid = 0;
+      for (final r in records) {
+        final double exp = (r['expected_amount'] is num)
+            ? (r['expected_amount'] as num).toDouble()
+            : double.tryParse(r['expected_amount']?.toString() ?? '0') ?? 0;
+        final double paid = (r['paid_amount'] is num)
+            ? (r['paid_amount'] as num).toDouble()
+            : double.tryParse(r['paid_amount']?.toString() ?? '0') ?? 0;
+        totalExpected += exp;
+        totalPaid += paid;
+      }
+
+      final double totalDebt = (data['total_debt'] is num)
+          ? (data['total_debt'] as num).toDouble()
+          : double.tryParse(data['total_debt']?.toString() ?? '0') ?? 0.0;
+
+      final int overdueDays = int.tryParse(data['overdue_days']?.toString() ?? '0') ?? 0;
+      final int unpaidDays = int.tryParse(data['unpaid_days']?.toString() ?? '0') ?? 0;
+
+      // Rating heuristic
+      String rating;
+      if (overdueDays > 10 || totalDebt > 0 && unpaidDays > 15) {
+        rating = "Late";
+      } else if (overdueDays > 0 || totalDebt > 0) {
+        rating = "Inconsistent";
+      } else {
+        rating = "Consistent";
+      }
+
+      // Average delay heuristic using records with days_overdue
+      int totalDelay = 0;
+      int counted = 0;
+      for (final r in records) {
+        final int d = int.tryParse(r['days_overdue']?.toString() ?? '0') ?? 0;
+        if (d > 0) {
+          totalDelay += d;
+          counted++;
+        }
+      }
+      final int avgDelay = counted == 0 ? 0 : (totalDelay / counted).round();
+
+      setState(() {
+        _totalAmountSubmitted = totalPaid; // equals total paid via debts
+        _totalOutstandingDebt = totalDebt;
+        _totalDebtsRecorded = totalExpected;
+        _totalPaid = totalPaid;
+        _paymentConsistencyRating = rating;
+        _averagePaymentDelay = avgDelay;
+      });
+    } catch (e) {
+      _showErrorSnackBar("Imeshindikana kupata muhtasari wa kifedha: $e");
+    }
   }
 
   Future<void> _loadPaymentHistory() async {
-    // Simulate loading payment history
-    final List<PaymentRecord> mockPayments = [
-      PaymentRecord(
-        paymentDate: DateTime.now().subtract(const Duration(days: 5)),
-        amountPaid: 15000,
-        previousDebt: 25000,
-        associatedPeriod: "Siku 5 - Wiki 1",
-        paymentMethod: "Cash",
-        receiptStatus: "Issued",
-      ),
-      PaymentRecord(
-        paymentDate: DateTime.now().subtract(const Duration(days: 12)),
-        amountPaid: 20000,
-        previousDebt: 45000,
-        associatedPeriod: "Wiki 2",
-        paymentMethod: "M-Pesa",
-        receiptStatus: "Issued",
-      ),
-      PaymentRecord(
-        paymentDate: DateTime.now().subtract(const Duration(days: 25)),
-        amountPaid: 18000,
-        previousDebt: 30000,
-        associatedPeriod: "Mwezi 1 - Wiki 1",
-        paymentMethod: "Bank Transfer",
-        receiptStatus: "Pending",
-      ),
-    ];
-    
-    setState(() {
-      _paymentHistory = mockPayments;
-    });
+    try {
+      // Primary source: payments module
+      final res = await _apiService.getPaymentHistory(
+        page: 1,
+        limit: 100,
+        driverId: widget.driver.id,
+      );
+      final data = res['data'] ?? res;
+      List<dynamic> items = (data['payments'] as List<dynamic>?) ?? <dynamic>[];
+      List<Payment> payments = items
+          .map((e) => Payment.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+
+      // Fallback: legacy transactions-based history if no payments returned
+      if (payments.isEmpty) {
+        final alt = await _apiService.getPayments(page: 1, limit: 100);
+        final altData = alt['data'] ?? alt;
+        final List<dynamic> txList = (altData['data'] as List<dynamic>?) ?? <dynamic>[];
+        payments = txList.map((dynamic tx) {
+          final Map<String, dynamic> t = Map<String, dynamic>.from(tx as Map);
+          final String channel = (t['payment_method']?.toString().toLowerCase() ?? 'cash');
+          String mapped = 'cash';
+          if (channel.contains('bank')) mapped = 'bank';
+          else if (channel.contains('mobile')) mapped = 'mobile';
+          else if (channel.contains('card')) mapped = 'bank';
+          else if (channel.contains('cash')) mapped = 'cash';
+          else mapped = 'other';
+          return Payment(
+            id: t['id']?.toString(),
+            driverId: (t['driver']?['user_id']?.toString()) ?? (t['driver_id']?.toString() ?? ''),
+            driverName: (t['driver']?['name']?.toString()) ?? '',
+            amount: double.tryParse(t['amount']?.toString() ?? '0') ?? 0.0,
+            paymentChannel: PaymentChannel.fromString(mapped),
+            coversDays: const <String>[],
+            remarks: t['description']?.toString(),
+            createdAt: DateTime.tryParse(
+                    t['transaction_date']?.toString() ?? t['created_at']?.toString() ?? '') ??
+                DateTime.now(),
+            referenceNumber: t['reference_number']?.toString(),
+          );
+        }).toList();
+      }
+
+      setState(() {
+        _paymentHistory = payments;
+      });
+    } catch (e) {
+      _showErrorSnackBar("Imeshindikana kupakia historia ya malipo: $e");
+      setState(() {
+        _paymentHistory = [];
+      });
+    }
   }
 
   Future<void> _loadDebtHistory() async {
-    // Simulate loading debt history using imported DebtRecord model
-    final List<DebtRecord> mockDebts = [
-      DebtRecord(
-        driverId: widget.driver.id,
-        driverName: widget.driver.name,
-        date: DateTime.now().subtract(const Duration(days: 3)).toIso8601String().split('T')[0],
-        expectedAmount: 25000,
-        isPaid: false,
-        promisedToPay: true,
-        promiseToPayAt: DateTime.now().add(const Duration(days: 2)),
-      ),
-      DebtRecord(
-        driverId: widget.driver.id,
-        driverName: widget.driver.name,
-        date: DateTime.now().subtract(const Duration(days: 15)).toIso8601String().split('T')[0],
-        expectedAmount: 30000,
-        isPaid: true,
-        paidAmount: 30000,
-        promisedToPay: false,
-      ),
-      DebtRecord(
-        driverId: widget.driver.id,
-        driverName: widget.driver.name,
-        date: DateTime.now().subtract(const Duration(days: 30)).toIso8601String().split('T')[0],
-        expectedAmount: 45000,
-        isPaid: false,
-        daysOverdue: 30,
-        promisedToPay: true,
-        promiseToPayAt: DateTime.now().subtract(const Duration(days: 15)),
-      ),
-    ];
-    
-    setState(() {
-      _debtHistory = mockDebts;
-    });
+    try {
+      final res = await _apiService.getDriverDebtRecords(widget.driver.id, unpaidOnly: false, limit: 200);
+      final data = res['data'] ?? res;
+      final List<dynamic> items = (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
+      final List<DebtRecord> debts = items.map((e) => DebtRecord.fromJson(Map<String, dynamic>.from(e))).toList();
+      setState(() {
+        _debtHistory = debts;
+      });
+    } catch (e) {
+      _showErrorSnackBar("Imeshindikana kupakia historia ya madeni: $e");
+      setState(() {
+        _debtHistory = [];
+      });
+    }
   }
 
-  void _generateChartData() {
-    // Generate debt progress chart data - More realistic simulation
-    _debtChartData = _generateDebtData();
-    
-    // Generate payment trends chart data - More realistic simulation
-    _paymentChartData = _generatePaymentData();
-  }
-  
-  List<ChartData> _generateDebtData() {
-    // Simulate varying amounts of debt data based on driver history
-    final now = DateTime.now();
-    final List<ChartData> data = [];
-    
-    // Generate data for the last 12 months (or more depending on driver history)
-    for (int i = 11; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i, 1);
-      final monthLabel = _getMonthLabel(month);
-      
-      // Simulate debt amounts with realistic fluctuations
-      final baseAmount = 30000 + (i * 2000);
-      final variation = (i % 3 == 0) ? 8000 : (i % 2 == 0 ? -3000 : 5000);
-      final debtAmount = (baseAmount + variation).clamp(15000, 60000).toDouble();
-      
-      data.add(ChartData(label: monthLabel, value: debtAmount));
-    }
-    
-    return data;
-  }
-  
-  List<ChartData> _generatePaymentData() {
-    // Simulate varying payment data
-    final now = DateTime.now();
-    final List<ChartData> data = [];
-    
-    // Generate data for the last 12 months
-    for (int i = 11; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i, 1);
-      final monthLabel = _getMonthLabel(month);
-      
-      // Simulate payment amounts with growth trend
-      final baseAmount = 15000 + (i * 1500);
-      final variation = (i % 4 == 0) ? 3000 : (i % 3 == 0 ? -1000 : 2000);
-      final paymentAmount = (baseAmount + variation).clamp(10000, 35000).toDouble();
-      
-      data.add(ChartData(label: monthLabel, value: paymentAmount));
-    }
-    
-    return data;
-  }
-  
   String _getMonthLabel(DateTime date) {
-    // Ultra-short month abbreviations for better chart readability
-    const months = [
-      'J', 'F', 'M', 'A', 'M', 'J',
-      'J', 'A', 'S', 'O', 'N', 'D'
-    ];
-    
-    // Add year suffix if not current year
-    final currentYear = DateTime.now().year;
-    final monthAbbr = months[date.month - 1];
-    
-    if (date.year != currentYear) {
-      return '$monthAbbr${date.year.toString().substring(2)}';
-    }
-    
-    return monthAbbr;
+    // Return month number (1-12) for ascending order display
+    return date.month.toString();
   }
 
   void _showErrorSnackBar(String message) {
@@ -387,19 +388,543 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                _buildGenerateReportButton(),
+                ResponsiveHelper.verticalSpace(1),
                 _buildDriverBasicInfo(),
-                ResponsiveHelper.verticalSpace(3),
+                ResponsiveHelper.verticalSpace(1),
                 _buildFinancialSummary(),
-                ResponsiveHelper.verticalSpace(3),
+                ResponsiveHelper.verticalSpace(1),
                 _buildChartsSection(),
-                ResponsiveHelper.verticalSpace(3),
+                ResponsiveHelper.verticalSpace(1),
                 _buildPaymentHistorySection(),
-                ResponsiveHelper.verticalSpace(3),
+                ResponsiveHelper.verticalSpace(1),
                 _buildDebtHistorySection(),
-                ResponsiveHelper.verticalSpace(2),
+                ResponsiveHelper.verticalSpace(1),
               ],
             ),
           ),
+    );
+  }
+
+  Widget _buildGenerateReportButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _generateDriverHistoryPDF,
+          icon: const Icon(
+            Icons.picture_as_pdf,
+            color: Colors.white,
+            size: 20,
+          ),
+          label: Text(
+            "Tengeneza Ripoti (PDF)",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: ThemeConstants.primaryOrange,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 4,
+            shadowColor: ThemeConstants.primaryOrange.withOpacity(0.3),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generateDriverHistoryPDF() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "Inaandaa ripoti...",
+                  style: ThemeConstants.responsiveBodyStyle(context),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      // First, try to get a server-generated PDF (backend API)
+      Uint8List? backendPdf;
+      try {
+        backendPdf = await _apiService.getPdf('/admin/drivers/${widget.driver.id}/history-pdf', requireAuth: false);
+      } catch (_) {
+        backendPdf = null; // fall back to client generation
+      }
+
+      if (backendPdf != null) {
+        final String fileName = "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
+        _lastGeneratedPdf = backendPdf;
+        _lastGeneratedPdfName = fileName;
+
+        if (mounted) {
+          Navigator.of(context).pop();
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                backgroundColor: ThemeConstants.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.check_circle,
+                      color: ThemeConstants.successGreen,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "Ripoti Imeundwa!",
+                      style: ThemeConstants.headingStyle,
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      "Ripoti ya PDF imeundwa kikamilifu!",
+                      style: const TextStyle(color: ThemeConstants.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Jina la faili: $fileName",
+                      style: const TextStyle(
+                        color: ThemeConstants.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Ukubwa: ${((backendPdf!.length) / 1024).toStringAsFixed(1)} KB",
+                      style: const TextStyle(
+                        color: ThemeConstants.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "Funga",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final bytes = _lastGeneratedPdf;
+                      if (bytes == null) {
+                        Navigator.pop(context);
+                        _showErrorSnackBar("Hakuna faili la kufungua.");
+                        return;
+                      }
+                      await Printing.layoutPdf(onLayout: (format) async => bytes, name: _lastGeneratedPdfName ?? 'driver_history.pdf');
+                      if (mounted) Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeConstants.primaryOrange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Fungua"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return; // already handled
+      }
+
+      // Load fonts
+      // On web: skip asset lookups to avoid 404 noise and use Google Fonts directly.
+      // On mobile/desktop: try offline asset TTFs first, then fall back to Google Fonts.
+      Future<pw.Font> loadAssetFont(String path, Future<pw.Font> Function() fallback) async {
+        try {
+          final data = await rootBundle.load(path);
+          return pw.Font.ttf(data);
+        } catch (_) {
+          return await fallback();
+        }
+      }
+
+      final baseFont = kIsWeb
+          ? await PdfGoogleFonts.notoSansRegular()
+          : await loadAssetFont('assets/fonts/NotoSans-Regular.ttf', () => PdfGoogleFonts.notoSansRegular());
+      final boldFont = kIsWeb
+          ? await PdfGoogleFonts.notoSansBold()
+          : await loadAssetFont('assets/fonts/NotoSans-Bold.ttf', () => PdfGoogleFonts.notoSansBold());
+      final italicFont = kIsWeb
+          ? await PdfGoogleFonts.notoSansItalic()
+          : await loadAssetFont('assets/fonts/NotoSans-Italic.ttf', () => PdfGoogleFonts.notoSansItalic());
+      final boldItalicFont = kIsWeb
+          ? await PdfGoogleFonts.notoSansBoldItalic()
+          : await loadAssetFont('assets/fonts/NotoSans-BoldItalic.ttf', () => PdfGoogleFonts.notoSansBoldItalic());
+
+      // Create PDF document with a theme that uses the Unicode fonts
+      final pdf = pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: baseFont,
+          bold: boldFont,
+          italic: italicFont,
+          boldItalic: boldItalicFont,
+        ),
+      );
+      
+      // Get the current date for the report
+      final String reportDate = DateFormat("dd/MM/yyyy").format(DateTime.now());
+      
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(28),
+          build: (pw.Context context) {
+            // Helpers
+            String currency(num v) => 'TSh ' + NumberFormat('#,###').format(v);
+            final driver = widget.driver;
+            final statusText = driver.status == 'active' ? 'Hai' : 'Hahai';
+            final headerColor = PdfColors.blue800;
+            final accent = PdfColors.orange;
+
+            pw.Widget statCard(String title, String value, PdfColor color) => pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey200,
+                borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: color, width: 0.5),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(title, style: pw.TextStyle(fontSize: 9, color: color, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
+                ],
+              ),
+            );
+
+            return [
+              // Header
+              pw.Container(
+                padding: const pw.EdgeInsets.only(bottom: 10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border(bottom: pw.BorderSide(color: headerColor, width: 2)),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                      pw.Text('Ripoti ya Dereva', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: headerColor)),
+                      pw.SizedBox(height: 4),
+                      pw.Text(driver.name, style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                    ]),
+                    pw.Text('Tarehe: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 14),
+
+              // Driver profile block
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(10),
+                ),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Avatar placeholder
+                    pw.Container(
+                      width: 54, height: 54,
+                      decoration: pw.BoxDecoration(color: PdfColors.grey200, borderRadius: pw.BorderRadius.circular(27)),
+                      child: pw.Center(child: pw.Text(driver.name.isNotEmpty ? driver.name.substring(0,1).toUpperCase() : 'D',
+                        style: pw.TextStyle(color: headerColor, fontSize: 22, fontWeight: pw.FontWeight.bold))),
+                    ),
+                    pw.SizedBox(width: 12),
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(children: [
+                            pw.Expanded(child: pw.Text('Simu: ${driver.phone}', style: const pw.TextStyle(fontSize: 10))),
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+                              decoration: pw.BoxDecoration(color: statusText == 'Hai' ? PdfColors.green300 : PdfColors.red300, borderRadius: pw.BorderRadius.circular(4)),
+                              child: pw.Text(statusText, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                            ),
+                          ]),
+                          pw.SizedBox(height: 4),
+                          pw.Text('Barua pepe: ${driver.email}', style: const pw.TextStyle(fontSize: 10)),
+                          pw.SizedBox(height: 6),
+                          pw.Wrap(spacing: 8, runSpacing: 6, children: [
+                            statCard('Leseni', driver.licenseNumber ?? 'Hakuna', PdfColors.blueGrey800),
+                            statCard('Gari', '${driver.vehicleNumber ?? 'N/A'} (${driver.vehicleType ?? 'N/A'})', PdfColors.indigo),
+                            statCard('Aliungana', DateFormat('dd/MM/yyyy').format(driver.joinedDate), PdfColors.deepPurple),
+                            statCard('Kiwango', (driver.rating).toString(), PdfColors.amber800),
+                            statCard('Safari', (driver.tripsCompleted).toString(), PdfColors.cyan800),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 12),
+              // Financial summary
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.orange100,
+                  borderRadius: pw.BorderRadius.circular(10),
+                  border: pw.Border.all(color: PdfColors.orange300, width: 0.5),
+                ),
+                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Text('Muhtasari wa Kifedha', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: accent)),
+                  pw.SizedBox(height: 8),
+                  pw.Wrap(spacing: 8, runSpacing: 8, children: [
+                    statCard('Jumla iliyoripotiwa', currency(_totalAmountSubmitted), PdfColors.indigo),
+                    statCard('Jumla ya Madeni', currency(_totalDebtsRecorded), PdfColors.red800),
+                    statCard('Deni Linalosalia', currency(_totalOutstandingDebt), PdfColors.deepOrange),
+                    statCard('Jumla Alizolipa', currency(_totalPaid), PdfColors.green800),
+                    statCard('Wastani wa kuchelewa', '$_averagePaymentDelay siku', PdfColors.deepOrange),
+                    statCard('Kiwango cha ulipaji', _paymentConsistencyRating, PdfColors.teal800),
+                  ]),
+                ]),
+              ),
+
+              pw.SizedBox(height: 14),
+
+              // Payments table
+              pw.Text('Historia ya Malipo', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.green800)),
+              pw.SizedBox(height: 8),
+              _paymentHistory.isEmpty
+                  ? pw.Text('Hakuna malipo yaliyopatikana', style: const pw.TextStyle(fontSize: 10))
+                  : pw.Table(
+                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                      children: [
+                        pw.TableRow(
+                          decoration: const pw.BoxDecoration(color: PdfColors.green100),
+                          children: [
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tarehe', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Kiasi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Njia ya Malipo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Marejeo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                          ],
+                        ),
+                        ..._paymentHistory.map((p) => pw.TableRow(children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(DateFormat('dd/MM/yyyy').format(p.createdAt))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(p.amount))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(p.paymentChannel.displayName)),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(p.referenceNumber ?? '-')),
+                            ])),
+                      ],
+                    ),
+
+              pw.SizedBox(height: 14),
+
+              // Debts table
+              pw.Text('Historia ya Madeni', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
+              pw.SizedBox(height: 8),
+              _debtHistory.isEmpty
+                  ? pw.Text('Hakuna rekodi za madeni', style: const pw.TextStyle(fontSize: 10))
+                  : pw.Table(
+                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                      children: [
+                        pw.TableRow(
+                          decoration: const pw.BoxDecoration(color: PdfColors.red100),
+                          children: [
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tarehe', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Inayotarajiwa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Aliyolipa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Hali', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                          ],
+                        ),
+                        ..._debtHistory.map((d) => pw.TableRow(children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.formattedDate)),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(d.expectedAmount))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(d.paidAmount))),
+                              pw.Padding(
+                                  padding: const pw.EdgeInsets.all(6),
+                                  child: pw.Container(
+                                    padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+                                    decoration: pw.BoxDecoration(
+                                      color: d.isPaid ? PdfColors.green300 : PdfColors.amber300,
+                                      borderRadius: pw.BorderRadius.circular(4),
+                                    ),
+                                    child: pw.Text(d.isPaid ? 'Imelipwa' : 'Haijalipwa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                                  )),
+                            ])),
+                      ],
+                    ),
+            ];
+          },
+        ),
+      );
+      final Uint8List pdfData = await pdf.save();
+      final String fileName = "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
+      _lastGeneratedPdf = pdfData;
+      _lastGeneratedPdfName = fileName;
+      
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Show success dialog with open option
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: ThemeConstants.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.check_circle,
+                    color: ThemeConstants.successGreen,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Ripoti Imeundwa!",
+                    style: ThemeConstants.headingStyle,
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    "Ripoti ya PDF imeundwa kikamilifu!",
+                    style: const TextStyle(color: ThemeConstants.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Jina la faili: $fileName",
+                    style: const TextStyle(
+                      color: ThemeConstants.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Ukubwa: ${(pdfData.length / 1024).toStringAsFixed(1)} KB",
+                    style: const TextStyle(
+                      color: ThemeConstants.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Funga",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final bytes = _lastGeneratedPdf;
+                    if (bytes == null) {
+                      Navigator.pop(context);
+                      _showErrorSnackBar("Hakuna faili la kufungua.");
+                      return;
+                    }
+                    // Open PDF preview/print dialog
+                    await Printing.layoutPdf(onLayout: (format) async => bytes, name: _lastGeneratedPdfName ?? 'driver_history.pdf');
+                    if (mounted) Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeConstants.primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Fungua"),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+      
+      if (mounted) {
+        _showErrorSnackBar("Hitilafu katika kuunda ripoti: $e");
+      }
+    }
+  }
+  
+  pw.Widget _buildPDFInfoRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 4),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(
+              "$label:",
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.Expanded(
+            child: pw.Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  pw.Widget _buildPDFFinancialItem(String label, double amount) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+        ),
+        pw.Text(
+          "TSh ${NumberFormat('#,###').format(amount)}",
+          style: pw.TextStyle(
+            fontSize: 12,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.orange,
+          ),
+        ),
+      ],
     );
   }
 
@@ -422,12 +947,12 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               ),
             ],
           ),
-          ResponsiveHelper.verticalSpace(2),
+          ResponsiveHelper.verticalSpace(1),
           _buildInfoRow("Jina Kamili", widget.driver.name),
           _buildInfoRow("Nambari ya Leseni", widget.driver.licenseNumber ?? "Hakuna"),
           _buildInfoRow("Simu", widget.driver.phone),
-          _buildInfoRow("Aina ya Gari", widget.driver.vehicleType ?? "Boda Boda"),
-          _buildInfoRow("Nambari ya Gari", widget.driver.vehicleNumber ?? "Hakuna"),
+          _buildInfoRow("Aina ya Chombo", widget.driver.vehicleType ?? "Boda Boda"),
+          _buildInfoRow("Nambari ya Chombo", widget.driver.vehicleNumber ?? "Hakuna"),
           _buildInfoRow("Tarehe ya Kuanza Kazi", 
             DateFormat("dd/MM/yyyy").format(widget.driver.joinedDate)),
           _buildInfoRow("Hali ya Sasa", 
@@ -439,7 +964,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -474,7 +999,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           child: Column(
             children: <Widget>[
               _buildFinancialSummaryGrid(),
-              ResponsiveHelper.verticalSpace(2),
+              ResponsiveHelper.verticalSpace(1),
               _buildPaymentConsistencyCard(),
             ],
           ),
@@ -841,7 +1366,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         ),
                       ],
                     ),
-              ResponsiveHelper.verticalSpace(3),
+              ResponsiveHelper.verticalSpace(1),
               // Dynamic chart display with refresh option
               Column(
                 children: [
@@ -903,29 +1428,29 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         ? _buildDebtChart()
                         : _buildPaymentChart(),
                   ),
-                  // Chart actions
-                  ResponsiveHelper.verticalSpace(2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton.icon(
-                        onPressed: _isLoading ? null : () async {
-                          await _loadChartData();
-                        },
-                        icon: Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: _isLoading ? ThemeConstants.textSecondary : ThemeConstants.primaryOrange,
+                  // Month indicator
+                  ResponsiveHelper.verticalSpace(1),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: ThemeConstants.textSecondary,
                         ),
-                        label: Text(
-                          "Onyesha Data",
+                        const SizedBox(width: 4),
+                        Text(
+                          "Miezi",
                           style: TextStyle(
-                            color: _isLoading ? ThemeConstants.textSecondary : ThemeConstants.primaryOrange,
-                            fontSize: 12,
+                            fontSize: 11,
+                            color: ThemeConstants.textSecondary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -939,7 +1464,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   Widget _buildDebtChart() {
     if (_debtChartData.isEmpty) {
       return SizedBox(
-        height: ResponsiveHelper.hp(30),
+        height: ResponsiveHelper.hp(22),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -967,7 +1492,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     final double padding = range * 0.1; // 10% padding
     
     return SizedBox(
-      height: ResponsiveHelper.hp(30),
+      height: ResponsiveHelper.hp(22),
       key: const ValueKey("debt_chart"),
       child: LineChart(
         LineChartData(
@@ -1076,7 +1601,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   Widget _buildPaymentChart() {
     if (_paymentChartData.isEmpty) {
       return SizedBox(
-        height: ResponsiveHelper.hp(30),
+        height: ResponsiveHelper.hp(22),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1109,7 +1634,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         : (ResponsiveHelper.isMobile ? 20 : 30);
     
     return SizedBox(
-      height: ResponsiveHelper.hp(30),
+      height: ResponsiveHelper.hp(22),
       key: const ValueKey("payment_chart"),
       child: BarChart(
         BarChartData(
@@ -1211,6 +1736,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
+  // Simplified payment history and debt history sections with reduced height
   Widget _buildPaymentHistorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1223,215 +1749,83 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         _buildBlueBlendGlassCard(
           child: Column(
             children: <Widget>[
-              // Table header - Made scrollable on mobile
-              ResponsiveHelper.isMobile
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Container(
-                        width: 800, // Fixed width to prevent cramping
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: ThemeConstants.primaryOrange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            SizedBox(width: 80, child: Text("Tarehe", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 100, child: Text("Kiasi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 120, child: Text("Deni la Awali", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 150, child: Text("Kipindi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 100, child: Text("Njia", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 80, child: Text("Risiti", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: ThemeConstants.primaryOrange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Deni la Awali", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 3, child: Text("Kipindi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Njia", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 1, child: Text("Risiti", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                        ],
-                      ),
-                    ),
-              ResponsiveHelper.verticalSpace(1),
-              // Payment records - Made scrollable on mobile
-              ResponsiveHelper.isMobile
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: 800, // Fixed width to match header
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _paymentHistory.length,
-                          separatorBuilder: (context, index) => const Divider(
-                            color: ThemeConstants.textSecondary,
-                            height: 1,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: ThemeConstants.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(flex: 2, child: Text("Njia", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(flex: 1, child: Text("Risiti", style: ThemeConstants.responsiveCaptionStyle(context))),
+                  ],
+                ),
+              ),
+              ResponsiveHelper.verticalSpace(0.5),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _paymentHistory.take(3).length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: ThemeConstants.textSecondary,
+                  height: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final payment = _paymentHistory[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            DateFormat("dd/MM/yy").format(payment.createdAt),
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          itemBuilder: (context, index) {
-                            final payment = _paymentHistory[index];
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: <Widget>[
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      DateFormat("dd/MM/yy").format(payment.paymentDate),
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      "${NumberFormat('#,###').format(payment.amountPaid)}",
-                                      style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                                        color: ThemeConstants.successGreen,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 120,
-                                    child: Text(
-                                      "${NumberFormat('#,###').format(payment.previousDebt)}",
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 150,
-                                    child: Text(
-                                      payment.associatedPeriod,
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      payment.paymentMethod,
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 80,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        payment.receiptStatus == "Issued" 
-                                            ? Icons.receipt
-                                            : Icons.receipt_long_outlined,
-                                        color: payment.receiptStatus == "Issued"
-                                            ? ThemeConstants.successGreen
-                                            : ThemeConstants.warningAmber,
-                                        size: 18,
-                                      ),
-                                      onPressed: () {
-                                        _showReceiptDialog(payment);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _paymentHistory.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        color: ThemeConstants.textSecondary,
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final payment = _paymentHistory[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  DateFormat("dd/MM/yy").format(payment.paymentDate),
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  "${NumberFormat('#,###').format(payment.amountPaid)}",
-                                  style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                                    color: ThemeConstants.successGreen,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  "${NumberFormat('#,###').format(payment.previousDebt)}",
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: Text(
-                                  payment.associatedPeriod,
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  payment.paymentMethod,
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: IconButton(
-                                  icon: Icon(
-                                    payment.receiptStatus == "Issued" 
-                                        ? Icons.receipt
-                                        : Icons.receipt_long_outlined,
-                                    color: payment.receiptStatus == "Issued"
-                                        ? ThemeConstants.successGreen
-                                        : ThemeConstants.warningAmber,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    _showReceiptDialog(payment);
-                                  },
-                                ),
-                              ),
-                            ],
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "${NumberFormat('#,###').format(payment.amount)}",
+                            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                              color: ThemeConstants.successGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        );
-                      },
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            payment.paymentChannel.displayName,
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: GestureDetector(
+                            onTap: () => _showReceiptDialog(payment),
+                            child: Icon(
+                              payment.referenceNumber != null 
+                                  ? Icons.receipt
+                                  : Icons.receipt_long_outlined,
+                              color: payment.referenceNumber != null
+                                  ? ThemeConstants.successGreen
+                                  : ThemeConstants.warningAmber,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -1451,231 +1845,86 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         _buildBlueBlendGlassCard(
           child: Column(
             children: <Widget>[
-              // Table header - Made scrollable on mobile
-              ResponsiveHelper.isMobile
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Container(
-                        width: 750, // Fixed width to prevent cramping
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: ThemeConstants.errorRed.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            SizedBox(width: 80, child: Text("Tarehe", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 180, child: Text("Maelezo", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 120, child: Text("Kiasi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 100, child: Text("Ahadi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                            SizedBox(width: 100, child: Text("Hali", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: ThemeConstants.errorRed.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 3, child: Text("Maelezo", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Ahadi", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                          Expanded(flex: 2, child: Text("Hali", style: ThemeConstants.responsiveSubHeadingStyle(context))),
-                        ],
-                      ),
-                    ),
-              ResponsiveHelper.verticalSpace(1),
-              // Debt records - Made scrollable on mobile
-              ResponsiveHelper.isMobile
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: 750, // Fixed width to match header
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _debtHistory.length,
-                          separatorBuilder: (context, index) => const Divider(
-                            color: ThemeConstants.textSecondary,
-                            height: 1,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: ThemeConstants.errorRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(flex: 2, child: Text("Hali", style: ThemeConstants.responsiveCaptionStyle(context))),
+                  ],
+                ),
+              ),
+              ResponsiveHelper.verticalSpace(0.5),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _debtHistory.take(3).length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: ThemeConstants.textSecondary,
+                  height: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final debt = _debtHistory[index];
+                  Color statusColor = _getDebtStatusColor(debt);
+                  
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            debt.formattedDate,
+                            style: ThemeConstants.responsiveBodyStyle(context),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          itemBuilder: (context, index) {
-                            final debt = _debtHistory[index];
-                            Color statusColor = _getDebtStatusColor(debt);
-                            
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: <Widget>[
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      debt.formattedDate,
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 180,
-                                    child: Text(
-                                      "Deni la ${debt.formattedDate}",
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 120,
-                                    child: Text(
-                                      "${NumberFormat('#,###').format(debt.expectedAmount)}",
-                                      style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                                        color: ThemeConstants.errorRed,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      debt.promiseToPayAt != null 
-                                          ? DateFormat("dd/MM/yy").format(debt.promiseToPayAt!)
-                                          : "Hakuna",
-                                      style: ThemeConstants.responsiveBodyStyle(context),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: statusColor.withOpacity(0.5)),
-                                      ),
-                                      child: Text(
-                                        _getDebtStatusText(debt),
-                                        style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
-                                          color: statusColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _debtHistory.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        color: ThemeConstants.textSecondary,
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final debt = _debtHistory[index];
-                        Color statusColor = _getDebtStatusColor(debt);
-                        
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  debt.formattedDate,
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: Text(
-                                  "Deni la ${debt.formattedDate}",
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  "${NumberFormat('#,###').format(debt.expectedAmount)}",
-                                  style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                                    color: ThemeConstants.errorRed,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  debt.promiseToPayAt != null 
-                                      ? DateFormat("dd/MM/yy").format(debt.promiseToPayAt!)
-                                      : "Hakuna",
-                                  style: ThemeConstants.responsiveBodyStyle(context),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: statusColor.withOpacity(0.5)),
-                                  ),
-                                  child: Text(
-                                    _getDebtStatusText(debt),
-                                    style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
-                                      color: statusColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "${NumberFormat('#,###').format(debt.expectedAmount)}",
+                            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                              color: ThemeConstants.errorRed,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        );
-                      },
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: statusColor.withOpacity(0.5)),
+                            ),
+                            child: Text(
+                              _getDebtStatusText(debt),
+                              style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  );
+                },
+              ),
             ],
           ),
         ),
       ],
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'paid':
-        return ThemeConstants.successGreen;
-      case 'ongoing':
-        return ThemeConstants.warningAmber;
-      case 'late':
-        return ThemeConstants.errorRed;
-      case 'canceled':
-        return ThemeConstants.textSecondary;
-      default:
-        return ThemeConstants.textPrimary;
-    }
   }
 
   Color _getDebtStatusColor(DebtRecord debt) {
@@ -1698,7 +1947,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     }
   }
 
-  void _showReceiptDialog(PaymentRecord payment) {
+  void _showReceiptDialog(Payment payment) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1712,13 +1961,13 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text("Tarehe: ${DateFormat("dd/MM/yyyy").format(payment.paymentDate)}", 
+              Text("Tarehe: ${DateFormat("dd/MM/yyyy").format(payment.createdAt)}", 
                 style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Kiasi: TSh ${NumberFormat('#,###').format(payment.amountPaid)}", 
+              Text("Kiasi: TSh ${NumberFormat('#,###').format(payment.amount)}", 
                 style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Njia ya Malipo: ${payment.paymentMethod}", 
+              Text("Njia ya Malipo: ${payment.paymentChannel.displayName}", 
                 style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Hali ya Risiti: ${payment.receiptStatus}", 
+              Text("Rejea: ${payment.referenceNumber ?? '-'}", 
                 style: ThemeConstants.responsiveBodyStyle(context)),
             ],
           ),
@@ -1740,41 +1989,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 }
 
 // Data models
-class PaymentRecord {
-  final DateTime paymentDate;
-  final double amountPaid;
-  final double previousDebt;
-  final String associatedPeriod;
-  final String paymentMethod;
-  final String receiptStatus;
-
-  PaymentRecord({
-    required this.paymentDate,
-    required this.amountPaid,
-    required this.previousDebt,
-    required this.associatedPeriod,
-    required this.paymentMethod,
-    required this.receiptStatus,
-  });
-}
-
-// DebtRecord is imported from payment.dart
-// Using a simple alias class for driver history
-class DriverHistoryDebtRecord {
-  final DateTime debtDate;
-  final String description;
-  final double amountOwed;
-  final DateTime? promiseToPayDate;
-  final String status;
-
-  DriverHistoryDebtRecord({
-    required this.debtDate,
-    required this.description,
-    required this.amountOwed,
-    this.promiseToPayDate,
-    required this.status,
-  });
-}
 
 class ChartData {
   final String label;

@@ -107,8 +107,11 @@ class PaymentController extends Controller
 public function getDriverDebtSummary(string $driverId): JsonResponse
     {
         try {
-            $driver = Driver::findOrFail($driverId);
-            $summary = DebtRecord::getSummaryForDriver($driverId);
+            // Accept either drivers.id or users.id and normalize to drivers.id
+$driver = Driver::where('id', $driverId)
+                            ->orWhere('user_id', $driverId)
+                            ->first();
+            $summary = DebtRecord::getSummaryForDriver($driver?->id ?? $driverId);
 
             return response()->json([
                 'success' => true,
@@ -138,7 +141,12 @@ public function getDriverDebtRecords(string $driverId, Request $request): JsonRe
             $unpaidOnly = $request->boolean('unpaid_only', true);
             $limit = min($request->get('limit', 100), 500);
 
-            $query = DebtRecord::byDriver($driverId)
+            // Normalize driver id
+$driver = Driver::where('id', $driverId)
+                            ->orWhere('user_id', $driverId)
+                            ->first();
+
+            $query = DebtRecord::byDriver($driver?->id ?? $driverId)
                                ->with('payment')
                                ->orderBy('earning_date', 'desc');
 
@@ -317,20 +325,28 @@ public function getDriverDebtRecords(string $driverId, Request $request): JsonRe
                            ->orderBy('payment_date', 'desc');
 
             if ($driverId) {
-                $query->byDriver($driverId);
+                // Normalize driver id if a user id was passed
+$driver = Driver::where('id', $driverId)
+                                ->orWhere('user_id', $driverId)
+                                ->first();
+                $query->byDriver($driver?->id ?? $driverId);
             }
 
             if ($startDate && $endDate) {
                 $query->dateRange($startDate, $endDate);
             }
 
-            $payments = $query->paginate($limit, ['*'], 'page', $page);
+$payments = $query->paginate($limit, ['*'], 'page', $page);
+
+            $items = collect($payments->items())->map(function ($p) {
+                return method_exists($p, 'toApiResponse') ? $p->toApiResponse() : $p;
+            })->values();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Payment history retrieved successfully',
                 'data' => [
-                    'payments' => $payments->items()->map->toApiResponse(),
+                    'payments' => $items,
                     'pagination' => [
                         'current_page' => $payments->currentPage(),
                         'per_page' => $payments->perPage(),
