@@ -95,25 +95,25 @@ class ResponsiveHelper {
   // Responsive text styles
   /// Heading 1 - largest heading
   static double get h1 => fontSize(32);
-  
+
   /// Heading 2 - section heading
   static double get h2 => fontSize(24);
-  
+
   /// Heading 3 - subsection heading
   static double get h3 => fontSize(20);
-  
+
   /// Heading 4 - small heading
   static double get h4 => fontSize(18);
-  
+
   /// Body text - large
   static double get bodyL => fontSize(16);
-  
+
   /// Body text - medium
   static double get bodyM => fontSize(14);
-  
+
   /// Body text - small
   static double get bodyS => fontSize(12);
-  
+
   /// Caption text
   static double get caption => fontSize(10);
 
@@ -191,15 +191,15 @@ class ResponsiveHelper {
 
   // Common responsive widgets
   /// Responsive SizedBox for vertical spacing
-  static Widget verticalSpace(double percentage) => 
+  static Widget verticalSpace(double percentage) =>
       SizedBox(height: hp(percentage));
 
   /// Responsive SizedBox for horizontal spacing
-  static Widget horizontalSpace(double percentage) => 
+  static Widget horizontalSpace(double percentage) =>
       SizedBox(width: wp(percentage));
 
   /// Responsive flexible spacer
-  static Widget flexibleSpacer({int flex = 1}) => 
+  static Widget flexibleSpacer({int flex = 1}) =>
       Flexible(flex: flex, child: Container());
 
   // Helper for responsive constraints
@@ -254,13 +254,13 @@ extension ResponsiveContext on BuildContext {
   Size get screenSize => MediaQuery.of(this).size;
   double get screenWidth => MediaQuery.of(this).size.width;
   double get screenHeight => MediaQuery.of(this).size.height;
-  
+
   /// Quick access to responsive measurements
   double wp(double percentage) {
     ResponsiveHelper.init(this);
     return ResponsiveHelper.wp(percentage);
   }
-  
+
   double hp(double percentage) {
     ResponsiveHelper.init(this);
     return ResponsiveHelper.hp(percentage);

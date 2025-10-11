@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_dynamic_calls, unused_element
 import "package:flutter/material.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 
@@ -178,51 +179,53 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
     return Scaffold(
-      backgroundColor: ThemeConstants.primaryBlue, // Solid blue background like drivers page
-      appBar: ThemeConstants.buildResponsiveAppBar(context, "Simamia Magari", actions: <Widget>[
-        IconButton(
-          onPressed: () => _loadVehicles(refresh: true),
-          icon: const Icon(Icons.refresh),
-        ),
-        PopupMenuButton<String>(
-          onSelected: (final String value) {
-            switch (value) {
-              case "export":
-                _exportVehicles();
-              case "import":
-                _importVehicles();
-            }
-          },
-          itemBuilder: (final BuildContext context) =>
-              <PopupMenuEntry<String>>[
-            const PopupMenuItem(
-              value: "export",
-              child: Row(
-                children: <Widget>[
-                  Icon(Icons.download, color: ThemeConstants.primaryBlue),
-                  SizedBox(width: 8),
-                  Text("Hamisha Data"),
-                ],
-              ),
+      backgroundColor:
+          ThemeConstants.primaryBlue, // Solid blue background like drivers page
+      appBar: ThemeConstants.buildResponsiveAppBar(context, "Simamia Magari",
+          actions: <Widget>[
+            IconButton(
+              onPressed: () => _loadVehicles(refresh: true),
+              icon: const Icon(Icons.refresh),
             ),
-            const PopupMenuItem(
-              value: "import",
-              child: Row(
-                children: <Widget>[
-                  Icon(Icons.upload, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Text("Ingiza Data"),
-                ],
-              ),
+            PopupMenuButton<String>(
+              onSelected: (final String value) {
+                switch (value) {
+                  case "export":
+                    _exportVehicles();
+                  case "import":
+                    _importVehicles();
+                }
+              },
+              itemBuilder: (final BuildContext context) =>
+                  <PopupMenuEntry<String>>[
+                const PopupMenuItem(
+                  value: "export",
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.download, color: ThemeConstants.primaryBlue),
+                      SizedBox(width: 8),
+                      Text("Hamisha Data"),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: "import",
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.upload, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text("Ingiza Data"),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ]),
-      body: Container(
+          ]),
+      body: DecoratedBox(
         decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
         child: SafeArea(
-          child: _isLoading 
-              ? ThemeConstants.buildResponsiveLoadingWidget(context) 
+          child: _isLoading
+              ? ThemeConstants.buildResponsiveLoadingWidget(context)
               : _buildMainContent(),
         ),
       ),
@@ -327,13 +330,13 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
         child: Column(
           children: <Widget>[
             // Search bar - Glass styled like drivers page
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
-                color: ThemeConstants.primaryBlue.withOpacity(0.3), // Glass effect like drivers page
+                color: ThemeConstants.primaryBlue
+                    .withOpacity(0.3), // Glass effect like drivers page
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
-                  width: 1,
                 ),
               ),
               child: TextField(
@@ -424,18 +427,20 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
       label: Text(
         "$label ($count)",
         style: const TextStyle(
-          color: Colors.white, // Always white text for visibility like drivers page
+          color: Colors
+              .white, // Always white text for visibility like drivers page
           fontWeight: FontWeight.w500,
         ),
       ),
-      backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.3), // Glass effect like drivers page
-      selectedColor: ThemeConstants.primaryOrange, // Orange selection like drivers page
+      backgroundColor: ThemeConstants.primaryBlue
+          .withOpacity(0.3), // Glass effect like drivers page
+      selectedColor:
+          ThemeConstants.primaryOrange, // Orange selection like drivers page
       checkmarkColor: Colors.white,
       side: BorderSide(
-        color: isSelected 
-            ? ThemeConstants.primaryOrange 
+        color: isSelected
+            ? ThemeConstants.primaryOrange
             : Colors.white.withOpacity(0.5),
-        width: 1,
       ),
       onSelected: (final bool selected) {
         if (selected) {
@@ -530,10 +535,11 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(
+            const Icon(
               Icons.directions_car_outlined,
               size: 80,
-              color: ThemeConstants.textSecondary, // Light text for blue background
+              color: ThemeConstants
+                  .textSecondary, // Light text for blue background
             ),
             const SizedBox(height: 16),
             Text(
@@ -543,7 +549,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: ThemeConstants.textPrimary, // White text on blue background
+                color:
+                    ThemeConstants.textPrimary, // White text on blue background
               ),
             ),
             const SizedBox(height: 8),
@@ -553,7 +560,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                   : "Sajili chombo cha kwanza",
               style: const TextStyle(
                 fontSize: 14,
-                color: ThemeConstants.textSecondary, // Light text on blue background
+                color: ThemeConstants
+                    .textSecondary, // Light text on blue background
               ),
             ),
             const SizedBox(height: 24),
@@ -567,7 +575,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -612,75 +621,81 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
             children: <Widget>[
               Row(
                 children: <Widget>[
-                // Vehicle icon
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: isActive ? ThemeConstants.successGreen : Colors.grey,
-                    borderRadius: BorderRadius.circular(30),
+                  // Vehicle icon
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color:
+                          isActive ? ThemeConstants.successGreen : Colors.grey,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Icon(
+                      _getVehicleIcon(vehicle.type),
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
-                  child: Icon(
-                    _getVehicleIcon(vehicle.type),
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Vehicle info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              vehicle.name,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: ThemeConstants.textPrimary, // White text on blue background
+                  const SizedBox(width: 16),
+                  // Vehicle info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                vehicle.name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: ThemeConstants
+                                      .textPrimary, // White text on blue background
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? ThemeConstants.successGreen.withOpacity(0.3)
-                                  : Colors.grey.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isActive ? ThemeConstants.successGreen : Colors.grey.shade400,
-                                width: 1,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? ThemeConstants.successGreen
+                                        .withOpacity(0.3)
+                                    : Colors.grey.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isActive
+                                      ? ThemeConstants.successGreen
+                                      : Colors.grey.shade400,
+                                ),
+                              ),
+                              child: Text(
+                                isActive ? "HAI" : "HAHAI",
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors
+                                      .white, // White text for better contrast
+                                ),
                               ),
                             ),
-                            child: Text(
-                              isActive ? "HAI" : "HAHAI",
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white, // White text for better contrast
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        vehicle.plateNumber,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: ThemeConstants.textSecondary, // Light text on blue background
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: <Widget>[
+                        const SizedBox(height: 4),
+                        Text(
+                          vehicle.plateNumber,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: ThemeConstants
+                                .textSecondary, // Light text on blue background
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: <Widget>[
                             Icon(
                               _getVehicleIcon(vehicle.type),
                               size: 16,
@@ -691,127 +706,136 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                               _getVehicleTypeDisplay(vehicle.type),
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: ThemeConstants.textSecondary, // Light text on blue background
+                                color: ThemeConstants
+                                    .textSecondary, // Light text on blue background
                               ),
                             ),
-                          if (isAssigned) ...<Widget>[
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.person,
-                              size: 16,
-                              color: Colors.white, // White icon for contrast
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                vehicle.driverName!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: ThemeConstants.textSecondary, // Light text on blue background
+                            if (isAssigned) ...<Widget>[
+                              const SizedBox(width: 16),
+                              const Icon(
+                                Icons.person,
+                                size: 16,
+                                color: Colors.white, // White icon for contrast
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  vehicle.driverName!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: ThemeConstants
+                                        .textSecondary, // Light text on blue background
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Actions
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: ThemeConstants.textPrimary, // White icon
+                    ),
+                    onSelected: (final String value) =>
+                        _handleVehicleAction(value, vehicle),
+                    itemBuilder: (final BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                      const PopupMenuItem(
+                        value: "view",
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.visibility,
+                                color: ThemeConstants.primaryBlue),
+                            SizedBox(width: 8),
+                            Text("Ona"),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: "edit",
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.edit, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text("Hariri"),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: isAssigned ? "unassign" : "assign",
+                        child: Row(
+                          children: <Widget>[
+                            Icon(
+                              isAssigned
+                                  ? Icons.person_remove
+                                  : Icons.person_add,
+                              color: isAssigned
+                                  ? Colors.amber
+                                  : ThemeConstants.successGreen,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(isAssigned ? "Ondoa Dereva" : "Weka Dereva"),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: isActive ? "deactivate" : "activate",
+                        child: Row(
+                          children: <Widget>[
+                            Icon(
+                              isActive ? Icons.block : Icons.check_circle,
+                              color: isActive
+                                  ? ThemeConstants.errorRed
+                                  : ThemeConstants.successGreen,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(isActive ? "Zima" : "Washa"),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: "delete",
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.delete, color: ThemeConstants.errorRed),
+                            SizedBox(width: 8),
+                            Text("Futa"),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                // Actions
-                PopupMenuButton<String>(
-                  icon: const Icon(
-                    Icons.more_vert,
-                    color: ThemeConstants.textPrimary, // White icon
+                ],
+              ),
+              if (vehicle.description != null &&
+                  vehicle.description!.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1), // Glass effect
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                    ),
                   ),
-                  onSelected: (final String value) =>
-                      _handleVehicleAction(value, vehicle),
-                  itemBuilder: (final BuildContext context) =>
-                      <PopupMenuEntry<String>>[
-                    const PopupMenuItem(
-                      value: "view",
-                      child: Row(
-                        children: <Widget>[
-                          Icon(Icons.visibility, color: ThemeConstants.primaryBlue),
-                          SizedBox(width: 8),
-                          Text("Ona"),
-                        ],
-                      ),
+                  child: Text(
+                    vehicle.description!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: ThemeConstants
+                          .textSecondary, // Light text for consistency
+                      fontStyle: FontStyle.italic,
                     ),
-                    const PopupMenuItem(
-                      value: "edit",
-                      child: Row(
-                        children: <Widget>[
-                          Icon(Icons.edit, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Text("Hariri"),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: isAssigned ? "unassign" : "assign",
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            isAssigned ? Icons.person_remove : Icons.person_add,
-                            color: isAssigned ? Colors.amber : ThemeConstants.successGreen,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(isAssigned ? "Ondoa Dereva" : "Weka Dereva"),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: isActive ? "deactivate" : "activate",
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            isActive ? Icons.block : Icons.check_circle,
-                            color: isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(isActive ? "Zima" : "Washa"),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: "delete",
-                      child: Row(
-                        children: <Widget>[
-                          Icon(Icons.delete, color: ThemeConstants.errorRed),
-                          SizedBox(width: 8),
-                          Text("Futa"),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
-            ),
-            if (vehicle.description != null &&
-                vehicle.description!.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1), // Glass effect
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  vehicle.description!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: ThemeConstants.textSecondary, // Light text for consistency
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ],
             ],
           ),
         ),
@@ -821,7 +845,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   Widget _buildFloatingActionButton() => FloatingActionButton.extended(
         onPressed: _showAddVehicleDialog,
-        backgroundColor: ThemeConstants.primaryOrange, // Use theme orange like drivers page
+        backgroundColor:
+            ThemeConstants.primaryOrange, // Use theme orange like drivers page
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(
@@ -861,23 +886,17 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     switch (action) {
       case "view":
         _showVehicleDetails(vehicle);
-        break;
       case "edit":
         _showEditVehicleDialog(vehicle);
-        break;
       case "assign":
         _showAssignDriverDialog(vehicle);
-        break;
       case "unassign":
         _confirmUnassignDriver(vehicle);
-        break;
       case "activate":
       case "deactivate":
         _toggleVehicleStatus(vehicle);
-        break;
       case "delete":
         _confirmDeleteVehicle(vehicle);
-        break;
     }
   }
 
@@ -885,7 +904,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
-        backgroundColor: ThemeConstants.primaryBlue, // Blue background like other cards
+        backgroundColor:
+            ThemeConstants.primaryBlue, // Blue background like other cards
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           "Maelezo ya ${vehicle.name}",
@@ -920,7 +940,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
             child: const Text(
               "Funga",
               style: TextStyle(
-                color: ThemeConstants.textPrimary, // White text on blue background
+                color:
+                    ThemeConstants.textPrimary, // White text on blue background
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -941,7 +962,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 label,
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: ThemeConstants.textSecondary, // Light text on blue background
+                  color: ThemeConstants
+                      .textSecondary, // Light text on blue background
                 ),
               ),
             ),
@@ -950,7 +972,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 value,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: ThemeConstants.textPrimary, // White text on blue background
+                  color: ThemeConstants
+                      .textPrimary, // White text on blue background
                 ),
               ),
             ),
@@ -1025,21 +1048,18 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
             onPressed: () async {
               Navigator.pop(context);
               try {
-                final res = await _apiService.unassignDriverFromVehicle(vehicle.id);
+                await _apiService.unassignDriverFromVehicle(vehicle.id);
                 setState(() {
-                  final int idx = _vehicles.indexWhere((final v) => v.id == vehicle.id);
+                  final int idx =
+                      _vehicles.indexWhere((final v) => v.id == vehicle.id);
                   if (idx != -1) {
-                    _vehicles[idx] = _vehicles[idx].copyWith(
-                      driverId: null,
-                      driverName: null,
-                      driverEmail: null,
-                      driverPhone: null,
-                    );
+                    _vehicles[idx] = _vehicles[idx].copyWith();
                   }
                 });
                 _filterVehicles();
-                _showSuccessSnackBar("Dereva ameondolewa kwenye ${vehicle.plateNumber}");
-              } catch (e) {
+                _showSuccessSnackBar(
+                    "Dereva ameondolewa kwenye ${vehicle.plateNumber}");
+              } on Exception catch (e) {
                 _showErrorSnackBar("Imeshindikana kuondoa dereva: $e");
               }
             },
@@ -1080,19 +1100,27 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                   "is_active": newActive,
                 });
                 setState(() {
-                  final int idx = _vehicles.indexWhere((final v) => v.id == vehicle.id);
-                  if (idx != -1) _vehicles[idx] = _vehicles[idx].copyWith(isActive: newActive);
+                  final int idx =
+                      _vehicles.indexWhere((final v) => v.id == vehicle.id);
+                  if (idx != -1) {
+                    _vehicles[idx] =
+                        _vehicles[idx].copyWith(isActive: newActive);
+                  }
                 });
                 _filterVehicles();
-                _showSuccessSnackBar(newActive ? "Chombo kimewashwa" : "Chombo kimezimwa");
-              } catch (e) {
-                _showErrorSnackBar("Imeshindikana kubadilisha hali ya chombo: $e");
+                _showSuccessSnackBar(
+                    newActive ? "Chombo kimewashwa" : "Chombo kimezimwa");
+              } on Exception catch (e) {
+                _showErrorSnackBar(
+                    "Imeshindikana kubadilisha hali ya chombo: $e");
               }
             },
             child: Text(
               isActive ? "Zima" : "Washa",
               style: TextStyle(
-                color: isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                color: isActive
+                    ? ThemeConstants.errorRed
+                    : ThemeConstants.successGreen,
               ),
             ),
           ),
@@ -1120,10 +1148,11 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               Navigator.pop(context);
               try {
                 await _apiService.deleteVehicle(vehicle.id);
-                setState(() => _vehicles.removeWhere((final v) => v.id == vehicle.id));
+                setState(() =>
+                    _vehicles.removeWhere((final v) => v.id == vehicle.id));
                 _filterVehicles();
                 _showSuccessSnackBar("Chombo kimefutwa");
-              } catch (e) {
+              } on Exception catch (e) {
                 _showErrorSnackBar("Imeshindikana kufuta chombo: $e");
               }
             },
@@ -1158,7 +1187,8 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
 // Edit Vehicle Dialog
 class _EditVehicleDialog extends StatefulWidget {
-  const _EditVehicleDialog({required this.vehicle, required this.onVehicleUpdated});
+  const _EditVehicleDialog(
+      {required this.vehicle, required this.onVehicleUpdated});
   final Vehicle vehicle;
   final void Function(Vehicle) onVehicleUpdated;
 
@@ -1186,17 +1216,19 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
   InputDecoration _inputDecoration(String label, {IconData? icon}) {
     final OutlineInputBorder border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
     );
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
-      prefixIcon: icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
+      prefixIcon:
+          icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
       filled: true,
       fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+        borderSide:
+            const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
@@ -1229,7 +1261,9 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
         'name': _nameController.text.trim(),
         'plate_number': _plateController.text.trim().toUpperCase(),
         'type': _vehicleType,
-        'description': _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+        'description': _descController.text.trim().isEmpty
+            ? null
+            : _descController.text.trim(),
         'is_active': _isActive,
       };
       await _apiService.updateVehicle(widget.vehicle.id, payload);
@@ -1247,7 +1281,7 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
         content: Text('Taarifa za chombo zimehifadhiwa.'),
         backgroundColor: ThemeConstants.successGreen,
       ));
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Hitilafu: $e'),
@@ -1263,7 +1297,8 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
     return AlertDialog(
       backgroundColor: ThemeConstants.primaryBlue,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text('Hariri ${widget.vehicle.name}', style: ThemeConstants.headingStyle),
+      title: Text('Hariri ${widget.vehicle.name}',
+          style: ThemeConstants.headingStyle),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -1273,15 +1308,20 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
               TextFormField(
                 controller: _nameController,
                 style: const TextStyle(color: ThemeConstants.textPrimary),
-                decoration: _inputDecoration('Jina', icon: Icons.drive_file_rename_outline),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Weka jina' : null,
+                decoration: _inputDecoration('Jina',
+                    icon: Icons.drive_file_rename_outline),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Weka jina' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _plateController,
                 style: const TextStyle(color: ThemeConstants.textPrimary),
-                decoration: _inputDecoration('Namba ya Chombo', icon: Icons.confirmation_number),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Weka namba ya chombo' : null,
+                decoration: _inputDecoration('Namba ya Chombo',
+                    icon: Icons.confirmation_number),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Weka namba ya chombo'
+                    : null,
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -1289,16 +1329,20 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
                 dropdownColor: ThemeConstants.primaryBlue,
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 items: _vehicleTypes.entries
-                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .map((e) =>
+                        DropdownMenuItem(value: e.key, child: Text(e.value)))
                     .toList(),
-                onChanged: (val) => setState(() => _vehicleType = val ?? _vehicleType),
-                decoration: _inputDecoration('Aina ya Chombo', icon: Icons.category),
+                onChanged: (val) =>
+                    setState(() => _vehicleType = val ?? _vehicleType),
+                decoration:
+                    _inputDecoration('Aina ya Chombo', icon: Icons.category),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descController,
                 style: const TextStyle(color: ThemeConstants.textPrimary),
-                decoration: _inputDecoration('Maelezo (hiari)', icon: Icons.notes),
+                decoration:
+                    _inputDecoration('Maelezo (hiari)', icon: Icons.notes),
                 maxLines: 2,
               ),
               const SizedBox(height: 8),
@@ -1322,8 +1366,15 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
         ),
         ElevatedButton(
           onPressed: _saving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange, foregroundColor: Colors.white),
-          child: _saving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Hifadhi'),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeConstants.primaryOrange,
+              foregroundColor: Colors.white),
+          child: _saving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Hifadhi'),
         ),
       ],
     );
@@ -1355,9 +1406,11 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
 
   Future<void> _loadDrivers() async {
     try {
-      final res = await _apiService.getDrivers(page: 1, limit: 50);
+      final res = await _apiService.getDrivers(limit: 50);
       final data = res['data'] ?? res;
-      final List<dynamic> list = data is Map<String, dynamic> ? (data['data'] ?? data['drivers'] ?? []) : (data as List<dynamic>? ?? []);
+      final List<dynamic> list = data is Map<String, dynamic>
+          ? (data['data'] ?? data['drivers'] ?? [])
+          : (data as List<dynamic>? ?? []);
       _drivers = list.map<Map<String, String>>((e) {
         final m = Map<String, dynamic>.from(e as Map);
         return {
@@ -1365,7 +1418,7 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
           'name': (m['name'] ?? '').toString(),
         };
       }).toList();
-    } catch (e) {
+    } on Exception {
       _drivers = <Map<String, String>>[];
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -1375,7 +1428,8 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
   Future<void> _assign() async {
     if (_selectedDriverId == null) return;
     try {
-      await _apiService.assignDriverToVehicle(vehicleId: widget.vehicle.id, driverId: _selectedDriverId!);
+      await _apiService.assignDriverToVehicle(
+          vehicleId: widget.vehicle.id, driverId: _selectedDriverId!);
       final updated = widget.vehicle.copyWith(
         driverId: _selectedDriverId,
         driverName: _selectedDriverName,
@@ -1387,7 +1441,7 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
         content: Text('Dereva amewekwa kwa chombo.'),
         backgroundColor: ThemeConstants.successGreen,
       ));
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Hitilafu: $e'),
@@ -1401,9 +1455,11 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
     return AlertDialog(
       backgroundColor: ThemeConstants.primaryBlue,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text('Weka Dereva kwa ${widget.vehicle.name}', style: ThemeConstants.headingStyle),
+      title: Text('Weka Dereva kwa ${widget.vehicle.name}',
+          style: ThemeConstants.headingStyle),
       content: _loading
-          ? const SizedBox(height: 64, child: Center(child: CircularProgressIndicator()))
+          ? const SizedBox(
+              height: 64, child: Center(child: CircularProgressIndicator()))
           : DropdownButtonFormField<String>(
               value: _selectedDriverId,
               dropdownColor: ThemeConstants.primaryBlue,
@@ -1420,23 +1476,27 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
               onChanged: (val) {
                 setState(() {
                   _selectedDriverId = val;
-                  _selectedDriverName = _drivers.firstWhere((e) => e['id'] == val)['name'];
+                  _selectedDriverName =
+                      _drivers.firstWhere((e) => e['id'] == val)['name'];
                 });
               },
               decoration: InputDecoration(
                 labelText: 'Chagua Dereva',
-                labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                labelStyle:
+                    const TextStyle(color: ThemeConstants.textSecondary),
                 filled: true,
                 fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+                  borderSide: const BorderSide(
+                      color: ThemeConstants.primaryOrange, width: 1.5),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
       actions: [
@@ -1446,7 +1506,9 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
         ),
         ElevatedButton(
           onPressed: _selectedDriverId == null ? null : _assign,
-          style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeConstants.primaryOrange,
+              foregroundColor: Colors.white),
           child: const Text('Weka'),
         ),
       ],
@@ -1489,22 +1551,25 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
   static const Color successGreen = Color(0xFF10B981);
   static const Color errorRed = Color(0xFFEF4444);
 
-  InputDecoration _inputDecoration(String label, {IconData? icon, String? hint}) {
+  InputDecoration _inputDecoration(String label,
+      {IconData? icon, String? hint}) {
     final OutlineInputBorder border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
     );
     return InputDecoration(
       labelText: label,
       hintText: hint,
       labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
       hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
-      prefixIcon: icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
+      prefixIcon:
+          icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
       filled: true,
       fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+        borderSide:
+            const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
@@ -1639,7 +1704,8 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Vehicle name field
                         TextFormField(
                           controller: _nameController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _inputDecoration(
                             'Jina la Chombo *',
                             hint: 'Mfano: Bajaji ya Kwanza',
@@ -1662,8 +1728,10 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         DropdownButtonFormField<String>(
                           value: _selectedVehicleType,
                           dropdownColor: ThemeConstants.primaryBlue,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
-                          decoration: _inputDecoration('Aina ya Chombo *', icon: Icons.category),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Aina ya Chombo *',
+                              icon: Icons.category),
                           items: _vehicleTypes.entries
                               .map(
                                 (final MapEntry<String, String> entry) =>
@@ -1689,8 +1757,10 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Plate number field
                         TextFormField(
                           controller: _plateNumberController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
-                          decoration: _inputDecoration('Namba ya Chombo *', hint: 'T123ABC', icon: Icons.confirmation_number),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Namba ya Chombo *',
+                              hint: 'T123ABC', icon: Icons.confirmation_number),
                           textCapitalization: TextCapitalization.characters,
                           validator: (final String? value) {
                             if (value == null || value.trim().isEmpty) {
@@ -1708,8 +1778,11 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                         // Description field
                         TextFormField(
                           controller: _descriptionController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
-                          decoration: _inputDecoration('Maelezo (Hiari)', hint: 'Maelezo ya ziada kuhusu gari', icon: Icons.description),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
+                          decoration: _inputDecoration('Maelezo (Hiari)',
+                              hint: 'Maelezo ya ziada kuhusu gari',
+                              icon: Icons.description),
                           maxLines: 3,
                         ),
 
@@ -1720,7 +1793,8 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
                           value: _isActive,
                           title: Text(
                             'Hali: ${_isActive ? 'Hai' : 'Hahai'}',
-                            style: const TextStyle(color: ThemeConstants.textPrimary),
+                            style: const TextStyle(
+                                color: ThemeConstants.textPrimary),
                           ),
                           onChanged: (val) => setState(() => _isActive = val),
                           contentPadding: EdgeInsets.zero,

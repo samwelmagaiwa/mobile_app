@@ -76,7 +76,7 @@ class Driver {
       totalDebt: parseDouble(json["total_debt"]),
       unpaidDays: parseInt(json["unpaid_days"]),
       dueDates: (json["due_dates"] as List<dynamic>?)
-              ?.map((dynamic e) => e.toString())
+              ?.map((e) => e.toString())
               .toList() ??
           const <String>[],
       hasCompletedAgreement: json["has_completed_agreement"] == true ||
@@ -104,7 +104,8 @@ class Driver {
   final List<String> dueDates; // ordered oldest->newest when provided
   // Agreement completion status
   final bool hasCompletedAgreement;
-  final String? agreementStatus; // null, 'pending', 'completed', 'active', 'terminated'
+  final String?
+      agreementStatus; // null, 'pending', 'completed', 'active', 'terminated'
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         "id": id,
@@ -164,7 +165,8 @@ class Driver {
         totalDebt: totalDebt ?? this.totalDebt,
         unpaidDays: unpaidDays ?? this.unpaidDays,
         dueDates: dueDates ?? this.dueDates,
-        hasCompletedAgreement: hasCompletedAgreement ?? this.hasCompletedAgreement,
+        hasCompletedAgreement:
+            hasCompletedAgreement ?? this.hasCompletedAgreement,
         agreementStatus: agreementStatus ?? this.agreementStatus,
       );
 

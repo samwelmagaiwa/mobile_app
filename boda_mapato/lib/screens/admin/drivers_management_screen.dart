@@ -1,12 +1,10 @@
-import "dart:ui";
+// ignore_for_file: avoid_dynamic_calls, unused_element
+import "dart:async";
 import "package:flutter/material.dart";
-
 import "../../constants/theme_constants.dart";
-import "../../utils/responsive_helper.dart";
 import "../../models/driver.dart";
 import "../../services/api_service.dart";
-import "../../widgets/custom_button.dart";
-import "../../widgets/custom_card.dart";
+import "../../utils/responsive_helper.dart";
 import "driver_agreement_screen.dart";
 import "driver_history_screen.dart";
 
@@ -167,7 +165,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Simamia Madereva",
-      body: _isLoading ? ThemeConstants.buildResponsiveLoadingWidget(context) : _buildMainContent(),
+      body: _isLoading
+          ? ThemeConstants.buildResponsiveLoadingWidget(context)
+          : _buildMainContent(),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
@@ -242,7 +242,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               "Inapakia madereva...",
               style: TextStyle(
                 fontSize: 16,
-                color: ThemeConstants.textSecondary, // Light text on blue background
+                color: ThemeConstants
+                    .textSecondary, // Light text on blue background
               ),
             ),
           ],
@@ -271,13 +272,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         child: Column(
           children: <Widget>[
             // Search bar - Blue themed
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
                 color: ThemeConstants.primaryBlue.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
-                  width: 1,
                 ),
               ),
               child: TextField(
@@ -290,7 +290,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                     color: ThemeConstants.textSecondary,
                   ),
                   prefixIcon: const Icon(
-                    Icons.search, 
+                    Icons.search,
                     color: Colors.white,
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
@@ -300,7 +300,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                             _onSearchChanged("");
                           },
                           icon: const Icon(
-                            Icons.clear, 
+                            Icons.clear,
                             color: Colors.white,
                           ),
                         )
@@ -352,7 +352,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       selected: isSelected,
       label: Text(
         "$label ($count)",
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white, // Always white text for visibility
           fontWeight: FontWeight.w500,
         ),
@@ -361,10 +361,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       selectedColor: ThemeConstants.primaryOrange,
       checkmarkColor: Colors.white,
       side: BorderSide(
-        color: isSelected 
-            ? ThemeConstants.primaryOrange 
+        color: isSelected
+            ? ThemeConstants.primaryOrange
             : Colors.white.withOpacity(0.5),
-        width: 1,
       ),
       onSelected: (final bool selected) {
         if (selected) {
@@ -466,10 +465,11 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(
+            const Icon(
               Icons.people_outline,
               size: 80,
-              color: ThemeConstants.textSecondary, // Light text for blue background
+              color: ThemeConstants
+                  .textSecondary, // Light text for blue background
             ),
             const SizedBox(height: 16),
             Text(
@@ -479,7 +479,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: ThemeConstants.textPrimary, // White text on blue background
+                color:
+                    ThemeConstants.textPrimary, // White text on blue background
               ),
             ),
             const SizedBox(height: 8),
@@ -489,7 +490,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   : "Ongeza dereva wa kwanza",
               style: const TextStyle(
                 fontSize: 14,
-                color: ThemeConstants.textSecondary, // Light text on blue background
+                color: ThemeConstants
+                    .textSecondary, // Light text on blue background
               ),
             ),
             const SizedBox(height: 24),
@@ -503,7 +505,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -553,7 +556,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   decoration: BoxDecoration(
                     color: isActive
                         ? ThemeConstants.successGreen
-                        : Colors.grey.shade600, // Darker grey for better contrast on blue
+                        : Colors.grey
+                            .shade600, // Darker grey for better contrast on blue
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: const Icon(
@@ -576,7 +580,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: ThemeConstants.textPrimary, // White text on blue background
+                                color: ThemeConstants
+                                    .textPrimary, // White text on blue background
                               ),
                             ),
                           ),
@@ -593,10 +598,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: ThemeConstants.primaryOrange,
-                                  width: 1,
                                 ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: <Widget>[
                                   Icon(
@@ -604,7 +608,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                                     color: Colors.white,
                                     size: 12,
                                   ),
-                                  const SizedBox(width: 2),
+                                  SizedBox(width: 2),
                                   Text(
                                     "MAKUBALIANO",
                                     style: TextStyle(
@@ -628,16 +632,18 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                                   : Colors.grey.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isActive ? ThemeConstants.successGreen : Colors.grey.shade400,
-                                width: 1,
+                                color: isActive
+                                    ? ThemeConstants.successGreen
+                                    : Colors.grey.shade400,
                               ),
                             ),
                             child: Text(
                               isActive ? "HAI" : "HAHAI",
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white, // White text for better contrast
+                                color: Colors
+                                    .white, // White text for better contrast
                               ),
                             ),
                           ),
@@ -648,7 +654,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         driver.phone,
                         style: const TextStyle(
                           fontSize: 14,
-                          color: ThemeConstants.textSecondary, // Light text on blue background
+                          color: ThemeConstants
+                              .textSecondary, // Light text on blue background
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -664,7 +671,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                             "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})",
                             style: const TextStyle(
                               fontSize: 12,
-                              color: ThemeConstants.textSecondary, // Light text on blue background
+                              color: ThemeConstants
+                                  .textSecondary, // Light text on blue background
                             ),
                           ),
                         ],
@@ -686,7 +694,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                       value: "view",
                       child: Row(
                         children: <Widget>[
-                          Icon(Icons.visibility, color: ThemeConstants.primaryBlue),
+                          Icon(Icons.visibility,
+                              color: ThemeConstants.primaryBlue),
                           SizedBox(width: 8),
                           Text("Ona"),
                         ],
@@ -706,7 +715,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                       value: "history",
                       child: Row(
                         children: <Widget>[
-                          Icon(Icons.history, color: ThemeConstants.primaryOrange),
+                          Icon(Icons.history,
+                              color: ThemeConstants.primaryOrange),
                           SizedBox(width: 8),
                           Text("Ona Historia"),
                         ],
@@ -718,7 +728,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         value: "complete_agreement",
                         child: Row(
                           children: <Widget>[
-                            Icon(Icons.assignment_outlined, color: ThemeConstants.primaryOrange),
+                            Icon(Icons.assignment_outlined,
+                                color: ThemeConstants.primaryOrange),
                             SizedBox(width: 8),
                             Text("Kamilisha Makubaliano"),
                           ],
@@ -730,7 +741,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         children: <Widget>[
                           Icon(
                             isActive ? Icons.block : Icons.check_circle,
-                            color: isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                            color: isActive
+                                ? ThemeConstants.errorRed
+                                : ThemeConstants.successGreen,
                           ),
                           const SizedBox(width: 8),
                           Text(isActive ? "Zima" : "Washa"),
@@ -825,7 +838,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
             label,
             style: const TextStyle(
               fontSize: 10,
-              color: ThemeConstants.textSecondary, // Light text on blue background
+              color:
+                  ThemeConstants.textSecondary, // Light text on blue background
             ),
             textAlign: TextAlign.center,
           ),
@@ -891,23 +905,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         } else {
           _fetchAndShowDriverDetails(driver);
         }
-        break;
       case "edit":
         _showEditDriverDialog(driver);
-        break;
       case "history":
         _navigateToDriverHistory(driver);
-        break;
       case "activate":
       case "deactivate":
         _toggleDriverStatus(driver);
-        break;
       case "delete":
         _confirmDeleteDriver(driver);
-        break;
       case "complete_agreement":
         _navigateToDriverAgreement(driver);
-        break;
     }
   }
 
@@ -994,7 +1002,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   Future<void> _fetchAndShowDriverDetails(final Driver driver) async {
     // Show a small loading dialog while fetching
-    showDialog(
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
@@ -1008,11 +1016,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
         ),
       ),
-    );
+    ));
 
     try {
       await _apiService.initialize();
-      final Map<String, dynamic> resp = await _apiService.getDriverById(driver.id);
+      final Map<String, dynamic> resp =
+          await _apiService.getDriverById(driver.id);
 
       // Handle both {data: {...}} and direct map
       final dynamic data = resp.containsKey('data') ? resp['data'] : resp;
@@ -1020,13 +1029,13 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         throw Exception('Invalid driver response');
       }
 
-      final Driver fresh = Driver.fromJson(data as Map<String, dynamic>);
+      final Driver fresh = Driver.fromJson(data);
 
       if (mounted) {
         Navigator.pop(context); // close loader
         _showDriverDetails(fresh);
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         Navigator.pop(context); // close loader
         // Fall back to showing existing data, but inform user
@@ -1152,7 +1161,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                             ? "${driver.name} amezimwa"
                             : "${driver.name} amewashwa",
                       ),
-                      backgroundColor: isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                      backgroundColor: isActive
+                          ? ThemeConstants.errorRed
+                          : ThemeConstants.successGreen,
                     ),
                   );
                 }
@@ -1165,7 +1176,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
             child: Text(
               isActive ? "Zima" : "Washa",
               style: TextStyle(
-                color: isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                color: isActive
+                    ? ThemeConstants.errorRed
+                    : ThemeConstants.successGreen,
               ),
             ),
           ),
@@ -1257,7 +1270,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
 // Edit Driver Dialog Widget
 class _EditDriverDialog extends StatefulWidget {
-  const _EditDriverDialog({required this.driver, required this.onDriverUpdated});
+  const _EditDriverDialog(
+      {required this.driver, required this.onDriverUpdated});
   final Driver driver;
   final void Function(Driver updated) onDriverUpdated;
 
@@ -1293,17 +1307,19 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
   InputDecoration _inputDecoration(String label, {IconData? icon}) {
     final OutlineInputBorder border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.25), width: 1),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
     );
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
-      prefixIcon: icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
+      prefixIcon:
+          icon != null ? Icon(icon, color: ThemeConstants.textSecondary) : null,
       filled: true,
       fillColor: ThemeConstants.primaryBlue.withOpacity(0.35),
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
+        borderSide:
+            const BorderSide(color: ThemeConstants.primaryOrange, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
@@ -1317,7 +1333,8 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
     _emailController = TextEditingController(text: d.email);
     _phoneController = TextEditingController(text: d.phone);
     _licenseController = TextEditingController(text: d.licenseNumber);
-    _vehicleNumberController = TextEditingController(text: d.vehicleNumber ?? "");
+    _vehicleNumberController =
+        TextEditingController(text: d.vehicleNumber ?? "");
     _selectedVehicleType = (d.vehicleType ?? "bajaji").toLowerCase();
     if (!_vehicleTypes.keys.contains(_selectedVehicleType)) {
       _selectedVehicleType = "bajaji";
@@ -1378,7 +1395,7 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1413,7 +1430,8 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                   controller: _nameController,
                   style: const TextStyle(color: ThemeConstants.textPrimary),
                   decoration: _inputDecoration("Jina", icon: Icons.person),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? "Weka jina" : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? "Weka jina" : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -1426,19 +1444,23 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                   controller: _phoneController,
                   style: const TextStyle(color: ThemeConstants.textPrimary),
                   decoration: _inputDecoration("Simu", icon: Icons.phone),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? "Weka namba ya simu" : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? "Weka namba ya simu"
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _licenseController,
                   style: const TextStyle(color: ThemeConstants.textPrimary),
-                  decoration: _inputDecoration("Namba ya Leseni", icon: Icons.credit_card),
+                  decoration: _inputDecoration("Namba ya Leseni",
+                      icon: Icons.credit_card),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _vehicleNumberController,
                   style: const TextStyle(color: ThemeConstants.textPrimary),
-                  decoration: _inputDecoration("Namba ya Chombo", icon: Icons.directions_car),
+                  decoration: _inputDecoration("Namba ya Chombo",
+                      icon: Icons.directions_car),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1447,15 +1469,18 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                       child: DropdownButtonFormField<String>(
                         value: _selectedVehicleType,
                         dropdownColor: ThemeConstants.primaryBlue,
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
-                        decoration: _inputDecoration("Aina ya Chombo", icon: Icons.category),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
+                        decoration: _inputDecoration("Aina ya Chombo",
+                            icon: Icons.category),
                         items: _vehicleTypes.entries
                             .map((e) => DropdownMenuItem<String>(
                                   value: e.key,
                                   child: Text(e.value),
                                 ))
                             .toList(),
-                        onChanged: (val) => setState(() => _selectedVehicleType = val ?? _selectedVehicleType),
+                        onChanged: (val) => setState(() =>
+                            _selectedVehicleType = val ?? _selectedVehicleType),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1463,15 +1488,18 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                       child: DropdownButtonFormField<String>(
                         value: _selectedStatus,
                         dropdownColor: ThemeConstants.primaryBlue,
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
-                        decoration: _inputDecoration("Hali", icon: Icons.toggle_on),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
+                        decoration:
+                            _inputDecoration("Hali", icon: Icons.toggle_on),
                         items: _statusOptions.entries
                             .map((e) => DropdownMenuItem<String>(
                                   value: e.key,
                                   child: Text(e.value),
                                 ))
                             .toList(),
-                        onChanged: (val) => setState(() => _selectedStatus = val ?? _selectedStatus),
+                        onChanged: (val) => setState(
+                            () => _selectedStatus = val ?? _selectedStatus),
                       ),
                     ),
                   ],
@@ -1523,9 +1551,11 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _licenseController = TextEditingController();
-  final TextEditingController _licenseExpiryController = TextEditingController();
+  final TextEditingController _licenseExpiryController =
+      TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _emergencyContactController = TextEditingController();
+  final TextEditingController _emergencyContactController =
+      TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
   final TextEditingController _vehicleNumberController =
@@ -1550,8 +1580,9 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
   };
 
   // Using theme constants for colors
-  
-  InputDecoration _getBlueInputDecoration(String labelText, {required IconData icon, String? hintText}) {
+
+  InputDecoration _getBlueInputDecoration(String labelText,
+      {required IconData icon, String? hintText}) {
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
@@ -1570,7 +1601,8 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
+        borderSide:
+            const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -1650,18 +1682,21 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         );
 
         // Debug: Print the response
-        print('Driver creation response: $response');
+        debugPrint('Driver creation response: $response');
 
         // Navigate to Driver Agreement screen
-        if (response['status'] == 'success' && response['data'] != null) {
-          final String driverId = response['data']['id'] ?? '';
+        if (response['status'] == 'success') {
+          final dynamic data = response['data'];
+          final String driverId = data is Map<String, dynamic>
+              ? (data['id']?.toString() ?? '')
+              : '';
           final String driverName = _nameController.text.trim();
-          
-          print('Driver ID extracted: $driverId');
-          print('Driver Name: $driverName');
-          
+
+          debugPrint('Driver ID extracted: $driverId');
+          debugPrint('Driver Name: $driverName');
+
           if (driverId.isNotEmpty) {
-            print('Navigating to Driver Agreement Screen');
+            debugPrint('Navigating to Driver Agreement Screen');
             try {
               await Navigator.of(context).push(
                 MaterialPageRoute(
@@ -1675,24 +1710,29 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                   ),
                 ),
               );
-              print('Successfully navigated to Driver Agreement Screen');
-            } catch (navError) {
-              print('Error navigating to Driver Agreement Screen: $navError');
+              if (!mounted) return;
+              debugPrint('Successfully navigated to Driver Agreement Screen');
+            } on Exception catch (navError) {
+              debugPrint(
+                  'Error navigating to Driver Agreement Screen: $navError');
+              if (!mounted) return;
               // Show error to user
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Hitilafu katika kuongoza kwenye makubaliano: $navError'),
+                  content: Text(
+                      'Hitilafu katika kuongoza kwenye makubaliano: $navError'),
                   backgroundColor: Colors.red,
                 ),
               );
             }
           } else {
-            print('Driver ID is empty, cannot navigate to agreement screen');
+            debugPrint(
+                'Driver ID is empty, cannot navigate to agreement screen');
           }
         } else {
-          print('Response status is not success or data is null');
-          print('Status: ${response['status']}');
-          print('Data: ${response['data']}');
+          debugPrint('Response status is not success or data is null');
+          debugPrint('Status: ${response['status']}');
+          debugPrint('Data: ${response['data']}');
         }
       }
     } on Exception catch (e) {
@@ -1720,13 +1760,13 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
   Widget build(final BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final maxDialogHeight = screenHeight * 0.9; // 90% of screen height
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: ThemeConstants.primaryBlue,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: 500, 
+          maxWidth: 500,
           maxHeight: maxDialogHeight,
         ),
         decoration: const BoxDecoration(
@@ -1736,54 +1776,54 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: ThemeConstants.primaryBlue,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    const Icon(
-                      Icons.person_add,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        "Ongeza Dereva Mpya",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: ThemeConstants.primaryBlue,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
               ),
-
-              // Form content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.of(context).size.height * 0.6,
+              child: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Ongeza Dereva Mpya",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: Form(
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Form content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height * 0.6,
+                  ),
+                  child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1802,9 +1842,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         // Name field
                         TextFormField(
                           controller: _nameController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Jina Kamili *", 
+                            "Jina Kamili *",
                             icon: Icons.person,
                             hintText: "Ingiza jina kamili la dereva",
                           ),
@@ -1825,9 +1866,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Barua Pepe *", 
+                            "Barua Pepe *",
                             icon: Icons.email,
                             hintText: "mfano@email.com",
                           ),
@@ -1849,9 +1891,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Namba ya Simu *", 
+                            "Namba ya Simu *",
                             icon: Icons.phone,
                             hintText: "+255XXXXXXXXX",
                           ),
@@ -1871,9 +1914,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         // License field
                         TextFormField(
                           controller: _licenseController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Namba ya Leseni *", 
+                            "Namba ya Leseni *",
                             icon: Icons.credit_card,
                             hintText: "DL123456789",
                           ),
@@ -1891,25 +1935,29 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _licenseExpiryController,
                           readOnly: true,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           onTap: () async {
                             final date = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now().add(const Duration(days: 365)),
+                              initialDate:
+                                  DateTime.now().add(const Duration(days: 365)),
                               firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+                              lastDate: DateTime.now()
+                                  .add(const Duration(days: 365 * 10)),
                             );
                             if (date != null) {
-                              _licenseExpiryController.text = 
+                              _licenseExpiryController.text =
                                   '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
                             }
                           },
                           decoration: _getBlueInputDecoration(
-                            "Tarehe ya Mwisho wa Leseni *", 
+                            "Tarehe ya Mwisho wa Leseni *",
                             icon: Icons.calendar_today,
                             hintText: "Chagua tarehe",
                           ).copyWith(
-                            suffixIcon: const Icon(Icons.arrow_drop_down, color: ThemeConstants.textSecondary),
+                            suffixIcon: const Icon(Icons.arrow_drop_down,
+                                color: ThemeConstants.textSecondary),
                           ),
                           validator: (final String? value) {
                             if (value == null || value.trim().isEmpty) {
@@ -1925,9 +1973,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _addressController,
                           maxLines: 3,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Anwani *", 
+                            "Anwani *",
                             icon: Icons.location_on,
                             hintText: "Ingiza anwani kamili",
                           ),
@@ -1945,9 +1994,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _emergencyContactController,
                           keyboardType: TextInputType.phone,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Simu ya Dharura *", 
+                            "Simu ya Dharura *",
                             icon: Icons.emergency,
                             hintText: "+255XXXXXXXXX",
                           ),
@@ -1967,9 +2017,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         // National ID field (optional)
                         TextFormField(
                           controller: _nationalIdController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Namba ya Kitambulisho (Hiari)", 
+                            "Namba ya Kitambulisho (Hiari)",
                             icon: Icons.badge,
                             hintText: "Ingiza namba ya kitambulisho",
                           ),
@@ -1981,25 +2032,30 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         TextFormField(
                           controller: _dateOfBirthController,
                           readOnly: true,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           onTap: () async {
                             final date = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now().subtract(const Duration(days: 365 * 25)),
-                              firstDate: DateTime.now().subtract(const Duration(days: 365 * 80)),
-                              lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                              initialDate: DateTime.now()
+                                  .subtract(const Duration(days: 365 * 25)),
+                              firstDate: DateTime.now()
+                                  .subtract(const Duration(days: 365 * 80)),
+                              lastDate: DateTime.now()
+                                  .subtract(const Duration(days: 365 * 18)),
                             );
                             if (date != null) {
-                              _dateOfBirthController.text = 
+                              _dateOfBirthController.text =
                                   '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
                             }
                           },
                           decoration: _getBlueInputDecoration(
-                            "Tarehe ya Kuzaliwa (Hiari)", 
+                            "Tarehe ya Kuzaliwa (Hiari)",
                             icon: Icons.cake,
                             hintText: "Chagua tarehe ya kuzaliwa",
                           ).copyWith(
-                            suffixIcon: const Icon(Icons.arrow_drop_down, color: ThemeConstants.textSecondary),
+                            suffixIcon: const Icon(Icons.arrow_drop_down,
+                                color: ThemeConstants.textSecondary),
                           ),
                         ),
 
@@ -2019,9 +2075,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         // Vehicle number field
                         TextFormField(
                           controller: _vehicleNumberController,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Namba ya Chombo", 
+                            "Namba ya Chombo",
                             icon: Icons.directions_car,
                             hintText: "T123ABC (hiari)",
                           ),
@@ -2033,9 +2090,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         DropdownButtonFormField<String>(
                           value: _selectedVehicleType,
                           dropdownColor: ThemeConstants.primaryBlue,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Aina ya Chombo", 
+                            "Aina ya Chombo",
                             icon: Icons.category,
                           ),
                           items: _vehicleTypes.entries
@@ -2064,9 +2122,10 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                         DropdownButtonFormField<String>(
                           value: _selectedStatus,
                           dropdownColor: ThemeConstants.primaryBlue,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Hali ya Dereva", 
+                            "Hali ya Dereva",
                             icon: Icons.toggle_on,
                           ),
                           items: _statusOptions.entries
@@ -2095,77 +2154,78 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
               ),
             ),
 
-              // Action buttons
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: ThemeConstants.primaryBlue.withOpacity(0.3),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: TextButton(
-                        onPressed:
-                            _isLoading ? null : () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: ThemeConstants.textSecondary),
-                          ),
-                        ),
-                        child: const Text(
-                          "Ghairi",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: ThemeConstants.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ThemeConstants.successGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                "Ongeza Dereva",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
+            // Action buttons
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
               ),
-            ],
-          ),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextButton(
+                      onPressed:
+                          _isLoading ? null : () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(
+                              color: ThemeConstants.textSecondary),
+                        ),
+                      ),
+                      child: const Text(
+                        "Ghairi",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ThemeConstants.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ThemeConstants.successGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              "Ongeza Dereva",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }

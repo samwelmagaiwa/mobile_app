@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_dynamic_calls
 import "package:flutter/material.dart";
 
 import "../../constants/theme_constants.dart";
@@ -40,7 +41,6 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   static const Color successGreen = Color(0xFF10B981);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color grayBackground = Color(0xFFF8FAFC);
-  static const Color darkGray = Color(0xFF1F2937);
 
   // Payment categories
   final Map<String, String> _paymentCategories = <String, String>{
@@ -315,9 +315,11 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                   CustomCard(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 20,),
+                        horizontal: 16,
+                        vertical: 20,
+                      ),
                       decoration: BoxDecoration(
-                    color: ThemeConstants.primaryBlue.withOpacity(0.1),
+                        color: ThemeConstants.primaryBlue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -326,7 +328,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
-                        color: ThemeConstants.primaryBlue,
+                              color: ThemeConstants.primaryBlue,
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: const Icon(
@@ -345,7 +347,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF616161),
+                                    color: Color(0xFF616161),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 2,
@@ -382,7 +384,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                    color: Color(0xFF616161),
+                              color: Color(0xFF616161),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -445,7 +447,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                    color: Color(0xFF616161),
+                              color: Color(0xFF616161),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -503,7 +505,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                    color: Color(0xFF616161),
+                              color: Color(0xFF616161),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -639,7 +641,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                    color: Color(0xFF616161),
+                              color: Color(0xFF616161),
                             ),
                           ),
                           const SizedBox(height: 16),

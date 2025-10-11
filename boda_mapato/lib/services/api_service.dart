@@ -4,11 +4,16 @@ import "dart:typed_data";
 import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
 
+import "../models/dashboard_report.dart";
+import "../models/revenue_report.dart";
+
 class ApiService {
   // API Configuration - Updated for Laravel backend
   // For development on localhost (when running flutter on same machine)
-  static const String baseUrl = "http://127.0.0.1/mobile_app/backend_mapato/public/api";
-  static const String webBaseUrl = "http://127.0.0.1/mobile_app/backend_mapato/public";
+  static const String baseUrl =
+      "http://127.0.0.1/mobile_app/backend_mapato/public/api";
+  static const String webBaseUrl =
+      "http://127.0.0.1/mobile_app/backend_mapato/public";
 
   // Alternative URLs for different environments:
   // For real device testing: "http://192.168.1.124:8000/api";
@@ -55,7 +60,7 @@ class ApiService {
           )
           .timeout(connectionTimeout);
       return response.statusCode == 200;
-    } catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -86,18 +91,19 @@ class ApiService {
     final bool requireAuth = true,
   }) async {
     try {
-      final Map<String, String> headers = requireAuth ? await _authHeaders : _headers;
-      final http.Response response = await http
-          .get(
-            Uri.parse("$baseUrl$endpoint"),
-            headers: {
-              ...headers,
-              "Accept": "application/pdf",
-            },
-          )
-          .timeout(timeoutDuration);
+      final Map<String, String> headers =
+          requireAuth ? await _authHeaders : _headers;
+      final http.Response response = await http.get(
+        Uri.parse("$baseUrl$endpoint"),
+        headers: {
+          ...headers,
+          "Accept": "application/pdf",
+        },
+      ).timeout(timeoutDuration);
 
-      if (response.statusCode == 200 && response.headers['content-type']?.contains('application/pdf') == true) {
+      if (response.statusCode == 200 &&
+          (response.headers['content-type']?.contains('application/pdf') ??
+              false)) {
         return response.bodyBytes;
       }
       throw ApiException("Server returned status ${response.statusCode}");
@@ -157,7 +163,7 @@ class ApiService {
     try {
       final Map<String, String> headers =
           requireAuth ? await _authHeaders : _headers;
-      
+
       final http.Response response = await http
           .post(
             Uri.parse("$baseUrl$endpoint"),
@@ -165,7 +171,7 @@ class ApiService {
             body: json.encode(data),
           )
           .timeout(timeoutDuration);
-      
+
       return _handleResponse(response);
     } on SocketException catch (e) {
       throw ApiException("Hakuna muunganisho wa mtandao: ${e.message}");
@@ -260,7 +266,8 @@ class ApiService {
       case 500:
         throw ApiException(data["message"] ?? "Hitilafu ya seva ya ndani");
       default:
-        throw ApiException(data["message"] ?? "Hitilafu isiyojulikana: ${response.statusCode}");
+        throw ApiException(data["message"] ??
+            "Hitilafu isiyojulikana: ${response.statusCode}");
     }
   }
 
@@ -438,14 +445,16 @@ class ApiService {
     final String period = "monthly", // daily, weekly, monthly, yearly
     final int months = 12,
   }) async =>
-      _get("/admin/drivers/$driverId/payment-trends?period=$period&months=$months");
+      _get(
+          "/admin/drivers/$driverId/payment-trends?period=$period&months=$months");
 
   Future<Map<String, dynamic>> getDriverDebtTrends({
     required final String driverId,
     final String period = "monthly",
     final int months = 12,
   }) async =>
-      _get("/admin/drivers/$driverId/debt-trends?period=$period&months=$months");
+      _get(
+          "/admin/drivers/$driverId/debt-trends?period=$period&months=$months");
 
   Future<Map<String, dynamic>> updateDriverPerformanceMetrics(
     final String driverId,
@@ -470,7 +479,8 @@ class ApiService {
   ) async =>
       _post("/admin/driver-agreements", agreementData);
 
-  Future<Map<String, dynamic>> getDriverAgreement(final String agreementId) async =>
+  Future<Map<String, dynamic>> getDriverAgreement(
+          final String agreementId) async =>
       _get("/admin/driver-agreements/$agreementId");
 
   Future<Map<String, dynamic>> updateDriverAgreement(
@@ -504,15 +514,15 @@ class ApiService {
   /// Returns true if driver has an active/completed agreement, false otherwise
   Future<bool> hasDriverCompletedAgreement(final String driverId) async {
     try {
-      final Map<String, dynamic> response = await getDriverAgreementByDriverId(driverId);
-      
-      // Check if there's agreement data and its status
-      if (response['status'] == 'success' && response['data'] != null) {
-        final String? agreementStatus = response['data']['status']?.toString();
-        return agreementStatus == 'active' || agreementStatus == 'completed';
-      }
-      return false;
-    } catch (e) {
+      final Map<String, dynamic> response =
+          await getDriverAgreementByDriverId(driverId);
+
+      final Map<String, dynamic>? data = response['data'] is Map
+          ? Map<String, dynamic>.from(response['data'])
+          : null;
+      final String? status = data?['status']?.toString();
+      return status == 'active' || status == 'completed';
+    } on Exception {
       // If no agreement found or error occurred, consider as not completed
       return false;
     }
@@ -536,7 +546,8 @@ class ApiService {
   ) async =>
       _put("/admin/vehicles/$vehicleId", vehicleData);
 
-  Future<Map<String, dynamic>> unassignDriverFromVehicle(final String vehicleId) async =>
+  Future<Map<String, dynamic>> unassignDriverFromVehicle(
+          final String vehicleId) async =>
       _post("/admin/vehicles/$vehicleId/unassign", <String, dynamic>{});
 
   Future<Map<String, dynamic>> deleteVehicle(final String vehicleId) async =>
@@ -557,7 +568,6 @@ class ApiService {
     final int limit = 20,
   }) async =>
       _get("/admin/payment-history?page=$page&limit=$limit");
-
 
   // Receipt management endpoints
   Future<Map<String, dynamic>> generateReceipt(
@@ -592,6 +602,29 @@ class ApiService {
     }
 
     return _get(endpoint);
+  }
+
+  // Typed helpers (non-breaking): parse API maps into DTOs
+  // Consumers can migrate to these methods incrementally for type safety.
+  Future<DashboardReport> getDashboardReportTyped() async {
+    final Map<String, dynamic> map = await getDashboardReport();
+    return DashboardReport.fromApi(map);
+  }
+
+  Future<DashboardReport> getDashboardDataTyped() async {
+    final Map<String, dynamic> map = await getDashboardData();
+    return DashboardReport.fromApi(map);
+  }
+
+  Future<RevenueReport> getRevenueReportTyped({
+    final DateTime? startDate,
+    final DateTime? endDate,
+  }) async {
+    final Map<String, dynamic> map = await getRevenueReport(
+      startDate: startDate,
+      endDate: endDate,
+    );
+    return RevenueReport.fromApi(map);
   }
 
   Future<Map<String, dynamic>> getExpenseReport({
@@ -755,7 +788,8 @@ class ApiService {
       if (amount != null) "amount": amount,
       if (notes != null && notes.isNotEmpty) "notes": notes,
       if (promisedToPay) "promised_to_pay": true,
-      if (promiseToPayAt != null) "promise_to_pay_at": promiseToPayAt.toIso8601String(),
+      if (promiseToPayAt != null)
+        "promise_to_pay_at": promiseToPayAt.toIso8601String(),
     };
     return _post("/admin/debts/bulk-create", payload);
   }
@@ -773,7 +807,8 @@ class ApiService {
       if (expectedAmount != null) "expected_amount": expectedAmount,
       if (notes != null) "notes": notes,
       if (promisedToPay != null) "promised_to_pay": promisedToPay,
-      if (promiseToPayAt != null) "promise_to_pay_at": promiseToPayAt.toIso8601String(),
+      if (promiseToPayAt != null)
+        "promise_to_pay_at": promiseToPayAt.toIso8601String(),
     };
     return _put("/admin/debts/records/$debtId", payload);
   }
@@ -811,7 +846,7 @@ class ApiService {
     final DateTime? endDate,
   }) async {
     String endpoint = "/admin/payments/history?page=$page&limit=$limit";
-    
+
     if (driverId != null) {
       endpoint += "&driver_id=$driverId";
     }
@@ -821,7 +856,7 @@ class ApiService {
     if (endDate != null) {
       endpoint += "&end_date=${endDate.toIso8601String()}";
     }
-    
+
     return _get(endpoint);
   }
 
@@ -867,7 +902,7 @@ class ApiService {
       });
 
   // Receipt Management Methods
-  
+
   /// Get pending receipts (payments without receipts generated)
   Future<Map<String, dynamic>> getPendingReceipts() async =>
       _get("/payment-receipts/pending");
@@ -879,7 +914,8 @@ class ApiService {
       });
 
   /// Get payment receipt preview by receipt ID
-  Future<Map<String, dynamic>> getPaymentReceiptPreview(String receiptId) async =>
+  Future<Map<String, dynamic>> getPaymentReceiptPreview(
+          String receiptId) async =>
       _get("/payment-receipts/$receiptId/preview");
 
   /// Send payment receipt to driver via specified method

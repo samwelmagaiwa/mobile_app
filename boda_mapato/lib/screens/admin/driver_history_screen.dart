@@ -1,19 +1,21 @@
+// ignore_for_file: avoid_dynamic_calls, unnecessary_await_in_return, dead_null_aware_expression, unused_element, cascade_invocations
+import "dart:async";
 import "dart:ui";
-import "dart:typed_data";
-import "dart:convert";
+
+import "package:fl_chart/fl_chart.dart";
+import "package:flutter/foundation.dart" show debugPrint, kIsWeb;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:flutter/foundation.dart" show kIsWeb;
 import "package:intl/intl.dart";
-import "package:fl_chart/fl_chart.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 import "package:printing/printing.dart"; // For PdfGoogleFonts (Unicode fonts)
+
 import "../../constants/theme_constants.dart";
-import "../../utils/responsive_helper.dart";
 import "../../models/driver.dart";
 import "../../models/payment.dart";
 import "../../services/api_service.dart";
+import "../../utils/responsive_helper.dart";
 
 class DriverHistoryScreen extends StatefulWidget {
   const DriverHistoryScreen({
@@ -29,11 +31,11 @@ class DriverHistoryScreen extends StatefulWidget {
 
 class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = true;
   bool _apiEndpointsAvailable = false;
   String _selectedChartType = "debt"; // "debt" or "payment"
-  
+
   // Financial data
   double _totalAmountSubmitted = 0;
   double _totalOutstandingDebt = 0;
@@ -41,7 +43,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   double _totalPaid = 0;
   String _paymentConsistencyRating = "Consistent";
   int _averagePaymentDelay = 0;
-  
+
   // History data (loaded from backend)
   List<Payment> _paymentHistory = [];
   List<DebtRecord> _debtHistory = [];
@@ -71,7 +73,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
         border: Border.all(
           color: Colors.white.withOpacity(0.15),
-          width: 1,
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -105,20 +106,19 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     try {
       // Initialize API service
       await _apiService.initialize();
-      
+
       // Load financial summary
       await _loadFinancialSummary();
-      
+
       // Load payment history
       await _loadPaymentHistory();
-      
+
       // Load debt history
       await _loadDebtHistory();
-      
+
       // Load chart data (attempt API first, fallback to generated data)
       await _loadChartData();
-      
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Hitilafu katika kupakia data: $e");
     } finally {
       setState(() {
@@ -126,70 +126,69 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       });
     }
   }
-  
+
   Future<void> _loadChartData() async {
     try {
       // Check if basic driver endpoint exists by testing it first
       bool useApiData = false;
-      
+
       try {
         // First do a quick connectivity test
-        bool isConnected = await _apiService.testConnectivity();
+        final bool isConnected = await _apiService.testConnectivity();
         if (!isConnected) {
           useApiData = false;
           setState(() {
             _apiEndpointsAvailable = false;
           });
-          print('Quick connectivity test failed - backend unreachable');
+          debugPrint('Quick connectivity test failed - backend unreachable');
         } else {
           // Test if driver endpoint exists by trying a basic driver info call
-          final testResponse = await _apiService.get('/admin/drivers/${widget.driver.id}', requireAuth: false);
+          final testResponse = await _apiService
+              .get('/admin/drivers/${widget.driver.id}', requireAuth: false);
           useApiData = testResponse['status'] == 'success';
           setState(() {
             _apiEndpointsAvailable = useApiData;
           });
         }
-      } catch (e) {
+      } on Exception catch (e) {
         // If basic driver endpoint doesn't exist, skip API calls entirely
         useApiData = false;
         setState(() {
           _apiEndpointsAvailable = false;
         });
-        print('Driver API endpoint test failed: $e');
+        debugPrint('Driver API endpoint test failed: $e');
       }
-      
+
       if (useApiData) {
         // Try to load real chart data from API
         try {
           final debtTrends = await _apiService.getDriverDebtTrends(
             driverId: widget.driver.id,
-            period: "monthly",
-            months: 12,
           );
-          
+
           final paymentTrends = await _apiService.getDriverPaymentTrends(
             driverId: widget.driver.id,
-            period: "monthly",
-            months: 12,
           );
-          
+
           // Process API data into chart format - only use real API data
           if (debtTrends['status'] == 'success' && debtTrends['data'] != null) {
             _debtChartData = _processApiChartData(debtTrends['data']['data']);
           } else {
             _debtChartData = []; // No fallback data
           }
-          
-          if (paymentTrends['status'] == 'success' && paymentTrends['data'] != null) {
-            _paymentChartData = _processApiChartData(paymentTrends['data']['data']);
+
+          if (paymentTrends['status'] == 'success' &&
+              paymentTrends['data'] != null) {
+            _paymentChartData =
+                _processApiChartData(paymentTrends['data']['data']);
           } else {
             _paymentChartData = []; // No fallback data
           }
-          
-          print('Successfully loaded chart data from API');
-        } catch (apiError) {
+
+          debugPrint('Successfully loaded chart data from API');
+        } on Exception catch (apiError) {
           // API endpoints don't exist or failed, show empty charts
-          print('Driver trend API endpoints failed: $apiError');
+          debugPrint('Driver trend API endpoints failed: $apiError');
           setState(() {
             _apiEndpointsAvailable = false;
           });
@@ -198,14 +197,13 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         }
       } else {
         // API endpoints not available, show empty charts
-        print('Driver API endpoints not available');
+        debugPrint('Driver API endpoints not available');
         _debtChartData = [];
         _paymentChartData = [];
       }
-      
-    } catch (e) {
+    } on Exception catch (e) {
       // Show empty charts if any error occurs
-      print('Chart data loading failed: $e');
+      debugPrint('Chart data loading failed: $e');
       setState(() {
         _apiEndpointsAvailable = false;
       });
@@ -213,8 +211,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       _paymentChartData = [];
     }
   }
-  
-  List<ChartData> _processApiChartData(dynamic apiData) {
+
+  List<ChartData> _processApiChartData(apiData) {
     if (apiData is List) {
       return apiData.map<ChartData>((item) {
         return ChartData(
@@ -232,7 +230,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       final data = summary['data'] ?? summary; // some endpoints wrap in data
 
       // Compute totals
-      final List<dynamic> records = (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
+      final List<dynamic> records =
+          (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
       double totalExpected = 0;
       double totalPaid = 0;
       for (final r in records) {
@@ -250,8 +249,10 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           ? (data['total_debt'] as num).toDouble()
           : double.tryParse(data['total_debt']?.toString() ?? '0') ?? 0.0;
 
-      final int overdueDays = int.tryParse(data['overdue_days']?.toString() ?? '0') ?? 0;
-      final int unpaidDays = int.tryParse(data['unpaid_days']?.toString() ?? '0') ?? 0;
+      final int overdueDays =
+          int.tryParse(data['overdue_days']?.toString() ?? '0') ?? 0;
+      final int unpaidDays =
+          int.tryParse(data['unpaid_days']?.toString() ?? '0') ?? 0;
 
       // Rating heuristic
       String rating;
@@ -283,7 +284,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         _paymentConsistencyRating = rating;
         _averagePaymentDelay = avgDelay;
       });
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Imeshindikana kupata muhtasari wa kifedha: $e");
     }
   }
@@ -292,40 +293,50 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     try {
       // Primary source: payments module
       final res = await _apiService.getPaymentHistory(
-        page: 1,
         limit: 100,
         driverId: widget.driver.id,
       );
       final data = res['data'] ?? res;
-      List<dynamic> items = (data['payments'] as List<dynamic>?) ?? <dynamic>[];
+      final List<dynamic> items =
+          (data['payments'] as List<dynamic>?) ?? <dynamic>[];
       List<Payment> payments = items
           .map((e) => Payment.fromJson(Map<String, dynamic>.from(e)))
           .toList();
 
       // Fallback: legacy transactions-based history if no payments returned
       if (payments.isEmpty) {
-        final alt = await _apiService.getPayments(page: 1, limit: 100);
+        final alt = await _apiService.getPayments(limit: 100);
         final altData = alt['data'] ?? alt;
-        final List<dynamic> txList = (altData['data'] as List<dynamic>?) ?? <dynamic>[];
-        payments = txList.map((dynamic tx) {
+        final List<dynamic> txList =
+            (altData['data'] as List<dynamic>?) ?? <dynamic>[];
+        payments = txList.map((tx) {
           final Map<String, dynamic> t = Map<String, dynamic>.from(tx as Map);
-          final String channel = (t['payment_method']?.toString().toLowerCase() ?? 'cash');
+          final String channel =
+              t['payment_method']?.toString().toLowerCase() ?? 'cash';
           String mapped = 'cash';
-          if (channel.contains('bank')) mapped = 'bank';
-          else if (channel.contains('mobile')) mapped = 'mobile';
-          else if (channel.contains('card')) mapped = 'bank';
-          else if (channel.contains('cash')) mapped = 'cash';
-          else mapped = 'other';
+          if (channel.contains('bank')) {
+            mapped = 'bank';
+          } else if (channel.contains('mobile')) {
+            mapped = 'mobile';
+          } else if (channel.contains('card')) {
+            mapped = 'bank';
+          } else if (channel.contains('cash')) {
+            mapped = 'cash';
+          } else {
+            mapped = 'other';
+          }
           return Payment(
             id: t['id']?.toString(),
-            driverId: (t['driver']?['user_id']?.toString()) ?? (t['driver_id']?.toString() ?? ''),
-            driverName: (t['driver']?['name']?.toString()) ?? '',
+            driverId: t['driver']?['user_id']?.toString() ??
+                (t['driver_id']?.toString() ?? ''),
+            driverName: t['driver']?['name']?.toString() ?? '',
             amount: double.tryParse(t['amount']?.toString() ?? '0') ?? 0.0,
             paymentChannel: PaymentChannel.fromString(mapped),
             coversDays: const <String>[],
             remarks: t['description']?.toString(),
-            createdAt: DateTime.tryParse(
-                    t['transaction_date']?.toString() ?? t['created_at']?.toString() ?? '') ??
+            createdAt: DateTime.tryParse(t['transaction_date']?.toString() ??
+                    t['created_at']?.toString() ??
+                    '') ??
                 DateTime.now(),
             referenceNumber: t['reference_number']?.toString(),
           );
@@ -335,7 +346,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       setState(() {
         _paymentHistory = payments;
       });
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Imeshindikana kupakia historia ya malipo: $e");
       setState(() {
         _paymentHistory = [];
@@ -345,14 +356,18 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   Future<void> _loadDebtHistory() async {
     try {
-      final res = await _apiService.getDriverDebtRecords(widget.driver.id, unpaidOnly: false, limit: 200);
+      final res = await _apiService.getDriverDebtRecords(widget.driver.id,
+          unpaidOnly: false, limit: 200);
       final data = res['data'] ?? res;
-      final List<dynamic> items = (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
-      final List<DebtRecord> debts = items.map((e) => DebtRecord.fromJson(Map<String, dynamic>.from(e))).toList();
+      final List<dynamic> items =
+          (data['debt_records'] as List<dynamic>?) ?? <dynamic>[];
+      final List<DebtRecord> debts = items
+          .map((e) => DebtRecord.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
       setState(() {
         _debtHistory = debts;
       });
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Imeshindikana kupakia historia ya madeni: $e");
       setState(() {
         _debtHistory = [];
@@ -382,33 +397,33 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Historia ya ${widget.driver.name}",
-      body: _isLoading 
-        ? ThemeConstants.buildResponsiveLoadingWidget(context)
-        : SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildGenerateReportButton(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildDriverBasicInfo(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildFinancialSummary(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildChartsSection(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildPaymentHistorySection(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildDebtHistorySection(),
-                ResponsiveHelper.verticalSpace(1),
-              ],
+      body: _isLoading
+          ? ThemeConstants.buildResponsiveLoadingWidget(context)
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _buildGenerateReportButton(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildDriverBasicInfo(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildFinancialSummary(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildChartsSection(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildPaymentHistorySection(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildDebtHistorySection(),
+                  ResponsiveHelper.verticalSpace(1),
+                ],
+              ),
             ),
-          ),
     );
   }
 
   Widget _buildGenerateReportButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -418,9 +433,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             color: Colors.white,
             size: 20,
           ),
-          label: Text(
+          label: const Text(
             "Tengeneza Ripoti (PDF)",
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -444,7 +459,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   Future<void> _generateDriverHistoryPDF() async {
     try {
       // Show loading dialog
-      showDialog(
+      unawaited(showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
@@ -454,7 +469,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      ThemeConstants.primaryOrange),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -465,37 +481,41 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             ),
           );
         },
-      );
+      ));
 
       // First, try to get a server-generated PDF (backend API)
       Uint8List? backendPdf;
       try {
-        backendPdf = await _apiService.getPdf('/admin/drivers/${widget.driver.id}/history-pdf', requireAuth: false);
-      } catch (_) {
+        backendPdf = await _apiService.getPdf(
+            '/admin/drivers/${widget.driver.id}/history-pdf',
+            requireAuth: false);
+      } on Exception catch (_) {
         backendPdf = null; // fall back to client generation
       }
 
       if (backendPdf != null) {
-        final String fileName = "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
+        final String fileName =
+            "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
         _lastGeneratedPdf = backendPdf;
         _lastGeneratedPdfName = fileName;
 
         if (mounted) {
           Navigator.of(context).pop();
-          showDialog(
+          unawaited(showDialog(
             context: context,
             builder: (BuildContext context) {
               return AlertDialog(
                 backgroundColor: ThemeConstants.primaryBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                title: Row(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: const Row(
                   children: <Widget>[
-                    const Icon(
+                    Icon(
                       Icons.check_circle,
                       color: ThemeConstants.successGreen,
                       size: 28,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Text(
                       "Ripoti Imeundwa!",
                       style: ThemeConstants.headingStyle,
@@ -506,9 +526,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
+                    const Text(
                       "Ripoti ya PDF imeundwa kikamilifu!",
-                      style: const TextStyle(color: ThemeConstants.textSecondary),
+                      style: TextStyle(color: ThemeConstants.textSecondary),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -544,8 +564,11 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         _showErrorSnackBar("Hakuna faili la kufungua.");
                         return;
                       }
-                      await Printing.layoutPdf(onLayout: (format) async => bytes, name: _lastGeneratedPdfName ?? 'driver_history.pdf');
-                      if (mounted) Navigator.pop(context);
+                      await Printing.layoutPdf(
+                          onLayout: (format) async => bytes,
+                          name: _lastGeneratedPdfName ?? 'driver_history.pdf');
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ThemeConstants.primaryOrange,
@@ -556,7 +579,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 ],
               );
             },
-          );
+          ));
         }
         return; // already handled
       }
@@ -564,27 +587,32 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       // Load fonts
       // On web: skip asset lookups to avoid 404 noise and use Google Fonts directly.
       // On mobile/desktop: try offline asset TTFs first, then fall back to Google Fonts.
-      Future<pw.Font> loadAssetFont(String path, Future<pw.Font> Function() fallback) async {
+      Future<pw.Font> loadAssetFont(
+          String path, Future<pw.Font> Function() fallback) async {
         try {
           final data = await rootBundle.load(path);
           return pw.Font.ttf(data);
-        } catch (_) {
+        } on Exception catch (_) {
           return await fallback();
         }
       }
 
       final baseFont = kIsWeb
           ? await PdfGoogleFonts.notoSansRegular()
-          : await loadAssetFont('assets/fonts/NotoSans-Regular.ttf', () => PdfGoogleFonts.notoSansRegular());
+          : await loadAssetFont('assets/fonts/NotoSans-Regular.ttf',
+              PdfGoogleFonts.notoSansRegular);
       final boldFont = kIsWeb
           ? await PdfGoogleFonts.notoSansBold()
-          : await loadAssetFont('assets/fonts/NotoSans-Bold.ttf', () => PdfGoogleFonts.notoSansBold());
+          : await loadAssetFont(
+              'assets/fonts/NotoSans-Bold.ttf', PdfGoogleFonts.notoSansBold);
       final italicFont = kIsWeb
           ? await PdfGoogleFonts.notoSansItalic()
-          : await loadAssetFont('assets/fonts/NotoSans-Italic.ttf', () => PdfGoogleFonts.notoSansItalic());
+          : await loadAssetFont('assets/fonts/NotoSans-Italic.ttf',
+              PdfGoogleFonts.notoSansItalic);
       final boldItalicFont = kIsWeb
           ? await PdfGoogleFonts.notoSansBoldItalic()
-          : await loadAssetFont('assets/fonts/NotoSans-BoldItalic.ttf', () => PdfGoogleFonts.notoSansBoldItalic());
+          : await loadAssetFont('assets/fonts/NotoSans-BoldItalic.ttf',
+              PdfGoogleFonts.notoSansBoldItalic);
 
       // Create PDF document with a theme that uses the Unicode fonts
       final pdf = pw.Document(
@@ -595,56 +623,76 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           boldItalic: boldItalicFont,
         ),
       );
-      
+
       // Get the current date for the report
-      final String reportDate = DateFormat("dd/MM/yyyy").format(DateTime.now());
-      
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
           build: (pw.Context context) {
             // Helpers
-            String currency(num v) => 'TSh ' + NumberFormat('#,###').format(v);
+            String currency(num v) => 'TSh ${NumberFormat('#,###').format(v)}';
             final driver = widget.driver;
             final statusText = driver.status == 'active' ? 'Hai' : 'Hahai';
-            final headerColor = PdfColors.blue800;
-            final accent = PdfColors.orange;
+            const headerColor = PdfColors.blue800;
+            const accent = PdfColors.orange;
 
-            pw.Widget statCard(String title, String value, PdfColor color) => pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.grey200,
-                borderRadius: pw.BorderRadius.circular(8),
-                border: pw.Border.all(color: color, width: 0.5),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(title, style: pw.TextStyle(fontSize: 9, color: color, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 4),
-                  pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
-                ],
-              ),
-            );
+            pw.Widget statCard(String title, String value, PdfColor color) =>
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey200,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: color, width: 0.5),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(title,
+                          style: pw.TextStyle(
+                              fontSize: 9,
+                              color: color,
+                              fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 4),
+                      pw.Text(value,
+                          style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                              color: color)),
+                    ],
+                  ),
+                );
 
             return [
               // Header
               pw.Container(
                 padding: const pw.EdgeInsets.only(bottom: 10),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(bottom: pw.BorderSide(color: headerColor, width: 2)),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                      bottom: pw.BorderSide(color: headerColor, width: 2)),
                 ),
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                      pw.Text('Ripoti ya Dereva', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: headerColor)),
-                      pw.SizedBox(height: 4),
-                      pw.Text(driver.name, style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-                    ]),
-                    pw.Text('Tarehe: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Ripoti ya Dereva',
+                              style: pw.TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: headerColor)),
+                          pw.SizedBox(height: 4),
+                          pw.Text(driver.name,
+                              style: const pw.TextStyle(
+                                  fontSize: 12, color: PdfColors.grey700)),
+                        ]),
+                    pw.Text(
+                        'Tarehe: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+                        style: const pw.TextStyle(
+                            fontSize: 10, color: PdfColors.grey700)),
                   ],
                 ),
               ),
@@ -662,10 +710,20 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   children: [
                     // Avatar placeholder
                     pw.Container(
-                      width: 54, height: 54,
-                      decoration: pw.BoxDecoration(color: PdfColors.grey200, borderRadius: pw.BorderRadius.circular(27)),
-                      child: pw.Center(child: pw.Text(driver.name.isNotEmpty ? driver.name.substring(0,1).toUpperCase() : 'D',
-                        style: pw.TextStyle(color: headerColor, fontSize: 22, fontWeight: pw.FontWeight.bold))),
+                      width: 54,
+                      height: 54,
+                      decoration: pw.BoxDecoration(
+                          color: PdfColors.grey200,
+                          borderRadius: pw.BorderRadius.circular(27)),
+                      child: pw.Center(
+                          child: pw.Text(
+                              driver.name.isNotEmpty
+                                  ? driver.name.substring(0, 1).toUpperCase()
+                                  : 'D',
+                              style: pw.TextStyle(
+                                  color: headerColor,
+                                  fontSize: 22,
+                                  fontWeight: pw.FontWeight.bold))),
                     ),
                     pw.SizedBox(width: 12),
                     pw.Expanded(
@@ -673,22 +731,43 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Row(children: [
-                            pw.Expanded(child: pw.Text('Simu: ${driver.phone}', style: const pw.TextStyle(fontSize: 10))),
+                            pw.Expanded(
+                                child: pw.Text('Simu: ${driver.phone}',
+                                    style: const pw.TextStyle(fontSize: 10))),
                             pw.Container(
-                              padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-                              decoration: pw.BoxDecoration(color: statusText == 'Hai' ? PdfColors.green300 : PdfColors.red300, borderRadius: pw.BorderRadius.circular(4)),
-                              child: pw.Text(statusText, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                              padding: const pw.EdgeInsets.symmetric(
+                                  vertical: 2, horizontal: 6),
+                              decoration: pw.BoxDecoration(
+                                  color: statusText == 'Hai'
+                                      ? PdfColors.green300
+                                      : PdfColors.red300,
+                                  borderRadius: pw.BorderRadius.circular(4)),
+                              child: pw.Text(statusText,
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold,
+                                      fontSize: 9)),
                             ),
                           ]),
                           pw.SizedBox(height: 4),
-                          pw.Text('Barua pepe: ${driver.email}', style: const pw.TextStyle(fontSize: 10)),
+                          pw.Text('Barua pepe: ${driver.email}',
+                              style: const pw.TextStyle(fontSize: 10)),
                           pw.SizedBox(height: 6),
                           pw.Wrap(spacing: 8, runSpacing: 6, children: [
-                            statCard('Leseni', driver.licenseNumber ?? 'Hakuna', PdfColors.blueGrey800),
-                            statCard('Gari', '${driver.vehicleNumber ?? 'N/A'} (${driver.vehicleType ?? 'N/A'})', PdfColors.indigo),
-                            statCard('Aliungana', DateFormat('dd/MM/yyyy').format(driver.joinedDate), PdfColors.deepPurple),
-                            statCard('Kiwango', (driver.rating).toString(), PdfColors.amber800),
-                            statCard('Safari', (driver.tripsCompleted).toString(), PdfColors.cyan800),
+                            statCard('Leseni', driver.licenseNumber ?? 'Hakuna',
+                                PdfColors.blueGrey800),
+                            statCard(
+                                'Gari',
+                                '${driver.vehicleNumber ?? 'N/A'} (${driver.vehicleType ?? 'N/A'})',
+                                PdfColors.indigo),
+                            statCard(
+                                'Aliungana',
+                                DateFormat('dd/MM/yyyy')
+                                    .format(driver.joinedDate),
+                                PdfColors.deepPurple),
+                            statCard('Kiwango', driver.rating.toString(),
+                                PdfColors.amber800),
+                            statCard('Safari', driver.tripsCompleted.toString(),
+                                PdfColors.cyan800),
                           ]),
                         ],
                       ),
@@ -706,112 +785,198 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   borderRadius: pw.BorderRadius.circular(10),
                   border: pw.Border.all(color: PdfColors.orange300, width: 0.5),
                 ),
-                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                  pw.Text('Muhtasari wa Kifedha', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: accent)),
-                  pw.SizedBox(height: 8),
-                  pw.Wrap(spacing: 8, runSpacing: 8, children: [
-                    statCard('Jumla iliyoripotiwa', currency(_totalAmountSubmitted), PdfColors.indigo),
-                    statCard('Jumla ya Madeni', currency(_totalDebtsRecorded), PdfColors.red800),
-                    statCard('Deni Linalosalia', currency(_totalOutstandingDebt), PdfColors.deepOrange),
-                    statCard('Jumla Alizolipa', currency(_totalPaid), PdfColors.green800),
-                    statCard('Wastani wa kuchelewa', '$_averagePaymentDelay siku', PdfColors.deepOrange),
-                    statCard('Kiwango cha ulipaji', _paymentConsistencyRating, PdfColors.teal800),
-                  ]),
-                ]),
+                child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Muhtasari wa Kifedha',
+                          style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                              color: accent)),
+                      pw.SizedBox(height: 8),
+                      pw.Wrap(spacing: 8, runSpacing: 8, children: [
+                        statCard('Jumla iliyoripotiwa',
+                            currency(_totalAmountSubmitted), PdfColors.indigo),
+                        statCard('Jumla ya Madeni',
+                            currency(_totalDebtsRecorded), PdfColors.red800),
+                        statCard(
+                            'Deni Linalosalia',
+                            currency(_totalOutstandingDebt),
+                            PdfColors.deepOrange),
+                        statCard('Jumla Alizolipa', currency(_totalPaid),
+                            PdfColors.green800),
+                        statCard('Wastani wa kuchelewa',
+                            '$_averagePaymentDelay siku', PdfColors.deepOrange),
+                        statCard('Kiwango cha ulipaji',
+                            _paymentConsistencyRating, PdfColors.teal800),
+                      ]),
+                    ]),
               ),
 
               pw.SizedBox(height: 14),
 
               // Payments table
-              pw.Text('Historia ya Malipo', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.green800)),
+              pw.Text('Historia ya Malipo',
+                  style: pw.TextStyle(
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green800)),
               pw.SizedBox(height: 8),
-              _paymentHistory.isEmpty
-                  ? pw.Text('Hakuna malipo yaliyopatikana', style: const pw.TextStyle(fontSize: 10))
-                  : pw.Table(
-                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+              if (_paymentHistory.isEmpty)
+                pw.Text('Hakuna malipo yaliyopatikana',
+                    style: const pw.TextStyle(fontSize: 10))
+              else
+                pw.Table(
+                  border:
+                      pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  children: [
+                    pw.TableRow(
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.green100),
                       children: [
-                        pw.TableRow(
-                          decoration: const pw.BoxDecoration(color: PdfColors.green100),
-                          children: [
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tarehe', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Kiasi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Njia ya Malipo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Marejeo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                          ],
-                        ),
-                        ..._paymentHistory.map((p) => pw.TableRow(children: [
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(DateFormat('dd/MM/yyyy').format(p.createdAt))),
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(p.amount))),
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(p.paymentChannel.displayName)),
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(p.referenceNumber ?? '-')),
-                            ])),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Tarehe',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Kiasi',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Njia ya Malipo',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Marejeo',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
                       ],
                     ),
+                    ..._paymentHistory.map((p) => pw.TableRow(children: [
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(DateFormat('dd/MM/yyyy')
+                                  .format(p.createdAt))),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(currency(p.amount))),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(p.paymentChannel.displayName)),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(p.referenceNumber ?? '-')),
+                        ])),
+                  ],
+                ),
 
               pw.SizedBox(height: 14),
 
               // Debts table
-              pw.Text('Historia ya Madeni', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
+              pw.Text('Historia ya Madeni',
+                  style: pw.TextStyle(
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.red800)),
               pw.SizedBox(height: 8),
-              _debtHistory.isEmpty
-                  ? pw.Text('Hakuna rekodi za madeni', style: const pw.TextStyle(fontSize: 10))
-                  : pw.Table(
-                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+              if (_debtHistory.isEmpty)
+                pw.Text('Hakuna rekodi za madeni',
+                    style: const pw.TextStyle(fontSize: 10))
+              else
+                pw.Table(
+                  border:
+                      pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  children: [
+                    pw.TableRow(
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.red100),
                       children: [
-                        pw.TableRow(
-                          decoration: const pw.BoxDecoration(color: PdfColors.red100),
-                          children: [
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tarehe', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Inayotarajiwa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Aliyolipa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                            pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Hali', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                          ],
-                        ),
-                        ..._debtHistory.map((d) => pw.TableRow(children: [
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.formattedDate)),
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(d.expectedAmount))),
-                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(currency(d.paidAmount))),
-                              pw.Padding(
-                                  padding: const pw.EdgeInsets.all(6),
-                                  child: pw.Container(
-                                    padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-                                    decoration: pw.BoxDecoration(
-                                      color: d.isPaid ? PdfColors.green300 : PdfColors.amber300,
-                                      borderRadius: pw.BorderRadius.circular(4),
-                                    ),
-                                    child: pw.Text(d.isPaid ? 'Imelipwa' : 'Haijalipwa', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                                  )),
-                            ])),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Tarehe',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Inayotarajiwa',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Aliyolipa',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
+                        pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Hali',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold))),
                       ],
                     ),
+                    ..._debtHistory.map((d) => pw.TableRow(children: [
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(d.formattedDate)),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(currency(d.expectedAmount))),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Text(currency(d.paidAmount))),
+                          pw.Padding(
+                              padding: const pw.EdgeInsets.all(6),
+                              child: pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(
+                                    vertical: 2, horizontal: 6),
+                                decoration: pw.BoxDecoration(
+                                  color: d.isPaid
+                                      ? PdfColors.green300
+                                      : PdfColors.amber300,
+                                  borderRadius: pw.BorderRadius.circular(4),
+                                ),
+                                child: pw.Text(
+                                    d.isPaid ? 'Imelipwa' : 'Haijalipwa',
+                                    style: pw.TextStyle(
+                                        fontWeight: pw.FontWeight.bold,
+                                        fontSize: 9)),
+                              )),
+                        ])),
+                  ],
+                ),
             ];
           },
         ),
       );
       final Uint8List pdfData = await pdf.save();
-      final String fileName = "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
+      final String fileName =
+          "Historia_${widget.driver.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf";
       _lastGeneratedPdf = pdfData;
       _lastGeneratedPdfName = fileName;
-      
+
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
-        
+
         // Show success dialog with open option
-        showDialog(
+        unawaited(showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               backgroundColor: ThemeConstants.primaryBlue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Row(
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.check_circle,
                     color: ThemeConstants.successGreen,
                     size: 28,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Text(
                     "Ripoti Imeundwa!",
                     style: ThemeConstants.headingStyle,
@@ -822,9 +987,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
+                  const Text(
                     "Ripoti ya PDF imeundwa kikamilifu!",
-                    style: const TextStyle(color: ThemeConstants.textSecondary),
+                    style: TextStyle(color: ThemeConstants.textSecondary),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -861,8 +1026,11 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                       return;
                     }
                     // Open PDF preview/print dialog
-                    await Printing.layoutPdf(onLayout: (format) async => bytes, name: _lastGeneratedPdfName ?? 'driver_history.pdf');
-                    if (mounted) Navigator.pop(context);
+                    await Printing.layoutPdf(
+                        onLayout: (format) async => bytes,
+                        name: _lastGeneratedPdfName ?? 'driver_history.pdf');
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ThemeConstants.primaryOrange,
@@ -873,20 +1041,20 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               ],
             );
           },
-        );
+        ));
       }
-    } catch (e) {
+    } on Exception catch (e) {
       // Close loading dialog if it's open
       if (mounted && Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
-      
+
       if (mounted) {
         _showErrorSnackBar("Hitilafu katika kuunda ripoti: $e");
       }
     }
   }
-  
+
   pw.Widget _buildPDFInfoRow(String label, String value) {
     return pw.Padding(
       padding: const pw.EdgeInsets.only(bottom: 4),
@@ -907,14 +1075,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ),
     );
   }
-  
+
   pw.Widget _buildPDFFinancialItem(String label, double amount) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
           label,
-          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
         ),
         pw.Text(
           "TSh ${NumberFormat('#,###').format(amount)}",
@@ -949,14 +1117,17 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           ),
           ResponsiveHelper.verticalSpace(1),
           _buildInfoRow("Jina Kamili", widget.driver.name),
-          _buildInfoRow("Nambari ya Leseni", widget.driver.licenseNumber ?? "Hakuna"),
+          _buildInfoRow(
+              "Nambari ya Leseni", widget.driver.licenseNumber ?? "Hakuna"),
           _buildInfoRow("Simu", widget.driver.phone),
-          _buildInfoRow("Aina ya Chombo", widget.driver.vehicleType ?? "Boda Boda"),
-          _buildInfoRow("Nambari ya Chombo", widget.driver.vehicleNumber ?? "Hakuna"),
-          _buildInfoRow("Tarehe ya Kuanza Kazi", 
-            DateFormat("dd/MM/yyyy").format(widget.driver.joinedDate)),
-          _buildInfoRow("Hali ya Sasa", 
-            widget.driver.status == "active" ? "Hai" : "Haipo"),
+          _buildInfoRow(
+              "Aina ya Chombo", widget.driver.vehicleType ?? "Boda Boda"),
+          _buildInfoRow(
+              "Nambari ya Chombo", widget.driver.vehicleNumber ?? "Hakuna"),
+          _buildInfoRow("Tarehe ya Kuanza Kazi",
+              DateFormat("dd/MM/yyyy").format(widget.driver.joinedDate)),
+          _buildInfoRow("Hali ya Sasa",
+              widget.driver.status == "active" ? "Hai" : "Haipo"),
         ],
       ),
     );
@@ -964,7 +1135,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1045,7 +1216,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
-  Widget _buildFinancialCard(String title, double amount, IconData icon, Color color) {
+  Widget _buildFinancialCard(
+      String title, double amount, IconData icon, Color color) {
     return Container(
       padding: ResponsiveHelper.cardPadding,
       decoration: BoxDecoration(
@@ -1082,12 +1254,12 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   }
 
   Widget _buildPaymentConsistencyCard() {
-    final Color ratingColor = _paymentConsistencyRating == "Consistent" 
+    final Color ratingColor = _paymentConsistencyRating == "Consistent"
         ? ThemeConstants.successGreen
-        : _paymentConsistencyRating == "Late" 
-        ? ThemeConstants.errorRed
-        : ThemeConstants.warningAmber;
-    
+        : _paymentConsistencyRating == "Late"
+            ? ThemeConstants.errorRed
+            : ThemeConstants.warningAmber;
+
     return Container(
       width: double.infinity,
       padding: ResponsiveHelper.cardPadding,
@@ -1106,13 +1278,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 children: <Widget>[
                   Text(
                     "Kiwango cha Ulipaji",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context).copyWith(
+                    style: ThemeConstants.responsiveSubHeadingStyle(context)
+                        .copyWith(
                       color: ratingColor,
                     ),
                   ),
                   Text(
                     _paymentConsistencyRating,
-                    style: ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                    style:
+                        ThemeConstants.responsiveHeadingStyle(context).copyWith(
                       color: ratingColor,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1124,13 +1298,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 children: <Widget>[
                   Text(
                     "Wastani wa Kuchelewa",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context).copyWith(
+                    style: ThemeConstants.responsiveSubHeadingStyle(context)
+                        .copyWith(
                       color: ratingColor,
                     ),
                   ),
                   Text(
                     "$_averagePaymentDelay siku",
-                    style: ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                    style:
+                        ThemeConstants.responsiveHeadingStyle(context).copyWith(
                       color: ratingColor,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1157,215 +1333,222 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           child: Column(
             children: <Widget>[
               // Chart type selector - Fixed overflow
-              ResponsiveHelper.isMobile
-                  ? Column(
-                      children: <Widget>[
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedChartType = "debt";
-                            });
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(
-                              color: _selectedChartType == "debt" 
-                                  ? ThemeConstants.primaryOrange.withOpacity(0.8)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _selectedChartType == "debt"
-                                    ? ThemeConstants.primaryOrange
-                                    : ThemeConstants.textSecondary,
-                              ),
+              if (ResponsiveHelper.isMobile)
+                Column(
+                  children: <Widget>[
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedChartType = "debt";
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: _selectedChartType == "debt"
+                              ? ThemeConstants.primaryOrange.withOpacity(0.8)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _selectedChartType == "debt"
+                                ? ThemeConstants.primaryOrange
+                                : ThemeConstants.textSecondary,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(
+                              Icons.trending_down,
+                              color: _selectedChartType == "debt"
+                                  ? Colors.white
+                                  : ThemeConstants.textPrimary,
+                              size: 18,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.trending_down,
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                "Mwelekeo wa Deni",
+                                style: TextStyle(
                                   color: _selectedChartType == "debt"
                                       ? Colors.white
                                       : ThemeConstants.textPrimary,
-                                  size: 18,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    "Mwelekeo wa Deni",
-                                    style: TextStyle(
-                                      color: _selectedChartType == "debt"
-                                          ? Colors.white
-                                          : ThemeConstants.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedChartType = "payment";
-                            });
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: _selectedChartType == "payment" 
-                                  ? ThemeConstants.primaryOrange.withOpacity(0.8)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _selectedChartType == "payment"
-                                    ? ThemeConstants.primaryOrange
-                                    : ThemeConstants.textSecondary,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.trending_up,
+                          ],
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedChartType = "payment";
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: _selectedChartType == "payment"
+                              ? ThemeConstants.primaryOrange.withOpacity(0.8)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _selectedChartType == "payment"
+                                ? ThemeConstants.primaryOrange
+                                : ThemeConstants.textSecondary,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(
+                              Icons.trending_up,
+                              color: _selectedChartType == "payment"
+                                  ? Colors.white
+                                  : ThemeConstants.textPrimary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                "Mwelekeo wa Malipo",
+                                style: TextStyle(
                                   color: _selectedChartType == "payment"
                                       ? Colors.white
                                       : ThemeConstants.textPrimary,
-                                  size: 18,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    "Mwelekeo wa Malipo",
-                                    style: TextStyle(
-                                      color: _selectedChartType == "payment"
-                                          ? Colors.white
-                                          : ThemeConstants.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedChartType = "debt";
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: _selectedChartType == "debt"
+                                ? ThemeConstants.primaryOrange.withOpacity(0.8)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _selectedChartType == "debt"
+                                  ? ThemeConstants.primaryOrange
+                                  : ThemeConstants.textSecondary,
                             ),
                           ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedChartType = "debt";
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedChartType == "debt" 
-                                    ? ThemeConstants.primaryOrange.withOpacity(0.8)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: _selectedChartType == "debt"
-                                      ? ThemeConstants.primaryOrange
-                                      : ThemeConstants.textSecondary,
-                                ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                Icons.trending_down,
+                                color: _selectedChartType == "debt"
+                                    ? Colors.white
+                                    : ThemeConstants.textPrimary,
+                                size: 18,
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Icon(
-                                    Icons.trending_down,
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  "Mwelekeo wa Deni",
+                                  style: TextStyle(
                                     color: _selectedChartType == "debt"
                                         ? Colors.white
                                         : ThemeConstants.textPrimary,
-                                    size: 18,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize:
+                                        ResponsiveHelper.isMobile ? 12 : 14,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      "Mwelekeo wa Deni",
-                                      style: TextStyle(
-                                        color: _selectedChartType == "debt"
-                                            ? Colors.white
-                                            : ThemeConstants.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: ResponsiveHelper.isMobile ? 12 : 14,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedChartType = "payment";
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedChartType == "payment" 
-                                    ? ThemeConstants.primaryOrange.withOpacity(0.8)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: _selectedChartType == "payment"
-                                      ? ThemeConstants.primaryOrange
-                                      : ThemeConstants.textSecondary,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Icon(
-                                    Icons.trending_up,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedChartType = "payment";
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: _selectedChartType == "payment"
+                                ? ThemeConstants.primaryOrange.withOpacity(0.8)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _selectedChartType == "payment"
+                                  ? ThemeConstants.primaryOrange
+                                  : ThemeConstants.textSecondary,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                Icons.trending_up,
+                                color: _selectedChartType == "payment"
+                                    ? Colors.white
+                                    : ThemeConstants.textPrimary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  "Mwelekeo wa Malipo",
+                                  style: TextStyle(
                                     color: _selectedChartType == "payment"
                                         ? Colors.white
                                         : ThemeConstants.textPrimary,
-                                    size: 18,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize:
+                                        ResponsiveHelper.isMobile ? 12 : 14,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      "Mwelekeo wa Malipo",
-                                      style: TextStyle(
-                                        color: _selectedChartType == "payment"
-                                            ? Colors.white
-                                            : ThemeConstants.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: ResponsiveHelper.isMobile ? 12 : 14,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
+                  ],
+                ),
               ResponsiveHelper.verticalSpace(1),
               // Dynamic chart display with refresh option
               Column(
@@ -1373,14 +1556,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   // Data source indicator
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _apiEndpointsAvailable 
+                      color: _apiEndpointsAvailable
                           ? ThemeConstants.successGreen.withOpacity(0.1)
                           : ThemeConstants.warningAmber.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _apiEndpointsAvailable 
+                        color: _apiEndpointsAvailable
                             ? ThemeConstants.successGreen.withOpacity(0.3)
                             : ThemeConstants.warningAmber.withOpacity(0.3),
                       ),
@@ -1389,20 +1573,22 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _apiEndpointsAvailable ? Icons.cloud_done : Icons.device_unknown,
+                          _apiEndpointsAvailable
+                              ? Icons.cloud_done
+                              : Icons.device_unknown,
                           size: 14,
-                          color: _apiEndpointsAvailable 
+                          color: _apiEndpointsAvailable
                               ? ThemeConstants.successGreen
                               : ThemeConstants.warningAmber,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _apiEndpointsAvailable 
+                          _apiEndpointsAvailable
                               ? "Data kutoka API"
                               : "Data ya mfano (API haipo)",
                           style: TextStyle(
                             fontSize: 11,
-                            color: _apiEndpointsAvailable 
+                            color: _apiEndpointsAvailable
                                 ? ThemeConstants.successGreen
                                 : ThemeConstants.warningAmber,
                             fontWeight: FontWeight.w500,
@@ -1418,13 +1604,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       child: const LinearProgressIndicator(
                         backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            ThemeConstants.primaryOrange),
                       ),
                     ),
                   // Chart display
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
-                    child: _selectedChartType == "debt" 
+                    child: _selectedChartType == "debt"
                         ? _buildDebtChart()
                         : _buildPaymentChart(),
                   ),
@@ -1432,7 +1619,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   ResponsiveHelper.verticalSpace(1),
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
@@ -1440,7 +1627,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                           size: 14,
                           color: ThemeConstants.textSecondary,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           "Miezi",
                           style: TextStyle(
@@ -1469,7 +1656,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.trending_down,
                 size: 48,
                 color: ThemeConstants.textSecondary,
@@ -1486,11 +1673,13 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     }
 
     // Calculate dynamic values for flexible scaling
-    final double maxValue = _debtChartData.map((e) => e.value).reduce((a, b) => a > b ? a : b);
-    final double minValue = _debtChartData.map((e) => e.value).reduce((a, b) => a < b ? a : b);
+    final double maxValue =
+        _debtChartData.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+    final double minValue =
+        _debtChartData.map((e) => e.value).reduce((a, b) => a < b ? a : b);
     final double range = maxValue - minValue;
     final double padding = range * 0.1; // 10% padding
-    
+
     return SizedBox(
       height: ResponsiveHelper.hp(22),
       key: const ValueKey("debt_chart"),
@@ -1503,9 +1692,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           minY: (minValue - padding).clamp(0, double.infinity),
           maxY: maxValue + padding,
           gridData: FlGridData(
-            show: true,
             drawVerticalLine: false,
-            horizontalInterval: range > 0 ? range / 5 : 1000, // Dynamic grid intervals
+            horizontalInterval:
+                range > 0 ? range / 5 : 1000, // Dynamic grid intervals
             getDrawingHorizontalLine: (value) {
               return FlLine(
                 color: ThemeConstants.textSecondary.withOpacity(0.3),
@@ -1517,17 +1706,27 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: _debtChartData.length > 8 ? 4 : _debtChartData.length > 6 ? 3 : 2, // Dynamic intervals based on data count
-                reservedSize: ResponsiveHelper.isMobile ? 50 : 40, // More space for rotated labels on mobile
+                interval: _debtChartData.length > 8
+                    ? 4
+                    : _debtChartData.length > 6
+                        ? 3
+                        : 2, // Dynamic intervals based on data count
+                reservedSize: ResponsiveHelper.isMobile
+                    ? 50
+                    : 40, // More space for rotated labels on mobile
                 getTitlesWidget: (value, meta) {
-                  if (value.toInt() >= 0 && value.toInt() < _debtChartData.length) {
+                  if (value.toInt() >= 0 &&
+                      value.toInt() < _debtChartData.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Transform.rotate(
-                        angle: ResponsiveHelper.isMobile ? -0.5 : 0, // Slight rotation on mobile
+                        angle: ResponsiveHelper.isMobile
+                            ? -0.5
+                            : 0, // Slight rotation on mobile
                         child: Text(
                           _debtChartData[value.toInt()].label,
-                          style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                          style: ThemeConstants.responsiveCaptionStyle(context)
+                              .copyWith(
                             fontSize: ResponsiveHelper.isMobile ? 9 : 11,
                           ),
                           textAlign: TextAlign.center,
@@ -1564,8 +1763,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 },
               ),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(),
+            topTitles: const AxisTitles(),
           ),
           borderData: FlBorderData(show: false),
           lineBarsData: [
@@ -1581,7 +1780,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 color: ThemeConstants.errorRed.withOpacity(0.3),
               ),
               dotData: FlDotData(
-                show: true,
                 getDotPainter: (spot, percent, barData, index) {
                   return FlDotCirclePainter(
                     radius: ResponsiveHelper.isMobile ? 3 : 4,
@@ -1606,7 +1804,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.trending_up,
                 size: 48,
                 color: ThemeConstants.textSecondary,
@@ -1623,16 +1821,18 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     }
 
     // Calculate dynamic values for flexible scaling
-    final double maxValue = _paymentChartData.map((e) => e.value).reduce((a, b) => a > b ? a : b);
-    final double minValue = _paymentChartData.map((e) => e.value).reduce((a, b) => a < b ? a : b);
+    final double maxValue =
+        _paymentChartData.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+    final double minValue =
+        _paymentChartData.map((e) => e.value).reduce((a, b) => a < b ? a : b);
     final double range = maxValue - minValue;
     final double padding = range * 0.1; // 10% padding
-    
+
     // Dynamic bar width based on data count
-    final double barWidth = _paymentChartData.length > 12 
-        ? (ResponsiveHelper.isMobile ? 12 : 16) 
+    final double barWidth = _paymentChartData.length > 12
+        ? (ResponsiveHelper.isMobile ? 12 : 16)
         : (ResponsiveHelper.isMobile ? 20 : 30);
-    
+
     return SizedBox(
       height: ResponsiveHelper.hp(22),
       key: const ValueKey("payment_chart"),
@@ -1666,9 +1866,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             );
           }).toList(),
           gridData: FlGridData(
-            show: true,
             drawVerticalLine: false,
-            horizontalInterval: range > 0 ? range / 5 : 1000, // Dynamic grid intervals
+            horizontalInterval:
+                range > 0 ? range / 5 : 1000, // Dynamic grid intervals
             getDrawingHorizontalLine: (value) {
               return FlLine(
                 color: ThemeConstants.textSecondary.withOpacity(0.3),
@@ -1680,17 +1880,27 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: _paymentChartData.length > 8 ? 4 : _paymentChartData.length > 6 ? 3 : 2, // Dynamic intervals based on data count
-                reservedSize: ResponsiveHelper.isMobile ? 50 : 40, // More space for rotated labels on mobile
+                interval: _paymentChartData.length > 8
+                    ? 4
+                    : _paymentChartData.length > 6
+                        ? 3
+                        : 2, // Dynamic intervals based on data count
+                reservedSize: ResponsiveHelper.isMobile
+                    ? 50
+                    : 40, // More space for rotated labels on mobile
                 getTitlesWidget: (value, meta) {
-                  if (value.toInt() >= 0 && value.toInt() < _paymentChartData.length) {
+                  if (value.toInt() >= 0 &&
+                      value.toInt() < _paymentChartData.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Transform.rotate(
-                        angle: ResponsiveHelper.isMobile ? -0.5 : 0, // Slight rotation on mobile
+                        angle: ResponsiveHelper.isMobile
+                            ? -0.5
+                            : 0, // Slight rotation on mobile
                         child: Text(
                           _paymentChartData[value.toInt()].label,
-                          style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                          style: ThemeConstants.responsiveCaptionStyle(context)
+                              .copyWith(
                             fontSize: ResponsiveHelper.isMobile ? 9 : 11,
                           ),
                           textAlign: TextAlign.center,
@@ -1727,8 +1937,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 },
               ),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(),
+            topTitles: const AxisTitles(),
           ),
           borderData: FlBorderData(show: false),
         ),
@@ -1757,10 +1967,25 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 ),
                 child: Row(
                   children: <Widget>[
-                    Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Njia", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 1, child: Text("Risiti", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Tarehe",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Kiasi",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Njia",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        child: Text("Risiti",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
                   ],
                 ),
               ),
@@ -1790,8 +2015,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         Expanded(
                           flex: 2,
                           child: Text(
-                            "${NumberFormat('#,###').format(payment.amount)}",
-                            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                            NumberFormat('#,###').format(payment.amount),
+                            style: ThemeConstants.responsiveBodyStyle(context)
+                                .copyWith(
                               color: ThemeConstants.successGreen,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1807,11 +2033,10 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                           ),
                         ),
                         Expanded(
-                          flex: 1,
                           child: GestureDetector(
                             onTap: () => _showReceiptDialog(payment),
                             child: Icon(
-                              payment.referenceNumber != null 
+                              payment.referenceNumber != null
                                   ? Icons.receipt
                                   : Icons.receipt_long_outlined,
                               color: payment.referenceNumber != null
@@ -1853,9 +2078,21 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 ),
                 child: Row(
                   children: <Widget>[
-                    Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Kiasi", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Hali", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Tarehe",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Kiasi",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Hali",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
                   ],
                 ),
               ),
@@ -1870,8 +2107,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 ),
                 itemBuilder: (context, index) {
                   final debt = _debtHistory[index];
-                  Color statusColor = _getDebtStatusColor(debt);
-                  
+                  final Color statusColor = _getDebtStatusColor(debt);
+
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -1887,8 +2124,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         Expanded(
                           flex: 2,
                           child: Text(
-                            "${NumberFormat('#,###').format(debt.expectedAmount)}",
-                            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                            NumberFormat('#,###').format(debt.expectedAmount),
+                            style: ThemeConstants.responsiveBodyStyle(context)
+                                .copyWith(
                               color: ThemeConstants.errorRed,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1898,15 +2136,19 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         Expanded(
                           flex: 2,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
                             decoration: BoxDecoration(
                               color: statusColor.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: statusColor.withOpacity(0.5)),
+                              border: Border.all(
+                                  color: statusColor.withOpacity(0.5)),
                             ),
                             child: Text(
                               _getDebtStatusText(debt),
-                              style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                              style:
+                                  ThemeConstants.responsiveCaptionStyle(context)
+                                      .copyWith(
                                 color: statusColor,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1961,14 +2203,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text("Tarehe: ${DateFormat("dd/MM/yyyy").format(payment.createdAt)}", 
-                style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Kiasi: TSh ${NumberFormat('#,###').format(payment.amount)}", 
-                style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Njia ya Malipo: ${payment.paymentChannel.displayName}", 
-                style: ThemeConstants.responsiveBodyStyle(context)),
-              Text("Rejea: ${payment.referenceNumber ?? '-'}", 
-                style: ThemeConstants.responsiveBodyStyle(context)),
+              Text(
+                  "Tarehe: ${DateFormat("dd/MM/yyyy").format(payment.createdAt)}",
+                  style: ThemeConstants.responsiveBodyStyle(context)),
+              Text("Kiasi: TSh ${NumberFormat('#,###').format(payment.amount)}",
+                  style: ThemeConstants.responsiveBodyStyle(context)),
+              Text("Njia ya Malipo: ${payment.paymentChannel.displayName}",
+                  style: ThemeConstants.responsiveBodyStyle(context)),
+              Text("Rejea: ${payment.referenceNumber ?? '-'}",
+                  style: ThemeConstants.responsiveBodyStyle(context)),
             ],
           ),
           actions: <Widget>[
@@ -1991,11 +2234,10 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 // Data models
 
 class ChartData {
-  final String label;
-  final double value;
-
   ChartData({
     required this.label,
     required this.value,
   });
+  final String label;
+  final double value;
 }

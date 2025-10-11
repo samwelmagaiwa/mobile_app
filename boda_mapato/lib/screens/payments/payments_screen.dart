@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/driver.dart';
 import '../../models/payment.dart';
+import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
-import 'package:provider/provider.dart';
-import '../../providers/debts_provider.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -21,12 +21,12 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   bool _listeningProvider = false;
   final ApiService _apiService = ApiService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Animation controllers
   late AnimationController _slideController;
   late AnimationController _fadeController;
@@ -38,16 +38,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   List<Driver> _filteredDrivers = [];
   Driver? _selectedDriver;
   PaymentSummary? _driverPaymentSummary;
-  List<DebtRecord> _selectedDebts = [];
+  final List<DebtRecord> _selectedDebts = [];
   PaymentChannel _selectedChannel = PaymentChannel.cash;
-  
+
   bool _isLoadingDrivers = true;
   bool _isLoadingDebts = false;
   bool _isSubmittingPayment = false;
   bool _isDriverSelectionMode = true;
-  
+
   String? _errorMessage;
-  double _totalSelectedAmount = 0.0;
+  double _totalSelectedAmount = 0;
 
   @override
   void initState() {
@@ -66,18 +66,18 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
+
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
+      begin: const Offset(1, 0),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideController,
       curve: Curves.easeInOut,
     ));
-    
+
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeIn,
@@ -92,7 +92,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     if (!_listeningProvider) {
       _listeningProvider = true;
       try {
-        final DebtsProvider dp = Provider.of<DebtsProvider>(context, listen: false);
+        final DebtsProvider dp =
+            Provider.of<DebtsProvider>(context, listen: false);
         dp.addListener(() async {
           if (dp.shouldRefresh) {
             await _loadDriversWithDebts();
@@ -102,7 +103,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             dp.consume();
           }
         });
-      } catch (_) {}
+      } on Exception catch (_) {}
     }
   }
 
@@ -123,23 +124,30 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         _errorMessage = null;
       });
 
-      final response = await _apiService.getDriversWithDebts();
-      
-      if (response['success'] == true) {
-        final driversData = response['data']['drivers'] as List<dynamic>? ?? [];
+      final Map<String, Object?> response =
+          await _apiService.getDriversWithDebts() as Map<String, Object?>;
+
+      final bool success = (response['success'] as bool?) ?? false;
+
+      if (success) {
+        final Map<String, dynamic> data =
+            (response['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+        final List<dynamic> driversData =
+            (data['drivers'] as List?)?.cast<dynamic>() ?? <dynamic>[];
         setState(() {
           _drivers = driversData
               .map((driver) => Driver.fromJson(driver as Map<String, dynamic>))
               .toList();
-          _filteredDrivers = List.from(_drivers);
+          _filteredDrivers = List<Driver>.from(_drivers);
           _isLoadingDrivers = false;
         });
       } else {
-        throw Exception(response['message'] ?? 'Failed to load drivers');
+        final String msg = response['message'] as String? ?? 'Failed to load drivers';
+        throw Exception(msg);
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load drivers: ${e.toString()}';
+        _errorMessage = 'Failed to load drivers: $e';
         _isLoadingDrivers = false;
       });
     }
@@ -153,7 +161,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       });
 
       final response = await _apiService.getDriverDebtSummary(driverId);
-      
+
       if (response['success'] == true) {
         final summaryData = response['data'] as Map<String, dynamic>;
         setState(() {
@@ -163,9 +171,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       } else {
         throw Exception(response['message'] ?? 'Failed to load debt records');
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load debt records: ${e.toString()}';
+        _errorMessage = 'Failed to load debt records: $e';
         _isLoadingDebts = false;
       });
     }
@@ -176,8 +184,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     setState(() {
       _filteredDrivers = _drivers.where((driver) {
         return driver.name.toLowerCase().contains(query) ||
-               driver.phone.toLowerCase().contains(query) ||
-               driver.email.toLowerCase().contains(query);
+            driver.phone.toLowerCase().contains(query) ||
+            driver.email.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -187,7 +195,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       _selectedDriver = driver;
       _isDriverSelectionMode = false;
     });
-    
+
     _slideController.forward();
     _loadDriverDebts(driver.id);
   }
@@ -202,7 +210,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       _amountController.clear();
       _remarksController.clear();
     });
-    
+
     _slideController.reverse();
   }
 
@@ -215,7 +223,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         _selectedDebts.add(debt);
         _totalSelectedAmount += debt.remainingAmount;
       }
-      
+
       // Update amount controller with total selected amount
       _amountController.text = _totalSelectedAmount.toStringAsFixed(0);
     });
@@ -241,25 +249,25 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         'amount': double.parse(_amountController.text),
         'payment_channel': _selectedChannel.value,
         'covers_days': _selectedDebts.map((debt) => debt.date).toList(),
-        'remarks': _remarksController.text.trim().isEmpty 
-            ? null 
+        'remarks': _remarksController.text.trim().isEmpty
+            ? null
             : _remarksController.text.trim(),
       };
 
       final response = await _apiService.recordPayment(paymentData);
-      
+
       if (response['success'] == true) {
         // Notify other parts (Rekodi Madeni) to refresh its list
         try {
           // ignore: use_build_context_synchronously
           Provider.of<DebtsProvider>(context, listen: false).markChanged();
-        } catch (_) {}
+        } on Exception catch (_) {}
         _showSuccessDialog();
       } else {
         throw Exception(response['message'] ?? 'Failed to record payment');
       }
-    } catch (e) {
-      _showErrorDialog('Hitilafu katika kuhifadhi malipo: ${e.toString()}');
+    } on Exception catch (e) {
+      _showErrorDialog('Hitilafu katika kuhifadhi malipo: $e');
     } finally {
       setState(() {
         _isSubmittingPayment = false;
@@ -312,7 +320,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              
+
               // Payment Details Card
               Container(
                 padding: const EdgeInsets.all(16),
@@ -321,7 +329,6 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.2),
-                    width: 1,
                   ),
                 ),
                 child: Column(
@@ -346,7 +353,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ],
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Payment channel
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -369,7 +376,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ],
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Days covered
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -391,7 +398,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         ),
                       ],
                     ),
-                    
+
                     if (_remarksController.text.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Row(
@@ -423,9 +430,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Paid days summary
               if (_selectedDebts.isNotEmpty) ...[
                 Container(
@@ -435,7 +442,6 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: ThemeConstants.successGreen.withOpacity(0.3),
-                      width: 1,
                     ),
                   ),
                   child: Column(
@@ -470,7 +476,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: ThemeConstants.successGreen.withOpacity(0.2),
+                              color:
+                                  ThemeConstants.successGreen.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -489,7 +496,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 ),
                 const SizedBox(height: 16),
               ],
-              
+
               // Action buttons
               Row(
                 children: [
@@ -504,7 +511,6 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         foregroundColor: ThemeConstants.textPrimary,
                         side: const BorderSide(
                           color: ThemeConstants.textSecondary,
-                          width: 1,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -605,7 +611,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         return '${(number / 1000).toStringAsFixed(0)}K';
       }
       return number.toStringAsFixed(0);
-    } catch (e) {
+    } on FormatException catch (_) {
       return amount;
     }
   }
@@ -613,7 +619,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    
+
     return ThemeConstants.buildScaffold(
       title: 'Malipo',
       body: FadeTransition(
@@ -623,7 +629,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             if (_isDriverSelectionMode) _buildDriverSelectionView(),
             SlideTransition(
               position: _slideAnimation,
-              child: !_isDriverSelectionMode ? _buildPaymentFormView() : const SizedBox(),
+              child: !_isDriverSelectionMode
+                  ? _buildPaymentFormView()
+                  : const SizedBox(),
             ),
           ],
         ),
@@ -683,9 +691,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Search Bar
           ThemeConstants.buildGlassCard(
             onTap: () {},
@@ -700,11 +708,12 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: ThemeConstants.primaryBlue.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.2)),
                       ),
                       child: TextField(
                         controller: _searchController,
@@ -712,17 +721,19 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           color: ThemeConstants.textPrimary,
                           fontSize: 16,
                         ),
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: 'Tafuta dereva...',
-                          hintStyle: const TextStyle(
+                          hintStyle: TextStyle(
                             color: ThemeConstants.textSecondary,
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor: Colors.transparent, // background handled by Container above
+                          fillColor: Colors
+                              .transparent, // background handled by Container above
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                       ),
                     ),
@@ -731,9 +742,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(height: 10),
-          
+
           // Drivers List
           if (_isLoadingDrivers)
             _buildLoadingState()
@@ -759,21 +770,20 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             // Driver Info Header
             _buildDriverInfoHeader(),
             const SizedBox(height: 12),
-            
+
             // Payment Summary if debts loaded
-            if (_driverPaymentSummary != null)
-              _buildDebtSummaryCard(),
-            
+            if (_driverPaymentSummary != null) _buildDebtSummaryCard(),
+
             const SizedBox(height: 12),
-            
+
             // Debt Records Selection
             if (_isLoadingDebts)
               _buildLoadingState()
             else if (_driverPaymentSummary != null)
               _buildDebtRecordsList(),
-            
+
             const SizedBox(height: 12),
-            
+
             // Payment Form
             if (_driverPaymentSummary != null && !_isLoadingDebts)
               _buildPaymentForm(),
@@ -839,7 +849,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Widget _buildDebtSummaryCard() {
     final summary = _driverPaymentSummary!;
-    
+
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -906,7 +916,6 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: color.withOpacity(0.3),
-          width: 1,
         ),
       ),
       child: Column(
@@ -938,7 +947,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     final unpaidDebts = _driverPaymentSummary!.debtRecords
         .where((debt) => !debt.isPaid)
         .toList();
-    
+
     if (unpaidDebts.isEmpty) {
       return ThemeConstants.buildGlassCardStatic(
         child: const Padding(
@@ -972,7 +981,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         ),
       );
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1006,7 +1015,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       runSpacing: 12,
       children: unpaidDebts.map((debt) {
         return SizedBox(
-          width: (MediaQuery.of(context).size.width - 44) / 2, // Account for container padding (32) and wrap spacing (12)
+          width: (MediaQuery.of(context).size.width - 44) /
+              2, // Account for container padding (32) and wrap spacing (12)
           child: _buildDebtRecordCard(debt),
         );
       }).toList(),
@@ -1015,142 +1025,155 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Widget _buildDebtRecordCard(DebtRecord debt) {
     final isSelected = _selectedDebts.contains(debt);
-    
+
     return ThemeConstants.buildGlassCard(
-        onTap: () => _toggleDebtSelection(debt),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: isSelected
-                ? Border.all(color: ThemeConstants.primaryOrange, width: 2)
-                : Border.all(color: Colors.transparent, width: 2),
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: [
-                      ThemeConstants.primaryOrange.withOpacity(0.1),
-                      ThemeConstants.primaryOrange.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
+      onTap: () => _toggleDebtSelection(debt),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(color: ThemeConstants.primaryOrange, width: 2)
+              : Border.all(color: Colors.transparent, width: 2),
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    ThemeConstants.primaryOrange.withOpacity(0.1),
+                    ThemeConstants.primaryOrange.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? ThemeConstants.primaryOrange
+                    : Colors.transparent,
+                border: Border.all(
                   color: isSelected
                       ? ThemeConstants.primaryOrange
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected
-                        ? ThemeConstants.primaryOrange
-                        : ThemeConstants.textSecondary,
-                    width: 2,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
+                      : ThemeConstants.textSecondary,
+                  width: 2,
                 ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      )
-                    : null,
+                borderRadius: BorderRadius.circular(4),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      debt.formattedDate,
-                      style: TextStyle(
-                        color: isSelected
-                            ? ThemeConstants.primaryOrange
-                            : ThemeConstants.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'TSh ${debt.remainingAmount.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        color: isSelected
-                            ? ThemeConstants.primaryOrange
-                            : ThemeConstants.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-              const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        if ((debt.licenseNumber ?? '').isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.badge, size: 12, color: ThemeConstants.textSecondary),
-                                const SizedBox(width: 4),
-                                Text('Leseni: ${debt.licenseNumber}', style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 10)),
-                              ],
-                            ),
-                          ),
-                        if (debt.promisedToPay)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: ThemeConstants.warningAmber.withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.event_available, size: 12, color: ThemeConstants.warningAmber),
-                                const SizedBox(width: 4),
-                                Text(
-                                  debt.promiseToPayAt == null ? 'Ahadi ya kulipa' : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
-                                  style: const TextStyle(color: ThemeConstants.warningAmber, fontSize: 10),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (debt.isOverdue)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: ThemeConstants.errorRed.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${debt.daysOverdue}d',
-                    style: const TextStyle(
-                      color: ThemeConstants.errorRed,
-                      fontSize: 10,
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 16,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    debt.formattedDate,
+                    style: TextStyle(
+                      color: isSelected
+                          ? ThemeConstants.primaryOrange
+                          : ThemeConstants.textPrimary,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'TSh ${debt.remainingAmount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: isSelected
+                          ? ThemeConstants.primaryOrange
+                          : ThemeConstants.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if ((debt.licenseNumber ?? '').isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.badge,
+                                  size: 12,
+                                  color: ThemeConstants.textSecondary),
+                              const SizedBox(width: 4),
+                              Text('Leseni: ${debt.licenseNumber}',
+                                  style: const TextStyle(
+                                      color: ThemeConstants.textSecondary,
+                                      fontSize: 10)),
+                            ],
+                          ),
+                        ),
+                      if (debt.promisedToPay)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                ThemeConstants.warningAmber.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.event_available,
+                                  size: 12, color: ThemeConstants.warningAmber),
+                              const SizedBox(width: 4),
+                              Text(
+                                debt.promiseToPayAt == null
+                                    ? 'Ahadi ya kulipa'
+                                    : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
+                                style: const TextStyle(
+                                    color: ThemeConstants.warningAmber,
+                                    fontSize: 10),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (debt.isOverdue)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: ThemeConstants.errorRed.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-            ],
-          ),
+                child: Text(
+                  '${debt.daysOverdue}d',
+                  style: const TextStyle(
+                    color: ThemeConstants.errorRed,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildPaymentForm() {
@@ -1176,7 +1199,6 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           ],
         ),
         const SizedBox(height: 10),
-        
         ThemeConstants.buildGlassCardStatic(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1241,18 +1263,18 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     if (value == null || value.isEmpty) {
                       return 'Ingiza kiasi cha malipo';
                     }
-                    
+
                     final amount = double.tryParse(value);
                     if (amount == null || amount <= 0) {
                       return 'Ingiza kiasi sahihi';
                     }
-                    
+
                     return null;
                   },
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Payment Channel
                 const Text(
                   'Njia ya Malipo',
@@ -1263,7 +1285,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 Row(
                   children: PaymentChannel.values.map((channel) {
                     final isSelected = _selectedChannel == channel;
@@ -1311,9 +1333,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     );
                   }).toList(),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Remarks Field
                 const Text(
                   'Maelezo (Hiari)',
@@ -1360,9 +1382,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Submit Button
                 Container(
                   width: double.infinity,
@@ -1370,15 +1392,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     gradient: LinearGradient(
                       colors: _isSubmittingPayment || _selectedDebts.isEmpty
                           ? [Colors.grey.shade600, Colors.grey.shade700]
-                          : [ThemeConstants.primaryOrange, const Color(0xFFEA580C)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+                          : [
+                              ThemeConstants.primaryOrange,
+                              const Color(0xFFEA580C)
+                            ],
                     ),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
                         color: (_isSubmittingPayment || _selectedDebts.isEmpty
-                                ? Colors.grey 
+                                ? Colors.grey
                                 : ThemeConstants.primaryOrange)
                             .withOpacity(0.3),
                         blurRadius: 12,
@@ -1408,7 +1431,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1449,7 +1473,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                    backgroundColor:
+                        ThemeConstants.primaryOrange.withOpacity(0.2),
                     child: Text(
                       driver.name.substring(0, 1).toUpperCase(),
                       style: const TextStyle(
@@ -1537,7 +1562,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         child: Column(
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
             ),
             SizedBox(height: 16),
             Text(
@@ -1637,7 +1663,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-  
+
   void _clearForm() {
     setState(() {
       _selectedDebts.clear();

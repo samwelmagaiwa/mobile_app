@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+import "dart:async";
 import "dart:math" as math;
 import "dart:ui";
 
@@ -80,26 +82,32 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     _fadeAnimation = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ),);
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     _slideAnimation = Tween<double>(
       begin: 50,
       end: 0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ),);
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     _chartAnimation = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(CurvedAnimation(
-      parent: _chartAnimationController,
-      curve: Curves.elasticOut,
-    ),);
+    ).animate(
+      CurvedAnimation(
+        parent: _chartAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
   }
 
   @override
@@ -115,11 +123,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       await _apiService.initialize();
 
       // Try to load real dashboard data from API
-      final Map<String, dynamic> dashboardResponse = await _apiService.getDashboardData();
-      
+      final Map<String, dynamic> dashboardResponse =
+          await _apiService.getDashboardData();
+
       // Extract data from response - Laravel ResponseHelper format
       Map<String, dynamic> data;
-      if (dashboardResponse.containsKey('success') && dashboardResponse['success'] == true) {
+      if (dashboardResponse.containsKey('success') &&
+          dashboardResponse['success'] == true) {
         data = dashboardResponse['data'] as Map<String, dynamic>;
       } else {
         data = dashboardResponse;
@@ -132,22 +142,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         "weekly_revenue": _toDouble(data["weekly_revenue"] ?? 0),
         "daily_revenue": _toDouble(data["daily_revenue"] ?? 0),
         "net_profit": _toDouble(data["net_profit"] ?? 0),
-        "total_saved": _toDouble(data["monthly_revenue"] ?? 0) * 0.2, // 20% savings
+        "total_saved":
+            _toDouble(data["monthly_revenue"] ?? 0) * 0.2, // 20% savings
         "saving_rate": 20.0, // Fixed savings rate
-        
+
         // Operational data
         "active_drivers": _toInt(data["active_drivers"] ?? 0),
-        "total_drivers": _toInt(data["total_drivers"] ?? 0), 
+        "total_drivers": _toInt(data["total_drivers"] ?? 0),
         "total_vehicles": _toInt(data["total_vehicles"] ?? 0),
         "active_vehicles": _toInt(data["active_vehicles"] ?? 0),
         "pending_payments": _toInt(data["pending_payments"] ?? 0),
-        
+
         // Calculated metrics
-        "fuel_costs": _toDouble(data["monthly_revenue"] ?? 0) * 0.3, // 30% estimate
-        "maintenance_costs": _toDouble(data["monthly_revenue"] ?? 0) * 0.1, // 10% estimate
-        
+        "fuel_costs":
+            _toDouble(data["monthly_revenue"] ?? 0) * 0.3, // 30% estimate
+        "maintenance_costs":
+            _toDouble(data["monthly_revenue"] ?? 0) * 0.1, // 10% estimate
+
         // Chart data - use real or generated from monthly data
-        "weekly_earnings": _generateWeeklyEarnings(_toDouble(data["weekly_revenue"] ?? 0)),
+        "weekly_earnings":
+            _generateWeeklyEarnings(_toDouble(data["weekly_revenue"] ?? 0)),
         "monthly_data": <dynamic>[],
         "recent_transactions": data["recent_transactions"] ?? <dynamic>[],
       };
@@ -162,18 +176,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         setState(() {
           _isLoading = false;
         });
-        _animationController.forward();
-        Future.delayed(const Duration(milliseconds: 500), () {
+        unawaited(_animationController.forward());
+        unawaited(Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             _chartAnimationController.forward();
           }
-        });
+        }));
       }
 
       // Load additional badge counts
       await _loadAdditionalBadgeCounts();
-      
-    } catch (e) {
+    } on Exception catch (_) {
       // Fallback to default values if API fails
       if (mounted) {
         setState(() {
@@ -188,8 +201,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       }
     }
   }
-
-
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -209,7 +220,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       drawer: _buildDrawer(), // Add drawer
       body: DecoratedBox(
         decoration: const BoxDecoration(
-          color: primaryBlue, // Solid blue background matching admin dashboard image
+          color:
+              primaryBlue, // Solid blue background matching admin dashboard image
         ),
         child: SafeArea(
           child: _isLoading ? _buildLoadingScreen() : _buildMainContent(),
@@ -219,30 +231,30 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   Widget _buildLoadingScreen() => const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          SizedBox(height: 24),
-          Text(
-            "Inapakia Dashboard...",
-            style: TextStyle(
-              color: textSecondary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-          ),
-        ],
-      ),
-    );
+            SizedBox(height: 24),
+            Text(
+              "Inapakia Dashboard...",
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildMainContent() => FadeTransition(
-      opacity: _fadeAnimation,
-      child: AnimatedBuilder(
-        animation: _slideAnimation,
-        builder: (BuildContext context, Widget? child) => Transform.translate(
+        opacity: _fadeAnimation,
+        child: AnimatedBuilder(
+          animation: _slideAnimation,
+          builder: (BuildContext context, Widget? child) => Transform.translate(
             offset: Offset(0, _slideAnimation.value),
             child: RefreshIndicator(
               onRefresh: _loadDashboardData,
@@ -250,7 +262,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               color: primaryBlue,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),),
+                  parent: BouncingScrollPhysics(),
+                ),
                 child: Padding(
                   padding: ResponsiveHelper.defaultPadding,
                   child: Column(
@@ -272,8 +285,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               ),
             ),
           ),
-      ),
-    );
+        ),
+      );
 
   Widget _buildHeader() {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
@@ -350,7 +363,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                         height: ResponsiveHelper.wp(12),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(ResponsiveHelper.wp(6)),
+                          borderRadius:
+                              BorderRadius.circular(ResponsiveHelper.wp(6)),
                         ),
                         child: Icon(
                           Icons.account_balance_wallet,
@@ -402,78 +416,78 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   Widget _buildStatsCards() => Column(
-      children: <Widget>[
-        // First row of stats
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildStatCard(
-                "Jumla ya Akiba",
-                "TSH ${_formatCurrency(_dashboardData["total_saved"])}",
-                "+12.5%",
-                Icons.savings,
-                true,
+        children: <Widget>[
+          // First row of stats
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildStatCard(
+                  "Jumla ya Akiba",
+                  "TSH ${_formatCurrency(_dashboardData["total_saved"])}",
+                  "+12.5%",
+                  Icons.savings,
+                  true,
+                ),
               ),
-            ),
-            ResponsiveHelper.horizontalSpace(4),
-            Expanded(
-              child: _buildStatCard(
-                "Mapato ya Mwezi",
-                "TSH ${_formatCurrency(_dashboardData["monthly_income"])}",
-                "+8.2%",
-                Icons.trending_up,
-                true,
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Mapato ya Mwezi",
+                  "TSH ${_formatCurrency(_dashboardData["monthly_income"])}",
+                  "+8.2%",
+                  Icons.trending_up,
+                  true,
+                ),
               ),
-            ),
-            ResponsiveHelper.horizontalSpace(4),
-            Expanded(
-              child: _buildStatCard(
-                "Kiwango cha Akiba",
-                "${_toDouble(_dashboardData["saving_rate"]).toStringAsFixed(1)}%",
-                "+2.1%",
-                Icons.percent,
-                true,
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Kiwango cha Akiba",
+                  "${_toDouble(_dashboardData["saving_rate"]).toStringAsFixed(1)}%",
+                  "+2.1%",
+                  Icons.percent,
+                  true,
+                ),
               ),
-            ),
-          ],
-        ),
-        ResponsiveHelper.verticalSpace(2),
-        // Second row of stats
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildStatCard(
-                "Madereva Hai",
-                "${_dashboardData["active_drivers"] ?? 0}",
-                "+3",
-                Icons.person,
-                true,
+            ],
+          ),
+          ResponsiveHelper.verticalSpace(2),
+          // Second row of stats
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildStatCard(
+                  "Madereva Hai",
+                  "${_dashboardData["active_drivers"] ?? 0}",
+                  "+3",
+                  Icons.person,
+                  true,
+                ),
               ),
-            ),
-            ResponsiveHelper.horizontalSpace(4),
-            Expanded(
-              child: _buildStatCard(
-                "Magari",
-                "${_dashboardData["total_vehicles"] ?? 0}",
-                "+1",
-                Icons.directions_car,
-                true,
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Magari",
+                  "${_dashboardData["total_vehicles"] ?? 0}",
+                  "+1",
+                  Icons.directions_car,
+                  true,
+                ),
               ),
-            ),
-            ResponsiveHelper.horizontalSpace(4),
-            Expanded(
-              child: _buildStatCard(
-                "Malipo Yasiyolipwa",
-                "${_dashboardData["pending_payments"] ?? 0}",
-                "-2",
-                Icons.pending_actions,
-                false,
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Malipo Yasiyolipwa",
+                  "${_dashboardData["pending_payments"] ?? 0}",
+                  "-2",
+                  Icons.pending_actions,
+                  false,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    );
+            ],
+          ),
+        ],
+      );
 
   Widget _buildStatCard(
     String title,
@@ -481,218 +495,224 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     String change,
     IconData icon,
     bool isPositive,
-  ) => _buildGlassCard(
-      child: Padding(
-        padding: ResponsiveHelper.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Icon(
-                  icon,
-                  color: textSecondary,
-                  size: ResponsiveHelper.iconSizeM,
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.more_vert,
-                  color: textSecondary,
-                  size: ResponsiveHelper.iconSizeS,
-                ),
-              ],
-            ),
-            ResponsiveHelper.verticalSpace(1.5),
-            Text(
-              title,
-              style: TextStyle(
-                color: textSecondary,
-                fontSize: ResponsiveHelper.bodyS,
-                fontWeight: FontWeight.w500,
+  ) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: ResponsiveHelper.cardPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    icon,
+                    color: textSecondary,
+                    size: ResponsiveHelper.iconSizeM,
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.more_vert,
+                    color: textSecondary,
+                    size: ResponsiveHelper.iconSizeS,
+                  ),
+                ],
               ),
-            ),
-            ResponsiveHelper.verticalSpace(0.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
+              ResponsiveHelper.verticalSpace(1.5),
+              Text(
+                title,
                 style: TextStyle(
-                  color: textPrimary,
-                  fontSize: ResponsiveHelper.bodyL,
-                  fontWeight: FontWeight.bold,
+                  color: textSecondary,
+                  fontSize: ResponsiveHelper.bodyS,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
-            ResponsiveHelper.verticalSpace(0.5),
-            Text(
-              change,
-              style: TextStyle(
-                color: isPositive ? Colors.green.shade300 : Colors.red.shade300,
-                fontSize: ResponsiveHelper.bodyS,
-                fontWeight: FontWeight.w500,
+              ResponsiveHelper.verticalSpace(0.5),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: ResponsiveHelper.bodyL,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-          ],
+              ResponsiveHelper.verticalSpace(0.5),
+              Text(
+                change,
+                style: TextStyle(
+                  color:
+                      isPositive ? Colors.green.shade300 : Colors.red.shade300,
+                  fontSize: ResponsiveHelper.bodyS,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildChartSection() => _buildGlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildMonthSelector(),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: AnimatedBuilder(
-                animation: _chartAnimation,
-                builder: (BuildContext context, Widget? child) => CustomPaint(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _buildMonthSelector(),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 200,
+                child: AnimatedBuilder(
+                  animation: _chartAnimation,
+                  builder: (BuildContext context, Widget? child) => CustomPaint(
                     painter: ChartPainter(
                       data: _dashboardData["weekly_earnings"] ??
                           <double>[0, 0, 0, 0, 0, 0, 0],
                       animationValue: _chartAnimation.value,
-                      yAxisMax: 6000000, // Ensure scale supports up to 6M and beyond
+                      yAxisMax:
+                          6000000, // Ensure scale supports up to 6M and beyond
                     ),
                     child: Container(),
                   ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildMonthSelector() => SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: months.asMap().entries.map((MapEntry<int, String> entry) {
-          final int index = entry.key;
-          final String month = entry.value;
-          final bool isSelected = index + 1 == _selectedMonth;
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: months.asMap().entries.map((MapEntry<int, String> entry) {
+            final int index = entry.key;
+            final String month = entry.value;
+            final bool isSelected = index + 1 == _selectedMonth;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMonth = index + 1;
-              });
-              _chartAnimationController.reset();
-              _chartAnimationController.forward();
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                month,
-                style: TextStyle(
-                  color: isSelected ? textPrimary : textSecondary,
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedMonth = index + 1;
+                });
+                _chartAnimationController.reset();
+                _chartAnimationController.forward();
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  month,
+                  style: TextStyle(
+                    color: isSelected ? textPrimary : textSecondary,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
                 ),
               ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
+            );
+          }).toList(),
+        ),
+      );
 
   Widget _buildQuickActions() => _buildGlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            _buildActionButton(Icons.bar_chart, "Takwimu", () {
-              Navigator.pushNamed(context, "/admin/analytics");
-            }),
-            Builder(
-              builder: (BuildContext context) => _buildActionButton(Icons.apps, "Menyu", () {
-                Scaffold.of(context).openDrawer();
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              _buildActionButton(Icons.bar_chart, "Takwimu", () {
+                Navigator.pushNamed(context, "/admin/analytics");
               }),
+              Builder(
+                builder: (BuildContext context) =>
+                    _buildActionButton(Icons.apps, "Menyu", () {
+                  Scaffold.of(context).openDrawer();
+                }),
+              ),
+              _buildActionButton(Icons.receipt_long, "Toa Risiti", () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => const ReceiptsScreen(),
+                  ),
+                );
+              }),
+              _buildActionButton(Icons.receipt, "Ripoti", () {
+                Navigator.pushNamed(context, "/admin/reports");
+              }),
+              _buildActionButton(Icons.settings, "Mipangilio", () {
+                Navigator.pushNamed(context, "/settings");
+              }),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: icon == Icons.apps
+                    ? accentColor
+                    : Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Icon(
+                icon,
+                color: textPrimary,
+                size: 24,
+              ),
             ),
-            _buildActionButton(Icons.receipt_long, "Toa Risiti", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => const ReceiptsScreen(),
-                ),
-              );
-            }),
-            _buildActionButton(Icons.receipt, "Ripoti", () {
-              Navigator.pushNamed(context, "/admin/reports");
-            }),
-            _buildActionButton(Icons.settings, "Mipangilio", () {
-              Navigator.pushNamed(context, "/settings");
-            }),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
-      ),
-    );
-
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) => GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: icon == Icons.apps
-                  ? accentColor
-                  : Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              icon,
-              color: textPrimary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
+      );
 
   Widget _buildGlassCard({required Widget child}) => DecoratedBox(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: child,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-      ),
-    );
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: child,
+          ),
+        ),
+      );
 
   Widget _buildDrawer() {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
@@ -862,86 +882,86 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     required VoidCallback onTap,
     int? badgeCount,
     Color? badgeColor,
-  }) => ListTile(
-      leading: Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          Icon(
-            icon,
-            color: textPrimary,
-            size: 24,
-          ),
-          if (badgeCount != null && badgeCount > 0)
-            Positioned(
-              right: -8,
-              top: -8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: badgeColor ?? accentColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+  }) =>
+      ListTile(
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            Icon(
+              icon,
+              color: textPrimary,
+              size: 24,
+            ),
+            if (badgeCount != null && badgeCount > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: badgeColor ?? accentColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Text(
+                    badgeCount > 99 ? '99+' : badgeCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                constraints: const BoxConstraints(
-                  minWidth: 18,
-                  minHeight: 18,
+              ),
+          ],
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: badgeCount != null && badgeCount > 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (badgeColor ?? accentColor).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: (badgeColor ?? accentColor).withOpacity(0.5),
+                  ),
                 ),
                 child: Text(
                   badgeCount > 99 ? '99+' : badgeCount.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+                  style: TextStyle(
+                    color: badgeColor ?? accentColor,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
-            ),
-        ],
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+              )
+            : null,
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 4,
         ),
-      ),
-      trailing: badgeCount != null && badgeCount > 0
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: (badgeColor ?? accentColor).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: (badgeColor ?? accentColor).withOpacity(0.5),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                badgeCount > 99 ? '99+' : badgeCount.toString(),
-                style: TextStyle(
-                  color: badgeColor ?? accentColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          : null,
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 4,
-      ),
-    );
+      );
 
-  String _formatCurrency(dynamic amount) {
+  String _formatCurrency(amount) {
     final double value = _toDouble(amount);
     if (value >= 1000000) {
       return "${(value / 1000000).toStringAsFixed(1)}M";
@@ -953,18 +973,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   // Helper method to safely convert dynamic values to double
-  double _toDouble(dynamic value) {
-    if (value == null) return 0.0;
+  double _toDouble(value) {
+    if (value == null) return 0;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
       return double.tryParse(value) ?? 0.0;
     }
-    return 0.0;
+    return 0;
   }
 
   // Helper method to safely convert dynamic values to int
-  int _toInt(dynamic value) {
+  int _toInt(value) {
     if (value == null) return 0;
     if (value is int) return value;
     if (value is double) return value.round();
@@ -979,18 +999,19 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     if (weeklyRevenue <= 0) {
       return <double>[45000, 67000, 89000, 79000, 65000, 72000, 58000];
     }
-    
+
     // Distribute weekly revenue across 7 days with some variation
     final double dailyAverage = weeklyRevenue / 7;
     final List<double> earnings = <double>[];
-    
+
     for (int i = 0; i < 7; i++) {
       // Add some realistic daily variation (±30%)
-      final double variation = (math.Random().nextDouble() - 0.5) * 0.6; // -30% to +30%
+      final double variation =
+          (math.Random().nextDouble() - 0.5) * 0.6; // -30% to +30%
       final double dailyEarning = dailyAverage * (1 + variation);
       earnings.add(math.max(0, dailyEarning)); // Ensure non-negative
     }
-    
+
     return earnings;
   }
 
@@ -1010,7 +1031,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       "pending_payments": 3,
       "fuel_costs": 360000.0,
       "maintenance_costs": 120000.0,
-      "weekly_earnings": <double>[45000, 67000, 89000, 79000, 65000, 72000, 58000],
+      "weekly_earnings": <double>[
+        45000,
+        67000,
+        89000,
+        79000,
+        65000,
+        72000,
+        58000
+      ],
       "monthly_data": <dynamic>[],
       "recent_transactions": <dynamic>[],
     };
@@ -1020,16 +1049,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   Future<void> _loadAdditionalBadgeCounts() async {
     try {
       // Load reminders count
-      final Map<String, dynamic> remindersResponse = await _apiService.getReminders(limit: 1);
-      final Map<String, dynamic>? remindersMeta = remindersResponse["meta"] as Map<String, dynamic>?;
+      final Map<String, dynamic> remindersResponse =
+          await _apiService.getReminders(limit: 1);
+      final Map<String, dynamic>? remindersMeta =
+          remindersResponse["meta"] as Map<String, dynamic>?;
       _remindersCount = remindersMeta?["total"] ?? 5;
-      
+
       if (mounted) {
         setState(() {
           // Update UI with reminder count
         });
       }
-    } catch (e) {
+    } on Exception catch (_) {
       // Keep default reminder count if API fails
       _remindersCount = 5;
     }
@@ -1038,8 +1069,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
 // Custom Chart Painter
 class ChartPainter extends CustomPainter {
-
-  ChartPainter({required this.data, required this.animationValue, this.yAxisMax});
+  ChartPainter(
+      {required this.data, required this.animationValue, this.yAxisMax});
   final List<dynamic> data;
   final double animationValue;
   // Optional Y-axis maximum. If null, a nice rounded ceiling above data max is used.
@@ -1050,14 +1081,16 @@ class ChartPainter extends CustomPainter {
     if (data.isEmpty) return;
 
     // Layout paddings to make space for Y-axis labels
-    const double leftPad = 44.0;
-    const double rightPad = 12.0;
-    const double topPad = 8.0;
-    const double bottomPad = 28.0;
+    const double leftPad = 44;
+    const double rightPad = 12;
+    const double topPad = 8;
+    const double bottomPad = 28;
 
-    final double chartWidth = (size.width - leftPad - rightPad).clamp(1.0, double.infinity);
-    final double chartHeight = (size.height - topPad - bottomPad).clamp(1.0, double.infinity);
-    final double chartLeft = leftPad;
+    final double chartWidth =
+        (size.width - leftPad - rightPad).clamp(1.0, double.infinity);
+    final double chartHeight =
+        (size.height - topPad - bottomPad).clamp(1.0, double.infinity);
+    const double chartLeft = leftPad;
     final double chartRight = leftPad + chartWidth;
     final double chartBottom = size.height - bottomPad;
 
@@ -1081,8 +1114,7 @@ class ChartPainter extends CustomPainter {
     final Path path = Path();
     final Path fillPath = Path();
 
-    final double dataMax =
-        data.map((dynamic e) => _toDoubleStatic(e)).reduce(math.max);
+    final double dataMax = data.map(_toDoubleStatic).reduce(math.max);
 
     // Determine the display max: at least yAxisMax (e.g., 6M), or a rounded-up nice number above data
     double displayMax = yAxisMax ?? dataMax;
@@ -1167,7 +1199,7 @@ class ChartPainter extends CustomPainter {
       // Position label directly above the bar/point and rotate 90° clockwise
       canvas.save();
       // Translate to a point above the data point
-      final double labelYOffset = 20.0;
+      const double labelYOffset = 20;
       canvas.translate(animatedX, animatedY - labelYOffset);
       // Rotate clockwise 90 degrees so text reads left-to-right when head tilted right
       canvas.rotate(math.pi / 2);
@@ -1177,7 +1209,6 @@ class ChartPainter extends CustomPainter {
         Offset(-textPainter.width / 2, -textPainter.height / 2),
       );
       canvas.restore();
-      
     }
 
     // Complete the fill path
@@ -1193,14 +1224,14 @@ class ChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
   // Static helper method for type conversion in chart painter
-  static double _toDoubleStatic(dynamic value) {
-    if (value == null) return 0.0;
+  static double _toDoubleStatic(value) {
+    if (value == null) return 0;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
       return double.tryParse(value) ?? 0.0;
     }
-    return 0.0;
+    return 0;
   }
 
   static String _formatShort(double value) {
@@ -1228,6 +1259,6 @@ class ChartPainter extends CustomPainter {
     } else {
       niceFraction = 10;
     }
-    return niceFraction * math.pow(10, exponent) as double;
+    return niceFraction * math.pow(10, exponent);
   }
 }

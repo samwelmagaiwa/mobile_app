@@ -243,9 +243,10 @@ class ApiHelpers {
     final String fieldName,
     final String filePath,
   ) async {
-    final File file = File(filePath);
-    if (await file.exists()) {
+    try {
       request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+    } on Exception {
+      // Ignore if file cannot be added
     }
   }
 
@@ -253,16 +254,18 @@ class ApiHelpers {
   static PaginationInfo? parsePaginationInfo(
     final Map<String, dynamic> response,
   ) {
-    final meta = response["meta"];
+    final Map<String, dynamic>? meta = response["meta"] is Map
+        ? Map<String, dynamic>.from(response["meta"])
+        : null;
     if (meta == null) return null;
 
     return PaginationInfo(
-      currentPage: meta["current_page"] ?? 1,
-      lastPage: meta["last_page"] ?? 1,
-      perPage: meta["per_page"] ?? 10,
-      total: meta["total"] ?? 0,
-      from: meta["from"] ?? 0,
-      to: meta["to"] ?? 0,
+      currentPage: meta["current_page"] as int? ?? 1,
+      lastPage: meta["last_page"] as int? ?? 1,
+      perPage: meta["per_page"] as int? ?? 10,
+      total: meta["total"] as int? ?? 0,
+      from: meta["from"] as int? ?? 0,
+      to: meta["to"] as int? ?? 0,
     );
   }
 

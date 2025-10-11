@@ -6,7 +6,7 @@ import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
 
 class ReceiptDetailScreen extends StatefulWidget {
-  const ReceiptDetailScreen({super.key, required this.pendingReceipt});
+  const ReceiptDetailScreen({required this.pendingReceipt, super.key});
 
   final PendingReceiptItem pendingReceipt;
 
@@ -56,7 +56,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
   Future<void> _generateReceipt() async {
     setState(() => _isGenerating = true);
     try {
-      final res = await _api.generatePaymentReceipt(widget.pendingReceipt.paymentId);
+      final res =
+          await _api.generatePaymentReceipt(widget.pendingReceipt.paymentId);
       if (res['success'] == true) {
         setState(() {
           _generatedReceipt = res['data'] as Map<String, dynamic>;
@@ -65,7 +66,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       } else {
         throw Exception(res['message'] ?? 'Imeshindikana kutengeneza risiti');
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _showSnack('Hitilafu: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isGenerating = false);
@@ -79,7 +80,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     }
 
     final receiptId = _generatedReceipt!['id']?.toString() ??
-        _generatedReceipt!['receipt_id']?.toString() ?? '';
+        _generatedReceipt!['receipt_id']?.toString() ??
+        '';
     if (receiptId.isEmpty) {
       _showSnack('Hakuna kitambulisho cha risiti', isError: true);
       return;
@@ -103,7 +105,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       } else {
         throw Exception(res['message'] ?? 'Imeshindikana kutuma risiti');
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _showSnack('Hitilafu: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -114,7 +116,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+        backgroundColor:
+            isError ? ThemeConstants.errorRed : ThemeConstants.successGreen,
       ),
     );
   }
@@ -159,7 +162,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                 color: ThemeConstants.primaryOrange.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.person, color: ThemeConstants.primaryOrange),
+              child:
+                  const Icon(Icons.person, color: ThemeConstants.primaryOrange),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -192,7 +196,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
               ),
               child: Text(
                 r.formattedAmount,
@@ -227,7 +231,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             _row('Deni la Tarehe', _formatCoveredDays(r.coveredDays)),
             if (r.hasRemainingDebt) ...[
               const SizedBox(height: 8),
-              _debtNotice(r.remainingDebtTotal, r.unpaidDaysCount, r.unpaidDates),
+              _debtNotice(
+                  r.remainingDebtTotal, r.unpaidDaysCount, r.unpaidDates),
             ],
             if ((r.remarks ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -270,16 +275,19 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                   backgroundColor: ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: _isGenerating
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.receipt),
-                label: Text(_isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti'),
+                label: Text(
+                    _isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti'),
               ),
             ),
           ],
@@ -321,7 +329,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                 labelText: _sendMethod == ReceiptSendMethod.email
                     ? 'Barua Pepe ya Mpokeaji'
                     : 'Namba ya Simu ya WhatsApp/SMS',
-                labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                labelStyle:
+                    const TextStyle(color: ThemeConstants.textSecondary),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.06),
                 enabledBorder: OutlineInputBorder(
@@ -330,7 +339,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
+                  borderSide:
+                      const BorderSide(color: ThemeConstants.primaryOrange),
                 ),
               ),
             ),
@@ -343,13 +353,15 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                   backgroundColor: ThemeConstants.successGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: _isSending
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.send),
                 label: Text(_isSending ? 'Inatuma...' : 'Tuma Risiti'),
@@ -358,7 +370,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             const SizedBox(height: 8),
             const Text(
               'Baada ya kutuma, hali ya muamala itabadilika kuwa “risiti imetolewa.”',
-              style: TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
+              style:
+                  TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -378,18 +391,21 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     try {
       final DateTime d = DateTime.tryParse(isoOrYmd) ?? DateTime.now();
       return '${d.day}/${d.month}/${d.year}';
-    } catch (_) {
+    } on Exception catch (_) {
       return isoOrYmd;
     }
   }
 
   String _formatAmount(double v) {
     final s = v.toStringAsFixed(0);
-    return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    return s.replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
 
   Widget _debtNotice(double remaining, int days, List<String> sampleDates) {
-    final sample = sampleDates.isNotEmpty ? ' — ' + sampleDates.map(_formatDate).join(', ') : '';
+    final sample = sampleDates.isNotEmpty
+        ? ' — ${sampleDates.map(_formatDate).join(', ')}'
+        : '';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
@@ -400,12 +416,16 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: ThemeConstants.errorRed, size: 18),
+          const Icon(Icons.warning_amber_rounded,
+              color: ThemeConstants.errorRed, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Deni lililosalia: TSh ' + _formatAmount(remaining) + ' (siku ' + days.toString() + ')' + sample,
-              style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 12, fontWeight: FontWeight.w600),
+              'Deni lililosalia: TSh ${_formatAmount(remaining)} (siku $days)$sample',
+              style: const TextStyle(
+                  color: ThemeConstants.errorRed,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -417,8 +437,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     final bool selected = _sendMethod == method;
     const Color base = Color(0xFF4169E1); // Midnight Blue
     final Color bgColor = selected ? ThemeConstants.primaryOrange : base;
-    final Color textColor = Colors.white;
-    final Color iconColor = Colors.white;
+    const Color textColor = Colors.white;
+    const Color iconColor = Colors.white;
     final Color borderColor = selected
         ? Colors.white.withOpacity(0.6)
         : Colors.white.withOpacity(0.2);
@@ -428,7 +448,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       selected: selected,
       avatar: Icon(icon, color: iconColor, size: 18),
       selectedColor: bgColor, // when selected
-      labelStyle: TextStyle(
+      labelStyle: const TextStyle(
         color: textColor,
         fontWeight: FontWeight.w600,
       ),
@@ -452,7 +472,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+            style: const TextStyle(
+                color: ThemeConstants.textSecondary, fontSize: 13),
             overflow: TextOverflow.ellipsis,
           ),
         ),

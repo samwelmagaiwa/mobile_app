@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_dynamic_calls
 import "package:flutter/material.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
@@ -35,8 +36,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
     try {
       // Load real dashboard data from API
-      final Map<String, dynamic> response = await ApiService().getDashboardData();
-      
+      final Map<String, dynamic> response =
+          await ApiService().getDashboardData();
+
       setState(() {
         _dashboardData = response['data'] ?? <String, dynamic>{};
       });

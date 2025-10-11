@@ -4,7 +4,8 @@ import '../utils/responsive_helper.dart';
 
 class ThemeConstants {
   // Modern theme colors - matching admin dashboard
-  static const Color primaryBlue = Color(0xFF1E40AF); // Deep blue from admin dashboard image
+  static const Color primaryBlue =
+      Color(0xFF1E40AF); // Deep blue from admin dashboard image
   static const Color primaryGradientStart = Color(0xFF667eea);
   static const Color primaryGradientEnd = Color(0xFF764ba2);
   static const Color cardColor = Color(0x1AFFFFFF);
@@ -31,31 +32,46 @@ class ThemeConstants {
 
   // Standard app bar theme
   static AppBar buildAppBar(String title, {List<Widget>? actions}) => AppBar(
-    title: Text(
-      title,
-      style: const TextStyle(
-        color: textPrimary,
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    backgroundColor: primaryBlue,
-    foregroundColor: textPrimary,
-    elevation: 0,
-    actions: actions,
-    iconTheme: const IconThemeData(color: textPrimary),
-  );
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: primaryBlue,
+        foregroundColor: textPrimary,
+        elevation: 0,
+        actions: actions,
+        iconTheme: const IconThemeData(color: textPrimary),
+      );
 
   // Glass card widget - Fixed for proper touch events
   static Widget buildGlassCard({
     required Widget child,
     VoidCallback? onTap,
-  }) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: DecoratedBox(
+  }) =>
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: DecoratedBox(
+            decoration: glassCardDecoration,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  // Glass card widget without touch handling (for display-only cards)
+  static Widget buildGlassCardStatic({required Widget child}) => DecoratedBox(
         decoration: glassCardDecoration,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
@@ -64,21 +80,7 @@ class ThemeConstants {
             child: child,
           ),
         ),
-      ),
-    ),
-  );
-
-  // Glass card widget without touch handling (for display-only cards)
-  static Widget buildGlassCardStatic({required Widget child}) => DecoratedBox(
-    decoration: glassCardDecoration,
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: child,
-      ),
-    ),
-  );
+      );
 
   // Standard scaffold with blue background
   static Widget buildScaffold({
@@ -87,37 +89,38 @@ class ThemeConstants {
     List<Widget>? actions,
     Widget? floatingActionButton,
     Widget? drawer,
-  }) => Scaffold(
-    backgroundColor: primaryBlue,
-    appBar: buildAppBar(title, actions: actions),
-    body: DecoratedBox(
-      decoration: const BoxDecoration(color: primaryBlue),
-      child: SafeArea(child: body),
-    ),
-    floatingActionButton: floatingActionButton,
-    drawer: drawer,
-  );
+  }) =>
+      Scaffold(
+        backgroundColor: primaryBlue,
+        appBar: buildAppBar(title, actions: actions),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(color: primaryBlue),
+          child: SafeArea(child: body),
+        ),
+        floatingActionButton: floatingActionButton,
+        drawer: drawer,
+      );
 
   // Loading widget
   static Widget buildLoadingWidget() => const Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            SizedBox(height: 24),
+            Text(
+              "Inapakia...",
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 24),
-        Text(
-          "Inapakia...",
-          style: TextStyle(
-            color: textSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   // Text styles
   static const TextStyle headingStyle = TextStyle(
@@ -163,7 +166,8 @@ class ThemeConstants {
   }
 
   /// Get responsive app bar with MediaQuery-based sizing
-  static AppBar buildResponsiveAppBar(BuildContext context, String title, {List<Widget>? actions}) {
+  static AppBar buildResponsiveAppBar(BuildContext context, String title,
+      {List<Widget>? actions}) {
     ResponsiveHelper.init(context);
     return AppBar(
       title: Text(
@@ -187,7 +191,8 @@ class ThemeConstants {
   }
 
   /// Responsive glass card widget with MediaQuery-based sizing
-  static Widget buildResponsiveGlassCard(BuildContext context, {
+  static Widget buildResponsiveGlassCard(
+    BuildContext context, {
     required Widget child,
     VoidCallback? onTap,
   }) {
@@ -222,7 +227,8 @@ class ThemeConstants {
   }
 
   /// Responsive glass card widget without touch handling (for display-only cards)
-  static Widget buildResponsiveGlassCardStatic(BuildContext context, {required Widget child}) {
+  static Widget buildResponsiveGlassCardStatic(BuildContext context,
+      {required Widget child}) {
     ResponsiveHelper.init(context);
     return Container(
       constraints: BoxConstraints(
@@ -247,7 +253,8 @@ class ThemeConstants {
   }
 
   /// Responsive scaffold with MediaQuery-based sizing
-  static Widget buildResponsiveScaffold(BuildContext context, {
+  static Widget buildResponsiveScaffold(
+    BuildContext context, {
     required String title,
     required Widget body,
     List<Widget>? actions,
@@ -258,7 +265,7 @@ class ThemeConstants {
     return Scaffold(
       backgroundColor: primaryBlue,
       appBar: buildResponsiveAppBar(context, title, actions: actions),
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(color: primaryBlue),
         child: SafeArea(
           child: Padding(

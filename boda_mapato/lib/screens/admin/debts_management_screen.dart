@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../models/driver.dart';
+import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
-import 'package:provider/provider.dart';
-import '../../providers/debts_provider.dart';
 import 'debt_records_list_screen.dart';
 
 enum MonthFilter { mweziHuu, mweziUliopita, mwakaHuu, zote }
@@ -52,7 +53,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
     super.didChangeDependencies();
     if (!_listeningProvider) {
       _listeningProvider = true;
-      final DebtsProvider dp = Provider.of<DebtsProvider>(context, listen: false);
+      final DebtsProvider dp =
+          Provider.of<DebtsProvider>(context, listen: false);
       dp.addListener(() {
         if (dp.shouldRefresh) {
           _loadDrivers();
@@ -75,13 +77,14 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
         _loading = true;
         _error = null;
       });
-      final Map<String, dynamic> res = await _api.getDebtDrivers(page: 1, limit: 200);
-      final List<dynamic> list = (res['data']?['drivers'] as List<dynamic>?) ?? <dynamic>[];
-      _drivers = list
-          .map((dynamic j) => Driver.fromJson(j as Map<String, dynamic>))
-          .toList();
+      final Map<String, dynamic> res = await _api.getDebtDrivers(limit: 200);
+      final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
+      final List<dynamic> list =
+          (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+      _drivers =
+          list.map((j) => Driver.fromJson(j as Map<String, dynamic>)).toList();
       _applyFilter();
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() => _error = e.toString());
     } finally {
       setState(() => _loading = false);
@@ -101,19 +104,20 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
 
     // Month/Year quick filter (applies to debtors)
     base = base.where((Driver d) {
-      if (d.totalDebt <= 0) return true; // do not exclude non-debt in non-debt tab
+      if (d.totalDebt <= 0) {
+        return true; // do not exclude non-debt in non-debt tab
+      }
       if (_monthFilter == MonthFilter.zote) return true;
       if (d.dueDates.isEmpty) return false;
       final String next = d.dueDates.first;
-      DateTime? nd;
-      try { nd = DateTime.tryParse(next); } catch (_) {}
+      final DateTime? nd = DateTime.tryParse(next);
       if (nd == null) return false;
       final DateTime now = DateTime.now();
       switch (_monthFilter) {
         case MonthFilter.mweziHuu:
           return nd.year == now.year && nd.month == now.month;
         case MonthFilter.mweziUliopita:
-          final DateTime lastMonth = DateTime(now.year, now.month - 1, 1);
+          final DateTime lastMonth = DateTime(now.year, now.month - 1);
           return nd.year == lastMonth.year && nd.month == lastMonth.month;
         case MonthFilter.mwakaHuu:
           return nd.year == now.year;
@@ -127,7 +131,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
       return d.name.toLowerCase().contains(q) ||
           d.phone.toLowerCase().contains(q) ||
           (d.vehicleNumber ?? '').toLowerCase().contains(q) ||
-          (d.email).toLowerCase().contains(q);
+          d.email.toLowerCase().contains(q);
     }).toList();
     setState(() {});
   }
@@ -155,13 +159,17 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                     Expanded(
                       child: TextField(
                         controller: _search,
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
                         decoration: InputDecoration(
-                          hintText: 'Tafuta dereva kwa jina, simu au namba ya chombo',
-                          hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                          hintText:
+                              'Tafuta dereva kwa jina, simu au namba ya chombo',
+                          hintStyle: const TextStyle(
+                              color: ThemeConstants.textSecondary),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.08),
-                          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                          prefixIcon:
+                              const Icon(Icons.search, color: Colors.white70),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -252,10 +260,10 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
 
   Widget _buildList() {
     if (_filtered.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[
+          children: <Widget>[
             Icon(Icons.search_off, color: Colors.white54, size: 40),
             SizedBox(height: 8),
             Text('Hakuna matokeo', style: TextStyle(color: Colors.white70)),
@@ -271,7 +279,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
       child: GridView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _filtered.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
@@ -319,15 +327,21 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                       ),
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: (hasDebt ? ThemeConstants.errorRed : ThemeConstants.successGreen).withOpacity(0.2),
+                          color: (hasDebt
+                                  ? ThemeConstants.errorRed
+                                  : ThemeConstants.successGreen)
+                              .withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           hasDebt ? 'Ana deni' : 'Hana deni',
                           style: TextStyle(
-                            color: hasDebt ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                            color: hasDebt
+                                ? ThemeConstants.errorRed
+                                : ThemeConstants.successGreen,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -349,10 +363,20 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                   runSpacing: 8,
                   children: <Widget>[
                     _infoBox(Icons.badge, 'Leseni: ${d.licenseNumber}', colW),
-                    _infoBox(Icons.payments, 'Deni: ${d.totalDebt.toStringAsFixed(0)}', colW),
-                    _infoBox(Icons.event_available,
-                        hasDebt && d.dueDates.isNotEmpty ? 'Tarehe inayofuata: ${d.dueDates.first}' : 'Hakuna tarehe', colW),
-                    _infoBox(Icons.event, hasDebt ? 'Siku za deni: ${d.unpaidDays}' : 'Hakuna deni', colW),
+                    _infoBox(Icons.payments,
+                        'Deni: ${d.totalDebt.toStringAsFixed(0)}', colW),
+                    _infoBox(
+                        Icons.event_available,
+                        hasDebt && d.dueDates.isNotEmpty
+                            ? 'Tarehe inayofuata: ${d.dueDates.first}'
+                            : 'Hakuna tarehe',
+                        colW),
+                    _infoBox(
+                        Icons.event,
+                        hasDebt
+                            ? 'Siku za deni: ${d.unpaidDays}'
+                            : 'Hakuna deni',
+                        colW),
                   ],
                 );
               },
@@ -390,7 +414,11 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
       );
 
   Widget _buildFilterChip(String text, MonthFilter value) => FilterChip(
-        label: Text(text, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+        label: Text(text,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
         selected: _monthFilter == value,
         onSelected: (bool v) {
           setState(() => _monthFilter = value);
@@ -399,43 +427,10 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
         selectedColor: ThemeConstants.primaryBlue,
         backgroundColor: ThemeConstants.primaryBlue,
         checkmarkColor: Colors.white,
-        shape: StadiumBorder(side: BorderSide(color: Colors.white.withOpacity(0.25))),
+        shape: StadiumBorder(
+            side: BorderSide(color: Colors.white.withOpacity(0.25))),
       );
 
-  Widget _chip(IconData icon, String text) => LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double screenW = MediaQuery.of(context).size.width;
-          // Cap each chip width to 60% of screen to guarantee wrapping and prevent row overflow
-          final double maxW = screenW * 0.6;
-          return ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: ThemeConstants.primaryBlue,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.25)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  Icon(icon, color: Colors.white70, size: 16),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
-                      maxLines: 2,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
 
   void _openCreateForm() {
     _openDetailForm(null);
@@ -445,7 +440,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => DebtRecordsListScreen(driverId: d.id, driverName: d.name),
+        builder: (BuildContext context) =>
+            DebtRecordsListScreen(driverId: d.id, driverName: d.name),
       ),
     );
   }
@@ -458,8 +454,9 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
         fullscreenDialog: true,
       ),
     );
-    if (changed == true) {
+    if (changed ?? false) {
       await _loadDrivers();
+      if (!context.mounted) return;
     }
   }
 }
@@ -478,7 +475,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   final TextEditingController _amount = TextEditingController();
   final TextEditingController _notes = TextEditingController();
   final List<DateTime> _selectedDates = <DateTime>[];
-  final Map<DateTime, TextEditingController> _amountCtrls = <DateTime, TextEditingController>{};
+  final Map<DateTime, TextEditingController> _amountCtrls =
+      <DateTime, TextEditingController>{};
   bool _promised = false;
   DateTime? _promiseDate;
   bool _submitting = false;
@@ -510,7 +508,10 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             final String phone = d.phone.toLowerCase();
             final String vehicle = (d.vehicleNumber ?? '').toLowerCase();
             final String license = d.licenseNumber.toLowerCase();
-            return name.contains(q) || phone.contains(q) || vehicle.contains(q) || license.contains(q);
+            return name.contains(q) ||
+                phone.contains(q) ||
+                vehicle.contains(q) ||
+                license.contains(q);
           }).toList();
         }
       });
@@ -523,12 +524,15 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         _loadingDrivers = true;
         _driverLoadError = null;
       });
-      final Map<String, dynamic> res = await _api.getDebtDrivers(page: 1, limit: 200);
-      final List<dynamic> list = (res['data']?['drivers'] as List<dynamic>?) ?? <dynamic>[];
-      _allDrivers = list.map((dynamic j) => Driver.fromJson(j as Map<String, dynamic>)).toList();
+      final Map<String, dynamic> res = await _api.getDebtDrivers(limit: 200);
+      final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
+      final List<dynamic> list =
+          (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+      _allDrivers =
+          list.map((j) => Driver.fromJson(j as Map<String, dynamic>)).toList();
       _filteredDrivers = List<Driver>.from(_allDrivers);
       // Do not auto-select to force explicit choice
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() => _driverLoadError = e.toString());
     } finally {
       setState(() => _loadingDrivers = false);
@@ -550,7 +554,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
       appBar: ThemeConstants.buildAppBar('Rekodi Deni'),
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints c) => SingleChildScrollView(
+          builder: (BuildContext context, BoxConstraints c) =>
+              SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: c.maxHeight - 32),
@@ -568,11 +573,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: <Widget>[
-                        ..._selectedDates.map((DateTime d) => _dateChip(d)),
+                        ..._selectedDates.map(_dateChip),
                         OutlinedButton.icon(
                           onPressed: _pickDate,
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.white.withOpacity(0.4)),
+                            side: BorderSide(
+                                color: Colors.white.withOpacity(0.4)),
                             foregroundColor: Colors.white,
                             backgroundColor: Colors.white.withOpacity(0.06),
                           ),
@@ -591,10 +597,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
-                        const Text('Jumla (tarehe x kiasi):', style: TextStyle(color: Colors.white70)),
+                        const Text('Jumla (tarehe x kiasi):',
+                            style: TextStyle(color: Colors.white70)),
                         Text(
                           _subtotalText(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -604,13 +612,15 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                       minLines: 2,
                       maxLines: 4,
                       style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecorationWithIcon('Maelezo ya Deni (hiari)', Icons.notes),
+                      decoration: _inputDecorationWithIcon(
+                          'Maelezo ya Deni (hiari)', Icons.notes),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile.adaptive(
                       value: _promised,
                       onChanged: (bool v) => setState(() => _promised = v),
-                      title: const Text('Je, ameahidi kulipa?', style: TextStyle(color: Colors.white)),
+                      title: const Text('Je, ameahidi kulipa?',
+                          style: TextStyle(color: Colors.white)),
                       activeColor: ThemeConstants.primaryOrange,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -621,7 +631,9 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                           Expanded(
                             child: _labelValue(
                               'Tarehe ya ahadi kulipa',
-                              _promiseDate == null ? 'Chagua tarehe' : _fmt(_promiseDate!),
+                              _promiseDate == null
+                                  ? 'Chagua tarehe'
+                                  : _fmt(_promiseDate!),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -646,10 +658,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.save),
-                        label: Text(_submitting ? 'Inahifadhi...' : 'Hifadhi Deni'),
+                        label: Text(
+                            _submitting ? 'Inahifadhi...' : 'Hifadhi Deni'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ThemeConstants.primaryOrange,
                           foregroundColor: Colors.white,
@@ -677,10 +691,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(label,
+                style: const TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 4),
             Text(value.isEmpty ? '-' : value,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -710,8 +726,10 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: () => setState(() => _selectedDriver = null),
-              icon: const Icon(Icons.swap_horiz, color: Colors.white70, size: 18),
-              label: const Text('Badilisha dereva', style: TextStyle(color: Colors.white70)),
+              icon:
+                  const Icon(Icons.swap_horiz, color: Colors.white70, size: 18),
+              label: const Text('Badilisha dereva',
+                  style: TextStyle(color: Colors.white70)),
             ),
           ),
         ],
@@ -727,27 +745,39 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         if (_loadingDrivers)
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12)),
             child: const Row(
               children: <Widget>[
-                SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white)),
                 SizedBox(width: 8),
-                Text('Inapakia madereva...', style: TextStyle(color: Colors.white70)),
+                Text('Inapakia madereva...',
+                    style: TextStyle(color: Colors.white70)),
               ],
             ),
           )
         else if (_driverLoadError != null)
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: <Widget>[
                 const Icon(Icons.error_outline, color: Colors.white70),
                 const SizedBox(width: 8),
-                Expanded(child: Text(_driverLoadError!, style: const TextStyle(color: Colors.white))),
+                Expanded(
+                    child: Text(_driverLoadError!,
+                        style: const TextStyle(color: Colors.white))),
                 TextButton(
                   onPressed: _fetchDrivers,
-                  child: const Text('Jaribu tena', style: TextStyle(color: Colors.white)),
+                  child: const Text('Jaribu tena',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -757,14 +787,16 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
           TextField(
             controller: _driverSearch,
             style: const TextStyle(color: Colors.white),
-            decoration: _inputDecorationWithIcon('Tafuta dereva kwa jina, simu, gari au leseni', Icons.search).copyWith(
+            decoration: _inputDecorationWithIcon(
+                    'Tafuta dereva kwa jina, simu, gari au leseni',
+                    Icons.search)
+                .copyWith(
               suffixIcon: _driverSearch.text.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white70, size: 18),
-                      onPressed: () {
-                        _driverSearch.clear();
-                      },
+                      icon: const Icon(Icons.clear,
+                          color: Colors.white70, size: 18),
+                      onPressed: _driverSearch.clear,
                     ),
             ),
           ),
@@ -773,21 +805,25 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12)),
-              child: const Text('Hakuna matokeo ya utafutaji', style: TextStyle(color: Colors.white70)),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12)),
+              child: const Text('Hakuna matokeo ya utafutaji',
+                  style: TextStyle(color: Colors.white70)),
             )
           else
             DropdownButtonFormField<String>(
-              value: null,
               isExpanded: true,
-              decoration: _inputDecorationWithIcon('Chagua dereva', Icons.person),
+              decoration:
+                  _inputDecorationWithIcon('Chagua dereva', Icons.person),
               dropdownColor: ThemeConstants.primaryBlue,
               iconEnabledColor: Colors.white70,
               style: const TextStyle(color: Colors.white),
               items: _filteredDrivers.map((Driver d) {
-                final String label = d.vehicleNumber != null && d.vehicleNumber!.isNotEmpty
-                    ? '${d.name} • ${d.vehicleNumber}'
-                    : d.name;
+                final String label =
+                    d.vehicleNumber != null && d.vehicleNumber!.isNotEmpty
+                        ? '${d.name} • ${d.vehicleNumber}'
+                        : d.name;
                 return DropdownMenuItem<String>(
                   value: d.id,
                   child: Text(label, overflow: TextOverflow.ellipsis),
@@ -795,10 +831,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
               }).toList(),
               onChanged: (String? id) {
                 setState(() {
-                  _selectedDriver = _allDrivers.firstWhere((Driver d) => d.id == id);
+                  _selectedDriver =
+                      _allDrivers.firstWhere((Driver d) => d.id == id);
                 });
               },
-              validator: (String? v) => (_selectedDriver == null) ? 'Chagua dereva' : null,
+              validator: (String? v) =>
+                  (_selectedDriver == null) ? 'Chagua dereva' : null,
             ),
         ],
       ],
@@ -823,7 +861,9 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
               CircleAvatar(
                 backgroundColor: Colors.white.withOpacity(0.15),
                 child: Text(
-                  name.isNotEmpty && name != '-' ? name.substring(0, 1).toUpperCase() : '?',
+                  name.isNotEmpty && name != '-'
+                      ? name.substring(0, 1).toUpperCase()
+                      : '?',
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -832,9 +872,13 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Text(name,
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text('Leseni: ${license.isNotEmpty ? license : '-'}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('Leseni: ${license.isNotEmpty ? license : '-'}',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
@@ -842,8 +886,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
           ),
           if (license.isEmpty || license == '-') ...<Widget>[
             const SizedBox(height: 8),
-            Row(
-              children: const <Widget>[
+            const Row(
+              children: <Widget>[
                 Icon(Icons.info_outline, color: Colors.white70, size: 16),
                 SizedBox(width: 6),
                 Expanded(
@@ -865,14 +909,16 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         hintStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Colors.white.withOpacity(0.10),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
+          borderSide:
+              const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -897,7 +943,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   Widget _dateChip(DateTime d) => Chip(
         label: Text(_fmt(d), style: const TextStyle(color: Colors.white)),
         backgroundColor: ThemeConstants.primaryBlue,
-        shape: StadiumBorder(side: BorderSide(color: Colors.white.withOpacity(0.25))),
+        shape: StadiumBorder(
+            side: BorderSide(color: Colors.white.withOpacity(0.25))),
         deleteIcon: const Icon(Icons.close, color: Colors.white70, size: 18),
         labelPadding: const EdgeInsets.symmetric(horizontal: 10),
         onDeleted: () {
@@ -921,7 +968,6 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             primary: ThemeConstants.primaryOrange,
             surface: ThemeConstants.primaryBlue,
             onPrimary: Colors.white,
-            onSurface: Colors.white,
           ),
         ),
         child: child!,
@@ -951,7 +997,6 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             primary: ThemeConstants.primaryOrange,
             surface: ThemeConstants.primaryBlue,
             onPrimary: Colors.white,
-            onSurface: Colors.white,
           ),
         ),
         child: child!,
@@ -961,8 +1006,7 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   }
 
   String _fmt(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}'
-          .toString();
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   String _subtotalText() {
     double total = 0;
@@ -977,7 +1021,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
 
   List<Widget> _buildPerDateAmountFields() {
     return _selectedDates.map((DateTime d) {
-      final TextEditingController ctrl = _amountCtrls[d] ??= TextEditingController();
+      final TextEditingController ctrl =
+          _amountCtrls[d] ??= TextEditingController();
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
@@ -994,9 +1039,10 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             Expanded(
               child: TextFormField(
                 controller: ctrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecorationWithIcon('Kiasi kwa tarehe hii', Icons.payments),
+                decoration: _inputDecorationWithIcon(
+                    'Kiasi kwa tarehe hii', Icons.payments),
                 onChanged: (_) => setState(() {}),
                 validator: (String? v) {
                   final double? val = double.tryParse((v ?? '').trim());
@@ -1030,7 +1076,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
       final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
       for (final DateTime d in _selectedDates) {
         final TextEditingController? ctrl = _amountCtrls[d];
-        final double? val = ctrl == null ? null : double.tryParse(ctrl.text.trim());
+        final double? val =
+            ctrl == null ? null : double.tryParse(ctrl.text.trim());
         if (val == null || val <= 0) {
           _showSnack('Weka kiasi sahihi kwa tarehe ${_fmt(d)}');
           setState(() => _submitting = false);
@@ -1049,11 +1096,13 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
       // Notify other pages (e.g., Malipo and Debts list) to refresh
       try {
         Provider.of<DebtsProvider>(context, listen: false).markChanged();
-      } catch (_) {}
+      } on Exception catch (_) {
+        debugPrint('Provider notification failed');
+      }
       _showSnack('Madeni yamehifadhiwa kikamilifu', success: true);
       Navigator.pop(context, true);
-    } catch (e) {
-      _showSnack('Hitilafu: ${e.toString()}');
+    } on Exception catch (e) {
+      _showSnack('Hitilafu: $e');
     } finally {
       setState(() => _submitting = false);
     }
@@ -1063,7 +1112,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(m),
-        backgroundColor: success ? ThemeConstants.successGreen : Colors.redAccent,
+        backgroundColor:
+            success ? ThemeConstants.successGreen : Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

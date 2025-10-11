@@ -67,22 +67,20 @@ mixin AuthService {
 
       final Map<String, dynamic> data = _handleResponse(response);
 
-      // Save token and user data after successful login
-      if (data["data"] != null) {
-        if (data["data"]["token"] != null) {
-          await saveToken(data["data"]["token"]);
-        }
-        if (data["data"]["user"] != null) {
-          await saveUserData(data["data"]["user"]);
-        }
-      } else {
-        // Handle different response structure
-        if (data["token"] != null) {
-          await saveToken(data["token"]);
-        }
-        if (data["user"] != null) {
-          await saveUserData(data["user"]);
-        }
+      // Normalize response structure and persist
+      final Map<String, dynamic>? dataMap =
+          data["data"] is Map ? Map<String, dynamic>.from(data["data"]) : null;
+      final String? token = (dataMap?['token'] ?? data['token']) as String?;
+      final Map<String, dynamic>? user =
+          (dataMap?['user'] ?? data['user']) is Map
+              ? Map<String, dynamic>.from(dataMap?['user'] ?? data['user'])
+              : null;
+
+      if (token != null) {
+        await saveToken(token);
+      }
+      if (user != null) {
+        await saveUserData(user);
       }
 
       return data;
@@ -163,11 +161,13 @@ mixin AuthService {
       final Map<String, dynamic> data = _handleResponse(response);
 
       // Update stored user data
-      if (data["user"] != null) {
-        await saveUserData(data["user"]);
+      final Map<String, dynamic>? user =
+          data['user'] is Map ? Map<String, dynamic>.from(data['user']) : null;
+      if (user != null) {
+        await saveUserData(user);
       }
 
-      return data["user"];
+      return user;
     } on Exception catch (e) {
       throw Exception("Failed to get user data: $e");
     }

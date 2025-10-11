@@ -1,24 +1,14 @@
 class Communication {
-  final int? id;
-  final String driverId;
-  final String driverName; // Denormalized for easier display
-  final DateTime messageDate;
-  final String messageContent;
-  final String? response;
-  final CommunicationMode mode;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
   Communication({
-    this.id,
     required this.driverId,
     required this.driverName,
     required this.messageDate,
     required this.messageContent,
-    this.response,
     required this.mode,
     required this.createdAt,
     required this.updatedAt,
+    this.id,
+    this.response,
   });
 
   // Factory constructor from JSON
@@ -35,6 +25,15 @@ class Communication {
       updatedAt: DateTime.parse(json["updated_at"]),
     );
   }
+  final int? id;
+  final String driverId;
+  final String driverName; // Denormalized for easier display
+  final DateTime messageDate;
+  final String messageContent;
+  final String? response;
+  final CommunicationMode mode;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   // Convert to JSON
   Map<String, dynamic> toJson() {
@@ -79,14 +78,14 @@ class Communication {
   // Formatted date string for display
   String get formattedMessageDate {
     return "${messageDate.day.toString().padLeft(2, '0')}/"
-           "${messageDate.month.toString().padLeft(2, '0')}/"
-           "${messageDate.year}";
+        "${messageDate.month.toString().padLeft(2, '0')}/"
+        "${messageDate.year}";
   }
 
   // Formatted time string for display
   String get formattedMessageTime {
     return "${messageDate.hour.toString().padLeft(2, '0')}:"
-           "${messageDate.minute.toString().padLeft(2, '0')}";
+        "${messageDate.minute.toString().padLeft(2, '0')}";
   }
 
   // Full formatted datetime for display
@@ -126,7 +125,7 @@ enum CommunicationMode {
   systemNote("system_note", "Kumbuka za Mfumo", "📝");
 
   const CommunicationMode(this.value, this.displayName, this.icon);
-  
+
   final String value;
   final String displayName;
   final String icon;
@@ -152,12 +151,6 @@ enum CommunicationMode {
 
 // Communication summary for dashboard/overview
 class CommunicationSummary {
-  final int totalCommunications;
-  final int unansweredCommunications;
-  final int recentCommunications; // Last 7 days
-  final Map<CommunicationMode, int> communicationsByMode;
-  final DateTime? lastCommunicationDate;
-
   CommunicationSummary({
     required this.totalCommunications,
     required this.unansweredCommunications,
@@ -168,11 +161,11 @@ class CommunicationSummary {
 
   factory CommunicationSummary.fromJson(Map<String, dynamic> json) {
     // Parse communications by mode
-    Map<CommunicationMode, int> modeMap = {};
+    final Map<CommunicationMode, int> modeMap = {};
     if (json["communications_by_mode"] != null) {
-      Map<String, dynamic> modeData = json["communications_by_mode"];
-      for (String key in modeData.keys) {
-        CommunicationMode mode = CommunicationMode.fromString(key);
+      final Map<String, dynamic> modeData = json["communications_by_mode"];
+      for (final String key in modeData.keys) {
+        final CommunicationMode mode = CommunicationMode.fromString(key);
         modeMap[mode] = modeData[key] ?? 0;
       }
     }
@@ -182,14 +175,19 @@ class CommunicationSummary {
       unansweredCommunications: json["unanswered_communications"] ?? 0,
       recentCommunications: json["recent_communications"] ?? 0,
       communicationsByMode: modeMap,
-      lastCommunicationDate: json["last_communication_date"] != null 
+      lastCommunicationDate: json["last_communication_date"] != null
           ? DateTime.parse(json["last_communication_date"])
           : null,
     );
   }
+  final int totalCommunications;
+  final int unansweredCommunications;
+  final int recentCommunications; // Last 7 days
+  final Map<CommunicationMode, int> communicationsByMode;
+  final DateTime? lastCommunicationDate;
 
   Map<String, dynamic> toJson() {
-    Map<String, int> modeMap = {};
+    final Map<String, int> modeMap = {};
     communicationsByMode.forEach((mode, count) {
       modeMap[mode.value] = count;
     });
@@ -205,7 +203,7 @@ class CommunicationSummary {
 
   // Get percentage of unanswered communications
   double get unansweredPercentage {
-    if (totalCommunications == 0) return 0.0;
+    if (totalCommunications == 0) return 0;
     return (unansweredCommunications / totalCommunications) * 100;
   }
 }

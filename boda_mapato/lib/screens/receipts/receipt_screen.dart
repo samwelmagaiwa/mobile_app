@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_dynamic_calls
+import "dart:async";
 import "package:flutter/material.dart";
 
 import "../../constants/colors.dart";
@@ -48,7 +50,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Future<void> _loadRecentReceipts() async {
     try {
       final Map<String, dynamic> response = await _apiService.getReceipts();
-      
+
       if (mounted) {
         setState(() {
           if (response["data"] is Map<String, dynamic>) {
@@ -95,13 +97,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         "date": DateTime.now().toIso8601String(),
       };
 
-      final Map<String, dynamic> response = 
+      final Map<String, dynamic> response =
           await _apiService.generateReceipt(receiptData);
 
       if (mounted) {
         _showReceiptPreview(response["data"]);
         _clearForm();
-        _loadRecentReceipts(); // Reload to show new receipt
+        unawaited(_loadRecentReceipts()); // Reload to show new receipt
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -132,14 +134,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     showDialog(
       context: context,
       builder: (final BuildContext context) => _ReceiptPreviewDialog(
-        receiptData: receiptData ?? <String, dynamic>{
-          "customer_name": _customerNameController.text,
-          "amount": double.parse(_amountController.text),
-          "service_type": _serviceTypeController.text,
-          "notes": _notesController.text,
-          "receipt_number": "TEMP-${DateTime.now().millisecondsSinceEpoch}",
-          "date": DateTime.now().toIso8601String(),
-        },
+        receiptData: receiptData ??
+            <String, dynamic>{
+              "customer_name": _customerNameController.text,
+              "amount": double.parse(_amountController.text),
+              "service_type": _serviceTypeController.text,
+              "notes": _notesController.text,
+              "receipt_number": "TEMP-${DateTime.now().millisecondsSinceEpoch}",
+              "date": DateTime.now().toIso8601String(),
+            },
       ),
     );
   }
@@ -303,7 +306,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     ),
                     if (!_isLoadingReceipts && _recentReceipts.isNotEmpty)
                       TextButton(
-                        onPressed: () => _loadRecentReceipts(),
+                        onPressed: _loadRecentReceipts,
                         child: const Text("Onyesha Zote"),
                       ),
                   ],
@@ -337,62 +340,64 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   )
                 else
                   ..._recentReceipts.take(3).map(
-                    (Map<String, dynamic> receipt) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppStyles.spacingM),
-                      child: CustomCard(
-                        onTap: () => _showReceiptPreview(receipt),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppStyles.spacingM),
-                          child: Row(
-                            children: <Widget>[
-                              const Icon(
-                                Icons.receipt_long,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: AppStyles.spacingM),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      receipt["customer_name"] ?? "N/A",
-                                      style: AppStyles.bodyMedium.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    Text(
-                                      receipt["service_type"] ?? "N/A",
-                                      style: AppStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                        (Map<String, dynamic> receipt) => Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: AppStyles.spacingM),
+                          child: CustomCard(
+                            onTap: () => _showReceiptPreview(receipt),
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppStyles.spacingM),
+                              child: Row(
                                 children: <Widget>[
-                                  Text(
-                                    "TSh ${(receipt["amount"] ?? 0).toString()}",
-                                    style: AppStyles.bodyMedium.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
+                                  const Icon(
+                                    Icons.receipt_long,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: AppStyles.spacingM),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(
+                                          receipt["customer_name"] ?? "N/A",
+                                          style: AppStyles.bodyMedium.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          receipt["service_type"] ?? "N/A",
+                                          style: AppStyles.bodySmall.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    receipt["receipt_number"] ?? "N/A",
-                                    style: AppStyles.bodySmall.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: <Widget>[
+                                      Text(
+                                        "TSh ${receipt["amount"] ?? 0}",
+                                        style: AppStyles.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      Text(
+                                        receipt["receipt_number"] ?? "N/A",
+                                        style: AppStyles.bodySmall.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -408,9 +413,9 @@ class _ReceiptPreviewDialog extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final String receiptNumber = receiptData["receipt_number"] ?? 
+    final String receiptNumber = receiptData["receipt_number"] ??
         "R${DateTime.now().millisecondsSinceEpoch}";
-    final DateTime currentDate = receiptData["date"] != null 
+    final DateTime currentDate = receiptData["date"] != null
         ? DateTime.tryParse(receiptData["date"]) ?? DateTime.now()
         : DateTime.now();
     final String customerName = receiptData["customer_name"] ?? "N/A";

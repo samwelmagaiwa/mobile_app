@@ -1,9 +1,10 @@
-import "dart:ui";
+// ignore_for_file: avoid_dynamic_calls, unused_element, unnecessary_parenthesis
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
+
 import "../../constants/theme_constants.dart";
-import "../../utils/responsive_helper.dart";
 import "../../services/api_service.dart";
+import "../../utils/responsive_helper.dart";
 import "../../widgets/custom_card.dart";
 
 class PaymentsManagementScreen extends StatefulWidget {
@@ -65,7 +66,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
 
     try {
       final Map<String, dynamic> response = await _apiService.getPayments();
-      
+
       // Handle the actual response structure: {status, message, data: {data: [...], pagination: {...}}}
       List<dynamic> paymentsData;
       if (response["data"] is Map<String, dynamic>) {
@@ -77,18 +78,19 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       } else {
         paymentsData = <Map<String, dynamic>>[];
       }
-      
-      _payments = paymentsData.map((dynamic json) {
+
+      _payments = paymentsData.map((json) {
         final Map<String, dynamic> payment = json as Map<String, dynamic>;
-        
+
         // Parse date strings to DateTime objects if they're strings
         if (payment["due_date"] is String) {
-          payment["due_date"] = DateTime.tryParse(payment["due_date"]) ?? DateTime.now();
+          payment["due_date"] =
+              DateTime.tryParse(payment["due_date"]) ?? DateTime.now();
         }
         if (payment["paid_date"] is String && payment["paid_date"] != null) {
           payment["paid_date"] = DateTime.tryParse(payment["paid_date"]);
         }
-        
+
         return payment;
       }).toList();
 
@@ -105,24 +107,24 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   void _filterPayments() {
     setState(() {
       _filteredPayments = _payments.where((final Map<String, dynamic> payment) {
+        final String driverName = (payment["driver_name"]?.toString() ?? '').toLowerCase();
+        final String vehicleNumber = (payment["vehicle_number"]?.toString() ?? '').toLowerCase();
+        final String receiptNumber = (payment["receipt_number"]?.toString() ?? '').toLowerCase();
+        final String query = _searchQuery.toLowerCase();
+
         final bool matchesSearch = _searchQuery.isEmpty ||
-            payment["driver_name"]
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            payment["vehicle_number"]
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            (payment["receipt_number"] ?? "")
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase());
+            driverName.contains(query) ||
+            vehicleNumber.contains(query) ||
+            receiptNumber.contains(query);
 
-        final bool matchesStatus =
-            _selectedStatus == "all" || payment["status"] == _selectedStatus;
+        final String status = (payment["status"]?.toString() ?? '');
+        final bool matchesStatus = _selectedStatus == "all" || status == _selectedStatus;
 
+        final DateTime? dueDate = payment["due_date"] as DateTime?;
+        final DateTime? paidDate = payment["paid_date"] as DateTime?;
         final bool matchesDateRange = _selectedDateRange == null ||
-            (_isDateInRange(payment["due_date"], _selectedDateRange!) ||
-                (payment["paid_date"] != null &&
-                    _isDateInRange(payment["paid_date"], _selectedDateRange!)));
+            (dueDate != null && _isDateInRange(dueDate, _selectedDateRange!)) ||
+            (paidDate != null && _isDateInRange(paidDate, _selectedDateRange!));
 
         return matchesSearch && matchesStatus && matchesDateRange;
       }).toList();
@@ -130,10 +132,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
       // Sort by due date (overdue first, then by date)
       _filteredPayments
           .sort((final Map<String, dynamic> a, final Map<String, dynamic> b) {
-        if (a["status"] == "overdue" && b["status"] != "overdue") {
+        final String sa = (a["status"]?.toString() ?? '');
+        final String sb = (b["status"]?.toString() ?? '');
+        if (sa == "overdue" && sb != "overdue") {
           return -1;
         }
-        if (b["status"] == "overdue" && a["status"] != "overdue") {
+        if (sb == "overdue" && sa != "overdue") {
           return 1;
         }
         return (b["due_date"] as DateTime).compareTo(a["due_date"] as DateTime);
@@ -176,7 +180,9 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Simamia Malipo",
-      body: _isLoading ? ThemeConstants.buildResponsiveLoadingWidget(context) : _buildMainContent(),
+      body: _isLoading
+          ? ThemeConstants.buildResponsiveLoadingWidget(context)
+          : _buildMainContent(),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
@@ -759,7 +765,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                           value: "view",
                           child: Row(
                             children: <Widget>[
-                              Icon(Icons.visibility, color: ThemeConstants.primaryBlue),
+                              Icon(Icons.visibility,
+                                  color: ThemeConstants.primaryBlue),
                               SizedBox(width: 8),
                               Text("Ona"),
                             ],
@@ -770,7 +777,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                             value: "mark_paid",
                             child: Row(
                               children: <Widget>[
-                                Icon(Icons.check_circle, color: ThemeConstants.successGreen),
+                                Icon(Icons.check_circle,
+                                    color: ThemeConstants.successGreen),
                                 SizedBox(width: 8),
                                 Text("Weka Kuwa Yaliyolipwa"),
                               ],
@@ -801,7 +809,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
                           value: "delete",
                           child: Row(
                             children: <Widget>[
-                              Icon(Icons.delete, color: ThemeConstants.errorRed),
+                              Icon(Icons.delete,
+                                  color: ThemeConstants.errorRed),
                               SizedBox(width: 8),
                               Text("Futa"),
                             ],
@@ -968,45 +977,57 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _showPaymentDetails(final Map<String, dynamic> payment) {
+    final String driverName = payment["driver_name"]?.toString() ?? '';
+    final String vehicleNumber = payment["vehicle_number"]?.toString() ?? '';
+    final String amountText = _formatCurrency(_toDouble(payment["amount"]));
+    final String paymentType = _getPaymentTypeText(payment["payment_type"]?.toString() ?? '');
+    final String status = payment["status"]?.toString() ?? '';
+    final DateTime? dueDate = payment["due_date"] as DateTime?;
+    final DateTime? paidDate = payment["paid_date"] as DateTime?;
+    final String? method = payment["payment_method"]?.toString();
+    final String? receiptNo = payment["receipt_number"]?.toString();
+    final String? notes = payment["notes"]?.toString();
+
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Maelezo ya Malipo - ${payment["driver_name"]}"),
+        title: Text("Maelezo ya Malipo - $driverName"),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _buildDetailRow("Dereva:", payment["driver_name"]),
-              _buildDetailRow("Gari:", payment["vehicle_number"]),
+              _buildDetailRow("Dereva:", driverName),
+              _buildDetailRow("Gari:", vehicleNumber),
               _buildDetailRow(
                 "Kiasi:",
-                "TSH ${_formatCurrency(payment["amount"])}",
+                "TSH $amountText",
               ),
               _buildDetailRow(
                 "Aina ya Malipo:",
-                _getPaymentTypeText(payment["payment_type"]),
+                paymentType,
               ),
-              _buildDetailRow("Hali:", payment["status"]),
-              _buildDetailRow(
-                "Tarehe ya Kulipa:",
-                DateFormat("dd/MM/yyyy").format(payment["due_date"]),
-              ),
-              if (payment["paid_date"] != null)
+              _buildDetailRow("Hali:", status),
+              if (dueDate != null)
+                _buildDetailRow(
+                  "Tarehe ya Kulipa:",
+                  DateFormat("dd/MM/yyyy").format(dueDate),
+                ),
+              if (paidDate != null)
                 _buildDetailRow(
                   "Ililipwa:",
-                  DateFormat("dd/MM/yyyy HH:mm").format(payment["paid_date"]),
+                  DateFormat("dd/MM/yyyy HH:mm").format(paidDate),
                 ),
-              if (payment["payment_method"] != null)
+              if (method != null)
                 _buildDetailRow(
                   "Njia ya Malipo:",
-                  _getPaymentMethodText(payment["payment_method"]),
+                  _getPaymentMethodText(method),
                 ),
-              if (payment["receipt_number"] != null)
-                _buildDetailRow("Namba ya Risiti:", payment["receipt_number"]),
-              if (payment["notes"] != null && payment["notes"].isNotEmpty)
-                _buildDetailRow("Maelezo:", payment["notes"]),
+              if (receiptNo != null)
+                _buildDetailRow("Namba ya Risiti:", receiptNo),
+              if (notes != null && notes.isNotEmpty)
+                _buildDetailRow("Maelezo:", notes),
             ],
           ),
         ),
@@ -1092,7 +1113,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _showReceipt(final Map<String, dynamic> payment) {
-    // TODO(dev): Implement receipt viewing
+    // TODO(app-team): Implement receipt viewing
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Kipengele cha kuona risiti kinatengenezwa..."),
@@ -1101,7 +1122,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _showEditPaymentDialog(final Map<String, dynamic> payment) {
-    // TODO(dev): Implement edit payment dialog
+    // TODO(app-team): Implement edit payment dialog
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -1135,7 +1156,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO(dev): Implement delete API call
+              // TODO(app-team): Implement delete API call
               setState(() {
                 _payments.removeWhere(
                   (final Map<String, dynamic> p) => p["id"] == payment["id"],
@@ -1161,7 +1182,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _showRecordPaymentDialog() {
-    // TODO: Implement record payment dialog
+    // TODO(app-team): Implement record payment dialog
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -1195,7 +1216,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _exportPayments() {
-    // TODO: Implement export functionality
+    // TODO(app-team): Implement export functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
@@ -1204,7 +1225,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   void _showBulkActionDialog() {
-    // TODO: Implement bulk actions
+    // TODO(app-team): Implement bulk actions
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -1222,13 +1243,13 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen>
   }
 
   // Helper method to safely convert dynamic values to double
-  double _toDouble(dynamic value) {
-    if (value == null) return 0.0;
+  double _toDouble(value) {
+    if (value == null) return 0;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
       return double.tryParse(value) ?? 0.0;
     }
-    return 0.0;
+    return 0;
   }
 }

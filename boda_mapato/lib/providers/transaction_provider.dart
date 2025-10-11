@@ -1,3 +1,4 @@
+// ignore_for_file: cascade_invocations
 import "package:flutter/foundation.dart";
 import "../models/transaction.dart";
 import "../services/api_service.dart";
@@ -298,5 +299,4 @@ class TransactionProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-
 }

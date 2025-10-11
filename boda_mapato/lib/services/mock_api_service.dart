@@ -10,9 +10,9 @@ class MockApiService {
   /// Generate mock dashboard data
   static Future<Map<String, dynamic>> getDashboardData() async {
     await Future.delayed(_networkDelay);
-    
+
     final Random random = Random();
-    
+
     return {
       "success": true,
       "data": {
@@ -36,7 +36,7 @@ class MockApiService {
             "type": "daily_fee"
           },
           {
-            "id": "TXN002", 
+            "id": "TXN002",
             "driver_name": "Fatuma Hassan",
             "vehicle_number": "T456DEF",
             "amount": 30000 + random.nextInt(40000),
@@ -61,7 +61,7 @@ class MockApiService {
   /// Generate mock dashboard stats
   static Future<Map<String, dynamic>> getDashboardStats() async {
     await Future.delayed(_networkDelay);
-    
+
     return {
       "success": true,
       "data": {
@@ -76,10 +76,10 @@ class MockApiService {
   /// Generate mock revenue chart data
   static Future<List<dynamic>> getRevenueChart({int days = 30}) async {
     await Future.delayed(_networkDelay);
-    
+
     final List<dynamic> chartData = [];
     final Random random = Random();
-    
+
     for (int i = days; i >= 0; i--) {
       final DateTime date = DateTime.now().subtract(Duration(days: i));
       chartData.add({
@@ -88,7 +88,7 @@ class MockApiService {
         "transactions": 5 + random.nextInt(15)
       });
     }
-    
+
     return chartData;
   }
 
@@ -99,7 +99,7 @@ class MockApiService {
     String? phoneNumber,
   }) async {
     await Future.delayed(_networkDelay);
-    
+
     // Simulate login validation
     if (email.contains('@') && password.length >= 6) {
       return {
@@ -122,14 +122,14 @@ class MockApiService {
   /// Mock current user
   static Future<Map<String, dynamic>> getCurrentUser() async {
     await Future.delayed(_networkDelay);
-    
+
     return {
       "success": true,
       "user": {
         "id": 1,
         "name": "Admin Mkuu",
         "email": "admin@bodamapato.com",
-        "role": "admin", 
+        "role": "admin",
         "phone": "+255 123 456 789"
       }
     };
@@ -141,7 +141,7 @@ class MockApiService {
     int limit = 20,
   }) async {
     await Future.delayed(_networkDelay);
-    
+
     final List<Map<String, dynamic>> drivers = [
       {
         "id": 1,
@@ -154,7 +154,7 @@ class MockApiService {
       {
         "id": 2,
         "name": "Fatuma Hassan",
-        "phone": "+255 987 654 321", 
+        "phone": "+255 987 654 321",
         "license_number": "LIC002",
         "status": "active",
         "vehicle": "T456DEF"
@@ -163,12 +163,12 @@ class MockApiService {
         "id": 3,
         "name": "Mohamed Ali",
         "phone": "+255 555 123 456",
-        "license_number": "LIC003", 
+        "license_number": "LIC003",
         "status": "inactive",
         "vehicle": null
       }
     ];
-    
+
     return {
       "success": true,
       "data": drivers,
@@ -187,7 +187,7 @@ class MockApiService {
     int limit = 20,
   }) async {
     await Future.delayed(_networkDelay);
-    
+
     final List<Map<String, dynamic>> vehicles = [
       {
         "id": 1,
@@ -204,7 +204,7 @@ class MockApiService {
         "make": "TVS",
         "model": "Apache 160",
         "year": 2021,
-        "status": "active", 
+        "status": "active",
         "driver": "Fatuma Hassan"
       },
       {
@@ -217,7 +217,7 @@ class MockApiService {
         "driver": null
       }
     ];
-    
+
     return {
       "success": true,
       "data": vehicles,
@@ -236,26 +236,26 @@ class MockApiService {
     int limit = 20,
   }) async {
     await Future.delayed(_networkDelay);
-    
+
     final Random random = Random();
     final List<Map<String, dynamic>> payments = List.generate(10, (index) {
       return {
         "id": "PAY${(index + 1).toString().padLeft(3, '0')}",
         "driver_name": [
           "Juma Mwalimu",
-          "Fatuma Hassan", 
+          "Fatuma Hassan",
           "Mohamed Ali",
           "Amina Juma",
           "Hassan Mwangi"
         ][index % 5],
-        "vehicle_number": "T${(123 + index).toString()}ABC",
+        "vehicle_number": "T${123 + index}ABC",
         "amount": 20000 + random.nextInt(50000),
         "payment_date": DateTime.now().subtract(Duration(days: index)),
         "status": ["paid", "pending", "overdue"][index % 3],
         "type": ["daily_fee", "weekly_fee", "monthly_fee"][index % 3]
       };
     });
-    
+
     return {
       "success": true,
       "data": payments,
@@ -271,7 +271,7 @@ class MockApiService {
   /// Health check
   static Future<Map<String, dynamic>> healthCheck() async {
     await Future.delayed(_networkDelay);
-    
+
     return {
       "success": true,
       "status": "healthy",
@@ -283,7 +283,7 @@ class MockApiService {
   /// Test connection
   static Future<Map<String, dynamic>> testConnection() async {
     await Future.delayed(_networkDelay);
-    
+
     return {
       "success": true,
       "message": "Mock connection successful",

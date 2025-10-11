@@ -63,6 +63,7 @@ dependencies:
   pdf: ^3.10.7
   # Google Fonts helper and printing utilities for PDFs
   printing: ^5.13.4
+
   
 
 dev_dependencies:
@@ -86,6 +87,15 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Local bundled fonts
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -17,7 +17,7 @@ class SettingsScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -40,7 +40,9 @@ class SettingsScreen extends StatelessWidget {
                         backgroundColor: const Color(0xFF1E40AF),
                         child: authProvider.user?.name != null
                             ? Text(
-                                authProvider.user!.name.substring(0, 1).toUpperCase(),
+                                authProvider.user!.name
+                                    .substring(0, 1)
+                                    .toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -72,9 +74,9 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Settings Options
               Card(
                 child: Column(
@@ -85,7 +87,7 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: const Text("Dhibiti arifa za programu"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        // TODO: Navigate to notifications settings
+                        // TODO(app): Navigate to notifications settings
                       },
                     ),
                     const Divider(),
@@ -95,7 +97,7 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: const Text("Chagua lugha ya programu"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        // TODO: Navigate to language settings
+                        // TODO(app): Navigate to language settings
                       },
                     ),
                     const Divider(),
@@ -105,7 +107,7 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: const Text("Mipangilio ya usalama"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        // TODO: Navigate to security settings
+                        // TODO(app): Navigate to security settings
                       },
                     ),
                     const Divider(),
@@ -115,15 +117,15 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: const Text("Hifadhi na rejesha data"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        // TODO: Navigate to backup settings
+                        // TODO(app): Navigate to backup settings
                       },
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // App Information
               Card(
                 child: Column(
@@ -144,7 +146,8 @@ class SettingsScreen extends StatelessWidget {
                               children: [
                                 Text("Toleo: 1.0.0"),
                                 SizedBox(height: 8),
-                                Text("Programu ya kusimamia biashara za pikipiki"),
+                                Text(
+                                    "Programu ya kusimamia biashara za pikipiki"),
                                 SizedBox(height: 8),
                                 Text("© 2024 Boda Mapato"),
                               ],
@@ -166,15 +169,15 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: const Text("Pata msaada wa kutumia programu"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        // TODO: Navigate to help screen
+                        // TODO(app): Navigate to help screen
                       },
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Logout Button
               Card(
                 color: Colors.red.shade50,
@@ -182,7 +185,8 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text(
                     "Toka",
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.w500),
                   ),
                   onTap: () async {
                     final bool? confirm = await showDialog<bool>(
@@ -202,8 +206,8 @@ class SettingsScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                    
-                    if (confirm == true && context.mounted) {
+
+                    if ((confirm ?? false) && context.mounted) {
                       await authProvider.logout();
                     }
                   },

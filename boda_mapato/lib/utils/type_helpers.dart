@@ -5,6 +5,7 @@
 library;
 
 import "dart:convert";
+import "package:flutter/foundation.dart" show immutable;
 
 class TypeHelpers {
   /// Safely cast dynamic to Map<String, dynamic>
@@ -130,9 +131,9 @@ class TypeHelpers {
   }
 
   /// Create a typed list from dynamic
-  static List<T> createTypedList<T>(
+static List<T> createTypedList<T>(
     final value,
-    T Function(dynamic) converter,
+T Function(Object?) converter,
   ) {
     if (value is List) {
       return value.map((final item) => converter(item)).toList();
@@ -155,6 +156,7 @@ class TypeHelpers {
 }
 
 /// Type-safe filter options for UI components
+@immutable
 class FilterOption {
   const FilterOption({
     required this.key,

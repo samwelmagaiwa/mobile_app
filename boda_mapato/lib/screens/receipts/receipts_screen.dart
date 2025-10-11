@@ -16,7 +16,7 @@ class ReceiptsScreen extends StatefulWidget {
 class _ReceiptsScreenState extends State<ReceiptsScreen>
     with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
-  
+
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -45,22 +45,22 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeIn,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.3),
+      begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideController,
@@ -77,7 +77,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
       setState(() {
         _currentTabIndex = _tabController.index;
       });
-      
+
       if (_tabController.index == 0) {
         _loadPendingReceipts();
       } else {
@@ -102,23 +102,25 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
       });
 
       final response = await _apiService.getPendingReceipts();
-      
+
       if (response['success'] == true) {
         final data = response['data'] as Map<String, dynamic>? ?? {};
         final receiptsData = data['pending_receipts'] as List<dynamic>? ?? [];
-        
+
         setState(() {
           _pendingReceipts = receiptsData
-              .map((item) => PendingReceiptItem.fromJson(item as Map<String, dynamic>))
+              .map((item) =>
+                  PendingReceiptItem.fromJson(item as Map<String, dynamic>))
               .toList();
           _isLoading = false;
         });
       } else {
-        throw Exception(response['message'] ?? 'Failed to load pending receipts');
+        throw Exception(
+            response['message'] ?? 'Failed to load pending receipts');
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load pending receipts: ${e.toString()}';
+        _errorMessage = 'Failed to load pending receipts: $e';
         _isLoading = false;
       });
     }
@@ -134,7 +136,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
       // For now, we'll load all receipts without filters
       // You can add filtering later
       final response = await _apiService.getPaymentReceipts();
-      
+
       if (response['success'] == true) {
         // Handle all receipts data here
         // For now, we'll just set loading to false
@@ -144,9 +146,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
       } else {
         throw Exception(response['message'] ?? 'Failed to load receipts');
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load receipts: ${e.toString()}';
+        _errorMessage = 'Failed to load receipts: $e';
         _isLoading = false;
       });
     }
@@ -155,7 +157,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    
+
     return ThemeConstants.buildScaffold(
       title: 'Toa Risiti',
       body: FadeTransition(
@@ -166,10 +168,10 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
             children: [
               // Header with statistics
               _buildHeader(),
-              
+
               // Tab bar
               _buildTabBar(),
-              
+
               // Content based on selected tab
               Expanded(
                 child: TabBarView(
@@ -188,8 +190,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
   }
 
   Widget _buildHeader() {
-    return Container(
-      margin: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.all(16),
       child: ThemeConstants.buildGlassCardStatic(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -208,11 +210,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Uongozi wa Risiti',
                       style: TextStyle(
                         color: ThemeConstants.textPrimary,
@@ -220,7 +222,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Tengeneza na tuma risiti kwa madereva',
                       style: TextStyle(
@@ -233,13 +235,13 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
               ),
               if (!_isLoading)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: ThemeConstants.primaryOrange.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: ThemeConstants.primaryOrange.withOpacity(0.3),
-                      width: 1,
                     ),
                   ),
                   child: Text(
@@ -266,7 +268,6 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
-          width: 1,
         ),
       ),
       child: TabBar(
@@ -302,11 +303,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
     if (_isLoading) {
       return _buildLoadingState();
     }
-    
+
     if (_errorMessage != null) {
       return _buildErrorState();
     }
-    
+
     if (_pendingReceipts.isEmpty) {
       return _buildEmptyState();
     }
@@ -326,7 +327,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
   }
 
   Widget _buildAllReceiptsTab() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -335,7 +336,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
             size: 64,
             color: ThemeConstants.textSecondary,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             'Sehemu hii bado inajenuzwa',
             style: TextStyle(
@@ -344,7 +345,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Utaona orodha ya risiti zote hapa',
             style: TextStyle(
@@ -370,7 +371,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                    backgroundColor:
+                        ThemeConstants.primaryOrange.withOpacity(0.2),
                     child: Text(
                       receipt.driver.name.substring(0, 1).toUpperCase(),
                       style: const TextStyle(
@@ -404,7 +406,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: ThemeConstants.warningAmber.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -420,9 +423,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Payment details
               Container(
                 padding: const EdgeInsets.all(12),
@@ -431,7 +434,6 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.1),
-                    width: 1,
                   ),
                 ),
                 child: Column(
@@ -558,28 +560,34 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                   decoration: BoxDecoration(
                     color: ThemeConstants.errorRed.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ThemeConstants.errorRed.withOpacity(0.2)),
+                    border: Border.all(
+                        color: ThemeConstants.errorRed.withOpacity(0.2)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: ThemeConstants.errorRed, size: 18),
+                      const Icon(Icons.warning_amber_rounded,
+                          color: ThemeConstants.errorRed, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Deni lililosalia: TSh ' +
-                                  _formatAmount(receipt.remainingDebtTotal) +
-                                  ' (siku ' + receipt.unpaidDaysCount.toString() + ')',
-                              style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 12, fontWeight: FontWeight.w600),
+                              'Deni lililosalia: TSh ${_formatAmount(receipt.remainingDebtTotal)} (siku ${receipt.unpaidDaysCount})',
+                              style: const TextStyle(
+                                  color: ThemeConstants.errorRed,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
                             ),
                             if (receipt.unpaidDates.isNotEmpty) ...[
                               const SizedBox(height: 2),
                               Text(
-                                'Tarehe: ' + receipt.unpaidDates.map(_formatDate).join(', '),
-                                style: const TextStyle(color: ThemeConstants.errorRed, fontSize: 11, fontWeight: FontWeight.w500),
+                                'Tarehe: ${receipt.unpaidDates.map(_formatDate).join(', ')}',
+                                style: const TextStyle(
+                                    color: ThemeConstants.errorRed,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500),
                               ),
                             ],
                           ],
@@ -590,7 +598,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                 ),
               ],
               const SizedBox(height: 12),
-              
+
               // Action button
               SizedBox(
                 width: double.infinity,
@@ -622,14 +630,15 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
   }
 
   Widget _buildLoadingState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
+          CircularProgressIndicator(
+            valueColor:
+                AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             'Inapakia risiti...',
             style: TextStyle(
@@ -649,7 +658,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.error_outline,
               size: 64,
               color: ThemeConstants.errorRed,
@@ -684,7 +693,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: ThemeConstants.primaryOrange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -708,7 +718,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.receipt_long_outlined,
               size: 64,
               color: ThemeConstants.textSecondary,
@@ -737,7 +747,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: ThemeConstants.primaryOrange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -767,14 +778,15 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
     try {
       final DateTime d = DateTime.tryParse(isoOrYmd) ?? DateTime.now();
       return '${d.day}/${d.month}/${d.year}';
-    } catch (_) {
+    } on Exception catch (_) {
       return isoOrYmd;
     }
   }
 
   String _formatAmount(double v) {
     final s = v.toStringAsFixed(0);
-    return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    return s.replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
 
   void _navigateToReceiptDetail(PendingReceiptItem receipt) {

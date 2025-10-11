@@ -1,10 +1,10 @@
-import "dart:ui";
+import "dart:async";
 import "package:flutter/material.dart";
 
 import "../../constants/theme_constants.dart";
-import "../../utils/responsive_helper.dart";
-import "../../services/api_service.dart";
 import "../../models/reminder.dart";
+import "../../services/api_service.dart";
+import "../../utils/responsive_helper.dart";
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -16,7 +16,7 @@ class RemindersScreen extends StatefulWidget {
 class _RemindersScreenState extends State<RemindersScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = true;
-  List<Reminder> _reminders = <Reminder>[];
+  final List<Reminder> _reminders = <Reminder>[];
   List<Reminder> _filteredReminders = <Reminder>[];
   String _searchQuery = "";
   String _selectedFilter = "all"; // all, active, overdue, completed
@@ -33,29 +33,35 @@ class _RemindersScreenState extends State<RemindersScreen> {
     });
 
     try {
-      final response = await _apiService.getReminders();
-      
+      final Map<String, dynamic> response = await _apiService.getReminders();
+
       // Handle the API response structure
       List<dynamic> remindersList;
+      final Map<String, dynamic>? dataMap =
+          response['data'] as Map<String, dynamic>?;
       if (response['data'] is List) {
         remindersList = response['data'] as List<dynamic>;
-      } else if (response['data'] is Map<String, dynamic> && response['data']['data'] is List) {
-        remindersList = response['data']['data'] as List<dynamic>;
+      } else if (dataMap != null && dataMap['data'] is List) {
+        remindersList = dataMap['data'] as List<dynamic>;
       } else {
         remindersList = <dynamic>[];
       }
-      
+
       if (mounted) {
         setState(() {
-          _reminders.clear();
-          _reminders.addAll(
-            remindersList.map((dynamic json) => Reminder.fromJson(json as Map<String, dynamic>)).toList(),
-          );
+          _reminders
+            ..clear()
+            ..addAll(
+              remindersList
+                  .map((json) =>
+                      Reminder.fromJson(json as Map<String, dynamic>))
+                  .toList(),
+            );
           _filterReminders();
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -80,7 +86,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
         final bool matchesFilter = _selectedFilter == "all" ||
             (_selectedFilter == "active" && reminder.isActive) ||
             (_selectedFilter == "overdue" && reminder.isOverdue) ||
-            (_selectedFilter == "completed" && reminder.status == ReminderStatus.completed);
+            (_selectedFilter == "completed" &&
+                reminder.status == ReminderStatus.completed);
 
         return matchesSearch && matchesFilter;
       }).toList();
@@ -109,9 +116,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
       builder: (BuildContext context) => _AddReminderDialog(
         apiService: _apiService,
       ),
-    ).then((bool? result) {
-      if (result == true) {
-        _loadReminders(); // Refresh reminders if one was added
+).then((bool? result) {
+      if (result ?? false) {
+        unawaited(_loadReminders()); // Refresh reminders if one was added
       }
     });
   }
@@ -119,8 +126,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Future<void> _deleteReminder(String reminderId) async {
     try {
       await _apiService.deleteReminder(reminderId);
-      _loadReminders();
-      
+      unawaited(_loadReminders());
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -129,7 +136,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -143,11 +150,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _markAsCompleted(String reminderId) async {
     try {
-      await _apiService.updateReminder(reminderId, {
-        'status': 'completed'
-      });
-      _loadReminders();
-      
+      await _apiService.updateReminder(reminderId, {'status': 'completed'});
+      unawaited(_loadReminders());
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -156,7 +161,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -171,62 +176,65 @@ class _RemindersScreenState extends State<RemindersScreen> {
   @override
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
-    
-    final activeReminders = _filteredReminders.where((r) => r.isActive).toList();
-    final overdueReminders = _filteredReminders.where((r) => r.isOverdue).toList();
-    final upcomingReminders = _filteredReminders.where((r) => r.isUpcoming).toList();
-    
+
+    final activeReminders =
+        _filteredReminders.where((r) => r.isActive).toList();
+    final overdueReminders =
+        _filteredReminders.where((r) => r.isOverdue).toList();
+    final upcomingReminders =
+        _filteredReminders.where((r) => r.isUpcoming).toList();
+
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Mikumbusho",
-      body: _isLoading 
-        ? ThemeConstants.buildResponsiveLoadingWidget(context)
-        : RefreshIndicator(
-            onRefresh: _loadReminders,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // Summary Cards
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: _SummaryCard(
-                          title: "Vikumbusho vya Sasa",
-                          count: activeReminders.length,
-                          icon: Icons.notifications_active,
-                          color: ThemeConstants.primaryBlue,
+      body: _isLoading
+          ? ThemeConstants.buildResponsiveLoadingWidget(context)
+          : RefreshIndicator(
+              onRefresh: _loadReminders,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // Summary Cards
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _SummaryCard(
+                            title: "Vikumbusho vya Sasa",
+                            count: activeReminders.length,
+                            icon: Icons.notifications_active,
+                            color: ThemeConstants.primaryBlue,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: "Vilivyochelewa",
-                          count: overdueReminders.length,
-                          icon: Icons.warning,
-                          color: ThemeConstants.errorRed,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _SummaryCard(
+                            title: "Vilivyochelewa",
+                            count: overdueReminders.length,
+                            icon: Icons.warning,
+                            color: ThemeConstants.errorRed,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Search and Filter Section
-                  _buildSearchAndFilter(),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Reminders List
-                  if (_filteredReminders.isEmpty)
-                    _buildEmptyState()
-                  else
-                    _buildRemindersList(overdueReminders, upcomingReminders),
-                ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Search and Filter Section
+                    _buildSearchAndFilter(),
+
+                    const SizedBox(height: 24),
+
+                    // Reminders List
+                    if (_filteredReminders.isEmpty)
+                      _buildEmptyState()
+                    else
+                      _buildRemindersList(overdueReminders, upcomingReminders),
+                  ],
+                ),
               ),
             ),
-          ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddReminderDialog,
         backgroundColor: ThemeConstants.primaryBlue,
@@ -234,7 +242,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-  
+
   Widget _buildSearchAndFilter() {
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
@@ -274,9 +282,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Filter Chips
             Wrap(
               spacing: 8,
@@ -292,7 +300,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-  
+
   Widget _buildFilterChip(String value, String label) {
     final isSelected = _selectedFilter == value;
     return FilterChip(
@@ -308,13 +316,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
       selectedColor: ThemeConstants.primaryBlue,
       checkmarkColor: Colors.white,
       side: BorderSide(
-        color: isSelected 
-          ? ThemeConstants.primaryBlue 
-          : ThemeConstants.textSecondary.withOpacity(0.3),
+        color: isSelected
+            ? ThemeConstants.primaryBlue
+            : ThemeConstants.textSecondary.withOpacity(0.3),
       ),
     );
   }
-  
+
   Widget _buildEmptyState() {
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
@@ -347,7 +355,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 backgroundColor: ThemeConstants.primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24, 
+                  horizontal: 24,
                   vertical: 12,
                 ),
               ),
@@ -358,32 +366,34 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-  
-  Widget _buildRemindersList(List<Reminder> overdueReminders, List<Reminder> upcomingReminders) {
+
+  Widget _buildRemindersList(
+      List<Reminder> overdueReminders, List<Reminder> upcomingReminders) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         // Overdue Reminders Section
         if (overdueReminders.isNotEmpty) ...<Widget>[
-          Row(
+          const Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.warning,
                 color: ThemeConstants.errorRed,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 "Vikumbusho Vilivyochelewa",
                 style: ThemeConstants.headingStyle,
               ),
             ],
           ),
           const SizedBox(height: 12),
-          ...overdueReminders.map((reminder) => _buildReminderCard(reminder, isOverdue: true)),
+          ...overdueReminders
+              .map((reminder) => _buildReminderCard(reminder, isOverdue: true)),
           const SizedBox(height: 24),
         ],
-        
+
         // Active Reminders Section
         if (upcomingReminders.isNotEmpty) ...<Widget>[
           const Text(
@@ -391,12 +401,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
             style: ThemeConstants.headingStyle,
           ),
           const SizedBox(height: 12),
-          ...upcomingReminders.map((reminder) => _buildReminderCard(reminder)),
+          ...upcomingReminders.map(_buildReminderCard),
         ],
       ],
     );
   }
-  
+
   Widget _buildReminderCard(Reminder reminder, {bool isOverdue = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -410,7 +420,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 children: <Widget>[
                   Icon(
                     isOverdue ? Icons.warning : Icons.notification_important,
-                    color: isOverdue ? ThemeConstants.errorRed : ThemeConstants.primaryBlue,
+                    color: isOverdue
+                        ? ThemeConstants.errorRed
+                        : ThemeConstants.primaryBlue,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -418,7 +430,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     child: Text(
                       reminder.title,
                       style: ThemeConstants.headingStyle.copyWith(
-                        color: isOverdue ? ThemeConstants.errorRed : ThemeConstants.textPrimary,
+                        color: isOverdue
+                            ? ThemeConstants.errorRed
+                            : ThemeConstants.textPrimary,
                       ),
                     ),
                   ),
@@ -431,13 +445,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       switch (value) {
                         case 'complete':
                           _markAsCompleted(reminder.id);
-                          break;
                         case 'delete':
                           _showDeleteConfirmation(reminder.id);
-                          break;
                       }
                     },
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
                       if (reminder.isActive)
                         const PopupMenuItem<String>(
                           value: 'complete',
@@ -473,7 +486,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               const SizedBox(height: 12),
               Row(
                 children: <Widget>[
-                  Icon(
+                  const Icon(
                     Icons.access_time,
                     size: 16,
                     color: ThemeConstants.textSecondary,
@@ -485,7 +498,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor(reminder.status).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -506,7 +520,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-  
+
   Color _getStatusColor(ReminderStatus status) {
     switch (status) {
       case ReminderStatus.active:
@@ -517,7 +531,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         return ThemeConstants.errorRed;
     }
   }
-  
+
   void _showDeleteConfirmation(String reminderId) {
     showDialog(
       context: context,
@@ -562,7 +576,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
 class _AddReminderDialog extends StatefulWidget {
   const _AddReminderDialog({required this.apiService});
-  
+
   final ApiService apiService;
 
   @override
@@ -596,9 +610,6 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: ThemeConstants.primaryBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -622,9 +633,6 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: ThemeConstants.primaryBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -674,7 +682,7 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -730,9 +738,9 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Form in scrollable area
             Flexible(
               child: SingleChildScrollView(
@@ -741,8 +749,7 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-              
-              const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
                       // Title Field
                       TextFormField(
@@ -758,19 +765,18 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                             color: Colors.white.withOpacity(0.6),
                           ),
                           filled: true,
-                          fillColor: ThemeConstants.primaryBlue.withOpacity(0.3),
+                          fillColor:
+                              ThemeConstants.primaryBlue.withOpacity(0.3),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
                               color: Colors.white.withOpacity(0.5),
-                              width: 1,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
                               color: Colors.white.withOpacity(0.5),
-                              width: 1,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -781,15 +787,15 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                             ),
                           ),
                         ),
-                validator: (String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Kichwa ni lazima";
-                  }
-                  return null;
-                },
-              ),
+                        validator: (String? value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Kichwa ni lazima";
+                          }
+                          return null;
+                        },
+                      ),
 
-              const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Message Field
                       TextFormField(
@@ -805,19 +811,18 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                             color: Colors.white.withOpacity(0.6),
                           ),
                           filled: true,
-                          fillColor: ThemeConstants.primaryBlue.withOpacity(0.3),
+                          fillColor:
+                              ThemeConstants.primaryBlue.withOpacity(0.3),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
                               color: Colors.white.withOpacity(0.5),
-                              width: 1,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
                               color: Colors.white.withOpacity(0.5),
-                              width: 1,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -836,7 +841,7 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                           return null;
                         },
                       ),
-                      
+
                       const SizedBox(height: 16),
 
                       // Date and Time Selectors
@@ -848,11 +853,11 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                               child: Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                                  color: ThemeConstants.primaryBlue
+                                      .withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: Colors.white.withOpacity(0.5),
-                                    width: 1,
                                   ),
                                 ),
                                 child: Column(
@@ -860,7 +865,8 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                                   children: <Widget>[
                                     Text(
                                       "Tarehe",
-                                      style: ThemeConstants.captionStyle.copyWith(
+                                      style:
+                                          ThemeConstants.captionStyle.copyWith(
                                         color: ThemeConstants.textSecondary,
                                       ),
                                     ),
@@ -891,11 +897,11 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                               child: Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: ThemeConstants.primaryBlue.withOpacity(0.3),
+                                  color: ThemeConstants.primaryBlue
+                                      .withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: Colors.white.withOpacity(0.5),
-                                    width: 1,
                                   ),
                                 ),
                                 child: Column(
@@ -903,7 +909,8 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                                   children: <Widget>[
                                     Text(
                                       "Muda",
-                                      style: ThemeConstants.captionStyle.copyWith(
+                                      style:
+                                          ThemeConstants.captionStyle.copyWith(
                                         color: ThemeConstants.textSecondary,
                                       ),
                                     ),
@@ -947,7 +954,6 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.5),
-                            width: 1,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -958,10 +964,13 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                             border: InputBorder.none,
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'low', child: Text('Chini')),
-                            DropdownMenuItem(value: 'medium', child: Text('Wastani')),
+                            DropdownMenuItem(
+                                value: 'low', child: Text('Chini')),
+                            DropdownMenuItem(
+                                value: 'medium', child: Text('Wastani')),
                             DropdownMenuItem(value: 'high', child: Text('Juu')),
-                            DropdownMenuItem(value: 'urgent', child: Text('Dharura')),
+                            DropdownMenuItem(
+                                value: 'urgent', child: Text('Dharura')),
                           ],
                           onChanged: (String? value) {
                             if (value != null) {
@@ -988,7 +997,6 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                               borderRadius: BorderRadius.circular(8),
                               side: const BorderSide(
                                 color: Colors.white,
-                                width: 1,
                               ),
                             ),
                           ),
@@ -1037,7 +1045,8 @@ class _SummaryCard extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(final BuildContext context) => ThemeConstants.buildGlassCardStatic(
+  Widget build(final BuildContext context) =>
+      ThemeConstants.buildGlassCardStatic(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

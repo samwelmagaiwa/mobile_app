@@ -130,13 +130,11 @@ class DeviceProvider extends ChangeNotifier {
 
   // Get device by ID
   Device? getDeviceById(final String id) {
-    try {
-      return _devices.firstWhere((final Device d) => d.id == id);
-    } on StateError {
-      return null;
-    } on Exception {
+    final int index = _devices.indexWhere((final Device d) => d.id == id);
+    if (index == -1) {
       return null;
     }
+    return _devices[index];
   }
 
   // Get device statistics
@@ -251,7 +249,6 @@ class DeviceProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-
 
   // Clear all data
   void clearData() {

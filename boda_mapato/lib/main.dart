@@ -7,23 +7,23 @@ import "package:provider/single_child_widget.dart";
 import "constants/colors.dart";
 import "constants/styles.dart";
 import "providers/auth_provider.dart";
-import "providers/device_provider.dart";
 import "providers/debts_provider.dart";
+import "providers/device_provider.dart";
 import "providers/transaction_provider.dart";
 import "screens/admin/admin_dashboard_screen.dart";
+import "screens/admin/communications_screen.dart";
+import "screens/admin/debts_management_screen.dart";
 import "screens/admin/drivers_management_screen.dart";
-import "screens/admin/vehicles_management_screen.dart";
 import "screens/admin/payments_management_screen.dart";
-import "screens/payments/payments_screen.dart";
+import "screens/admin/vehicles_management_screen.dart";
 import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
 import "screens/dashboard/modern_dashboard_screen.dart";
 import "screens/driver/driver_dashboard_screen.dart";
-import "screens/reports/report_screen.dart";
+import "screens/payments/payments_screen.dart";
 import "screens/reminders/reminders_screen.dart";
+import "screens/reports/report_screen.dart";
 import "screens/settings/settings_screen.dart";
-import "screens/admin/debts_management_screen.dart";
-import "screens/admin/communications_screen.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,6 +108,7 @@ class BodaMapatoApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         primaryColor: AppColors.primary,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        fontFamily: 'NotoSans',
 
         // Responsive theme components
         appBarTheme: AppStyles.appBarTheme(context),

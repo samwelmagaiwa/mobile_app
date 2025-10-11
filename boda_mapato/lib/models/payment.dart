@@ -1,37 +1,15 @@
 class Payment {
-  final String? id;
-  final String driverId;
-  final String driverName;
-  final double amount;
-  final PaymentChannel paymentChannel;
-  final List<String> coversDays;
-  final String? remarks;
-  final DateTime createdAt;
-  final String? referenceNumber;
-
   Payment({
-    this.id,
     required this.driverId,
     required this.driverName,
     required this.amount,
     required this.paymentChannel,
     required this.coversDays,
-    this.remarks,
     required this.createdAt,
+    this.id,
+    this.remarks,
     this.referenceNumber,
   });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'driver_id': driverId,
-        'driver_name': driverName,
-        'amount': amount,
-        'payment_channel': paymentChannel.value,
-        'covers_days': coversDays,
-        'remarks': remarks,
-        'created_at': createdAt.toIso8601String(),
-        'reference_number': referenceNumber,
-      };
 
   factory Payment.fromJson(Map<String, dynamic> json) => Payment(
         id: json['id']?.toString(),
@@ -47,6 +25,27 @@ class Payment {
             DateTime.now(),
         referenceNumber: json['reference_number']?.toString(),
       );
+  final String? id;
+  final String driverId;
+  final String driverName;
+  final double amount;
+  final PaymentChannel paymentChannel;
+  final List<String> coversDays;
+  final String? remarks;
+  final DateTime createdAt;
+  final String? referenceNumber;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'driver_id': driverId,
+        'driver_name': driverName,
+        'amount': amount,
+        'payment_channel': paymentChannel.value,
+        'covers_days': coversDays,
+        'remarks': remarks,
+        'created_at': createdAt.toIso8601String(),
+        'reference_number': referenceNumber,
+      };
 
   Payment copyWith({
     String? id,
@@ -92,26 +91,12 @@ enum PaymentChannel {
 }
 
 class DebtRecord {
-  final String? id;
-  final String driverId;
-  final String driverName;
-  final String date;
-  final double expectedAmount;
-  final double paidAmount;
-  final bool isPaid;
-  final String? paymentId;
-  final DateTime? paidAt;
-  final int daysOverdue;
-  final String? licenseNumber;
-  final bool promisedToPay;
-  final DateTime? promiseToPayAt;
-
   DebtRecord({
-    this.id,
     required this.driverId,
     required this.driverName,
     required this.date,
     required this.expectedAmount,
+    this.id,
     this.paidAmount = 0.0,
     this.isPaid = false,
     this.paymentId,
@@ -121,19 +106,6 @@ class DebtRecord {
     this.promisedToPay = false,
     this.promiseToPayAt,
   });
-
-  double get remainingAmount => expectedAmount - paidAmount;
-  
-  bool get isOverdue => daysOverdue > 0;
-  
-  String get formattedDate {
-    try {
-      final parsedDate = DateTime.parse(date);
-      return "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
-    } catch (e) {
-      return date;
-    }
-  }
 
   factory DebtRecord.fromJson(Map<String, dynamic> json) => DebtRecord(
         id: json['id']?.toString(),
@@ -151,11 +123,38 @@ class DebtRecord {
             : null,
         daysOverdue: int.tryParse(json['days_overdue']?.toString() ?? '0') ?? 0,
         licenseNumber: json['license_number']?.toString(),
-        promisedToPay: json['promised_to_pay'] == true || json['promised_to_pay'] == 1,
+        promisedToPay:
+            json['promised_to_pay'] == true || json['promised_to_pay'] == 1,
         promiseToPayAt: json['promise_to_pay_at'] != null
             ? DateTime.tryParse(json['promise_to_pay_at'].toString())
             : null,
       );
+  final String? id;
+  final String driverId;
+  final String driverName;
+  final String date;
+  final double expectedAmount;
+  final double paidAmount;
+  final bool isPaid;
+  final String? paymentId;
+  final DateTime? paidAt;
+  final int daysOverdue;
+  final String? licenseNumber;
+  final bool promisedToPay;
+  final DateTime? promiseToPayAt;
+
+  double get remainingAmount => expectedAmount - paidAmount;
+
+  bool get isOverdue => daysOverdue > 0;
+
+  String get formattedDate {
+    try {
+      final parsedDate = DateTime.parse(date);
+      return "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
+    } on FormatException catch (_) {
+      return date;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -206,13 +205,6 @@ class DebtRecord {
 }
 
 class PaymentSummary {
-  final String driverId;
-  final String driverName;
-  final double totalDebt;
-  final int unpaidDays;
-  final List<DebtRecord> debtRecords;
-  final DateTime? lastPaymentDate;
-
   PaymentSummary({
     required this.driverId,
     required this.driverName,
@@ -225,15 +217,23 @@ class PaymentSummary {
   factory PaymentSummary.fromJson(Map<String, dynamic> json) => PaymentSummary(
         driverId: json['driver_id']?.toString() ?? '',
         driverName: json['driver_name']?.toString() ?? '',
-        totalDebt: double.tryParse(json['total_debt']?.toString() ?? '0') ?? 0.0,
+        totalDebt:
+            double.tryParse(json['total_debt']?.toString() ?? '0') ?? 0.0,
         unpaidDays: int.tryParse(json['unpaid_days']?.toString() ?? '0') ?? 0,
         debtRecords: (json['debt_records'] as List<dynamic>? ?? [])
-            .map((record) => DebtRecord.fromJson(record as Map<String, dynamic>))
+            .map(
+                (record) => DebtRecord.fromJson(record as Map<String, dynamic>))
             .toList(),
         lastPaymentDate: json['last_payment_date'] != null
             ? DateTime.tryParse(json['last_payment_date'].toString())
             : null,
       );
+  final String driverId;
+  final String driverName;
+  final double totalDebt;
+  final int unpaidDays;
+  final List<DebtRecord> debtRecords;
+  final DateTime? lastPaymentDate;
 
   Map<String, dynamic> toJson() => {
         'driver_id': driverId,

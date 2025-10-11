@@ -1,10 +1,12 @@
 import "dart:ui";
+
 import "package:flutter/material.dart";
+
 import "../../constants/theme_constants.dart";
-import "../../utils/responsive_helper.dart";
-import "../../models/driver.dart";
 import "../../models/communication.dart";
+import "../../models/driver.dart";
 import "../../services/api_service.dart";
+import "../../utils/responsive_helper.dart";
 
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
@@ -15,17 +17,18 @@ class CommunicationsScreen extends StatefulWidget {
 
 class _CommunicationsScreenState extends State<CommunicationsScreen> {
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = true;
   bool _apiEndpointsAvailable = false;
-  String _selectedFilterMode = "all"; // "all", "sms", "call", "whatsapp", "system_note"
+  String _selectedFilterMode =
+      "all"; // "all", "sms", "call", "whatsapp", "system_note"
   String _selectedFilterStatus = "all"; // "all", "answered", "unanswered"
-  
+
   // Communication data
   List<Communication> _communications = [];
   List<Driver> _availableDrivers = [];
   CommunicationSummary? _summary;
-  
+
   // Filter controllers
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
@@ -55,7 +58,6 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
         border: Border.all(
           color: Colors.white.withOpacity(0.15),
-          width: 1,
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -89,17 +91,16 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     try {
       // Initialize API service
       await _apiService.initialize();
-      
+
       // Load available drivers for form
       await _loadAvailableDrivers();
-      
+
       // Load communications
       await _loadCommunications();
-      
+
       // Load summary
       await _loadCommunicationSummary();
-      
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Hitilafu katika kupakia data: $e");
     } finally {
       setState(() {
@@ -107,40 +108,45 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
       });
     }
   }
-  
+
   Future<void> _loadAvailableDrivers() async {
     try {
       // Check if driver endpoint exists
       bool useApiData = false;
-      
+
       try {
-        bool isConnected = await _apiService.testConnectivity();
+        final bool isConnected = await _apiService.testConnectivity();
         if (!isConnected) {
           useApiData = false;
           setState(() {
             _apiEndpointsAvailable = false;
           });
         } else {
-          final testResponse = await _apiService.get('/admin/drivers', requireAuth: false);
+          final testResponse =
+              await _apiService.get('/admin/drivers', requireAuth: false);
           useApiData = testResponse['status'] == 'success';
           setState(() {
             _apiEndpointsAvailable = useApiData;
           });
         }
-      } catch (e) {
+      } on Exception catch (e) {
         useApiData = false;
         setState(() {
           _apiEndpointsAvailable = false;
         });
+        debugPrint('Connectivity/driver endpoint check failed: $e');
       }
-      
+
       if (useApiData) {
         try {
           final response = await _apiService.get('/admin/drivers');
           // Be robust to multiple response shapes
-          final bool ok = (response['status'] == 'success') || response.containsKey('data') || response.containsKey('drivers');
+          final bool ok = (response['status'] == 'success') ||
+              response.containsKey('data') ||
+              response.containsKey('drivers');
           if (ok) {
-            final dynamic data = response.containsKey('data') ? response['data'] : response;
+            final dynamic data =
+                response.containsKey('data') ? response['data'] : response;
 
             List<dynamic> driverData = <dynamic>[];
             if (data is List) {
@@ -164,41 +170,42 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                   .toList();
             } else {
               // Could not recognize the driver list structure; fall back to mock
-              print('Unexpected driver data format: '
-                  '${data.runtimeType}${data is Map ? ' keys=' + (data.keys.toList()).toString() : ''}');
+              debugPrint('Unexpected driver data format: '
+                  '${data.runtimeType}${data is Map ? ' keys=${data.keys.toList()}' : ''}');
               _availableDrivers = _getMockDrivers();
             }
           } else {
             _availableDrivers = _getMockDrivers();
           }
-        } catch (driverError) {
-          print('Error parsing driver data: $driverError');
+        } on Exception catch (driverError) {
+          debugPrint('Error parsing driver data: $driverError');
           _availableDrivers = _getMockDrivers();
         }
       } else {
         // Mock data for drivers
         _availableDrivers = _getMockDrivers();
       }
-      
-    } catch (e) {
-      print('Failed to load drivers: $e');
+    } on Exception catch (e) {
+      debugPrint('Failed to load drivers: $e');
       _availableDrivers = _getMockDrivers();
     }
   }
-  
+
   Future<void> _loadCommunications() async {
     try {
       if (_apiEndpointsAvailable) {
         try {
           final response = await _apiService.get('/admin/communications');
           if (response['status'] == 'success' && response['data'] != null) {
-            List<dynamic> commData = response['data'];
-            _communications = commData.map((json) => Communication.fromJson(json)).toList();
+final List<dynamic> commData = response['data'] as List<dynamic>;
+            _communications = commData
+                .map((json) => Communication.fromJson(json as Map<String, dynamic>))
+                .toList();
           } else {
             _communications = [];
           }
-        } catch (apiError) {
-          print('Communications API endpoints failed: $apiError');
+        } on Exception catch (apiError) {
+          debugPrint('Communications API endpoints failed: $apiError');
           setState(() {
             _apiEndpointsAvailable = false;
           });
@@ -207,31 +214,31 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
       } else {
         _communications = _getMockCommunications();
       }
-      
-    } catch (e) {
-      print('Communications loading failed: $e');
+    } on Exception catch (e) {
+      debugPrint('Communications loading failed: $e');
       _communications = _getMockCommunications();
     }
   }
-  
+
   Future<void> _loadCommunicationSummary() async {
     try {
       if (_apiEndpointsAvailable) {
         try {
-          final response = await _apiService.get('/admin/communications/summary');
+          final response =
+              await _apiService.get('/admin/communications/summary');
           if (response['status'] == 'success' && response['data'] != null) {
             _summary = CommunicationSummary.fromJson(response['data']);
           } else {
             _summary = _getMockSummary();
           }
-        } catch (apiError) {
+        } on Exception catch (_) {
           _summary = _getMockSummary();
         }
       } else {
         _summary = _getMockSummary();
       }
-      
-    } catch (e) {
+    } on Exception catch (e) {
+      debugPrint('Summary load failed: $e');
       _summary = _getMockSummary();
     }
   }
@@ -246,7 +253,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         licenseNumber: "LIC001",
         joinedDate: DateTime.now().subtract(const Duration(days: 120)),
         status: "active",
-        totalPayments: 85000.0,
+        totalPayments: 85000,
         rating: 4.5,
         tripsCompleted: 245,
         vehicleType: "Boda Boda",
@@ -260,7 +267,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         licenseNumber: "LIC002",
         joinedDate: DateTime.now().subtract(const Duration(days: 90)),
         status: "active",
-        totalPayments: 67000.0,
+        totalPayments: 67000,
         rating: 4.2,
         tripsCompleted: 198,
         vehicleType: "Boda Boda",
@@ -274,7 +281,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         licenseNumber: "LIC003",
         joinedDate: DateTime.now().subtract(const Duration(days: 60)),
         status: "active",
-        totalPayments: 45000.0,
+        totalPayments: 45000,
         rating: 4.7,
         tripsCompleted: 132,
         vehicleType: "Boda Boda",
@@ -291,8 +298,10 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         driverId: "1",
         driverName: "Juma Mwalimu",
         messageDate: now.subtract(const Duration(days: 2)),
-        messageContent: "Naomba kukujuza kuwa sitaweza kufika kazini kesho kwa sababu za dharura za familia. Naomba msamaha.",
-        response: "Tumepokea ujumbe wako. Unahitaji siku ngapi za mapumziko? Tafadhali tupatie maelezo zaidi.",
+        messageContent:
+            "Naomba kukujuza kuwa sitaweza kufika kazini kesho kwa sababu za dharura za familia. Naomba msamaha.",
+        response:
+            "Tumepokea ujumbe wako. Unahitaji siku ngapi za mapumziko? Tafadhali tupatie maelezo zaidi.",
         mode: CommunicationMode.sms,
         createdAt: now.subtract(const Duration(days: 2)),
         updatedAt: now.subtract(const Duration(days: 1)),
@@ -302,8 +311,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         driverId: "2",
         driverName: "Mary Kibwana",
         messageDate: now.subtract(const Duration(days: 5)),
-        messageContent: "Simu ya dereva imezima. Hatuwezi kumufikia kwa mazungumzo ya mapito ya malipo ya leo.",
-        response: null,
+        messageContent:
+            "Simu ya dereva imezima. Hatuwezi kumufikia kwa mazungumzo ya mapito ya malipo ya leo.",
         mode: CommunicationMode.systemNote,
         createdAt: now.subtract(const Duration(days: 5)),
         updatedAt: now.subtract(const Duration(days: 5)),
@@ -313,8 +322,10 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         driverId: "1",
         driverName: "Juma Mwalimu",
         messageDate: now.subtract(const Duration(days: 7)),
-        messageContent: "Kumradhi, naomba kujua ikiwa kuna uwezekano wa kupata mapito mazuri ya kuvuta abiria zaidi?",
-        response: "Tunashiriki majeraha mapya wiki hii. Ngoja ujumbe mwingine kesho.",
+        messageContent:
+            "Kumradhi, naomba kujua ikiwa kuna uwezekano wa kupata mapito mazuri ya kuvuta abiria zaidi?",
+        response:
+            "Tunashiriki majeraha mapya wiki hii. Ngoja ujumbe mwingine kesho.",
         mode: CommunicationMode.whatsapp,
         createdAt: now.subtract(const Duration(days: 7)),
         updatedAt: now.subtract(const Duration(days: 6)),
@@ -324,7 +335,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         driverId: "3",
         driverName: "Hassan Mwangi",
         messageDate: now.subtract(const Duration(days: 10)),
-        messageContent: "Mazungumzo ya simu kuhusu malipo ya deni la wiki iliyopita.",
+        messageContent:
+            "Mazungumzo ya simu kuhusu malipo ya deni la wiki iliyopita.",
         response: "Ameahidi kulipa sehemu ya malipo Jumatatu.",
         mode: CommunicationMode.call,
         createdAt: now.subtract(const Duration(days: 10)),
@@ -376,27 +388,27 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Mawasiliano",
-      body: _isLoading 
-        ? ThemeConstants.buildResponsiveLoadingWidget(context)
-        : SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildCommunicationSummary(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildFiltersSection(),
-                ResponsiveHelper.verticalSpace(1),
-                _buildCommunicationsTable(),
-                ResponsiveHelper.verticalSpace(1),
-              ],
+      body: _isLoading
+          ? ThemeConstants.buildResponsiveLoadingWidget(context)
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _buildCommunicationSummary(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildFiltersSection(),
+                  ResponsiveHelper.verticalSpace(1),
+                  _buildCommunicationsTable(),
+                  ResponsiveHelper.verticalSpace(1),
+                ],
+              ),
             ),
-          ),
     );
   }
 
   Widget _buildCommunicationSummary() {
     if (_summary == null) return const SizedBox.shrink();
-    
+
     return _buildBlueBlendGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,8 +456,13 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
               ),
               _buildSummaryCard(
                 "Kiwango cha Majibu",
-                (((_summary!.totalCommunications - _summary!.unansweredCommunications) / 
-                  (_summary!.totalCommunications == 0 ? 1 : _summary!.totalCommunications)) * 100).round(),
+                (((_summary!.totalCommunications -
+                                _summary!.unansweredCommunications) /
+                            (_summary!.totalCommunications == 0
+                                ? 1
+                                : _summary!.totalCommunications)) *
+                        100)
+                    .round(),
                 Icons.trending_up,
                 ThemeConstants.warningAmber,
                 suffix: "%",
@@ -457,7 +474,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String title, int value, IconData icon, Color color, {String suffix = ""}) {
+  Widget _buildSummaryCard(String title, int value, IconData icon, Color color,
+      {String suffix = ""}) {
     return Container(
       padding: ResponsiveHelper.cardPadding,
       decoration: BoxDecoration(
@@ -516,7 +534,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 icon: const Icon(Icons.add, size: 16),
                 label: Text(
@@ -536,14 +555,16 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
               hintStyle: ThemeConstants.responsiveBodyStyle(context).copyWith(
                 color: ThemeConstants.textSecondary,
               ),
-              prefixIcon: const Icon(Icons.search, color: ThemeConstants.textSecondary),
+              prefixIcon:
+                  const Icon(Icons.search, color: ThemeConstants.textSecondary),
               filled: true,
               fillColor: Colors.white.withOpacity(0.1),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             onChanged: (value) {
               setState(() {
@@ -553,31 +574,32 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
           ),
           ResponsiveHelper.verticalSpace(1),
           // Filter buttons
-          ResponsiveHelper.isMobile 
-            ? Column(
-                children: <Widget>[
-                  _buildMobileFilterRow("Aina:", _buildModeFilters()),
-                  ResponsiveHelper.verticalSpace(0.5),
-                  _buildMobileFilterRow("Hali:", _buildStatusFilters()),
-                ],
-              )
-            : Row(
-                children: <Widget>[
-                  Text(
-                    "Aina:",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context),
-                  ),
-                  ResponsiveHelper.horizontalSpace(1),
-                  Expanded(child: _buildModeFilters()),
-                  ResponsiveHelper.horizontalSpace(2),
-                  Text(
-                    "Hali:",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context),
-                  ),
-                  ResponsiveHelper.horizontalSpace(1),
-                  Expanded(child: _buildStatusFilters()),
-                ],
-              ),
+          if (ResponsiveHelper.isMobile)
+            Column(
+              children: <Widget>[
+                _buildMobileFilterRow("Aina:", _buildModeFilters()),
+                ResponsiveHelper.verticalSpace(0.5),
+                _buildMobileFilterRow("Hali:", _buildStatusFilters()),
+              ],
+            )
+          else
+            Row(
+              children: <Widget>[
+                Text(
+                  "Aina:",
+                  style: ThemeConstants.responsiveSubHeadingStyle(context),
+                ),
+                ResponsiveHelper.horizontalSpace(1),
+                Expanded(child: _buildModeFilters()),
+                ResponsiveHelper.horizontalSpace(2),
+                Text(
+                  "Hali:",
+                  style: ThemeConstants.responsiveSubHeadingStyle(context),
+                ),
+                ResponsiveHelper.horizontalSpace(1),
+                Expanded(child: _buildStatusFilters()),
+              ],
+            ),
         ],
       ),
     );
@@ -620,13 +642,15 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("WhatsApp", "whatsapp", _selectedFilterMode, (value) {
+          _buildFilterChip("WhatsApp", "whatsapp", _selectedFilterMode,
+              (value) {
             setState(() {
               _selectedFilterMode = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Kumbuka", "system_note", _selectedFilterMode, (value) {
+          _buildFilterChip("Kumbuka", "system_note", _selectedFilterMode,
+              (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -647,13 +671,15 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Zimejibiwa", "answered", _selectedFilterStatus, (value) {
+          _buildFilterChip("Zimejibiwa", "answered", _selectedFilterStatus,
+              (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Hazijajibiwa", "unanswered", _selectedFilterStatus, (value) {
+          _buildFilterChip("Hazijajibiwa", "unanswered", _selectedFilterStatus,
+              (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
@@ -663,14 +689,15 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value, String selectedValue, Function(String) onSelected) {
+  Widget _buildFilterChip(String label, String value, String selectedValue,
+      Function(String) onSelected) {
     final bool isSelected = selectedValue == value;
     return GestureDetector(
       onTap: () => onSelected(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? ThemeConstants.primaryOrange.withOpacity(0.8)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
@@ -683,9 +710,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected
-                ? Colors.white
-                : ThemeConstants.textPrimary,
+            color: isSelected ? Colors.white : ThemeConstants.textPrimary,
             fontWeight: FontWeight.w500,
             fontSize: 12,
           ),
@@ -695,8 +720,9 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
   }
 
   Widget _buildCommunicationsTable() {
-    final List<Communication> filteredCommunications = _getFilteredCommunications();
-    
+    final List<Communication> filteredCommunications =
+        _getFilteredCommunications();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -717,49 +743,69 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                 ),
                 child: Row(
                   children: <Widget>[
-                    Expanded(flex: 2, child: Text("Tarehe", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Dereva", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 3, child: Text("Ujumbe", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 2, child: Text("Jibu", style: ThemeConstants.responsiveCaptionStyle(context))),
-                    Expanded(flex: 1, child: Text("Aina", style: ThemeConstants.responsiveCaptionStyle(context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Tarehe",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Dereva",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 3,
+                        child: Text("Ujumbe",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        flex: 2,
+                        child: Text("Jibu",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
+                    Expanded(
+                        child: Text("Aina",
+                            style: ThemeConstants.responsiveCaptionStyle(
+                                context))),
                   ],
                 ),
               ),
               ResponsiveHelper.verticalSpace(0.5),
               // Table rows
-              filteredCommunications.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Center(
-                        child: Column(
-                          children: <Widget>[
-                            const Icon(
-                              Icons.chat_bubble_outline,
-                              size: 48,
-                              color: ThemeConstants.textSecondary,
-                            ),
-                            ResponsiveHelper.verticalSpace(1),
-                            Text(
-                              "Hakuna mawasiliano yoyote",
-                              style: ThemeConstants.responsiveBodyStyle(context),
-                            ),
-                          ],
+              if (filteredCommunications.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Column(
+                      children: <Widget>[
+                        const Icon(
+                          Icons.chat_bubble_outline,
+                          size: 48,
+                          color: ThemeConstants.textSecondary,
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredCommunications.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        color: ThemeConstants.textSecondary,
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final communication = filteredCommunications[index];
-                        return _buildCommunicationRow(communication);
-                      },
+                        ResponsiveHelper.verticalSpace(1),
+                        Text(
+                          "Hakuna mawasiliano yoyote",
+                          style: ThemeConstants.responsiveBodyStyle(context),
+                        ),
+                      ],
                     ),
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filteredCommunications.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    color: ThemeConstants.textSecondary,
+                    height: 1,
+                  ),
+                  itemBuilder: (context, index) {
+                    final communication = filteredCommunications[index];
+                    return _buildCommunicationRow(communication);
+                  },
+                ),
             ],
           ),
         ),
@@ -804,7 +850,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
               child: Text(
                 communication.truncatedResponse,
                 style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: communication.hasResponse 
+                  color: communication.hasResponse
                       ? ThemeConstants.successGreen
                       : ThemeConstants.warningAmber,
                   fontWeight: FontWeight.w500,
@@ -814,14 +860,15 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
               ),
             ),
             Expanded(
-              flex: 1,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _getCommunicationModeColor(communication.mode).withOpacity(0.2),
+                  color: _getCommunicationModeColor(communication.mode)
+                      .withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: _getCommunicationModeColor(communication.mode).withOpacity(0.5),
+                    color: _getCommunicationModeColor(communication.mode)
+                        .withOpacity(0.5),
                   ),
                 ),
                 child: Text(
@@ -852,23 +899,23 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
 
   List<Communication> _getFilteredCommunications() {
     List<Communication> filtered = List.from(_communications);
-    
+
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((comm) {
         return comm.driverName.toLowerCase().contains(_searchQuery) ||
-               comm.messageContent.toLowerCase().contains(_searchQuery) ||
-               (comm.response?.toLowerCase().contains(_searchQuery) ?? false);
+            comm.messageContent.toLowerCase().contains(_searchQuery) ||
+            (comm.response?.toLowerCase().contains(_searchQuery) ?? false);
       }).toList();
     }
-    
+
     // Apply mode filter
     if (_selectedFilterMode != "all") {
       filtered = filtered.where((comm) {
         return comm.mode.value == _selectedFilterMode;
       }).toList();
     }
-    
+
     // Apply status filter
     if (_selectedFilterStatus != "all") {
       if (_selectedFilterStatus == "answered") {
@@ -877,10 +924,10 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         filtered = filtered.where((comm) => !comm.hasResponse).toList();
       }
     }
-    
+
     // Sort by message date (newest first)
     filtered.sort((a, b) => b.messageDate.compareTo(a.messageDate));
-    
+
     return filtered;
   }
 
@@ -947,11 +994,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                   child: Text(
                     communication.response ?? "Hakuna jibu bado",
                     style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                      color: communication.hasResponse 
+                      color: communication.hasResponse
                           ? ThemeConstants.textPrimary
                           : ThemeConstants.textSecondary,
-                      fontStyle: communication.hasResponse 
-                          ? FontStyle.normal 
+                      fontStyle: communication.hasResponse
+                          ? FontStyle.normal
                           : FontStyle.italic,
                     ),
                   ),
@@ -990,7 +1037,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1048,12 +1095,14 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                       // Driver selection
                       Text(
                         "Chagua Dereva:",
-                        style: ThemeConstants.responsiveSubHeadingStyle(context),
+                        style:
+                            ThemeConstants.responsiveSubHeadingStyle(context),
                       ),
                       ResponsiveHelper.verticalSpace(0.5),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -1066,18 +1115,21 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                             value: selectedDriver,
                             hint: Text(
                               "Chagua dereva...",
-                              style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                              style: ThemeConstants.responsiveBodyStyle(context)
+                                  .copyWith(
                                 color: ThemeConstants.textSecondary,
                               ),
                             ),
-                            dropdownColor: ThemeConstants.primaryBlue.withOpacity(0.9),
+                            dropdownColor:
+                                ThemeConstants.primaryBlue.withOpacity(0.9),
                             style: ThemeConstants.responsiveBodyStyle(context),
                             items: _availableDrivers.map((Driver driver) {
                               return DropdownMenuItem<Driver>(
                                 value: driver,
                                 child: Text(
                                   driver.name,
-                                  style: ThemeConstants.responsiveBodyStyle(context),
+                                  style: ThemeConstants.responsiveBodyStyle(
+                                      context),
                                 ),
                               );
                             }).toList(),
@@ -1090,16 +1142,18 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                         ),
                       ),
                       ResponsiveHelper.verticalSpace(1),
-                      
+
                       // Communication mode selection
                       Text(
                         "Aina ya Mawasiliano:",
-                        style: ThemeConstants.responsiveSubHeadingStyle(context),
+                        style:
+                            ThemeConstants.responsiveSubHeadingStyle(context),
                       ),
                       ResponsiveHelper.verticalSpace(0.5),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -1110,9 +1164,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<CommunicationMode>(
                             value: selectedMode,
-                            dropdownColor: ThemeConstants.primaryBlue.withOpacity(0.9),
+                            dropdownColor:
+                                ThemeConstants.primaryBlue.withOpacity(0.9),
                             style: ThemeConstants.responsiveBodyStyle(context),
-                            items: CommunicationMode.allModes.map((CommunicationMode mode) {
+                            items: CommunicationMode.allModes
+                                .map((CommunicationMode mode) {
                               return DropdownMenuItem<CommunicationMode>(
                                 value: mode,
                                 child: Row(
@@ -1124,7 +1180,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                                     ResponsiveHelper.horizontalSpace(1),
                                     Text(
                                       mode.displayName,
-                                      style: ThemeConstants.responsiveBodyStyle(context),
+                                      style: ThemeConstants.responsiveBodyStyle(
+                                          context),
                                     ),
                                   ],
                                 ),
@@ -1132,18 +1189,20 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                             }).toList(),
                             onChanged: (CommunicationMode? value) {
                               setState(() {
-                                selectedMode = value ?? CommunicationMode.systemNote;
+                                selectedMode =
+                                    value ?? CommunicationMode.systemNote;
                               });
                             },
                           ),
                         ),
                       ),
                       ResponsiveHelper.verticalSpace(1),
-                      
+
                       // Message content
                       Text(
                         "Ujumbe:",
-                        style: ThemeConstants.responsiveSubHeadingStyle(context),
+                        style:
+                            ThemeConstants.responsiveSubHeadingStyle(context),
                       ),
                       ResponsiveHelper.verticalSpace(0.5),
                       TextField(
@@ -1152,7 +1211,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                         maxLines: 4,
                         decoration: InputDecoration(
                           hintText: "Andika ujumbe hapa...",
-                          hintStyle: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                          hintStyle: ThemeConstants.responsiveBodyStyle(context)
+                              .copyWith(
                             color: ThemeConstants.textSecondary,
                           ),
                           filled: true,
@@ -1183,7 +1243,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (selectedDriver != null && messageController.text.trim().isNotEmpty) {
+                    if (selectedDriver != null &&
+                        messageController.text.trim().isNotEmpty) {
                       _saveCommunication(
                         selectedDriver!,
                         messageController.text.trim(),
@@ -1192,7 +1253,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                       messageController.dispose();
                       Navigator.of(context).pop();
                     } else {
-                      _showErrorSnackBar("Tafadhali jaza sehemu zote zinazohitajika");
+                      _showErrorSnackBar(
+                          "Tafadhali jaza sehemu zote zinazohitajika");
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -1263,13 +1325,14 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                     ),
                     child: Text(
                       communication.messageContent,
-                      style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                      style:
+                          ThemeConstants.responsiveBodyStyle(context).copyWith(
                         color: ThemeConstants.textSecondary,
                       ),
                     ),
                   ),
                   ResponsiveHelper.verticalSpace(1),
-                  
+
                   // Response field
                   Text(
                     "Jibu Lako:",
@@ -1282,7 +1345,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: "Andika jibu lako hapa...",
-                      hintStyle: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                      hintStyle:
+                          ThemeConstants.responsiveBodyStyle(context).copyWith(
                         color: ThemeConstants.textSecondary,
                       ),
                       filled: true,
@@ -1338,7 +1402,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     );
   }
 
-  Future<void> _saveCommunication(Driver driver, String message, CommunicationMode mode) async {
+  Future<void> _saveCommunication(
+      Driver driver, String message, CommunicationMode mode) async {
     try {
       final DateTime now = DateTime.now();
       final Communication newCommunication = Communication(
@@ -1347,12 +1412,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         driverName: driver.name,
         messageDate: now,
         messageContent: message,
-        response: null,
         mode: mode,
         createdAt: now,
         updatedAt: now,
       );
-      
+
       if (_apiEndpointsAvailable) {
         // Try to save via API
         try {
@@ -1363,7 +1427,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
             'message_content': message,
             'mode': mode.value,
           });
-          
+
           if (response['status'] == 'success') {
             // Reload communications from API
             await _loadCommunications();
@@ -1371,11 +1435,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
             _showSuccessSnackBar("Mawasiliano yamehifadhiwa kikamilifu!");
             return;
           }
-        } catch (apiError) {
-          print('Failed to save via API: $apiError');
+        } on Exception catch (apiError) {
+          debugPrint('Failed to save via API: $apiError');
         }
       }
-      
+
       // Fallback: Save locally (mock)
       setState(() {
         _communications.insert(0, newCommunication);
@@ -1393,23 +1457,24 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
           );
         }
       });
-      
+
       _showSuccessSnackBar("Mawasiliano yamehifadhiwa (mfano)!");
-      
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Hitilafu katika kuhifadhi: $e");
     }
   }
 
-  Future<void> _saveResponse(Communication communication, String response) async {
+  Future<void> _saveResponse(
+      Communication communication, String response) async {
     try {
       if (_apiEndpointsAvailable) {
         // Try to save via API
         try {
-          final apiResponse = await _apiService.put('/admin/communications/${communication.id}', {
+          final apiResponse = await _apiService
+              .put('/admin/communications/${communication.id}', {
             'response': response,
           });
-          
+
           if (apiResponse['status'] == 'success') {
             // Reload communications from API
             await _loadCommunications();
@@ -1417,20 +1482,21 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
             _showSuccessSnackBar("Jibu limehifadhiwa kikamilifu!");
             return;
           }
-        } catch (apiError) {
-          print('Failed to save response via API: $apiError');
+        } on Exception catch (apiError) {
+          debugPrint('Failed to save response via API: $apiError');
         }
       }
-      
+
       // Fallback: Update locally (mock)
       setState(() {
-        final int index = _communications.indexWhere((comm) => comm.id == communication.id);
+        final int index =
+            _communications.indexWhere((comm) => comm.id == communication.id);
         if (index != -1) {
           _communications[index] = communication.copyWith(
             response: response,
             updatedAt: DateTime.now(),
           );
-          
+
           // Update summary
           if (_summary != null) {
             _summary = CommunicationSummary(
@@ -1443,41 +1509,11 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
           }
         }
       });
-      
+
       _showSuccessSnackBar("Jibu limehifadhiwa (mfano)!");
-      
-    } catch (e) {
+    } on Exception catch (e) {
       _showErrorSnackBar("Hitilafu katika kuhifadhi jibu: $e");
     }
   }
 
-  void _showComingSoonDialog(String feature) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
-          title: Text(
-            "Inakuja Hivi Karibuni",
-            style: ThemeConstants.responsiveHeadingStyle(context),
-          ),
-          content: Text(
-            "Kipengele cha $feature kinatengenezwa. Subiri kidogo!",
-            style: ThemeConstants.responsiveBodyStyle(context),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                "Sawa",
-                style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: ThemeConstants.primaryOrange,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

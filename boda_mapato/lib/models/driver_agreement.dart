@@ -1,4 +1,56 @@
 class DriverAgreement {
+  DriverAgreement({
+    required this.driverId,
+    required this.agreementType,
+    required this.startDate,
+    required this.kiasiChaMakubaliano,
+    required this.wikendiZinahesabika,
+    required this.jumamosi,
+    required this.jumapili,
+    required this.paymentFrequencies,
+    required this.status,
+    required this.createdBy,
+    required this.createdAt,
+    required this.updatedAt,
+    this.id,
+    this.endDate,
+    this.mwakaAtamaliza,
+    this.faidaJumla,
+  });
+
+  // Convert from JSON
+  factory DriverAgreement.fromJson(Map<String, dynamic> json) {
+    return DriverAgreement(
+      id: json['id']?.toString(),
+      driverId: json['driver_id']?.toString() ?? '',
+      agreementType:
+          AgreementType.fromString(json['agreement_type']?.toString() ?? ''),
+      startDate: DateTime.tryParse(json['start_date']?.toString() ?? '') ??
+          DateTime.now(),
+      endDate: json['end_date'] != null
+          ? DateTime.tryParse(json['end_date'].toString())
+          : null,
+      mwakaAtamaliza: json['mwaka_atamaliza']?.toString(),
+      kiasiChaMakubaliano:
+          double.tryParse(json['kiasi_cha_makubaliano']?.toString() ?? '0') ??
+              0.0,
+      faidaJumla: json['faida_jumla'] != null
+          ? double.tryParse(json['faida_jumla'].toString())
+          : null,
+      wikendiZinahesabika: json['wikendi_zinahesabika'] == true ||
+          json['wikendi_zinahesabika'] == 1,
+      jumamosi: json['jumamosi'] == true || json['jumamosi'] == 1,
+      jumapili: json['jumapili'] == true || json['jumapili'] == 1,
+      paymentFrequencies: _parsePaymentFrequencies(json['payment_frequencies']),
+      status:
+          AgreementStatus.fromString(json['status']?.toString() ?? 'active'),
+      createdBy: json['created_by']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
   final String? id;
   final String driverId;
   final AgreementType agreementType;
@@ -7,7 +59,7 @@ class DriverAgreement {
   final String? mwakaAtamaliza;
   final double kiasiChaMakubaliano;
   final double? faidaJumla;
-  final bool wikendi_zinahesabika;
+  final bool wikendiZinahesabika;
   final bool jumamosi;
   final bool jumapili;
   final List<PaymentFrequency> paymentFrequencies;
@@ -15,47 +67,6 @@ class DriverAgreement {
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  DriverAgreement({
-    this.id,
-    required this.driverId,
-    required this.agreementType,
-    required this.startDate,
-    this.endDate,
-    this.mwakaAtamaliza,
-    required this.kiasiChaMakubaliano,
-    this.faidaJumla,
-    required this.wikendi_zinahesabika,
-    required this.jumamosi,
-    required this.jumapili,
-    required this.paymentFrequencies,
-    required this.status,
-    required this.createdBy,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  // Convert from JSON
-  factory DriverAgreement.fromJson(Map<String, dynamic> json) {
-    return DriverAgreement(
-      id: json['id']?.toString(),
-      driverId: json['driver_id']?.toString() ?? '',
-      agreementType: AgreementType.fromString(json['agreement_type']?.toString() ?? ''),
-      startDate: DateTime.tryParse(json['start_date']?.toString() ?? '') ?? DateTime.now(),
-      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date'].toString()) : null,
-      mwakaAtamaliza: json['mwaka_atamaliza']?.toString(),
-      kiasiChaMakubaliano: double.tryParse(json['kiasi_cha_makubaliano']?.toString() ?? '0') ?? 0.0,
-      faidaJumla: json['faida_jumla'] != null ? double.tryParse(json['faida_jumla'].toString()) : null,
-      wikendi_zinahesabika: json['wikendi_zinahesabika'] == true || json['wikendi_zinahesabika'] == 1,
-      jumamosi: json['jumamosi'] == true || json['jumamosi'] == 1,
-      jumapili: json['jumapili'] == true || json['jumapili'] == 1,
-      paymentFrequencies: _parsePaymentFrequencies(json['payment_frequencies']),
-      status: AgreementStatus.fromString(json['status']?.toString() ?? 'active'),
-      createdBy: json['created_by']?.toString() ?? '',
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
-    );
-  }
 
   // Convert to JSON
   Map<String, dynamic> toJson() {
@@ -68,7 +79,7 @@ class DriverAgreement {
       'mwaka_atamaliza': mwakaAtamaliza,
       'kiasi_cha_makubaliano': kiasiChaMakubaliano,
       'faida_jumla': faidaJumla,
-      'wikendi_zinahesabika': wikendi_zinahesabika,
+      'wikendi_zinahesabika': wikendiZinahesabika,
       'jumamosi': jumamosi,
       'jumapili': jumapili,
       'payment_frequencies': paymentFrequencies.map((f) => f.value).toList(),
@@ -89,7 +100,7 @@ class DriverAgreement {
     String? mwakaAtamaliza,
     double? kiasiChaMakubaliano,
     double? faidaJumla,
-    bool? wikendi_zinahesabika,
+    bool? wikendiZinahesabika,
     bool? jumamosi,
     bool? jumapili,
     List<PaymentFrequency>? paymentFrequencies,
@@ -107,7 +118,7 @@ class DriverAgreement {
       mwakaAtamaliza: mwakaAtamaliza ?? this.mwakaAtamaliza,
       kiasiChaMakubaliano: kiasiChaMakubaliano ?? this.kiasiChaMakubaliano,
       faidaJumla: faidaJumla ?? this.faidaJumla,
-      wikendi_zinahesabika: wikendi_zinahesabika ?? this.wikendi_zinahesabika,
+      wikendiZinahesabika: wikendiZinahesabika ?? this.wikendiZinahesabika,
       jumamosi: jumamosi ?? this.jumamosi,
       jumapili: jumapili ?? this.jumapili,
       paymentFrequencies: paymentFrequencies ?? this.paymentFrequencies,
@@ -119,13 +130,15 @@ class DriverAgreement {
   }
 
   // Helper method to parse payment frequencies from JSON
-  static List<PaymentFrequency> _parsePaymentFrequencies(dynamic data) {
+  static List<PaymentFrequency> _parsePaymentFrequencies(data) {
     if (data == null) return [];
-    
+
     if (data is List) {
-      return data.map((item) => PaymentFrequency.fromString(item.toString())).toList();
+      return data
+          .map((item) => PaymentFrequency.fromString(item.toString()))
+          .toList();
     }
-    
+
     return [];
   }
 
@@ -194,11 +207,6 @@ enum AgreementStatus {
 
 // Response wrapper for API calls
 class DriverAgreementResponse {
-  final bool success;
-  final String message;
-  final DriverAgreement? data;
-  final Map<String, dynamic>? errors;
-
   DriverAgreementResponse({
     required this.success,
     required this.message,
@@ -210,8 +218,13 @@ class DriverAgreementResponse {
     return DriverAgreementResponse(
       success: json['success'] == true,
       message: json['message']?.toString() ?? '',
-      data: json['data'] != null ? DriverAgreement.fromJson(json['data']) : null,
+      data:
+          json['data'] != null ? DriverAgreement.fromJson(json['data']) : null,
       errors: json['errors'] as Map<String, dynamic>?,
     );
   }
+  final bool success;
+  final String message;
+  final DriverAgreement? data;
+  final Map<String, dynamic>? errors;
 }

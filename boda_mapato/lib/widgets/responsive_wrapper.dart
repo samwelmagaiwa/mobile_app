@@ -360,8 +360,10 @@ class ResponsiveText extends StatelessWidget {
         overflow: overflow,
         maxLines: maxLines,
         softWrap: softWrap,
-        textScaleFactor: textScaleFactor ??
-            ResponsiveUtils.getResponsiveTextScaleFactor(context),
+        textScaler: TextScaler.linear(
+          textScaleFactor ??
+              ResponsiveUtils.getResponsiveTextScaleFactor(context),
+        ),
       );
 }
 
@@ -403,13 +405,11 @@ class ResponsiveSizedBox extends StatelessWidget {
     this.child,
   });
 
-  const ResponsiveSizedBox.width(double width, {super.key, this.child})
-      : width = width,
-        height = null;
+  const ResponsiveSizedBox.width(this.width, {super.key, this.child})
+      : height = null;
 
-  const ResponsiveSizedBox.height(double height, {super.key, this.child})
-      : width = null,
-        height = height;
+  const ResponsiveSizedBox.height(this.height, {super.key, this.child})
+      : width = null;
 
   const ResponsiveSizedBox.square(double dimension, {super.key, this.child})
       : width = dimension,
