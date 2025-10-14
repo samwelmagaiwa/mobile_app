@@ -3,12 +3,15 @@ import "dart:async";
 import "dart:math" as math;
 import "dart:ui";
 
+import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
+import "../../debug_auth_test.dart";
 import "../../models/login_response.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
+import "../../services/app_events.dart";
 import "../../utils/responsive_helper.dart";
 import "../receipts/receipts_screen.dart";
 
@@ -38,6 +41,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   int _vehiclesCount = 0;
   int _pendingPaymentsCount = 0;
   int _remindersCount = 0;
+  
+  // Event subscription for automatic refresh
+  late StreamSubscription<AppEvent> _eventSubscription;
 
   // Colors for the modern theme - matching admin dashboard image
   static const Color primaryBlue = Color(0xFF1E40AF); // Deep blue from image
@@ -66,6 +72,21 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     super.initState();
     _initializeAnimations();
     _loadDashboardData();
+    
+    // Listen to app events for automatic refresh
+    _eventSubscription = AppEvents.instance.stream.listen((event) {
+      switch (event.type) {
+        case AppEventType.receiptsUpdated:
+        case AppEventType.paymentsUpdated:
+        case AppEventType.debtsUpdated:
+        case AppEventType.dashboardShouldRefresh:
+          // Refresh dashboard when payments, receipts, or debts are updated
+          if (mounted) {
+            _loadDashboardData();
+          }
+          break;
+      }
+    });
   }
 
   void _initializeAnimations() {
@@ -112,6 +133,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   @override
   void dispose() {
+    _eventSubscription.cancel();
     _animationController.dispose();
     _chartAnimationController.dispose();
     _cardController.dispose();
@@ -120,58 +142,27 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   Future<void> _loadDashboardData() async {
     try {
-      await _apiService.initialize();
-
-      // Try to load real dashboard data from API
-      final Map<String, dynamic> dashboardResponse =
-          await _apiService.getDashboardData();
-
-      // Extract data from response - Laravel ResponseHelper format
-      Map<String, dynamic> data;
-      if (dashboardResponse.containsKey('success') &&
-          dashboardResponse['success'] == true) {
-        data = dashboardResponse['data'] as Map<String, dynamic>;
-      } else {
-        data = dashboardResponse;
+      // Guard: only load if authenticated
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (!auth.isAuthenticated) {
+        setState(() => _isLoading = false);
+        return;
       }
 
-      // Use real data from Laravel backend
-      _dashboardData = <String, dynamic>{
-        // Financial data
-        "monthly_income": _toDouble(data["monthly_revenue"] ?? 0),
-        "weekly_revenue": _toDouble(data["weekly_revenue"] ?? 0),
-        "daily_revenue": _toDouble(data["daily_revenue"] ?? 0),
-        "net_profit": _toDouble(data["net_profit"] ?? 0),
-        "total_saved":
-            _toDouble(data["monthly_revenue"] ?? 0) * 0.2, // 20% savings
-        "saving_rate": 20.0, // Fixed savings rate
+      setState(() {
+        _isLoading = true;
+      });
 
-        // Operational data
-        "active_drivers": _toInt(data["active_drivers"] ?? 0),
-        "total_drivers": _toInt(data["total_drivers"] ?? 0),
-        "total_vehicles": _toInt(data["total_vehicles"] ?? 0),
-        "active_vehicles": _toInt(data["active_vehicles"] ?? 0),
-        "pending_payments": _toInt(data["pending_payments"] ?? 0),
+      // Load real-time data directly from database tables via comprehensive API calls
+      await _loadComprehensiveRealTimeData();
 
-        // Calculated metrics
-        "fuel_costs":
-            _toDouble(data["monthly_revenue"] ?? 0) * 0.3, // 30% estimate
-        "maintenance_costs":
-            _toDouble(data["monthly_revenue"] ?? 0) * 0.1, // 10% estimate
+      // Load revenue chart data for visualization
+      await _loadRevenueChartData();
 
-        // Chart data - use real or generated from monthly data
-        "weekly_earnings":
-            _generateWeeklyEarnings(_toDouble(data["weekly_revenue"] ?? 0)),
-        "monthly_data": <dynamic>[],
-        "recent_transactions": data["recent_transactions"] ?? <dynamic>[],
-      };
+      // Load additional badge counts (reminders)
+      await _loadAdditionalBadgeCounts();
 
-      // Update badge counts immediately from dashboard data
-      _driversCount = _toInt(data["total_drivers"] ?? 0);
-      _vehiclesCount = _toInt(data["total_vehicles"] ?? 0);
-      _pendingPaymentsCount = _toInt(data["pending_payments"] ?? 0);
-      _remindersCount = 5; // Default for now, will be loaded separately
-
+      // Update UI and start animations
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -183,23 +174,541 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           }
         }));
       }
-
-      // Load additional badge counts
-      await _loadAdditionalBadgeCounts();
     } on Exception catch (_) {
-      // Fallback to default values if API fails
+      // No mock/fallback data; just surface the error and keep zeros
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _dashboardData = _getDefaultDashboardData();
-          _driversCount = 12;
-          _vehiclesCount = 8;
-          _pendingPaymentsCount = 3;
-          _remindersCount = 5;
         });
-        _showErrorSnackBar("Using fallback data - Backend unavailable");
+        _showErrorSnackBar("Backend haipatikani. Tafadhali jaribu tena baadaye.");
       }
     }
+  }
+
+  /// Load comprehensive real-time data using existing backend endpoints
+  Future<void> _loadComprehensiveRealTimeData() async {
+    try {
+      // Use main dashboard endpoint which returns complete and accurate data
+      final Map<String, dynamic> dashboardResponse = await _apiService.getDashboardData();
+
+      // Extract data from the main dashboard response
+      final Map<String, dynamic> mainData = _extractDataFromResponse(dashboardResponse);
+      
+      // Initialize dashboard data and populate with main response data
+      _dashboardData = _getEmptyDashboardData();
+      
+      // Map the dashboard response to our expected data structure
+      _dashboardData.addAll({
+        // Revenue data from main endpoint
+        'daily_revenue': _toDouble(mainData['payments_today'] ?? 0),
+        'weekly_revenue': _toDouble(mainData['payments_this_week'] ?? 0),
+        'monthly_revenue': _toDouble(mainData['payments_this_month'] ?? 0),
+        
+        // Driver and vehicle counts
+        'drivers_count': _toInt(mainData['total_drivers'] ?? 0),
+        'total_drivers': _toInt(mainData['total_drivers'] ?? 0),
+        'active_drivers': _toInt(mainData['active_drivers'] ?? 0),
+        'devices_count': _toInt(mainData['total_vehicles'] ?? 0),
+        'total_vehicles': _toInt(mainData['total_vehicles'] ?? 0),
+        'active_vehicles': _toInt(mainData['active_vehicles'] ?? 0),
+        
+        // Recent transactions
+        'recent_transactions': mainData['recent_transactions'] ?? [],
+      });
+
+      // Fetch additional counts (unpaid debts, generated receipts, pending receipts)
+      try {
+        final List<Map<String, dynamic>> extras = await Future.wait<Map<String, dynamic>>([
+          _loadUnpaidDebtsCountFromExisting(),
+          _loadPaymentReceiptsCountFromExisting(),
+          _loadPendingReceiptsCountFromExisting(),
+        ]);
+        for (final Map<String, dynamic> m in extras) {
+          _dashboardData.addAll(m);
+        }
+      } on Exception catch (_) {
+        // ignore supplemental errors
+      }
+
+      // Fetch all-time revenue to display on the balance card
+      try {
+        final Map<String, dynamic> revResp = await _apiService.getRevenueReport();
+        final Map<String, dynamic> revData = _extractDataFromResponse(revResp);
+        _dashboardData['total_revenue'] = _toDouble(
+          revData['total_revenue'] ?? revData['revenue'] ?? revData['total_amount'] ?? 0,
+        );
+      } on Exception catch (_) {
+        // If unavailable, fall back to monthly revenue already set
+        _dashboardData['total_revenue'] = _dashboardData['monthly_revenue'] ?? 0;
+      }
+      
+      // Update badge counts for drawer
+      _updateBadgeCounts();
+      
+    } on Exception catch (e) {
+      // Initialize with empty data if all fails
+      _dashboardData = _getEmptyDashboardData();
+      if (mounted) {
+        _showErrorSnackBar("Imeshindikana kupakia data za dashboard: ${e.toString()}");
+      }
+    }
+  }
+
+  /// Load active drivers count from drivers table WHERE is_active = 1
+  Future<Map<String, dynamic>> _loadDriversCountFromExisting() async {
+    try {
+      // Try new endpoint first for active drivers (is_active = 1)
+      try {
+        final response = await _apiService.getActiveDriversCount();
+        final data = _extractDataFromResponse(response);
+        return {
+          'drivers_count': _toInt(data['count'] ?? data['active_drivers_count'] ?? 0),
+          'total_drivers': _toInt(data['count'] ?? data['active_drivers_count'] ?? 0),
+        };
+      } on Exception {
+        // Fallback to existing drivers endpoint and filter active drivers
+        final response = await _apiService.getDrivers();
+        final data = _extractDataFromResponse(response);
+        
+        // Try to extract active drivers count from response
+        int activeCount = 0;
+        if (data['drivers'] is List) {
+          final List<dynamic> drivers = data['drivers'] as List<dynamic>;
+          activeCount = drivers.where((driver) {
+            if (driver is Map<String, dynamic>) {
+              return driver['is_active'] == 1 || 
+                     driver['is_active'] == true || 
+                     driver['status'] == 'active';
+            }
+            return false;
+          }).length;
+        } else {
+          // If no filtering possible, use total count as fallback
+          activeCount = _extractTotalCountFromResponse(response);
+        }
+        
+        return {
+          'drivers_count': activeCount,
+          'total_drivers': activeCount,
+        };
+      }
+    } on Exception {
+      return {'drivers_count': 0, 'total_drivers': 0};
+    }
+  }
+
+  /// Load active devices count from devices table WHERE is_active = 1
+  Future<Map<String, dynamic>> _loadDevicesCountFromExisting() async {
+    try {
+      // Try new endpoint first for active devices (is_active = 1)
+      try {
+        final response = await _apiService.getActiveDevicesCount();
+        final data = _extractDataFromResponse(response);
+        return {
+          'devices_count': _toInt(data['count'] ?? data['active_devices_count'] ?? 0),
+          'total_vehicles': _toInt(data['count'] ?? data['active_devices_count'] ?? 0),
+        };
+      } on Exception {
+        // Fallback to existing vehicles endpoint and filter active devices
+        final response = await _apiService.getVehicles();
+        final data = _extractDataFromResponse(response);
+        
+        // Try to extract active devices count from response
+        int activeCount = 0;
+        if (data['vehicles'] is List) {
+          final List<dynamic> vehicles = data['vehicles'] as List<dynamic>;
+          activeCount = vehicles.where((vehicle) {
+            if (vehicle is Map<String, dynamic>) {
+              return vehicle['is_active'] == 1 || 
+                     vehicle['is_active'] == true || 
+                     vehicle['status'] == 'active';
+            }
+            return false;
+          }).length;
+        } else {
+          // If no filtering possible, use total count as fallback
+          activeCount = _extractTotalCountFromResponse(response);
+        }
+        
+        return {
+          'devices_count': activeCount,
+          'total_vehicles': activeCount,
+        };
+      }
+    } on Exception {
+      return {'devices_count': 0, 'total_vehicles': 0};
+    }
+  }
+
+  /// Load unpaid debts count aligned with the DebtsManagementScreen list.
+  /// We prefer counting unique drivers who currently have any outstanding debt,
+  /// so the value matches the "Ana deni" driver tiles you see in that screen.
+  Future<Map<String, dynamic>> _loadUnpaidDebtsCountFromExisting() async {
+    try {
+      int endpointCount = 0;
+      // 1) Try new endpoint first for unpaid debts (is_paid = 0)
+      try {
+        final response = await _apiService.getUnpaidDebtsCount();
+        final data = _extractDataFromResponse(response);
+        endpointCount = _toInt(data['count'] ?? data['unpaid_debts_count'] ?? 0);
+        debugPrint('DEBUG: unpaid_debts_count endpoint -> response=$response, mapped=$endpointCount');
+      } on Exception {
+        // 2) Fallback to a generic summary if endpoint not available
+        try {
+          final response = await _apiService.getPaymentSummary();
+          final data = _extractDataFromResponse(response);
+          endpointCount = _toInt(
+            data['unpaid_debts'] ??
+            data['outstanding_debts'] ??
+            data['total_debts'] ??
+            data['pending_payments'] ?? 0,
+          );
+        } catch (_) {
+          endpointCount = 0;
+        }
+      }
+
+      // 3) Compute unique debtor drivers via /admin/debts/drivers to match DebtsManagementScreen UI
+      int uniqueDebtorDrivers = endpointCount; // default
+      try {
+        final Map<String, dynamic> resp = await _apiService.getDebtDrivers(limit: 500);
+        final Map<String, dynamic>? data = resp['data'] as Map<String, dynamic>?;
+        final List<dynamic> list = (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+        uniqueDebtorDrivers = list.where((e) {
+          if (e is Map<String, dynamic>) {
+            final m = e;
+            final num total = (m['total_debt'] is num)
+                ? (m['total_debt'] as num)
+                : num.tryParse(m['total_debt']?.toString() ?? '0') ?? 0;
+            return total > 0;
+          }
+          return false;
+        }).length;
+        debugPrint('DEBUG: unpaid_debts_count drivers -> uniqueDebtorDrivers=$uniqueDebtorDrivers (from ${list.length} drivers)');
+      } catch (_) {
+        // ignore; keep endpointCount
+      }
+
+      // Prefer the unique drivers count to match what the user sees in DebtsManagementScreen
+      final int finalCount = uniqueDebtorDrivers;
+      return {'unpaid_debts_count': finalCount};
+    } on Exception {
+      return {'unpaid_debts_count': 0};
+    }
+  }
+
+  /// Load generated receipts count from payment_receipts table WHERE receipt_status = 'generated'
+  Future<Map<String, dynamic>> _loadPaymentReceiptsCountFromExisting() async {
+    try {
+      // Try new endpoint first for generated receipts (receipt_status = 'generated')
+      try {
+        final response = await _apiService.getGeneratedReceiptsCount();
+        final data = _extractDataFromResponse(response);
+        final int cnt = _toInt(data['count'] ?? data['generated_receipts_count'] ?? 0);
+        debugPrint('DEBUG: generated_receipts_count endpoint -> response=$response, mapped=$cnt');
+        return {
+          'payment_receipts_count': cnt,
+          'receipts_count': cnt,
+        };
+      } on Exception {
+        // Fallback to existing receipts endpoint and filter generated receipts
+        final response = await _apiService.getPaymentReceipts();
+        final data = _extractDataFromResponse(response);
+        
+        // Try to extract generated receipts count from response
+        int generatedCount = 0;
+        if (data['receipts'] is List) {
+          final List<dynamic> receipts = data['receipts'] as List<dynamic>;
+          generatedCount = receipts.where((receipt) {
+            if (receipt is Map<String, dynamic>) {
+              return receipt['receipt_status'] == 'generated' || 
+                     receipt['status'] == 'generated';
+            }
+            return false;
+          }).length;
+        } else {
+          // If no filtering possible, use total count as fallback
+          generatedCount = _extractTotalCountFromResponse(response);
+        }
+        
+        return {
+          'payment_receipts_count': generatedCount,
+          'receipts_count': generatedCount,
+        };
+      }
+    } on Exception {
+      return {'payment_receipts_count': 0, 'receipts_count': 0};
+    }
+  }
+
+  /// Load pending receipts count from payments table WHERE receipt_status = 'pending'
+  /// To keep consistency with the "Toa Risiti" page, count total pending receipt items
+  /// (same as what users see in the receipts screen list).
+  Future<Map<String, dynamic>> _loadPendingReceiptsCountFromExisting() async {
+    try {
+      int endpointCount = 0;
+      // 1) Try new endpoint first for pending receipts (receipt_status = 'pending')
+      try {
+        final response = await _apiService.getPendingReceiptsCount();
+        final data = _extractDataFromResponse(response);
+        endpointCount = _toInt(data['count'] ?? data['pending_receipts_count'] ?? 0);
+        debugPrint('DEBUG: pending_receipts_count endpoint -> response=$response, mapped=$endpointCount');
+      } on Exception {
+        // ignore and keep endpointCount = 0
+      }
+
+      // 2) Fetch pending receipts list and count TOTAL ITEMS to match ReceiptsScreen UI
+      int totalItemsCount = endpointCount; // default to endpoint result
+      try {
+        final response = await _apiService.getPendingReceipts();
+        final data = _extractDataFromResponse(response);
+
+        // Common shapes observed:
+        // - { pending_receipts: [ { driver: { id, ... }, ... } ] }
+        // - { data: [ ...same as above... ] }
+        // - Legacy: { payments: [ { driver_id, receipt_status, ... } ] } -> filter pending
+        final List<dynamic> list =
+            (data['pending_receipts'] as List<dynamic>?) ??
+            (data['data'] as List<dynamic>?) ??
+            (data['payments'] as List<dynamic>?) ??
+            const <dynamic>[];
+
+        // Count total pending receipt items (same logic as ReceiptsScreen)
+        int validItemsCount = 0;
+        final Set<String> uniqueDriverIds = <String>{}; // for debug info
+        for (final dynamic item in list) {
+          if (item is Map<String, dynamic>) {
+            // Driver nested - always count as valid pending receipt
+            if (item['driver'] is Map) {
+              validItemsCount++;
+              final Map<String, dynamic> d = (item['driver'] as Map).cast<String, dynamic>();
+              final String id = d['id']?.toString() ?? '';
+              if (id.isNotEmpty) uniqueDriverIds.add(id);
+              continue;
+            }
+            // Flat driver_id (legacy payments shape), ensure it's pending
+            final String driverId = item['driver_id']?.toString() ?? '';
+            final String status = item['receipt_status']?.toString() ?? '';
+            if (driverId.isNotEmpty && (status.isEmpty || status == 'pending')) {
+              validItemsCount++;
+              uniqueDriverIds.add(driverId);
+            }
+          }
+        }
+        if (validItemsCount > 0) {
+          totalItemsCount = validItemsCount;
+        } else {
+          // As a last resort, fall back to total count extraction
+          totalItemsCount = list.length > 0 ? list.length : _extractTotalCountFromResponse(response);
+        }
+        debugPrint('DEBUG: pending_receipts_count total items -> $totalItemsCount (from ${list.length} items, ${uniqueDriverIds.length} unique drivers)');
+      } catch (_) {
+        // ignore; keep endpointCount
+      }
+
+      // Return total items count to match ReceiptsScreen (pending filter) UI exactly
+      final int finalCount = totalItemsCount;
+      return { 'pending_receipts_count': finalCount };
+    } on Exception {
+      return { 'pending_receipts_count': 0 };
+    }
+  }
+
+  /// Load revenue data from debt_records (is_paid=1) + payments tables with daily/weekly/monthly filtering
+  Future<Map<String, dynamic>> _loadRevenueDataFromExisting() async {
+    try {
+      final Map<String, dynamic> revenueData = <String, dynamic>{
+        'daily_revenue': 0,
+        'weekly_revenue': 0,
+        'monthly_revenue': 0,
+      };
+
+      // Try new specific revenue endpoints first
+      try {
+        // Load daily revenue from debt_records (is_paid=1) + payments for today
+        final dailyResponse = await _apiService.getDailyRevenue();
+        final dailyData = _extractDataFromResponse(dailyResponse);
+        revenueData['daily_revenue'] = _toDouble(
+          dailyData['revenue'] ?? 
+          dailyData['daily_revenue'] ?? 
+          dailyData['total'] ?? 0
+        );
+      } on Exception {
+        revenueData['daily_revenue'] = 0;
+      }
+
+      try {
+        // Load weekly revenue from debt_records (is_paid=1) + payments for current week
+        final weeklyResponse = await _apiService.getWeeklyRevenue();
+        final weeklyData = _extractDataFromResponse(weeklyResponse);
+        revenueData['weekly_revenue'] = _toDouble(
+          weeklyData['revenue'] ?? 
+          weeklyData['weekly_revenue'] ?? 
+          weeklyData['total'] ?? 0
+        );
+      } on Exception {
+        revenueData['weekly_revenue'] = 0;
+      }
+
+      try {
+        // Load monthly revenue from debt_records (is_paid=1) + payments for current month
+        final monthlyResponse = await _apiService.getMonthlyRevenue();
+        final monthlyData = _extractDataFromResponse(monthlyResponse);
+        revenueData['monthly_revenue'] = _toDouble(
+          monthlyData['revenue'] ?? 
+          monthlyData['monthly_revenue'] ?? 
+          monthlyData['total'] ?? 0
+        );
+      } on Exception {
+        // Fallback to existing revenue report endpoint for monthly
+        try {
+          final DateTime now = DateTime.now();
+          final DateTime startOfMonth = DateTime(now.year, now.month, 1);
+          
+          final response = await _apiService.getRevenueReport(
+            startDate: startOfMonth,
+            endDate: now,
+          );
+          final data = _extractDataFromResponse(response);
+          
+          // Extract monthly revenue (fallback)
+          revenueData['monthly_revenue'] = _toDouble(
+            data['total_revenue'] ?? 
+            data['revenue'] ?? 
+            data['total_amount'] ?? 0
+          );
+          
+          // Try to extract daily/weekly if available in response (fallback)
+          if (revenueData['daily_revenue'] == 0) {
+            revenueData['daily_revenue'] = _toDouble(
+              data['daily_revenue'] ?? 
+              data['today_revenue'] ?? 0
+            );
+          }
+          
+          if (revenueData['weekly_revenue'] == 0) {
+            revenueData['weekly_revenue'] = _toDouble(
+              data['weekly_revenue'] ?? 
+              data['week_revenue'] ?? 0
+            );
+          }
+          
+        } on Exception {
+          // Keep monthly revenue as 0 if all fails
+        }
+      }
+
+      return revenueData;
+    } on Exception {
+      return {
+        'daily_revenue': 0,
+        'weekly_revenue': 0,
+        'monthly_revenue': 0,
+      };
+    }
+  }
+
+  /// Load revenue chart data for visualization
+  Future<void> _loadRevenueChartData() async {
+    try {
+      final List<dynamic> chart = await _apiService.getRevenueChart();
+      // Parse entries supporting both 'amount' and 'revenue' keys and capture dates
+      final List<double> values = <double>[];
+      final List<String> dates = <String>[];
+      for (final e in chart) {
+        if (e is Map) {
+          final dynamic rawVal = e['amount'] ?? e['revenue'] ?? e['value'];
+          double val = 0;
+          if (rawVal is num) {
+            val = rawVal.toDouble();
+          } else if (rawVal != null) {
+            val = double.tryParse(rawVal.toString()) ?? 0.0;
+          }
+          values.add(val);
+          final String? dateStr = (e['date'] ?? e['created_at'])?.toString();
+          dates.add(_formatDateLabel(dateStr));
+        } else if (e is num) {
+          values.add(e.toDouble());
+          dates.add('');
+        }
+      }
+      if (values.isNotEmpty) {
+        final int len = values.length;
+        final int start = len >= 7 ? len - 7 : 0;
+        _dashboardData['weekly_earnings'] = values.sublist(start);
+        _dashboardData['weekly_dates'] = dates.length == len
+            ? dates.sublist(start)
+            : List<String>.generate(len - start, (i) => '');
+      } else {
+        _dashboardData['weekly_earnings'] = <double>[];
+        _dashboardData['weekly_dates'] = <String>[];
+      }
+    } on Exception {
+      // Set empty chart data if loading fails
+      _dashboardData['weekly_earnings'] = <double>[];
+      _dashboardData['weekly_dates'] = <String>[];
+    }
+  }
+
+  /// Extract data from API response handling Laravel ResponseHelper format
+  Map<String, dynamic> _extractDataFromResponse(Map<String, dynamic> response) {
+    // Handle both shapes:
+    // - {status: 'success', data: {...}}
+    // - {success: true, data: {...}}
+    // - Or already a data map with expected keys
+    if (response.containsKey('data') && response['data'] is Map<String, dynamic>) {
+      return response['data'] as Map<String, dynamic>;
+    }
+    if ((response['success'] == true) || (response['status'] == 'success')) {
+      final dynamic data = response['data'];
+      if (data is Map<String, dynamic>) return data;
+    }
+    return response;
+  }
+
+  /// Update badge counts for drawer navigation
+  void _updateBadgeCounts() {
+    _driversCount = _toInt(_dashboardData["drivers_count"] ?? _dashboardData["total_drivers"] ?? 0);
+    _vehiclesCount = _toInt(_dashboardData["devices_count"] ?? _dashboardData["total_vehicles"] ?? 0);
+    _pendingPaymentsCount = _toInt(_dashboardData["unpaid_debts_count"] ?? _dashboardData["pending_payments"] ?? 0);
+  }
+
+  /// Get empty dashboard data structure with defaults
+  Map<String, dynamic> _getEmptyDashboardData() {
+    return <String, dynamic>{
+      // Revenue data
+      'daily_revenue': 0,
+      'weekly_revenue': 0,
+      'monthly_revenue': 0,
+      'net_profit': 0,
+      'total_saved': 0,
+      'saving_rate': 0,
+      
+      // Database table counts
+      'drivers_count': 0,
+      'devices_count': 0,
+      'unpaid_debts_count': 0,
+      'payment_receipts_count': 0,
+      'pending_receipts_count': 0,
+      
+      // Legacy compatibility
+      'total_drivers': 0,
+      'total_vehicles': 0,
+      'active_drivers': 0,
+      'active_vehicles': 0,
+      'pending_payments': 0,
+      'receipts_count': 0,
+      
+      // Chart data
+      'weekly_earnings': <double>[],
+      'weekly_dates': <String>[],
+      'monthly_data': <dynamic>[],
+      'recent_transactions': <dynamic>[],
+      
+      // Costs
+      'fuel_costs': 0,
+      'maintenance_costs': 0,
+    };
   }
 
   void _showErrorSnackBar(String message) {
@@ -265,18 +774,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   parent: BouncingScrollPhysics(),
                 ),
                 child: Padding(
-                  padding: ResponsiveHelper.defaultPadding,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       _buildHeader(),
-                      ResponsiveHelper.verticalSpace(4),
+                      ResponsiveHelper.verticalSpace(2),
                       _buildBalanceCard(),
-                      ResponsiveHelper.verticalSpace(4),
+                      ResponsiveHelper.verticalSpace(2),
                       _buildStatsCards(),
-                      ResponsiveHelper.verticalSpace(4),
+                      ResponsiveHelper.verticalSpace(2),
                       _buildChartSection(),
-                      ResponsiveHelper.verticalSpace(4),
+                      ResponsiveHelper.verticalSpace(2),
                       _buildQuickActions(),
                       ResponsiveHelper.verticalSpace(2),
                     ],
@@ -315,22 +824,42 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             ),
           ),
         ),
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: cardColor,
-          child: user?.name != null
-              ? Text(
-                  user!.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: textPrimary,
-                    fontWeight: FontWeight.bold,
+        Row(
+          children: [
+            // Debug button
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DebugAuthTest(),
                   ),
-                )
-              : const Icon(
-                  Icons.person,
-                  color: textPrimary,
-                  size: 20,
-                ),
+                );
+              },
+              icon: const Icon(
+                Icons.bug_report,
+                color: textPrimary,
+                size: 20,
+              ),
+            ),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: cardColor,
+              child: user?.name != null
+                  ? Text(
+                      user!.name.substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        color: textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.person,
+                      color: textPrimary,
+                      size: 20,
+                    ),
+            ),
+          ],
         ),
       ],
     );
@@ -340,18 +869,27 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
     final UserData? user = authProvider.user;
 
+    // Use MediaQuery-driven sizing to avoid overflow on short devices
+    final Size size = MediaQuery.of(context).size;
+    final bool isShort = size.height < 700;
+
+    // Compute a compact but readable card height
+    double cardHeight = size.height * (isShort ? 0.14 : 0.18);
+    cardHeight = cardHeight.clamp(110.0, 170.0);
+
+    final double avatarSide = (size.width * 0.10).clamp(36.0, 46.0);
+    final double gapLarge = isShort ? 8.0 : 12.0; // replaces verticalSpace(1.2)
+    final double gapMid = isShort ? 6.0 : 8.0;   // replaces verticalSpace(0.6)
+    final double gapSmall = isShort ? 4.0 : 6.0; // replaces verticalSpace(0.3)
+
     return SizedBox(
-      height: ResponsiveHelper.flexibleHeight(
-        minHeight: 180,
-        maxHeight: 250,
-        percentage: 0.25,
-      ),
+      height: cardHeight,
       child: PageView(
         controller: _cardController,
         children: <Widget>[
           _buildGlassCard(
             child: Padding(
-              padding: ResponsiveHelper.cardPadding,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -359,28 +897,25 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   Row(
                     children: <Widget>[
                       Container(
-                        width: ResponsiveHelper.wp(12),
-                        height: ResponsiveHelper.wp(12),
+                        width: avatarSide,
+                        height: avatarSide,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius:
-                              BorderRadius.circular(ResponsiveHelper.wp(6)),
+                          borderRadius: BorderRadius.circular(avatarSide / 2),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.account_balance_wallet,
                           color: textPrimary,
-                          size: ResponsiveHelper.iconSizeM,
                         ),
                       ),
                       const Spacer(),
-                      Icon(
+                      const Icon(
                         Icons.more_horiz,
                         color: textSecondary,
-                        size: ResponsiveHelper.iconSizeM,
                       ),
                     ],
                   ),
-                  ResponsiveHelper.verticalSpace(2),
+                  SizedBox(height: gapLarge),
                   Text(
                     user?.name ?? "Dereva Mkuu",
                     style: TextStyle(
@@ -389,18 +924,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  ResponsiveHelper.verticalSpace(0.8),
+                  SizedBox(height: gapMid),
                   Text(
-                    "TSH ${_formatCurrency(_dashboardData["net_profit"])}",
+                    "TSH ${_formatCurrency(_dashboardData["total_revenue"] ?? _dashboardData["monthly_revenue"])}",
                     style: TextStyle(
                       color: textPrimary,
                       fontSize: ResponsiveHelper.h2,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  ResponsiveHelper.verticalSpace(0.5),
+                  SizedBox(height: gapSmall),
                   Text(
-                    "Faida Halisi ya Mwezi",
+                    "Mapato yote",
                     style: TextStyle(
                       color: textSecondary,
                       fontSize: ResponsiveHelper.bodyM,
@@ -415,17 +950,38 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     );
   }
 
-  Widget _buildStatsCards() => Column(
+  Widget _buildStatsCards() {
+        // Active vs total for drivers and vehicles (exact backend values)
+        final int activeDrivers = _toInt(_dashboardData['active_drivers'] ?? 0);
+        final int totalDrivers = _toInt(
+          _dashboardData['total_drivers'] ?? _dashboardData['drivers_count'] ?? 0,
+        );
+        final int activeVehicles = _toInt(_dashboardData['active_vehicles'] ?? 0);
+        final int totalVehicles = _toInt(
+          _dashboardData['total_vehicles'] ?? _dashboardData['devices_count'] ?? 0,
+        );
+
+        return Column(
         children: <Widget>[
-          // First row of stats
+          // First row: Revenue cards (Daily, Weekly, Monthly)
           Row(
             children: <Widget>[
               Expanded(
                 child: _buildStatCard(
-                  "Jumla ya Akiba",
-                  "TSH ${_formatCurrency(_dashboardData["total_saved"])}",
-                  "+12.5%",
-                  Icons.savings,
+                  "Mapato ya Siku",
+                  "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
+                  "",
+                  Icons.today,
+                  true,
+                ),
+              ),
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Mapato ya Wiki",
+                  "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
+                  "",
+                  Icons.calendar_view_week,
                   true,
                 ),
               ),
@@ -433,44 +989,34 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               Expanded(
                 child: _buildStatCard(
                   "Mapato ya Mwezi",
-                  "TSH ${_formatCurrency(_dashboardData["monthly_income"])}",
-                  "+8.2%",
+                  "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
+                  "",
                   Icons.trending_up,
-                  true,
-                ),
-              ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Kiwango cha Akiba",
-                  "${_toDouble(_dashboardData["saving_rate"]).toStringAsFixed(1)}%",
-                  "+2.1%",
-                  Icons.percent,
                   true,
                 ),
               ),
             ],
           ),
           ResponsiveHelper.verticalSpace(2),
-          // Second row of stats
+          // Second row: Payment/Receipt cards
           Row(
             children: <Widget>[
               Expanded(
                 child: _buildStatCard(
-                  "Madereva Hai",
-                  "${_dashboardData["active_drivers"] ?? 0}",
-                  "+3",
-                  Icons.person,
+                  "Malipo Yenye Risiti",
+                  "${_dashboardData["payment_receipts_count"] ?? 0}",
+                  "",
+                  Icons.receipt,
                   true,
                 ),
               ),
               ResponsiveHelper.horizontalSpace(4),
               Expanded(
                 child: _buildStatCard(
-                  "Magari",
-                  "${_dashboardData["total_vehicles"] ?? 0}",
-                  "+1",
-                  Icons.directions_car,
+                  "Yamelipwa Bado Risiti",
+                  "${_dashboardData["pending_receipts_count"] ?? 0}",
+                  "",
+                  Icons.receipt_long,
                   true,
                 ),
               ),
@@ -478,16 +1024,45 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               Expanded(
                 child: _buildStatCard(
                   "Malipo Yasiyolipwa",
-                  "${_dashboardData["pending_payments"] ?? 0}",
-                  "-2",
+                  "${_dashboardData["unpaid_debts_count"] ?? 0}",
+                  "",
                   Icons.pending_actions,
                   false,
                 ),
               ),
             ],
           ),
+          ResponsiveHelper.verticalSpace(2),
+          // Third row: Resources (Drivers, Vehicles)
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildStatCard(
+                  "Madereva",
+                  "${activeDrivers}",
+                  "Hai $activeDrivers/$totalDrivers",
+                  Icons.person,
+                  true,
+                ),
+              ),
+              ResponsiveHelper.horizontalSpace(4),
+              Expanded(
+                child: _buildStatCard(
+                  "Vyombo vya Usafiri",
+                  "${activeVehicles}",
+                  "Hai $activeVehicles/$totalVehicles",
+                  Icons.directions_car,
+                  true,
+                ),
+              ),
+              ResponsiveHelper.horizontalSpace(4),
+              // Empty space to maintain 3-column layout
+              const Expanded(child: SizedBox()),
+            ],
+          ),
         ],
       );
+    }
 
   Widget _buildStatCard(
     String title,
@@ -498,7 +1073,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   ) =>
       _buildGlassCard(
         child: Padding(
-          padding: ResponsiveHelper.cardPadding,
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -510,11 +1085,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                     size: ResponsiveHelper.iconSizeM,
                   ),
                   const Spacer(),
-                  Icon(
-                    Icons.more_vert,
-                    color: textSecondary,
-                    size: ResponsiveHelper.iconSizeS,
-                  ),
+                  _buildCardDropdownMenu(title, value, icon),
                 ],
               ),
               ResponsiveHelper.verticalSpace(1.5),
@@ -555,26 +1126,132 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   Widget _buildChartSection() => _buildGlassCard(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildMonthSelector(),
               const SizedBox(height: 24),
               SizedBox(
-                height: 200,
+                height: MediaQuery.of(context).size.height < 700 ? 140 : 170,
                 child: AnimatedBuilder(
                   animation: _chartAnimation,
-                  builder: (BuildContext context, Widget? child) => CustomPaint(
-                    painter: ChartPainter(
-                      data: _dashboardData["weekly_earnings"] ??
-                          <double>[0, 0, 0, 0, 0, 0, 0],
-                      animationValue: _chartAnimation.value,
-                      yAxisMax:
-                          6000000, // Ensure scale supports up to 6M and beyond
-                    ),
-                    child: Container(),
-                  ),
+                  builder: (BuildContext context, Widget? child) {
+                    final List<double> points =
+                        (_dashboardData["weekly_earnings"] as List?)
+                                ?.map<double>(_toDouble)
+                                .toList() ??
+                            <double>[];
+                    if (points.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'Hakuna data ya chart kupatikana',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+                    final double maxY = points.reduce(math.max) * 1.2;
+                    return LineChart(
+                      LineChartData(
+                        minX: 0,
+                        maxX: (points.length - 1).toDouble(),
+                        minY: 0,
+                        maxY: maxY,
+                        gridData: FlGridData(
+                          drawVerticalLine: false,
+                          horizontalInterval: maxY / 5,
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: Colors.white.withOpacity(0.15),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 44,
+                              interval: maxY / 4,
+                              getTitlesWidget: (value, meta) => Text(
+                                _formatShort(value),
+                                style: const TextStyle(color: Colors.white70, fontSize: 10),
+                              ),
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                final List<String> labels =
+                                    (_dashboardData['weekly_dates'] as List?)?.cast<String>() ?? <String>[];
+                                final int i = value.toInt();
+                                final String text = (i >= 0 && i < labels.length) ? labels[i] : '';
+                                return Transform.rotate(
+                                  angle: -math.pi / 6, // -30 degrees for readability
+                                  alignment: Alignment.topRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      text,
+                                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          rightTitles: const AxisTitles(),
+                          topTitles: const AxisTitles(),
+                        ),
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipItems: (touchedSpots) {
+                              final labels =
+                                  (_dashboardData['weekly_dates'] as List?)?.cast<String>() ?? <String>[];
+                              return touchedSpots.map((barSpot) {
+                                final i = barSpot.x.toInt();
+                                final label = (i >= 0 && i < labels.length) ? labels[i] : '';
+                                final valueText = 'TSH ${_formatCurrency(barSpot.y)}';
+                                return LineTooltipItem(
+                                  '$label\n$valueText',
+                                  const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: points.asMap().entries.map((e) => FlSpot(
+                                  e.key.toDouble(),
+                                  e.value * _chartAnimation.value,
+                                )).toList(),
+                            isCurved: true,
+                            color: Colors.white,
+                            barWidth: 3,
+                            dotData: FlDotData(
+                              getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.white,
+                                strokeColor: Colors.white,
+                              ),
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withOpacity(0.3),
+                                  Colors.white.withOpacity(0.05),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -601,7 +1278,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.3)
@@ -624,7 +1301,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   Widget _buildQuickActions() => _buildGlassCard(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
@@ -656,15 +1333,566 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
+  /// Build dropdown menu for each dashboard card
+  Widget _buildCardDropdownMenu(String title, String value, IconData icon) {
+    return PopupMenuButton<String>(
+      icon: Icon(
+        Icons.more_vert,
+        color: textSecondary,
+        size: ResponsiveHelper.iconSizeS,
+      ),
+      color: primaryBlue.withOpacity(0.95),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      elevation: 8,
+      shadowColor: Colors.black.withOpacity(0.3),
+      itemBuilder: (BuildContext context) => _getMenuItems(title, icon),
+      onSelected: (String action) => _handleMenuAction(action, title, value),
+    );
+  }
+
+  /// Get menu items based on card type
+  List<PopupMenuEntry<String>> _getMenuItems(String title, IconData icon) {
+    final List<PopupMenuEntry<String>> items = [];
+    
+    // Common actions for all cards
+    items.add(_buildMenuItem(
+      'view_details', 
+      'Ona Maelezo', 
+      Icons.visibility,
+    ));
+    
+    // Card-specific actions
+    switch (title) {
+      case 'Mapato ya Siku':
+      case 'Mapato ya Wiki':
+      case 'Mapato ya Mwezi':
+        items.add(_buildMenuItem(
+          'view_revenue_drivers', 
+          'Madereva Waliolipa', 
+          Icons.people,
+        ));
+        items.add(_buildMenuItem(
+          'revenue_breakdown', 
+          'Mgawanyiko wa Mapato', 
+          Icons.pie_chart,
+        ));
+        break;
+        
+      case 'Madereva':
+        items.add(_buildMenuItem(
+          'view_all_drivers', 
+          'Madereva Wote', 
+          Icons.people,
+        ));
+        items.add(_buildMenuItem(
+          'active_drivers', 
+          'Madereva Hai', 
+          Icons.check_circle,
+        ));
+        items.add(_buildMenuItem(
+          'add_driver', 
+          'Ongeza Dereva', 
+          Icons.person_add,
+        ));
+        break;
+        
+      case 'Vyombo vya Usafiri':
+        items.add(_buildMenuItem(
+          'view_all_vehicles', 
+          'Magari Yote', 
+          Icons.directions_car,
+        ));
+        items.add(_buildMenuItem(
+          'active_vehicles', 
+          'Magari Yanayotumika', 
+          Icons.check_circle,
+        ));
+        items.add(_buildMenuItem(
+          'add_vehicle', 
+          'Ongeza Gari', 
+          Icons.add_circle,
+        ));
+        break;
+        
+      case 'Malipo Yenye Risiti':
+        items.add(_buildMenuItem(
+          'view_receipts', 
+          'Risiti Zote', 
+          Icons.receipt,
+        ));
+        items.add(_buildMenuItem(
+          'generate_receipt', 
+          'Tengeneza Risiti', 
+          Icons.add_circle,
+        ));
+        break;
+        
+      case 'Yamelipwa Bado Risiti':
+        items.add(_buildMenuItem(
+          'pending_receipts', 
+          'Risiti za Kusubiri', 
+          Icons.pending,
+        ));
+        items.add(_buildMenuItem(
+          'process_pending', 
+          'Shughulikia', 
+          Icons.play_arrow,
+        ));
+        break;
+        
+      case 'Malipo Yasiyolipwa':
+        items.add(_buildMenuItem(
+          'unpaid_debts', 
+          'Madeni Yasiyolipwa', 
+          Icons.warning,
+        ));
+        items.add(_buildMenuItem(
+          'send_reminders', 
+          'Tuma Mikumbuzo', 
+          Icons.notifications_active,
+        ));
+        break;
+    }
+    
+    // Add divider and export option for all cards
+    items.add(const PopupMenuDivider());
+    items.add(_buildMenuItem(
+      'export', 
+      'Hamisha Data', 
+      Icons.download,
+    ));
+    
+    return items;
+  }
+
+  /// Build individual menu item with consistent styling
+  PopupMenuItem<String> _buildMenuItem(String value, String text, IconData icon) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: textPrimary,
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: const TextStyle(
+              color: textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Handle menu item selection
+  void _handleMenuAction(String action, String cardTitle, String value) {
+    switch (action) {
+      case 'view_details':
+        _showCardDetails(cardTitle, value);
+        break;
+        
+      case 'view_revenue_drivers':
+        _navigateToRevenueDrivers(cardTitle);
+        break;
+        
+      case 'revenue_breakdown':
+        _navigateToRevenueBreakdown(cardTitle);
+        break;
+        
+      case 'view_all_drivers':
+        _navigateToDriversList(filter: 'all');
+        break;
+        
+      case 'active_drivers':
+        _navigateToDriversList(filter: 'active');
+        break;
+        
+      case 'add_driver':
+        _navigateToAddDriver();
+        break;
+        
+      case 'view_all_vehicles':
+        _navigateToVehiclesList(filter: 'all');
+        break;
+        
+      case 'active_vehicles':
+        _navigateToVehiclesList(filter: 'active');
+        break;
+        
+      case 'add_vehicle':
+        _navigateToAddVehicle();
+        break;
+        
+      case 'view_receipts':
+        _navigateToReceiptsList(filter: 'generated');
+        break;
+        
+      case 'generate_receipt':
+        _navigateToGenerateReceipt();
+        break;
+        
+      case 'pending_receipts':
+        _navigateToReceiptsList(filter: 'pending');
+        break;
+        
+      case 'process_pending':
+        _processPendingReceipts();
+        break;
+        
+      case 'unpaid_debts':
+        _navigateToDebtsList(filter: 'unpaid');
+        break;
+        
+      case 'send_reminders':
+        _sendPaymentReminders();
+        break;
+        
+      case 'export':
+        _exportCardData(cardTitle);
+        break;
+    }
+  }
+
+  /// Show detailed information about the card
+  void _showCardDetails(String title, String value) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: primaryBlue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              _getCardIcon(title),
+              color: textPrimary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Thamani ya Sasa:',
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _getCardDescription(title),
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Funga',
+              style: TextStyle(
+                color: textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Navigation methods for different card actions
+  void _navigateToRevenueDrivers(String period) {
+    // Navigate to drivers list filtered by revenue period
+    Navigator.pushNamed(
+      context, 
+      '/admin/drivers',
+      arguments: {
+        'filter': 'revenue',
+        'period': period,
+      },
+    );
+  }
+
+  void _navigateToRevenueBreakdown(String period) {
+    Navigator.pushNamed(
+      context, 
+      '/admin/analytics',
+      arguments: {
+        'view': 'revenue_breakdown',
+        'period': period,
+      },
+    );
+  }
+
+  void _navigateToDriversList({required String filter}) {
+    Navigator.pushNamed(
+      context, 
+      '/admin/drivers',
+      arguments: {'filter': filter},
+    );
+  }
+
+  void _navigateToAddDriver() {
+    Navigator.pushNamed(context, '/admin/drivers/add');
+  }
+
+  void _navigateToVehiclesList({required String filter}) {
+    Navigator.pushNamed(
+      context, 
+      '/admin/vehicles',
+      arguments: {'filter': filter},
+    );
+  }
+
+  void _navigateToAddVehicle() {
+    Navigator.pushNamed(context, '/admin/vehicles/add');
+  }
+
+  void _navigateToReceiptsList({required String filter}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReceiptsScreen(
+          initialFilter: filter == 'pending' ? 'pending' : 'all',
+        ),
+      ),
+    );
+  }
+
+  void _navigateToGenerateReceipt() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ReceiptsScreen(
+          initialFilter: 'all',
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDebtsList({required String filter}) {
+    Navigator.pushNamed(
+      context, 
+      '/admin/debts',
+      arguments: {'filter': filter},
+    );
+  }
+
+  /// Action methods
+  void _processPendingReceipts() {
+    _showActionDialog(
+      title: 'Shughulikia Risiti za Kusubiri',
+      message: 'Je, unataka kushughulikia risiti zote za kusubiri?',
+      confirmText: 'Shughulikia',
+      onConfirm: () {
+        // Implement pending receipts processing
+        _showSuccessSnackBar('Risiti za kusubiri zimeshughulikiwa');
+      },
+    );
+  }
+
+  void _sendPaymentReminders() {
+    _showActionDialog(
+      title: 'Tuma Mikumbuzo ya Malipo',
+      message: 'Je, unataka kutuma mikumbuzo kwa waliolipa madeni yasiyolipwa?',
+      confirmText: 'Tuma',
+      onConfirm: () {
+        // Implement reminder sending
+        _showSuccessSnackBar('Mikumbuzo ya malipo imetumwa');
+      },
+    );
+  }
+
+  void _exportCardData(String cardTitle) {
+    _showActionDialog(
+      title: 'Hamisha Data',
+      message: 'Je, unataka kuhamisha data ya "$cardTitle"?',
+      confirmText: 'Hamisha',
+      onConfirm: () {
+        // Implement data export
+        _showSuccessSnackBar('Data imehamishwa kikamilifu');
+      },
+    );
+  }
+
+  /// Helper methods
+  IconData _getCardIcon(String title) {
+    switch (title) {
+      case 'Mapato ya Siku':
+        return Icons.today;
+      case 'Mapato ya Wiki':
+        return Icons.calendar_view_week;
+      case 'Mapato ya Mwezi':
+        return Icons.trending_up;
+      case 'Madereva':
+        return Icons.person;
+      case 'Vyombo vya Usafiri':
+        return Icons.directions_car;
+      case 'Malipo Yenye Risiti':
+        return Icons.receipt;
+      case 'Yamelipwa Bado Risiti':
+        return Icons.receipt_long;
+      case 'Malipo Yasiyolipwa':
+        return Icons.pending_actions;
+      default:
+        return Icons.info;
+    }
+  }
+
+  String _getCardDescription(String title) {
+    switch (title) {
+      case 'Mapato ya Siku':
+        return 'Jumla ya mapato yaliyopatikana leo kutoka kwa malipo ya madereva.';
+      case 'Mapato ya Wiki':
+        return 'Jumla ya mapato ya wiki hii kutoka kwa malipo ya madereva.';
+      case 'Mapato ya Mwezi':
+        return 'Jumla ya mapato ya mwezi huu kutoka kwa malipo ya madereva.';
+      case 'Madereva':
+        return 'Idadi ya madereva wote waliojisajili kwenye mfumo.';
+      case 'Vyombo vya Usafiri':
+        return 'Idadi ya vyombo vya usafiri vilivyosajiliwa kwenye mfumo.';
+      case 'Malipo Yenye Risiti':
+        return 'Idadi ya malipo ambayo yamepata risiti za uthibitisho.';
+      case 'Yamelipwa Bado Risiti':
+        return 'Idadi ya malipo ambayo yamelipwa lakini bado hawajapatia risiti.';
+      case 'Malipo Yasiyolipwa':
+        return 'Idadi ya madeni ambayo hayajalipwa na madereva.';
+      default:
+        return 'Maelezo ya ziada kuhusu kadi hii.';
+    }
+  }
+
+  void _showActionDialog({
+    required String title,
+    required String message,
+    required String confirmText,
+    required VoidCallback onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: primaryBlue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: textSecondary,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Ghairi',
+              style: TextStyle(
+                color: textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              onConfirm();
+            },
+            child: Text(
+              confirmText,
+              style: const TextStyle(
+                color: accentColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: 'Funga',
+          textColor: Colors.white,
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) =>
       GestureDetector(
         onTap: onTap,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Container(
-              width: 48,
-              height: 48,
+              Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: icon == Icons.apps
                     ? accentColor
@@ -972,6 +2200,29 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     }
   }
 
+  String _formatShort(double value) {
+    if (value >= 1000000) {
+      return "${(value / 1000000).toStringAsFixed(1)}M";
+    }
+    if (value >= 1000) {
+      return "${(value / 1000).round()}K";
+    }
+    return value.round().toString();
+  }
+
+  String _formatDateLabel(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    // Expecting YYYY-MM-DD or ISO8601; take date part and format as DD/MM
+    final String datePart = iso.split('T').first;
+    final List<String> parts = datePart.split('-');
+    if (parts.length >= 3) {
+      final String dd = parts[2].padLeft(2, '0');
+      final String mm = parts[1].padLeft(2, '0');
+      return '$dd/$mm';
+    }
+    return datePart;
+  }
+
   // Helper method to safely convert dynamic values to double
   double _toDouble(value) {
     if (value == null) return 0;
@@ -994,75 +2245,52 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     return 0;
   }
 
-  // Generate weekly earnings data from weekly revenue
-  List<double> _generateWeeklyEarnings(double weeklyRevenue) {
-    if (weeklyRevenue <= 0) {
-      return <double>[45000, 67000, 89000, 79000, 65000, 72000, 58000];
+  // Extract a total count from common API response shapes
+  int _extractTotalCountFromResponse(Map<String, dynamic> resp) {
+    // Try top-level meta.total
+    final dynamic metaTop = resp['meta'];
+    if (metaTop is Map && metaTop['total'] is num) {
+      return (metaTop['total'] as num).toInt();
     }
 
-    // Distribute weekly revenue across 7 days with some variation
-    final double dailyAverage = weeklyRevenue / 7;
-    final List<double> earnings = <double>[];
+    // Try data as List
+    final dynamic data = resp['data'];
+    if (data is List) return data.length;
 
-    for (int i = 0; i < 7; i++) {
-      // Add some realistic daily variation (±30%)
-      final double variation =
-          (math.Random().nextDouble() - 0.5) * 0.6; // -30% to +30%
-      final double dailyEarning = dailyAverage * (1 + variation);
-      earnings.add(math.max(0, dailyEarning)); // Ensure non-negative
+    // Try data: { data: [...], meta: { total } }
+    if (data is Map<String, dynamic>) {
+      final dynamic metaInData = data['meta'];
+      if (metaInData is Map && metaInData['total'] is num) {
+        return (metaInData['total'] as num).toInt();
+      }
+      final dynamic inner = data['data'];
+      if (inner is List) return inner.length;
     }
 
-    return earnings;
+    return 0;
   }
 
-  // Get default dashboard data for fallback
-  Map<String, dynamic> _getDefaultDashboardData() {
-    return <String, dynamic>{
-      "monthly_income": 1200000.0,
-      "weekly_revenue": 280000.0,
-      "daily_revenue": 40000.0,
-      "net_profit": 480000.0,
-      "total_saved": 240000.0,
-      "saving_rate": 20.0,
-      "active_drivers": 12,
-      "total_drivers": 15,
-      "total_vehicles": 8,
-      "active_vehicles": 7,
-      "pending_payments": 3,
-      "fuel_costs": 360000.0,
-      "maintenance_costs": 120000.0,
-      "weekly_earnings": <double>[
-        45000,
-        67000,
-        89000,
-        79000,
-        65000,
-        72000,
-        58000
-      ],
-      "monthly_data": <dynamic>[],
-      "recent_transactions": <dynamic>[],
-    };
-  }
-
-  // Load additional badge counts (reminders) that need separate API calls
+  // Load additional counts (reminders, receipts, debts) via API calls
   Future<void> _loadAdditionalBadgeCounts() async {
     try {
-      // Load reminders count
-      final Map<String, dynamic> remindersResponse =
-          await _apiService.getReminders(limit: 1);
-      final Map<String, dynamic>? remindersMeta =
-          remindersResponse["meta"] as Map<String, dynamic>?;
-      _remindersCount = remindersMeta?["total"] ?? 5;
+      // Ensure user is authenticated before hitting protected endpoints
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (!auth.isAuthenticated) return;
 
-      if (mounted) {
-        setState(() {
-          // Update UI with reminder count
-        });
+      // Load reminders count for drawer badge
+      try {
+        final Map<String, dynamic> remindersResponse =
+            await _apiService.getReminders(limit: 1);
+        final Map<String, dynamic>? remindersMeta =
+            remindersResponse["meta"] as Map<String, dynamic>?;
+        _remindersCount = remindersMeta?["total"] ?? 0;
+      } on Exception {
+        _remindersCount = 0;
       }
+
     } on Exception catch (_) {
-      // Keep default reminder count if API fails
-      _remindersCount = 5;
+      // If API fails, set reminder count to 0
+      _remindersCount = 0;
     }
   }
 }

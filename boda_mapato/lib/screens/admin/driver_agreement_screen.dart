@@ -28,6 +28,8 @@ class DriverAgreementScreen extends StatefulWidget {
 }
 
 class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
+  // Prevent double submission
+  bool _submitLock = false;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
@@ -51,6 +53,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
 
   // Calculated values
   double _totalProfit = 0;
+  int? _contractMonths; // auto-calculated when both dates selected
   bool _isLoading = false;
 
   @override
@@ -164,14 +167,24 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       lastDate:
           DateTime.now().add(const Duration(days: 365 * 5)), // 5 years ahead
       builder: (BuildContext context, Widget? child) {
+        final ThemeData base = Theme.of(context);
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: ThemeConstants.primaryOrange,
-                  onPrimary: Colors.white,
-                  surface: ThemeConstants.primaryBlue,
-                  onSurface: Colors.white,
-                ),
+          data: base.copyWith(
+            dialogBackgroundColor: ThemeConstants.primaryBlue,
+            colorScheme: base.colorScheme.copyWith(
+              primary: ThemeConstants.primaryOrange,
+              onPrimary: Colors.white,
+              surface: ThemeConstants.primaryBlue,
+              onSurface: Colors.white,
+            ),
+            datePickerTheme: base.datePickerTheme.copyWith(
+              backgroundColor: ThemeConstants.primaryBlue,
+              headerBackgroundColor: ThemeConstants.primaryBlue,
+              headerForegroundColor: Colors.white,
+              dayForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              yearForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              weekdayStyle: const TextStyle(color: Colors.white70),
+            ),
           ),
           child: child!,
         );
@@ -182,7 +195,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       setState(() {
         _selectedStartDate = picked;
         _startDateController.text = DateFormat("dd/MM/yyyy").format(picked);
-        _calculateTotalProfit(); // Recalculate when start date changes
+        _recomputeDerivedValues();
       });
     }
   }
@@ -196,14 +209,24 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       lastDate:
           DateTime.now().add(const Duration(days: 365 * 5)), // 5 years ahead
       builder: (BuildContext context, Widget? child) {
+        final ThemeData base = Theme.of(context);
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: ThemeConstants.primaryOrange,
-                  onPrimary: Colors.white,
-                  surface: ThemeConstants.primaryBlue,
-                  onSurface: Colors.white,
-                ),
+          data: base.copyWith(
+            dialogBackgroundColor: ThemeConstants.primaryBlue,
+            colorScheme: base.colorScheme.copyWith(
+              primary: ThemeConstants.primaryOrange,
+              onPrimary: Colors.white,
+              surface: ThemeConstants.primaryBlue,
+              onSurface: Colors.white,
+            ),
+            datePickerTheme: base.datePickerTheme.copyWith(
+              backgroundColor: ThemeConstants.primaryBlue,
+              headerBackgroundColor: ThemeConstants.primaryBlue,
+              headerForegroundColor: Colors.white,
+              dayForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              yearForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              weekdayStyle: const TextStyle(color: Colors.white70),
+            ),
           ),
           child: child!,
         );
@@ -214,7 +237,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       setState(() {
         _selectedEndDate = picked;
         _endDateController.text = DateFormat("dd/MM/yyyy").format(picked);
-        _calculateTotalProfit(); // Recalculate when end date changes
+        _recomputeDerivedValues();
       });
     }
   }
@@ -258,8 +281,38 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     }
   }
 
+  // Calculate months between start and end dates (ceil: any extra days -> +1 month)
+  int _calculateContractPeriodMonths(DateTime start, DateTime end) {
+    int months = (end.year - start.year) * 12 + (end.month - start.month);
+    final DateTime candidate = DateTime(start.year, start.month + months, start.day);
+    if (candidate.isBefore(end)) {
+      months++;
+    }
+    if (months < 1) months = 1;
+    return months;
+  }
+
+  void _recomputeDerivedValues() {
+    // Profit
+    _calculateTotalProfit();
+    // Months
+    if (_selectedAgreementType == "Kwa Mkataba" &&
+        _selectedStartDate != null &&
+        _selectedEndDate != null) {
+      _contractMonths =
+          _calculateContractPeriodMonths(_selectedStartDate!, _selectedEndDate!);
+    } else {
+      _contractMonths = null;
+    }
+  }
+
   Future<void> _saveAgreement() async {
+    // Prevent accidental double taps
+    if (_submitLock) return;
+    _submitLock = true;
+
     if (!_formKey.currentState!.validate()) {
+      _submitLock = false;
       return;
     }
 
@@ -271,28 +324,57 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
           backgroundColor: Colors.orange,
         ),
       );
+      _submitLock = false;
       return;
+    }
+
+    // Preflight: avoid creating when an active agreement already exists
+    try {
+      await _apiService.initialize();
+      final Map<String, dynamic> existing =
+          await _apiService.getDriverAgreementByDriverId(widget.driverId);
+      final bool hasData = existing['data'] != null;
+      if (hasData) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Dereva tayari anayo makubaliano hai."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        _submitLock = false;
+        return;
+      }
+    } on Exception {
+      // If 404 or other error, proceed; server will enforce final check
     }
 
     // Additional validation for Kwa Mkataba
     if (_selectedAgreementType == "Kwa Mkataba") {
       if (_selectedStartDate == null || _selectedEndDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Chagua tarehe za kuanza na kumaliza kwa mkataba"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Chagua tarehe za kuanza na kumaliza kwa mkataba"),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        _submitLock = false;
         return;
       }
       if (_selectedEndDate!.isBefore(_selectedStartDate!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text("Tarehe ya kumaliza lazima iwe baada ya tarehe ya kuanza"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text("Tarehe ya kumaliza lazima iwe baada ya tarehe ya kuanza"),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        _submitLock = false;
         return;
       }
     }
@@ -321,13 +403,17 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         if (_selectedAgreementType == "Kwa Mkataba") ...<String, dynamic>{
           "end_date": _selectedEndDate!.toIso8601String(),
           "total_profit": _totalProfit,
+          if (_contractMonths != null) "contract_period_months": _contractMonths,
         },
       };
 
       final Map<String, dynamic> response =
           await _apiService.createDriverAgreement(agreementData);
 
-      if (response["status"] == "success") {
+      final bool ok = response['success'] == true ||
+          (response['status']?.toString().toLowerCase() == 'success');
+
+      if (ok) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -339,8 +425,14 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
           // Call the callback if provided
           widget.onAgreementCreated?.call();
 
-          // Navigate back
-          Navigator.of(context).pop(true);
+          // Navigate back to Simamia Madereva
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop(true);
+          } else {
+            // Fallback if this page was the first in the stack
+            // ignore: unawaited_futures
+            Navigator.pushReplacementNamed(context, "/admin/drivers");
+          }
         }
       }
     } on Exception catch (e) {
@@ -356,6 +448,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       setState(() {
         _isLoading = false;
       });
+      _submitLock = false;
     }
   }
 
@@ -442,7 +535,7 @@ if (states.contains(WidgetState.selected)) {
                               if (value != null) {
                                 setState(() {
                                   _selectedAgreementType = value;
-                                  _calculateTotalProfit();
+                                  _recomputeDerivedValues();
                                 });
                               }
                             },
@@ -475,7 +568,7 @@ if (states.contains(WidgetState.selected)) {
                               if (value != null) {
                                 setState(() {
                                   _selectedAgreementType = value;
-                                  _calculateTotalProfit();
+                                  _recomputeDerivedValues();
                                 });
                               }
                             },
@@ -550,6 +643,62 @@ if (states.contains(WidgetState.selected)) {
                       ),
                     ),
                     ResponsiveHelper.verticalSpace(1),
+
+                    // Show calculated total months if both dates selected
+                    if (_contractMonths != null) ...<Widget>[
+                      _buildBlueBlendGlassCard(
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveHelper.wp(2.5),
+                            vertical: ResponsiveHelper.wp(1.5),
+                          ),
+                          decoration: BoxDecoration(
+                            color: ThemeConstants.primaryOrange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: ThemeConstants.primaryOrange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: <Widget>[
+                              const Icon(
+                                Icons.date_range,
+                                color: ThemeConstants.primaryOrange,
+                                size: 24,
+                              ),
+                              ResponsiveHelper.horizontalSpace(2),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      "Miezi ya Mkataba",
+                                      style: ThemeConstants
+                                              .responsiveSubHeadingStyle(context)
+                                          .copyWith(
+                                        color: ThemeConstants.primaryOrange,
+                                      ),
+                                    ),
+                                    ResponsiveHelper.verticalSpace(0.5),
+                                    Text(
+                                      "$_contractMonths",
+                                      style: ThemeConstants
+                                              .responsiveHeadingStyle(context)
+                                          .copyWith(
+                                        color: ThemeConstants.primaryOrange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      ResponsiveHelper.verticalSpace(1),
+                    ],
                   ],
 
                   // Weekend settings checkbox
@@ -858,6 +1007,7 @@ if (states.contains(WidgetState.selected)) {
                       text: "Hifadhi Makubaliano",
                       onPressed: _isLoading ? null : _saveAgreement,
                       isLoading: _isLoading,
+                      backgroundColor: ThemeConstants.primaryOrange,
                     ),
                   ),
 

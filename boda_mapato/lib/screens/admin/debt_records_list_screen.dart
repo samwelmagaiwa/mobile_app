@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/app_events.dart';
 
 class DebtRecordsListScreen extends StatefulWidget {
   const DebtRecordsListScreen(
@@ -168,6 +169,11 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                                                             context,
                                                             listen: false)
                                                         .markChanged();
+                                                    
+                                                    // Emit events to notify other screens of debt changes
+                                                    AppEvents.instance.emit(AppEventType.debtsUpdated);
+                                                    AppEvents.instance.emit(AppEventType.receiptsUpdated);
+                                                    AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
                                                   }
                                                 },
                                         ),
@@ -232,6 +238,11 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
       if (!mounted) return;
       Provider.of<DebtsProvider>(context, listen: false).markChanged();
       await _load();
+      
+      // Emit events to notify other screens of debt changes
+      AppEvents.instance.emit(AppEventType.debtsUpdated);
+      AppEvents.instance.emit(AppEventType.receiptsUpdated);
+      AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
     }
   }
 }
@@ -381,7 +392,9 @@ class _EditDebtRecordScreenState extends State<_EditDebtRecordScreen> {
               colorScheme: const ColorScheme.dark(
                   primary: ThemeConstants.primaryOrange,
                   surface: ThemeConstants.primaryBlue,
-                  onPrimary: Colors.white)),
+                  onPrimary: Colors.white),
+              textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white))),
           child: child!),
     );
     if (picked != null) setState(() => _date = picked);
@@ -399,7 +412,9 @@ class _EditDebtRecordScreenState extends State<_EditDebtRecordScreen> {
               colorScheme: const ColorScheme.dark(
                   primary: ThemeConstants.primaryOrange,
                   surface: ThemeConstants.primaryBlue,
-                  onPrimary: Colors.white)),
+                  onPrimary: Colors.white),
+              textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white))),
           child: child!),
     );
     if (picked != null) setState(() => _promiseDate = picked);
@@ -440,6 +455,12 @@ class _EditDebtRecordScreenState extends State<_EditDebtRecordScreen> {
       );
       if (!mounted) return;
       Provider.of<DebtsProvider>(context, listen: false).markChanged();
+      
+      // Emit events to notify other screens of debt changes
+      AppEvents.instance.emit(AppEventType.debtsUpdated);
+      AppEvents.instance.emit(AppEventType.receiptsUpdated);
+      AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
+      
       Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _saving = false);

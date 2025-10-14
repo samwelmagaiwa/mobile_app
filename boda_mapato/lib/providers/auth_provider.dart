@@ -1,14 +1,29 @@
-import "package:flutter/foundation.dart";
+import 'dart:async';
 
-import "../models/login_response.dart";
-import "../services/auth_service.dart";
+import 'package:flutter/foundation.dart';
+
+import '../models/login_response.dart';
+import '../services/app_messenger.dart';
+import '../services/auth_events.dart';
+import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  AuthProvider() {
+    // Listen for global unauthorized events
+    _authSub = AuthEvents.instance.stream.listen((event) async {
+      if (event == AuthEvent.unauthorized) {
+        await _handleUnauthorized();
+      }
+    });
+  }
+
   UserData? _user;
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
   String? _errorMessage;
+
+  late final StreamSubscription<AuthEvent> _authSub;
 
   // Getters
   UserData? get user => _user;
@@ -16,6 +31,12 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get errorMessage => _errorMessage;
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
 
   // Initialize auth state
   Future<void> initialize() async {
@@ -146,6 +167,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _handleUnauthorized() async {
+    try {
+      await AuthService.clearAuthData();
+    } on Exception {
+      // ignore
+    }
+    _user = null;
+    _isAuthenticated = false;
+    _error = null;
+    _errorMessage = null;
+    notifyListeners();
+    // Inform the user globally
+    AppMessenger.show('Muda wa kikao umeisha, tafadhali ingia tena.');
+  }
+
   // Refresh user data
   Future<void> refreshUser() async {
     if (!_isAuthenticated) {
@@ -177,19 +213,30 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      // TODO(dev): Implement API call to update profile
-      // For now, just update local data
-      final Map<String, Object?> updatedUserData = <String, Object?>{
-        "id": _user!.id,
-        "name": name ?? _user!.name,
-        "email": email ?? _user!.email,
-        "phone_number": phone ?? _user!.phoneNumber,
-        "role": _user!.role,
-        "is_active": _user!.isActive,
-      };
+      // Call backend to update profile
+      final Map<String, dynamic> res = await AuthService.updateProfile(
+        name: name,
+        email: email,
+        phone: phone,
+      );
 
-      await AuthService.saveUserData(updatedUserData);
-      _user = UserData.fromJson(updatedUserData);
+      final Map<String, dynamic>? updated =
+          res['user'] is Map ? Map<String, dynamic>.from(res['user']) : null;
+      if (updated != null) {
+        _user = UserData.fromJson(updated);
+      } else if (_user != null) {
+        // Fallback: locally merge
+        final Map<String, Object?> updatedUserData = <String, Object?>{
+          "id": _user!.id,
+          "name": name ?? _user!.name,
+          "email": email ?? _user!.email,
+          "phone_number": phone ?? _user!.phoneNumber,
+          "role": _user!.role,
+          "is_active": _user!.isActive,
+        };
+        await AuthService.saveUserData(updatedUserData);
+        _user = UserData.fromJson(updatedUserData);
+      }
 
       notifyListeners();
       return true;
@@ -215,12 +262,11 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      // TODO(dev): Implement API call to change password
-      // This would typically involve sending current and new passwords to the server
-
-      // Simulate API call
-      await Future<void>.delayed(const Duration(seconds: 1));
-
+      await AuthService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
       return true;
     } on Exception catch (e) {
       _setError("Failed to change password: $e");

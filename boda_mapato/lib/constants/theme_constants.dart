@@ -147,6 +147,102 @@ class ThemeConstants {
     fontWeight: FontWeight.normal,
   );
 
+  // Top snackbar utility methods - truly positions at TOP of screen
+  static void _showTopSnackBar(
+    BuildContext context,
+    String message, {
+    Color? backgroundColor,
+    Duration? duration,
+    IconData? icon,
+  }) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: backgroundColor ?? successGreen,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    overlay.insert(overlayEntry);
+    
+    // Auto-remove after duration
+    Future.delayed(duration ?? const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
+  static void showSuccessSnackBar(BuildContext context, String message) {
+    _showTopSnackBar(
+      context, 
+      message,
+      backgroundColor: successGreen,
+      icon: Icons.check_circle,
+    );
+  }
+
+  static void showErrorSnackBar(BuildContext context, String message) {
+    _showTopSnackBar(
+      context, 
+      message,
+      backgroundColor: errorRed,
+      icon: Icons.error,
+    );
+  }
+
+  static void showWarningSnackBar(BuildContext context, String message) {
+    _showTopSnackBar(
+      context, 
+      message,
+      backgroundColor: warningAmber,
+      icon: Icons.warning,
+    );
+  }
+
   // Responsive helper methods
   /// Get responsive glass card decoration with MediaQuery-based sizing
   static BoxDecoration responsiveGlassCardDecoration(BuildContext context) {

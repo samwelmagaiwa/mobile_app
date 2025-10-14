@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
+import "../../services/app_events.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
 
@@ -234,6 +235,11 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
       if (mounted) {
         _showSuccessSnackBar("Malipo yamerekodiwa kikamilifu!");
         _clearForm();
+        
+        // Emit events to notify other screens about payment updates
+        AppEvents.instance.emit(AppEventType.paymentsUpdated);
+        AppEvents.instance.emit(AppEventType.receiptsUpdated);
+        AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
       }
     } on Exception catch (e) {
       if (mounted) {

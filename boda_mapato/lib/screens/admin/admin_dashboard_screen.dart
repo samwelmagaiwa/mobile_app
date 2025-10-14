@@ -1,14 +1,16 @@
-import "dart:async";
-import "dart:ui";
-import "package:flutter/material.dart";
-import "package:flutter/services.dart";
-import "package:provider/provider.dart";
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
 
-import "../../config/app_config.dart";
-import "../../models/login_response.dart";
-import "../../providers/auth_provider.dart";
-import "../../services/api_service.dart";
-import "../../services/mock_api_service.dart";
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/login_response.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -45,6 +47,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _initializeAnimations();
     _loadDashboardData();
+    _loadChartData();
   }
 
   void _initializeAnimations() {
@@ -76,8 +79,137 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.dispose();
   }
 
+  // Chart state
+  List<double> _chartPoints = <double>[];
+  List<String> _chartLabels = <String>[]; // dates for weekly or months for monthly
+  String _chartPeriod = 'weekly'; // 'weekly' or 'monthly'
+  bool _chartLoading = false;
+
+  Future<void> _loadChartData() async {
+    setState(() => _chartLoading = true);
+    try {
+      // Guard: only fetch when authenticated
+      final bool isAuthed = await AuthService.isAuthenticated();
+      if (!isAuthed) {
+        if (mounted) setState(() => _chartLoading = false);
+        return;
+      }
+      final ApiService api = ApiService();
+      await api.initialize();
+      // Weekly: last 7 days; Monthly: aggregate last 12 months
+      if (_chartPeriod == 'weekly') {
+        final List<dynamic> raw = await api.getRevenueChart();
+        final List<double> amounts = _extractAmounts(raw);
+        final List<String> dates = _extractDates(raw);
+        if (amounts.isNotEmpty) {
+          final int len = amounts.length;
+          final int start = len >= 7 ? len - 7 : 0;
+          setState(() {
+            _chartPoints = amounts.sublist(start);
+            _chartLabels = dates.length == len
+                ? dates.sublist(start)
+                : List<String>.generate(len - start, (i) => '');
+          });
+        } else {
+          setState(() {
+            _chartPoints = <double>[];
+            _chartLabels = <String>[];
+          });
+        }
+      } else {
+        final List<dynamic> raw = await api.getRevenueChart(days: 365);
+        final List<double> monthly = _aggregateMonthly(raw);
+        setState(() {
+          _chartPoints = monthly;
+          _chartLabels = const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        });
+      }
+      if (mounted) {
+        _chartAnimationController
+          ..reset()
+          ..forward();
+      }
+    } on Exception catch (_) {
+      // Do not use any mock data; leave chart empty and show no synthetic values
+    } finally {
+      if (mounted) setState(() => _chartLoading = false);
+    }
+  }
+
+  List<double> _extractAmounts(List<dynamic> raw) {
+    return raw.map<double>((e) {
+      if (e is num) return e.toDouble();
+      if (e is Map) {
+        final dynamic v = e['amount'] ?? e['revenue'] ?? e['value'];
+        if (v is num) return v.toDouble();
+        if (v != null) return double.tryParse(v.toString()) ?? 0.0;
+      }
+      return 0.0;
+    }).toList();
+  }
+
+  List<String> _extractDates(List<dynamic> raw) {
+    return raw.map<String>((e) {
+      if (e is Map) {
+        final String? dateStr = (e['date'] ?? e['created_at'])?.toString();
+        if (dateStr != null && dateStr.isNotEmpty) {
+          final String datePart = dateStr.split('T').first;
+          final List<String> parts = datePart.split('-');
+          if (parts.length >= 3) {
+            return '${parts[2].padLeft(2, '0')}/${parts[1].padLeft(2, '0')}';
+          }
+          return datePart;
+        }
+      }
+      return '';
+    }).toList();
+  }
+
+  List<double> _aggregateMonthly(List<dynamic> raw) {
+    // Try to detect {date, amount|revenue} maps
+    if (raw.isNotEmpty && raw.first is Map && (raw.first as Map).containsKey('date')) {
+      final Map<int, double> sums = <int, double>{}; // month(1-12) -> sum
+      for (final e in raw) {
+        try {
+          final m = e as Map;
+          final String dateStr = m['date']?.toString() ?? m['created_at']?.toString() ?? '';
+          final DateTime? dt = DateTime.tryParse(dateStr);
+          final dynamic rawVal = m['amount'] ?? m['revenue'] ?? m['value'];
+          final double amt = rawVal is num
+              ? rawVal.toDouble()
+              : double.tryParse(rawVal?.toString() ?? '') ?? 0.0;
+          if (dt != null) {
+            sums.update(dt.month, (v) => v + amt, ifAbsent: () => amt);
+          }
+        } on Exception catch (_) {}
+      }
+      // Return 12 months ordered Jan..Dec
+      return List<double>.generate(12, (i) => sums[i + 1] ?? 0.0);
+    }
+    // Fallback: assume daily numeric series length ~365, split into 12 buckets
+    final List<double> amounts = _extractAmounts(raw);
+    if (amounts.isEmpty) return List<double>.filled(12, 0);
+    final int bucketSize = (amounts.length / 12).floor().clamp(1, amounts.length);
+    final List<double> monthly = <double>[];
+    for (int i = 0; i < 12; i++) {
+      final int start = i * bucketSize;
+      final int end = i == 11 ? amounts.length : (i + 1) * bucketSize;
+      final double sum = amounts
+          .sublist(start.clamp(0, amounts.length), end.clamp(0, amounts.length))
+          .fold(0, (a, b) => a + b);
+      monthly.add(sum);
+    }
+    return monthly;
+  }
+
   Future<void> _loadDashboardData() async {
     try {
+      // Guard: only fetch when authenticated
+      final bool isAuthed = await AuthService.isAuthenticated();
+      if (!isAuthed) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
       final ApiService apiService = ApiService();
       await apiService.initialize();
       final Map<String, dynamic> response = await apiService.getDashboardData();
@@ -107,10 +239,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         setState(() {
           _isLoading = false;
         });
-
-        // Load mock data as fallback
-        unawaited(_loadMockData());
-        _showErrorSnackBar("Using demo data - Backend unavailable");
+        _showErrorSnackBar("Backend haipatikani. Tafadhali jaribu tena baadaye.");
       }
     }
   }
@@ -217,6 +346,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             _buildStatsCards(),
                             SizedBox(
                                 height: constraints.maxWidth > 400 ? 24 : 16),
+                            _buildRevenueChartSection(),
+                            SizedBox(
+                                height: constraints.maxWidth > 400 ? 24 : 16),
                             _buildRecentTransactions(),
                             SizedBox(
                                 height: constraints.maxWidth > 400 ? 24 : 16),
@@ -244,10 +376,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           icon: const Icon(Icons.menu, color: textPrimary, size: 24),
         ),
-        Expanded(
+        const Expanded(
           child: Column(
-            children: [
-              const Text(
+            children: <Widget>[
+              Text(
                 "Admin Dashboard",
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -256,15 +388,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (AppConfig.shouldShowMockIndicator)
-                const Text(
-                  "🚧 Demo Mode - Mock Data",
-                  style: TextStyle(
-                    color: Color(0xFFFFCC80),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
             ],
           ),
         ),
@@ -544,6 +667,181 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
+  Widget _buildRevenueChartSection() => _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Mapato',
+                    style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  ChoiceChip(
+                    label: const Text('Wiki'),
+                    selected: _chartPeriod == 'weekly',
+                    onSelected: (v) async {
+                      if (!v) return;
+                      setState(() => _chartPeriod = 'weekly');
+                      await _loadChartData();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Mwezi'),
+                    selected: _chartPeriod == 'monthly',
+                    onSelected: (v) async {
+                      if (!v) return;
+                      setState(() => _chartPeriod = 'monthly');
+                      await _loadChartData();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 200,
+                child: _chartLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Builder(builder: (context) {
+                        if (_chartPoints.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'Hakuna data ya chart kupatikana',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          );
+                        }
+                        final List<double> points = _chartPoints;
+                        final double maxY =
+                            points.reduce((a, b) => a > b ? a : b) * 1.2;
+                        return LineChart(
+                          LineChartData(
+                            minX: 0,
+                            maxX: (points.length - 1).toDouble(),
+                            minY: 0,
+                            maxY: maxY,
+                            gridData: FlGridData(
+                              drawVerticalLine: false,
+                              horizontalInterval: maxY / 5,
+                              getDrawingHorizontalLine: (value) => FlLine(
+                                color: Colors.white.withOpacity(0.15),
+                                strokeWidth: 1,
+                              ),
+                            ),
+                            titlesData: FlTitlesData(
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 40,
+                                  interval: maxY / 4,
+                                  getTitlesWidget: (value, meta) => Text(
+                                    _formatShort(value),
+                                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                  ),
+                                ),
+                              ),
+                            bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (value, meta) {
+                                    final int i = value.toInt();
+                                    if (_chartPeriod == 'weekly') {
+                                      final String text =
+                                          (i >= 0 && i < _chartLabels.length) ? _chartLabels[i] : '';
+                                      return Transform.rotate(
+                                        angle: -math.pi / 6,
+                                        alignment: Alignment.topRight,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Text(
+                                            text,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      final List<String> months = _chartLabels.isNotEmpty
+                                          ? _chartLabels
+                                          : const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                      final String text = (i >= 0 && i < months.length) ? months[i] : '';
+                                      return Text(
+                                        text,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                              rightTitles: const AxisTitles(),
+                              topTitles: const AxisTitles(),
+                            ),
+                            lineTouchData: LineTouchData(
+                              touchTooltipData: LineTouchTooltipData(
+                                getTooltipItems: (touchedSpots) {
+                                  return touchedSpots.map((barSpot) {
+                                    final i = barSpot.x.toInt();
+                                    String label = '';
+                                    if (_chartPeriod == 'weekly') {
+                                      label = (i >= 0 && i < _chartLabels.length) ? _chartLabels[i] : '';
+                                    } else {
+                                      final List<String> months = _chartLabels.isNotEmpty
+                                          ? _chartLabels
+                                          : const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                      label = (i >= 0 && i < months.length) ? months[i] : '';
+                                    }
+                                    final valueText = 'TSH ${_formatCurrency(barSpot.y)}';
+                                    return LineTooltipItem(
+                                      '$label\n$valueText',
+                                      const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                    );
+                                  }).toList();
+                                },
+                              ),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: points
+                                    .asMap()
+                                    .entries
+                                    .map((e) => FlSpot(e.key.toDouble(), e.value))
+                                    .toList(),
+                                isCurved: true,
+                                color: Colors.white,
+                                barWidth: 3,
+                                dotData: FlDotData(
+                                  getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                                    radius: 3,
+                                    color: Colors.white,
+                                    strokeColor: Colors.white,
+                                  ),
+                                ),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.white.withOpacity(0.3),
+                                      Colors.white.withOpacity(0.05),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _buildQuickActions() => _buildGlassCard(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -558,9 +856,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               }),
               _buildActionButton(Icons.directions_car, "Magari", () {
                 _navigateToPage("vehicles");
-              }),
-              _buildActionButton(Icons.payment, "Malipo", () {
-                _navigateToPage("payments");
               }),
             ],
           ),
@@ -665,11 +960,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       badge: "${_dashboardData["total_vehicles"] ?? 0}"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
-                      icon: Icons.payment,
-                      title: "Malipo",
-                      page: "payments",
-                      badge: "${_dashboardData["pending_payments"] ?? 0}"),
-                  _buildNavItem(
                       icon: Icons.assignment_turned_in,
                       title: "Rekodi Madeni",
                       page: "debts"),
@@ -763,8 +1053,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         Navigator.pushNamed(context, "/admin/drivers");
       case "vehicles":
         Navigator.pushNamed(context, "/admin/vehicles");
-      case "payments":
-        Navigator.pushNamed(context, "/admin/payments");
       case "debts":
         Navigator.pushNamed(context, "/admin/debts");
       case "reports":
@@ -835,6 +1123,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
+  String _formatShort(double value) {
+    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
+    if (value >= 1000) return "${(value / 1000).round()}K";
+    return value.round().toString();
+  }
+
   double _toDouble(value) {
     if (value == null) return 0;
     if (value is double) return value;
@@ -860,37 +1154,4 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
-  Future<void> _loadMockData() async {
-    try {
-      final Map<String, dynamic> mockResponse =
-          await MockApiService.getDashboardData();
-
-      if (mounted) {
-        Map<String, dynamic> data;
-        if (mockResponse.containsKey('data') && mockResponse['data'] != null) {
-          data = mockResponse['data'] as Map<String, dynamic>;
-        } else {
-          data = mockResponse;
-        }
-
-        setState(() {
-          _dashboardData = data;
-          _isLoading = false;
-        });
-
-        unawaited(_animationController.forward());
-        unawaited(Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _chartAnimationController.forward();
-          }
-        }));
-      }
-    } on Exception catch (_) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
 }

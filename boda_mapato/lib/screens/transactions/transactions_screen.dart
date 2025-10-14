@@ -4,6 +4,7 @@ import "package:provider/provider.dart";
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../models/transaction.dart";
 import "../../providers/transaction_provider.dart";
 import "../../widgets/custom_card.dart";
@@ -292,21 +293,11 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.transactionSaved),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, AppStrings.transactionSaved);
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
       }
     } finally {
       if (mounted) {

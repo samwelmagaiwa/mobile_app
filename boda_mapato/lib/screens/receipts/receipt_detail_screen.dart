@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/theme_constants.dart';
 import '../../models/payment_receipt.dart';
 import '../../services/api_service.dart';
+import '../../services/app_events.dart';
 import '../../utils/responsive_helper.dart';
 
 class ReceiptDetailScreen extends StatefulWidget {
@@ -20,7 +21,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
 
   bool _isGenerating = false;
   bool _isSending = false;
+  bool _isCheckingExisting = false;
   Map<String, dynamic>? _generatedReceipt; // from preview/generate
+  Map<String, dynamic>? _existingReceipt; // if receipt already exists
 
   // Send options
   ReceiptSendMethod _sendMethod = ReceiptSendMethod.whatsapp;
@@ -44,6 +47,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     _contactController.text = widget.pendingReceipt.driver.phone.isNotEmpty
         ? widget.pendingReceipt.driver.phone
         : (widget.pendingReceipt.driver.email ?? '');
+    
+    // Check if receipt already exists for this payment
+    _checkExistingReceipt();
   }
 
   @override
@@ -53,7 +59,68 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     super.dispose();
   }
 
+  Future<void> _checkExistingReceipt() async {
+    setState(() => _isCheckingExisting = true);
+    try {
+      // Ask API for any receipts related to this payment. We'll validate by payment_id locally.
+      final response = await _api.getReceipts(
+        query: widget.pendingReceipt.paymentId,
+        limit: 5,
+      );
+
+      final Map<String, dynamic> data = _extractData(response);
+      final List<dynamic> receiptsData = (data['receipts'] is List)
+          ? (data['receipts'] as List)
+          : (data['data'] is List)
+              ? (data['data'] as List)
+              : <dynamic>[];
+
+      // Find an exact match by payment_id/paymentId or nested payment.id
+      final String pid = widget.pendingReceipt.paymentId;
+      Map<String, dynamic>? match;
+      for (final dynamic item in receiptsData) {
+        if (item is Map) {
+          final Map<String, dynamic> m = item.cast<String, dynamic>();
+          final String a = _asString(m['payment_id']);
+          final String b = _asString(m['paymentId']);
+          final String c = _asString((m['payment'] is Map) ? (m['payment'] as Map)['id'] : null);
+          if (a == pid || b == pid || c == pid) {
+            match = m;
+            break;
+          }
+        }
+      }
+
+      if (match != null) {
+        if (mounted) setState(() => _existingReceipt = match);
+      } else {
+        if (mounted) setState(() => _existingReceipt = null);
+      }
+    } on Exception catch (_) {
+      // Ignore errors when checking existing receipts
+    } finally {
+      if (mounted) setState(() => _isCheckingExisting = false);
+    }
+  }
+
+  Map<String, dynamic> _extractData(Map<String, dynamic> res) {
+    if (res['data'] is Map<String, dynamic>) return res['data'] as Map<String, dynamic>;
+    if (res['success'] == true || res['status'] == 'success') {
+      final dynamic d = res['data'];
+      if (d is Map<String, dynamic>) return d;
+    }
+    return res;
+  }
+
+  String _asString(dynamic v) => v == null ? '' : v.toString().trim();
+
   Future<void> _generateReceipt() async {
+    // Check if receipt already exists
+    if (_existingReceipt != null) {
+      _showSnack('Risiti tayari imetengenezwa kwa malipo haya!', isError: true);
+      return;
+    }
+
     setState(() => _isGenerating = true);
     try {
       final res =
@@ -61,16 +128,35 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       if (res['success'] == true) {
         setState(() {
           _generatedReceipt = res['data'] as Map<String, dynamic>;
+          _existingReceipt = res['data'] as Map<String, dynamic>; // Mark as existing
         });
         _showSnack('Risiti imetengenezwa!');
+        await _refreshPage();
+        AppEvents.instance.emit(AppEventType.receiptsUpdated);
+        AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
       } else {
-        throw Exception(res['message'] ?? 'Imeshindikana kutengeneza risiti');
+        // Check if the error is about duplicate receipt
+        final errorMessage = res['message']?.toString() ?? 'Imeshindikana kutengeneza risiti';
+        if (errorMessage.toLowerCase().contains('already exists') || 
+            errorMessage.toLowerCase().contains('duplicate') ||
+            errorMessage.toLowerCase().contains('tayari')) {
+          _showSnack('Risiti tayari imetengenezwa kwa malipo haya!', isError: true);
+          // Try to find the existing receipt
+          await _checkExistingReceipt();
+        } else {
+          throw Exception(errorMessage);
+        }
       }
     } on Exception catch (e) {
-      _showSnack('Hitilafu: $e', isError: true);
+      _showSnack('Hitilafu: ${e.toString().replaceFirst('Exception: ', '')}', isError: true);
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }
+  }
+
+  Future<void> _refreshPage() async {
+    await _checkExistingReceipt();
+    if (mounted) setState(() {});
   }
 
   Future<void> _sendReceipt() async {
@@ -101,7 +187,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       );
       if (res['success'] == true) {
         _showSnack('Risiti imetumwa!');
-        if (mounted) Navigator.pop(context);
+        await _refreshPage();
+        AppEvents.instance.emit(AppEventType.receiptsUpdated);
+        AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
+        // Optionally keep user on this screen to see refreshed state.
       } else {
         throw Exception(res['message'] ?? 'Imeshindikana kutuma risiti');
       }
@@ -113,13 +202,11 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
   }
 
   void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor:
-            isError ? ThemeConstants.errorRed : ThemeConstants.successGreen,
-      ),
-    );
+    if (isError) {
+      ThemeConstants.showErrorSnackBar(context, msg);
+    } else {
+      ThemeConstants.showSuccessSnackBar(context, msg);
+    }
   }
 
   @override
@@ -130,9 +217,14 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
       title: 'Maelezo ya Risiti',
       body: FadeTransition(
         opacity: _fade,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _refreshPage,
+          color: ThemeConstants.primaryBlue,
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
@@ -146,6 +238,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -261,18 +354,27 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              _generatedReceipt == null
-                  ? 'Bonyeza hapa chini kutengeneza risiti ya malipo haya.'
-                  : 'Risiti imetengenezwa. Unaweza kuituma sasa.',
-              style: const TextStyle(color: ThemeConstants.textSecondary),
+              _existingReceipt != null
+                  ? 'Risiti tayari imetengenezwa kwa malipo haya.'
+                  : (_generatedReceipt == null
+                      ? 'Bonyeza hapa chini kutengeneza risiti ya malipo haya.'
+                      : 'Risiti imetengenezwa. Unaweza kuituma sasa.'),
+              style: TextStyle(
+                color: _existingReceipt != null 
+                    ? ThemeConstants.primaryOrange 
+                    : ThemeConstants.textSecondary,
+                fontWeight: _existingReceipt != null ? FontWeight.w600 : FontWeight.normal,
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _isGenerating ? null : _generateReceipt,
+                onPressed: (_isGenerating || _existingReceipt != null) ? null : _generateReceipt,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeConstants.primaryOrange,
+                  backgroundColor: _existingReceipt != null 
+                      ? Colors.grey 
+                      : ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -287,7 +389,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                       )
                     : const Icon(Icons.receipt),
                 label: Text(
-                    _isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti'),
+                    _existingReceipt != null
+                        ? 'Tayari Imetengenezwa'
+                        : (_isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti')),
               ),
             ),
           ],

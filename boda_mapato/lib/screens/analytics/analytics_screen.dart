@@ -72,19 +72,55 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   double _calculateGrowthRate(Map<String, dynamic>? revenueData) {
-    // Simulate growth rate calculation
-    return 12.5; // Default growth rate
+    if (revenueData == null) return 0;
+
+    // Try common growth keys provided by backend reports
+    final dynamic direct = revenueData['growth_rate'] ??
+        revenueData['revenue_growth'] ??
+        (revenueData['data'] is Map
+            ? (revenueData['data']['growth_rate'] ??
+                revenueData['data']['revenue_growth'])
+            : null);
+    if (direct is num) return direct.toDouble();
+    if (direct is String) return double.tryParse(direct) ?? 0;
+
+    // If there is daily/monthly series, estimate simple MoM/period change when possible
+    try {
+      final List<dynamic> series = (revenueData['daily_data'] ??
+              revenueData['series'] ??
+              (revenueData['data'] is Map
+                  ? (revenueData['data']['daily_data'] ??
+                      revenueData['data']['series'])
+                  : null))
+          ?.cast<dynamic>() ??
+          <dynamic>[];
+      if (series.length >= 2) {
+        final double last = _toNumLike(series.last).toDouble();
+        final double prev = _toNumLike(series[series.length - 2]).toDouble();
+        if (prev == 0) return last > 0 ? 100 : 0;
+        return ((last - prev) / prev) * 100;
+      }
+    } on Exception {
+      // ignore, fall through
+    }
+    return 0;
   }
 
   double _calculateProfitMargin(
       Map<String, dynamic>? revenueData, Map<String, dynamic>? expenseData) {
-    if (revenueData == null || expenseData == null) return 25;
+    if (revenueData == null || expenseData == null) return 0;
 
-    final revenue = revenueData['total_revenue'] ?? 0;
-    final expenses = expenseData['total_expenses'] ?? 0;
+    final double revenue = _extractFirstNumber(
+      revenueData,
+      const ['total_revenue', 'revenue_total', 'total'],
+    );
+    final double expenses = _extractFirstNumber(
+      expenseData,
+      const ['total_expenses', 'expenses_total', 'total'],
+    );
 
-    if (revenue == 0) return 0;
-    return (revenue - expenses) / revenue * 100;
+    if (revenue <= 0) return 0;
+    return ((revenue - expenses) / revenue) * 100;
   }
 
   @override
@@ -195,8 +231,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _MetricCard(
                   title: "Jumla ya Mapato",
                   value:
-                      "TSh ${_analyticsData?['revenue']?['total_revenue'] ?? 450000}",
-                  change: "+${_analyticsData?['growth_rate'] ?? 12.5}%",
+                      "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const ['total_revenue','revenue_total','total']))}",
+                  change: "+${(_analyticsData?['growth_rate'] as num? ?? 0).toStringAsFixed(1)}%",
                   isPositive: true,
                   icon: Icons.trending_up,
                 ),
@@ -206,8 +242,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _MetricCard(
                   title: "Faida Halisi",
                   value:
-                      "TSh ${(_analyticsData?['revenue']?['total_revenue'] ?? 450000) - (_analyticsData?['expenses']?['total_expenses'] ?? 125000)}",
-                  change: "+8.2%",
+                      "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
+                  change: "+${_computeProfitChange(_analyticsData)}%",
                   isPositive: true,
                   icon: Icons.account_balance_wallet,
                 ),
@@ -221,8 +257,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _MetricCard(
                   title: "Kiwango cha Faida",
                   value:
-                      "${_analyticsData?['profit_margin']?.toStringAsFixed(1) ?? '25.0'}%",
-                  change: "+2.1%",
+                      "${(_analyticsData?['profit_margin'] as num? ?? 0).toStringAsFixed(1)}%",
+                  change: "",
                   isPositive: true,
                   icon: Icons.pie_chart,
                 ),
@@ -232,8 +268,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _MetricCard(
                   title: "Wateja Wapya",
                   value:
-                      "${_analyticsData?['revenue']?['new_customers'] ?? 15}",
-                  change: "+18.5%",
+                      "${_extractFirstInt(_analyticsData?['revenue'], const ['new_customers','customers_new','customers'])}",
+                  change: "",
                   isPositive: true,
                   icon: Icons.person_add,
                 ),
@@ -410,6 +446,67 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ],
       );
+}
+
+// Helper functions (top-level) for analytics number extraction and formatting
+num _toNumLike(Object? v) {
+  if (v is num) return v;
+  if (v is Map && (v['amount'] != null || v['value'] != null)) {
+    final dynamic raw = v['amount'] ?? v['value'];
+    if (raw is num) return raw;
+    return double.tryParse(raw.toString()) ?? 0;
+  }
+  if (v is String) return double.tryParse(v) ?? 0;
+  return 0;
+}
+
+double _extractFirstNumber(Map<String, dynamic>? map, List<String> keys) {
+  if (map == null) return 0;
+  // try at top level
+  for (final String k in keys) {
+    final dynamic v = map[k];
+    if (v is num) return v.toDouble();
+    if (v is String) {
+      final double? d = double.tryParse(v);
+      if (d != null) return d;
+    }
+  }
+  // try nested under 'data'
+  final dynamic data = map['data'];
+  if (data is Map<String, dynamic>) {
+    return _extractFirstNumber(data, keys);
+  }
+  return 0;
+}
+
+int _extractFirstInt(Map<String, dynamic>? map, List<String> keys) =>
+    _extractFirstNumber(map, keys).round();
+
+String _formatMoney(double value) {
+  if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+  if (value >= 1000) return '${(value / 1000).toStringAsFixed(0)}K';
+  return value.toStringAsFixed(0);
+}
+
+double _computeProfit(Map<String, dynamic>? data) {
+  final double rev =
+      _extractFirstNumber(data?['revenue'], const <String>['total_revenue', 'revenue_total', 'total']);
+  final double exp =
+      _extractFirstNumber(data?['expenses'], const <String>['total_expenses', 'expenses_total', 'total']);
+  return (rev - exp).clamp(0, double.infinity);
+}
+
+String _computeProfitChange(Map<String, dynamic>? data) {
+  // If backend supplies a profit_growth or similar, use it; otherwise empty
+  final dynamic v = data?['profit_loss']?['profit_growth'] ??
+      data?['revenue']?['profit_growth'] ??
+      data?['data']?['profit_growth'];
+  if (v is num) return v.toStringAsFixed(1);
+  if (v is String) {
+    final double? d = double.tryParse(v);
+    if (d != null) return d.toStringAsFixed(1);
+  }
+  return '';
 }
 
 class _PeriodButton extends StatelessWidget {

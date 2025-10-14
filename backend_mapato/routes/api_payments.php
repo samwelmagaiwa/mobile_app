@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Route;
 |
 | Here is where you can register API routes for payment management.
 | These routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group.
+| is assigned to the "api" middleware group.
 |
 */
 
-Route::middleware(['auth:api'])->prefix('admin/payments')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('admin/payments')->group(function () {
     // Driver and debt management
     Route::get('/drivers-with-debts', [PaymentController::class, 'getDriversWithDebts']);
     Route::get('/driver-debt-summary/{driverId}', [PaymentController::class, 'getDriverDebtSummary']);
@@ -33,8 +33,4 @@ Route::middleware(['auth:api'])->prefix('admin/payments')->group(function () {
     Route::put('/mark-debt-paid/{debtId}', [PaymentController::class, 'markDebtAsPaid']);
 });
 
-// Public routes (if needed for testing or webhook)
-Route::prefix('payments')->group(function () {
-    // Add any public payment routes here if needed
-    // Route::post('/webhook', [PaymentController::class, 'handleWebhook']);
-});
+// No public payment routes in production. Webhooks can be added here if needed with proper signature validation.

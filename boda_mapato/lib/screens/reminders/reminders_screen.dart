@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "../../constants/theme_constants.dart";
 import "../../models/reminder.dart";
 import "../../services/api_service.dart";
+import "../../services/auth_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class RemindersScreen extends StatefulWidget {
@@ -33,6 +34,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
     });
 
     try {
+      // Guard: only fetch if authenticated
+      final bool isAuthed = await AuthService.isAuthenticated();
+      if (!isAuthed) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
       final Map<String, dynamic> response = await _apiService.getReminders();
 
       // Handle the API response structure
@@ -66,12 +73,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kupakia mikumbusho: $e"),
-            backgroundColor: ThemeConstants.errorRed,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kupakia mikumbusho: $e");
       }
     }
   }
@@ -129,21 +131,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
       unawaited(_loadReminders());
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Kikumbusho kimefutwa"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Kikumbusho kimefutwa");
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kufuta kikumbusho: $e"),
-            backgroundColor: ThemeConstants.errorRed,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kufuta kikumbusho: $e");
       }
     }
   }
@@ -154,21 +146,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
       unawaited(_loadReminders());
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Kikumbusho kimekamilika"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Kikumbusho kimekamilika");
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kubadilisha hali ya kikumbusho: $e"),
-            backgroundColor: ThemeConstants.errorRed,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kubadilisha hali ya kikumbusho: $e");
       }
     }
   }
@@ -675,21 +657,11 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
 
       if (mounted) {
         Navigator.pop(context, true); // Return true to indicate success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Kikumbusho kimeongezwa"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Kikumbusho kimeongezwa");
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kuongeza kikumbusho: $e"),
-            backgroundColor: ThemeConstants.errorRed,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuongeza kikumbusho: $e");
       }
     } finally {
       if (mounted) {

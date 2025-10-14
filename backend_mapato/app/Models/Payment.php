@@ -23,6 +23,7 @@ class Payment extends Model
         'payment_date',
         'recorded_by',
         'receipt_status',
+        'payment_type',
     ];
 
     protected $casts = [
@@ -46,6 +47,17 @@ class Payment extends Model
             if (empty($payment->reference_number)) {
                 $payment->reference_number = self::generateReferenceNumber();
             }
+        });
+
+        // Trigger prediction refresh when payments change
+        static::created(function ($payment) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($payment->driver_id);
+        });
+        static::updated(function ($payment) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($payment->driver_id);
+        });
+        static::deleted(function ($payment) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($payment->driver_id);
         });
     }
 

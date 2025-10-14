@@ -58,24 +58,47 @@ class DriverAgreementController extends Controller
         try {
             // Validate request data
             $validatedData = $request->validate([
-                'driver_id' => 'required|uuid|exists:drivers,id',
+                // Accept any id shape; resolve to actual driver below
+                'driver_id' => 'required',
                 'agreement_type' => 'required|in:kwa_mkataba,dei_waka',
                 'start_date' => 'required|date',
+                'end_date' => 'sometimes|nullable|date|after:start_date',
                 'weekends_countable' => 'boolean',
                 'saturday_included' => 'boolean',
                 'sunday_included' => 'boolean',
                 'payment_frequencies' => 'required|array|min:1',
-                'payment_frequencies.*' => 'in:kila_siku,kila_wiki,kila_mwezi',
+                // Accept both Swahili and English frequency tokens
+                'payment_frequencies.*' => [
+                    Rule::in(['kila_siku','kila_wiki','kila_mwezi','daily','weekly','monthly'])
+                ],
                 'notes' => 'nullable|string',
-                // Contract-specific fields
-                'vehicle_payment' => 'required_if:agreement_type,kwa_mkataba|numeric|min:0',
-                'daily_target' => 'required_if:agreement_type,kwa_mkataba|numeric|min:0',
-                'contract_period_months' => 'required_if:agreement_type,kwa_mkataba|integer|min:1',
-                // Daily work fields
-                'salary_amount' => 'required_if:agreement_type,dei_waka|numeric|min:0',
+                // Accept either detailed contract fields OR a single agreed amount
+                'vehicle_payment' => 'sometimes|numeric|min:0',
+                'daily_target' => 'sometimes|numeric|min:0',
+                'contract_period_months' => 'sometimes|integer|min:1',
+                // Daily work fields (dei_waka)
+                'salary_amount' => 'sometimes|numeric|min:0',
                 'bonus_amount' => 'nullable|numeric|min:0',
+                // Alternate amount field from mobile app
+                'kiasi_cha_makubaliano' => 'sometimes|numeric|min:0',
+                'agreed_amount' => 'sometimes|numeric|min:0',
+                'total_profit' => 'sometimes|numeric|min:0',
             ]);
             
+            // Resolve driver id: accept drivers.id or users.id
+            $inputDriverId = (string) $validatedData['driver_id'];
+            $resolvedDriver = Driver::where('id', $inputDriverId)
+                ->orWhere('user_id', $inputDriverId)
+                ->first();
+            if (!$resolvedDriver) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected driver id is invalid.',
+                    'errors' => ['driver_id' => ['The selected driver id is invalid.']],
+                ], 422);
+            }
+            $validatedData['driver_id'] = $resolvedDriver->id;
+
             // Check if driver already has an active agreement
             $existingAgreement = DriverAgreement::where('driver_id', $validatedData['driver_id'])
                 ->where('status', 'active')
@@ -92,24 +115,49 @@ class DriverAgreementController extends Controller
             $validatedData['wikendi_zinahesabika'] = $request->boolean('weekends_countable', false);
             $validatedData['jumamosi'] = $request->boolean('saturday_included', false);
             $validatedData['jumapili'] = $request->boolean('sunday_included', false);
+
+            // Normalize payment frequencies to kila_* tokens
+            $freqs = collect($request->input('payment_frequencies', []))->map(function($f) {
+                return match(strtolower((string)$f)) {
+                    'daily' => 'kila_siku',
+                    'weekly' => 'kila_wiki',
+                    'monthly' => 'kila_mwezi',
+                    default => strtolower((string)$f),
+                };
+            })->unique()->values()->all();
+            $validatedData['payment_frequencies'] = $freqs;
             
-            // Calculate kiasi_cha_makubaliano based on agreement type
+            // Calculate kiasi_cha_makubaliano based on agreement type, accepting alternate fields
             if ($validatedData['agreement_type'] === 'kwa_mkataba') {
-                $validatedData['kiasi_cha_makubaliano'] = $validatedData['daily_target'] ?? 0;
-                
-                // Calculate end date and mwaka_atamaliza
-                $startDate = Carbon::parse($validatedData['start_date']);
-                $contractMonths = $validatedData['contract_period_months'] ?? 1;
-                $endDate = $startDate->copy()->addMonths($contractMonths);
-                
-                $validatedData['end_date'] = $endDate->format('Y-m-d');
-                $validatedData['mwaka_atamaliza'] = $endDate->format('Y');
+                // Prefer explicit daily_target; fall back to agreed_amount/kiasi_cha_makubaliano
+                $validatedData['kiasi_cha_makubaliano'] = $validatedData['daily_target']
+                    ?? $validatedData['kiasi_cha_makubaliano']
+                    ?? $request->input('agreed_amount', 0);
+
+                // If end_date provided by app, use it; otherwise compute from contract_period_months
+                if (!empty($validatedData['end_date'])) {
+                    $endDate = Carbon::parse($validatedData['end_date']);
+                } else {
+                    $startDate = Carbon::parse($validatedData['start_date']);
+                    $contractMonths = $validatedData['contract_period_months'] ?? 1;
+                    $endDate = $startDate->copy()->addMonths($contractMonths);
+                    $validatedData['end_date'] = $endDate->format('Y-m-d');
+                }
+                $validatedData['mwaka_atamaliza'] = Carbon::parse($validatedData['end_date'])->format('Y');
             } else {
-                $validatedData['kiasi_cha_makubaliano'] = $validatedData['salary_amount'] ?? 0;
+                // Dei waka: prefer salary_amount; fallback to agreed_amount/kiasi_cha_makubaliano
+                $validatedData['kiasi_cha_makubaliano'] = $validatedData['salary_amount']
+                    ?? $validatedData['kiasi_cha_makubaliano']
+                    ?? $request->input('agreed_amount', 0);
             }
             
-            // Set created_by to current authenticated user
-            $validatedData['created_by'] = Auth::id();
+            // Set created_by to current authenticated user or best available fallback
+            $creatorId = Auth::id();
+            if (!$creatorId && method_exists($resolvedDriver, 'user')) {
+                $creatorId = optional($resolvedDriver->user)->created_by;
+            }
+            // Final fallback for dev/test environments where auth is not enabled
+            $validatedData['created_by'] = $creatorId ?: 1;
             
             // Create the agreement
             $agreement = DriverAgreement::create($validatedData);
@@ -251,14 +299,16 @@ class DriverAgreementController extends Controller
                 ->where('driver_id', $driverId)
                 ->where('status', 'active')
                 ->first();
-            
+
+            // Return 200 with null data if no active agreement instead of 404
             if (!$agreement) {
                 return response()->json([
-                    'success' => false,
+                    'success' => true,
+                    'data' => null,
                     'message' => 'No active agreement found for this driver'
-                ], 404);
+                ], 200);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $agreement,

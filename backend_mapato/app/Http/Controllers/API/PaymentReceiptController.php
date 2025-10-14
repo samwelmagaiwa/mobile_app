@@ -335,4 +335,332 @@ class PaymentReceiptController extends Controller
             'recorded_by' => $payment->recordedBy->name ?? '',
         ];
     }
+
+    /**
+     * Update receipt status
+     */
+    public function updateReceiptStatus(Request $request, int $receiptId)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:generated,sent,delivered,cancelled',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $receipt = PaymentReceipt::findOrFail($receiptId);
+            $receipt->update(['status' => $request->status]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt status updated successfully',
+                'data' => $receipt->getPreviewData(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating receipt status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update receipt status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel receipt
+     */
+    public function cancelReceipt(Request $request, int $receiptId)
+    {
+        try {
+            $receipt = PaymentReceipt::findOrFail($receiptId);
+            $receipt->update(['status' => 'cancelled']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt cancelled successfully',
+                'data' => $receipt->getPreviewData(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error cancelling receipt: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel receipt',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete receipt
+     */
+    public function deleteReceipt(Request $request, int $receiptId)
+    {
+        try {
+            $receipt = PaymentReceipt::findOrFail($receiptId);
+            $receipt->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting receipt: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete receipt',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get receipt statistics
+     */
+    public function getReceiptStats(Request $request)
+    {
+        try {
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+
+            $query = PaymentReceipt::query();
+
+            if ($startDate && $endDate) {
+                $query->whereBetween(DB::raw('DATE(generated_at)'), [$startDate, $endDate]);
+            }
+
+            $stats = [
+                'total_receipts' => $query->count(),
+                'generated_receipts' => $query->where('status', 'generated')->count(),
+                'sent_receipts' => $query->where('status', 'sent')->count(),
+                'delivered_receipts' => $query->where('status', 'delivered')->count(),
+                'cancelled_receipts' => $query->where('status', 'cancelled')->count(),
+                'total_amount' => $query->sum('amount'),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt statistics retrieved successfully',
+                'data' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting receipt statistics: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get receipt statistics',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export receipts
+     */
+    public function exportReceipts(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'format' => 'required|in:pdf,excel',
+            'status' => 'nullable|in:generated,sent,delivered,cancelled',
+            'driver_id' => 'nullable|integer|exists:drivers,id',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // For now, return a placeholder response
+            // TODO: Implement actual export functionality
+            return response()->json([
+                'success' => true,
+                'message' => 'Export functionality not yet implemented',
+                'data' => [
+                    'format' => $request->format,
+                    'filters' => $request->only(['status', 'driver_id', 'date_from', 'date_to']),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error exporting receipts: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export receipts',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate bulk receipts
+     */
+    public function generateBulkReceipts(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'payment_ids' => 'required|array|min:1',
+            'payment_ids.*' => 'integer|exists:payments,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $results = [];
+            $errors = [];
+
+            foreach ($request->payment_ids as $paymentId) {
+                try {
+                    $payment = Payment::with(['driver', 'recordedBy'])->findOrFail($paymentId);
+
+                    // Skip if receipt already exists
+                    if ($payment->paymentReceipt) {
+                        $results[] = [
+                            'payment_id' => $paymentId,
+                            'status' => 'skipped',
+                            'message' => 'Receipt already exists',
+                        ];
+                        continue;
+                    }
+
+                    $receiptNumber = PaymentReceipt::generateReceiptNumber();
+
+                    $receipt = PaymentReceipt::create([
+                        'receipt_number' => $receiptNumber,
+                        'payment_id' => $payment->id,
+                        'driver_id' => $payment->driver_id,
+                        'generated_by' => auth()->id() ?? 1,
+                        'amount' => $payment->amount,
+                        'payment_period' => $this->formatPeriod(count($payment->covers_days ?? [])),
+                        'covered_days' => $payment->covers_days ?? [],
+                        'status' => 'generated',
+                        'generated_at' => now(),
+                        'receipt_data' => $this->buildReceiptData($payment),
+                    ]);
+
+                    $payment->update(['receipt_status' => 'generated']);
+
+                    $results[] = [
+                        'payment_id' => $paymentId,
+                        'receipt_id' => $receipt->id,
+                        'receipt_number' => $receipt->receipt_number,
+                        'status' => 'success',
+                        'message' => 'Receipt generated successfully',
+                    ];
+                } catch (\Exception $e) {
+                    $errors[] = [
+                        'payment_id' => $paymentId,
+                        'status' => 'error',
+                        'message' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bulk receipt generation completed',
+                'data' => [
+                    'results' => $results,
+                    'errors' => $errors,
+                    'summary' => [
+                        'total_requested' => count($request->payment_ids),
+                        'successful' => count(array_filter($results, fn($r) => $r['status'] === 'success')),
+                        'skipped' => count(array_filter($results, fn($r) => $r['status'] === 'skipped')),
+                        'errors' => count($errors),
+                    ],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in bulk receipt generation: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate bulk receipts',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Search receipts
+     */
+    public function searchReceipts(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'required|string|min:1',
+            'page' => 'nullable|integer|min:1',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $searchQuery = $request->get('q');
+            $page = (int) $request->get('page', 1);
+            $limit = min((int) $request->get('limit', 20), 100);
+
+            $query = PaymentReceipt::with(['driver', 'payment.recordedBy', 'generatedBy'])
+                ->where(function ($q) use ($searchQuery) {
+                    $q->where('receipt_number', 'LIKE', "%{$searchQuery}%")
+                      ->orWhereHas('driver', function ($driverQuery) use ($searchQuery) {
+                          $driverQuery->where('name', 'LIKE', "%{$searchQuery}%")
+                                     ->orWhere('phone', 'LIKE', "%{$searchQuery}%");
+                      })
+                      ->orWhereHas('payment', function ($paymentQuery) use ($searchQuery) {
+                          $paymentQuery->where('reference_number', 'LIKE', "%{$searchQuery}%");
+                      });
+                })
+                ->orderByDesc('generated_at');
+
+            $receipts = $query->paginate($limit, ['*'], 'page', $page);
+
+            $data = $receipts->getCollection()->map(function (PaymentReceipt $r) {
+                return $r->getPreviewData();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Search results retrieved successfully',
+                'data' => [
+                    'receipts' => $data,
+                    'pagination' => [
+                        'current_page' => $receipts->currentPage(),
+                        'per_page' => $receipts->perPage(),
+                        'total' => $receipts->total(),
+                        'total_pages' => $receipts->lastPage(),
+                    ],
+                    'search_query' => $searchQuery,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error searching receipts: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to search receipts',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -3,6 +3,7 @@ import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
 
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../utils/responsive_utils.dart";
 import "../../widgets/custom_button.dart";
@@ -90,19 +91,11 @@ class _LoginScreenState extends State<LoginScreen> {
   // Show snackbar message
   void _showSnackBar(final String message, final Color backgroundColor) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: SelectableText(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
-          backgroundColor: backgroundColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      if (backgroundColor == Colors.green) {
+        ThemeConstants.showSuccessSnackBar(context, message);
+      } else {
+        ThemeConstants.showErrorSnackBar(context, message);
+      }
     }
   }
 

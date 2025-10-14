@@ -1,190 +1,176 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../constants/theme_constants.dart';
+import '../../models/receipt.dart';
 import '../../models/payment_receipt.dart';
 import '../../services/api_service.dart';
+import '../../services/app_events.dart';
 import '../../utils/responsive_helper.dart';
 import 'receipt_detail_screen.dart';
+import 'receipt_viewer_screen.dart';
 
 class ReceiptsScreen extends StatefulWidget {
-  const ReceiptsScreen({super.key});
+  const ReceiptsScreen({super.key, this.initialFilter = 'all'});
+  
+  final String initialFilter;
 
   @override
   State<ReceiptsScreen> createState() => _ReceiptsScreenState();
 }
 
-class _ReceiptsScreenState extends State<ReceiptsScreen>
-    with TickerProviderStateMixin {
+class _ReceiptsScreenState extends State<ReceiptsScreen> {
   final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
 
-  // Animation controllers
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  // State variables
-  List<PendingReceiptItem> _pendingReceipts = [];
   bool _isLoading = true;
   String? _errorMessage;
-
-  // Tab controller for different receipt views
-  late TabController _tabController;
-  int _currentTabIndex = 0;
+  List<Receipt> _receipts = <Receipt>[];
+  List<PendingReceiptItem> _pendingReceipts = <PendingReceiptItem>[];
+  int _totalReceipts = 0;
+  String _selectedFilter = 'all'; // 'all' or 'pending'
+  
+  // Event subscription for automatic refresh
+  late StreamSubscription<AppEvent> _eventSubscription;
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _initializeTabController();
-    _loadPendingReceipts();
-  }
-
-  void _initializeAnimations() {
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    _fadeController.forward();
-    _slideController.forward();
-  }
-
-  void _initializeTabController() {
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _currentTabIndex = _tabController.index;
-      });
-
-      if (_tabController.index == 0) {
-        _loadPendingReceipts();
-      } else {
-        _loadAllReceipts();
+    _selectedFilter = widget.initialFilter;
+    _loadReceipts();
+    
+    // Listen to app events for automatic refresh
+    _eventSubscription = AppEvents.instance.stream.listen((event) {
+      switch (event.type) {
+        case AppEventType.receiptsUpdated:
+        case AppEventType.paymentsUpdated:
+        case AppEventType.debtsUpdated:
+          // Refresh receipts when payments or receipts are updated
+          if (mounted) {
+            _loadReceipts();
+          }
+          break;
+        case AppEventType.dashboardShouldRefresh:
+          // Also refresh when dashboard requests refresh
+          if (mounted) {
+            _loadReceipts();
+          }
+          break;
       }
     });
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    _tabController.dispose();
+    _searchController.dispose();
+    _eventSubscription.cancel();
     super.dispose();
   }
 
-  Future<void> _loadPendingReceipts() async {
+  Future<void> _loadReceipts() async {
     try {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
 
-      final response = await _apiService.getPendingReceipts();
+      Map<String, dynamic> response;
+      
+      // Load receipts based on selected filter
+      if (_selectedFilter == 'pending') {
+        response = await _apiService.getPendingReceipts();
+      } else {
+        response = await _apiService.getReceipts();
+      }
 
       if (response['success'] == true) {
         final data = response['data'] as Map<String, dynamic>? ?? {};
-        final receiptsData = data['pending_receipts'] as List<dynamic>? ?? [];
-
-        setState(() {
-          _pendingReceipts = receiptsData
-              .map((item) =>
-                  PendingReceiptItem.fromJson(item as Map<String, dynamic>))
-              .toList();
-          _isLoading = false;
-        });
+        
+        if (_selectedFilter == 'pending') {
+          // For pending receipts, parse as PendingReceiptItem objects
+          final pendingReceiptsData = data['pending_receipts'] as List<dynamic>? ?? 
+                                     data['data'] as List<dynamic>? ?? <dynamic>[];
+          setState(() {
+            _pendingReceipts = pendingReceiptsData
+                .map((item) => PendingReceiptItem.fromJson(item as Map<String, dynamic>))
+                .toList();
+            _receipts = <Receipt>[]; // Clear regular receipts when showing pending
+            _totalReceipts = data['total'] as int? ?? 
+                           data['count'] as int? ?? 
+                           _pendingReceipts.length;
+            _isLoading = false;
+          });
+        } else {
+          // For all receipts, parse as Receipt objects
+          final receiptsData = data['receipts'] as List<dynamic>? ?? 
+                              data['data'] as List<dynamic>? ?? <dynamic>[];
+          setState(() {
+            _receipts = receiptsData
+                .map((item) => Receipt.fromJson(item as Map<String, dynamic>))
+                .toList();
+            _pendingReceipts = <PendingReceiptItem>[]; // Clear pending receipts when showing all
+            _totalReceipts = data['total'] as int? ?? 
+                           data['count'] as int? ?? 
+                           _receipts.length;
+            _isLoading = false;
+          });
+        }
       } else {
-        throw Exception(
-            response['message'] ?? 'Failed to load pending receipts');
+        throw Exception(response['message'] ?? 'Imeshindikana kupakia risiti');
       }
     } on Exception catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load pending receipts: $e';
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _loadAllReceipts() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+  Future<void> _refreshReceipts() async {
+    await _loadReceipts();
+  }
 
-      // For now, we'll load all receipts without filters
-      // You can add filtering later
-      final response = await _apiService.getPaymentReceipts();
-
-      if (response['success'] == true) {
-        // Handle all receipts data here
-        // For now, we'll just set loading to false
-        setState(() {
-          _isLoading = false;
-        });
-      } else {
-        throw Exception(response['message'] ?? 'Failed to load receipts');
-      }
-    } on Exception catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load receipts: $e';
-        _isLoading = false;
-      });
-    }
+  void _changeFilter(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
+    _loadReceipts();
   }
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-
-    return ThemeConstants.buildScaffold(
-      title: 'Toa Risiti',
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Column(
-            children: [
-              // Header with statistics
-              _buildHeader(),
-
-              // Tab bar
-              _buildTabBar(),
-
-              // Content based on selected tab
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildPendingReceiptsTab(),
-                    _buildAllReceiptsTab(),
-                  ],
-                ),
-              ),
-            ],
+    
+    return Scaffold(
+      backgroundColor: ThemeConstants.primaryBlue,
+      appBar: AppBar(
+        backgroundColor: ThemeConstants.primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Toa Risiti'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshReceipts,
           ),
-        ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Header with counter
+          _buildHeader(),
+          
+          // Search bar
+          _buildSearchBar(),
+          
+          const SizedBox(height: 16),
+          
+          // Content
+          Expanded(
+            child: _buildContent(),
+          ),
+        ],
       ),
     );
   }
@@ -245,7 +231,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
                     ),
                   ),
                   child: Text(
-                    '${_pendingReceipts.length}',
+                    '$_totalReceipts',
                     style: const TextStyle(
                       color: ThemeConstants.primaryOrange,
                       fontSize: 16,
@@ -260,544 +246,424 @@ class _ReceiptsScreenState extends State<ReceiptsScreen>
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
-          gradient: LinearGradient(
-            colors: [
-              ThemeConstants.primaryOrange,
-              ThemeConstants.primaryOrange.withOpacity(0.8),
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Search input field
+          TextField(
+            controller: _searchController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Zinazosubiri',
+              hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.1),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide.none,
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Filter buttons row
+          Row(
+            children: [
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: _selectedFilter == 'pending' 
+                        ? ThemeConstants.primaryOrange 
+                        : Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: TextButton(
+                    onPressed: () => _changeFilter('pending'),
+                    child: Text(
+                      'Zinazosubiri',
+                      style: TextStyle(
+                        color: _selectedFilter == 'pending' 
+                            ? Colors.white 
+                            : Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: _selectedFilter == 'all' 
+                        ? ThemeConstants.primaryOrange 
+                        : Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: TextButton(
+                    onPressed: () => _changeFilter('all'),
+                    child: Text(
+                      'Zote',
+                      style: TextStyle(
+                        color: _selectedFilter == 'all' 
+                            ? Colors.white 
+                            : Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
-        labelColor: Colors.white,
-        unselectedLabelColor: ThemeConstants.textSecondary,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.normal,
-          fontSize: 14,
-        ),
-        tabs: const [
-          Tab(text: 'Zinazosubiri'),
-          Tab(text: 'Zote'),
         ],
       ),
     );
   }
 
-  Widget _buildPendingReceiptsTab() {
+  Widget _buildContent() {
     if (_isLoading) {
-      return _buildLoadingState();
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
 
     if (_errorMessage != null) {
-      return _buildErrorState();
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.white.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _refreshReceipts,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ThemeConstants.primaryOrange,
+                ),
+                child: const Text('Jaribu Tena'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
-    if (_pendingReceipts.isEmpty) {
-      return _buildEmptyState();
+    // Check if we have any data to show
+    final bool hasData = (_selectedFilter == 'pending') 
+        ? _pendingReceipts.isNotEmpty 
+        : _receipts.isNotEmpty;
+        
+    if (!hasData) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _selectedFilter == 'pending' ? Icons.pending_actions : Icons.receipt_long,
+                size: 80,
+                color: Colors.white.withOpacity(0.5),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _selectedFilter == 'pending' 
+                    ? 'Hakuna malipo yanayosubiri risiti'
+                    : 'Hakuna risiti zilizozalishwa',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _selectedFilter == 'pending'
+                    ? 'Malipo yote yamesha tengenezwa risiti'
+                    : 'Utaona orodha ya risiti zote hapa',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadPendingReceipts,
-      color: ThemeConstants.primaryOrange,
+      onRefresh: _refreshReceipts,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _pendingReceipts.length,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _selectedFilter == 'pending' ? _pendingReceipts.length : _receipts.length,
         itemBuilder: (context, index) {
-          final receipt = _pendingReceipts[index];
-          return _buildPendingReceiptCard(receipt);
+          if (_selectedFilter == 'pending') {
+            final pendingReceipt = _pendingReceipts[index];
+            return _buildPendingReceiptCard(pendingReceipt);
+          } else {
+            final receipt = _receipts[index];
+            return _buildReceiptCard(receipt);
+          }
         },
       ),
     );
   }
 
-  Widget _buildAllReceiptsTab() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.construction,
-            size: 64,
-            color: ThemeConstants.textSecondary,
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Sehemu hii bado inajenuzwa',
-            style: TextStyle(
-              color: ThemeConstants.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+  Widget _buildPendingReceiptCard(PendingReceiptItem pendingReceipt) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReceiptDetailScreen(
+              pendingReceipt: pendingReceipt,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Utaona orodha ya risiti zote hapa',
-            style: TextStyle(
-              color: ThemeConstants.textSecondary,
-              fontSize: 14,
-            ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
           ),
-        ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    pendingReceipt.driver.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Inasubiri',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (pendingReceipt.driver.phone.isNotEmpty) ...<Widget>[
+              Text(
+                pendingReceipt.driver.phone,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'TSH ${_formatCurrency(pendingReceipt.amount)}',
+                  style: const TextStyle(
+                    color: ThemeConstants.primaryOrange,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '${pendingReceipt.coveredDaysCount} siku',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.touch_app,
+                  color: ThemeConstants.primaryOrange,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Gonga kuona maelezo na kutengeneza risiti',
+                  style: TextStyle(
+                    color: ThemeConstants.primaryOrange,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPendingReceiptCard(PendingReceiptItem receipt) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ThemeConstants.buildGlassCard(
-        onTap: () => _navigateToReceiptDetail(receipt),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildReceiptCard(Receipt receipt) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReceiptViewerScreen(
+              receipt: receipt,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+          ),
+        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor:
-                        ThemeConstants.primaryOrange.withOpacity(0.2),
-                    child: Text(
-                      receipt.driver.name.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: ThemeConstants.primaryOrange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              Expanded(
+                child: Text(
+                  receipt.receiptNumber.isNotEmpty ? receipt.receiptNumber : 'N/A',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          receipt.driver.name,
-                          style: const TextStyle(
-                            color: ThemeConstants.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          receipt.driver.phone,
-                          style: const TextStyle(
-                            color: ThemeConstants.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: ThemeConstants.warningAmber.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Hajatolea',
-                      style: TextStyle(
-                        color: ThemeConstants.warningAmber,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-
-              const SizedBox(height: 12),
-
-              // Payment details
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
-                  ),
+                  color: _getStatusColor(receipt.status),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Kiasi:',
-                          style: TextStyle(
-                            color: ThemeConstants.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          receipt.formattedAmount,
-                          style: const TextStyle(
-                            color: ThemeConstants.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Tarehe ya Malipo:',
-                          style: TextStyle(
-                            color: ThemeConstants.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          receipt.formattedDate,
-                          style: const TextStyle(
-                            color: ThemeConstants.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Muda wa Malipo:',
-                          style: TextStyle(
-                            color: ThemeConstants.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          receipt.paymentPeriod,
-                          style: const TextStyle(
-                            color: ThemeConstants.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Covered dates this payment is for
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Deni la Tarehe:',
-                          style: TextStyle(
-                            color: ThemeConstants.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            _formatCoveredDays(receipt.coveredDays),
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                              color: ThemeConstants.textPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (receipt.formattedPaymentChannel.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Njia ya Malipo:',
-                            style: TextStyle(
-                              color: ThemeConstants.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            receipt.formattedPaymentChannel,
-                            style: const TextStyle(
-                              color: ThemeConstants.textPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (receipt.hasRemainingDebt) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: ThemeConstants.errorRed.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: ThemeConstants.errorRed.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: ThemeConstants.errorRed, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Deni lililosalia: TSh ${_formatAmount(receipt.remainingDebtTotal)} (siku ${receipt.unpaidDaysCount})',
-                              style: const TextStyle(
-                                  color: ThemeConstants.errorRed,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            if (receipt.unpaidDates.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                'Tarehe: ${receipt.unpaidDates.map(_formatDate).join(', ')}',
-                                style: const TextStyle(
-                                    color: ThemeConstants.errorRed,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-
-              // Action button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _navigateToReceiptDetail(receipt),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ThemeConstants.primaryOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.receipt, size: 16),
-                  label: const Text(
-                    'Tengeneza Risiti',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                child: Text(
+                  receipt.statusDisplayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(ThemeConstants.primaryOrange),
-          ),
-          SizedBox(height: 16),
+          const SizedBox(height: 8),
           Text(
-            'Inapakia risiti...',
-            style: TextStyle(
-              color: ThemeConstants.textSecondary,
+            receipt.driverName,
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'TSH ${_formatCurrency(receipt.amount)}',
+                style: const TextStyle(
+                  color: ThemeConstants.primaryOrange,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                _formatDate(receipt.generatedAt),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          if (receipt.paymentChannel.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 4),
+            Text(
+              receipt.paymentChannelDisplayName,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: ThemeConstants.errorRed,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Hitilafu!',
-              style: TextStyle(
-                color: ThemeConstants.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage ?? 'Hitilafu isiyojulikana',
-              style: const TextStyle(
-                color: ThemeConstants.textSecondary,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                if (_currentTabIndex == 0) {
-                  _loadPendingReceipts();
-                } else {
-                  _loadAllReceipts();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryOrange,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text(
-                'Jaribu Tena',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.receipt_long_outlined,
-              size: 64,
-              color: ThemeConstants.textSecondary,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Hakuna Risiti Zinazosubiri',
-              style: TextStyle(
-                color: ThemeConstants.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Malipo yote yamepewa risiti zao.',
-              style: TextStyle(
-                color: ThemeConstants.textSecondary,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _loadPendingReceipts,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryOrange,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text(
-                'Sasisha',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatCoveredDays(List<String> days) {
-    if (days.isEmpty) return '-';
-    if (days.length == 1) return _formatDate(days.first);
-    final String first = _formatDate(days.first);
-    final String last = _formatDate(days.last);
-    return '$first - $last (siku ${days.length})';
-  }
-
-  String _formatDate(String isoOrYmd) {
-    // Accept either 'YYYY-MM-DD' or already formatted strings
-    try {
-      final DateTime d = DateTime.tryParse(isoOrYmd) ?? DateTime.now();
-      return '${d.day}/${d.month}/${d.year}';
-    } on Exception catch (_) {
-      return isoOrYmd;
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'generated':
+        return Colors.blue;
+      case 'sent':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
-  String _formatAmount(double v) {
-    final s = v.toStringAsFixed(0);
-    return s.replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  String _formatCurrency(double amount) {
+    return NumberFormat('#,##0', 'sw_TZ').format(amount);
   }
 
-  void _navigateToReceiptDetail(PendingReceiptItem receipt) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReceiptDetailScreen(pendingReceipt: receipt),
-      ),
-    ).then((_) {
-      // Refresh the list when returning from detail screen
-      _loadPendingReceipts();
-    });
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 }

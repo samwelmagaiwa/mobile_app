@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -454,20 +455,35 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
             $startDate = $request->get('start_date', now()->startOfMonth());
             $endDate = $request->get('end_date', now()->endOfMonth());
 
-            $totalPayments = Payment::dateRange($startDate, $endDate)->sum('amount');
-            $paymentCount = Payment::dateRange($startDate, $endDate)->count();
-            $averagePayment = $paymentCount > 0 ? $totalPayments / $paymentCount : 0;
+            // Payments aggregates
+            $paymentsQuery = Payment::dateRange($startDate, $endDate);
+            $totalPayments = (float) $paymentsQuery->sum('amount');
+            $paymentCount = (int) $paymentsQuery->count();
+            $averagePayment = $paymentCount > 0 ? $totalPayments / $paymentCount : 0.0;
 
             $paymentsByChannel = Payment::dateRange($startDate, $endDate)
-                                      ->selectRaw('payment_channel, SUM(amount) as total, COUNT(*) as count')
-                                      ->groupBy('payment_channel')
-                                      ->get();
+                ->selectRaw('payment_channel, SUM(amount) as total, COUNT(*) as count')
+                ->groupBy('payment_channel')
+                ->get();
 
-            $totalDebt = DebtRecord::unpaid()->sum('remaining_amount');
-            $overdueDebt = DebtRecord::overdue()->sum('remaining_amount');
+            // Debts aggregates (use expression, not accessor)
+            $totalDebtsAmount = (float) DebtRecord::where('is_paid', false)
+                ->selectRaw('COALESCE(SUM(COALESCE(expected_amount,0) - COALESCE(paid_amount,0)),0) as total')
+                ->value('total');
+            $overdueDebtsAmount = (float) DebtRecord::where('is_paid', false)
+                ->where('days_overdue', '>', 0)
+                ->selectRaw('COALESCE(SUM(COALESCE(expected_amount,0) - COALESCE(paid_amount,0)),0) as total')
+                ->value('total');
+            $debtsCount = (int) DebtRecord::where('is_paid', false)->count();
+
+            // Receipts counts based on receipt_status convention
+            $pendingReceiptsCount = (int) Payment::completed()->pendingReceipt()->count();
+            $receiptsCount = (int) Payment::completed()
+                ->whereIn('receipt_status', ['generated', 'sent', 'delivered'])
+                ->count();
 
             return response()->json([
-                'success' => true,
+                'status' => 'success',
                 'message' => 'Payment summary retrieved successfully',
                 'data' => [
                     'period' => [
@@ -478,21 +494,24 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
                     'payment_count' => $paymentCount,
                     'average_payment' => $averagePayment,
                     'payments_by_channel' => $paymentsByChannel,
-                    'outstanding_debt' => [
-                        'total_debt' => $totalDebt,
-                        'overdue_debt' => $overdueDebt,
-                        'current_debt' => $totalDebt - $overdueDebt,
-                    ]
+                    // Provide multiple key aliases for frontend compatibility
+                    'total_debts' => $totalDebtsAmount,
+                    'outstanding_debts' => $totalDebtsAmount,
+                    'overdue_debts' => $overdueDebtsAmount,
+                    'debts_count' => $debtsCount,
+                    'receipts_count' => $receiptsCount,
+                    'pending_receipts_count' => $pendingReceiptsCount,
                 ]
-            ]);
+            ], 200);
 
         } catch (\Exception $e) {
-            Log::error('Error fetching payment summary: ' . $e->getMessage());
+            Log::error('Error fetching payment summary: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
             
             return response()->json([
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Failed to fetch payment summary',
-                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -533,6 +552,114 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
                 'success' => false,
                 'message' => 'Failed to mark debt as paid',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new monthly payment (not tied to debt clearance)
+     */
+    public function storeNewPayment(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'driver_id' => 'required',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'month_for' => 'nullable|string', // YYYY-MM
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $payment = new \App\Models\Payment();
+            $payment->driver_id = $request->driver_id;
+            $payment->amount = $request->amount;
+            $payment->payment_channel = $request->get('payment_channel', 'cash');
+            $payment->remarks = $request->notes;
+            $payment->covers_days = null;
+            $payment->status = 'completed';
+            $payment->payment_date = \Carbon\Carbon::parse($request->payment_date);
+            // Optional classification
+            if (Schema::hasColumn('payments', 'payment_type')) {
+                $payment->payment_type = 'new_payment';
+            }
+            // Store optional month_for inside remarks JSON-ish if column does not exist
+            if ($request->filled('month_for')) {
+                $payment->remarks = trim(($payment->remarks ? $payment->remarks.' ' : '').'(month_for: '.$request->month_for.')');
+            }
+            // recorded_by if available
+            if ($request->user()) {
+                $payment->recorded_by = $request->user()->id;
+            }
+            $payment->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment recorded',
+                'data' => $payment->toApiResponse(),
+            ], 201);
+        } catch (\Exception $e) {
+            \Log::error('Error saving new payment: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record payment',
+            ], 500);
+        }
+    }
+
+    /**
+     * Map of drivers who have new payments in a given month
+     * GET /admin/payments/new-payments-map?month=YYYY-MM
+     */
+    public function getNewPaymentsMap(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $month = $request->get('month');
+        try {
+            if (!Schema::hasColumn('payments', 'payment_type')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No payment_type column; assuming none',
+                    'data' => [
+                        'month' => $month,
+                        'drivers' => [],
+                    ]
+                ]);
+            }
+
+            $start = $month ? \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth() : now()->startOfMonth();
+            $end = (clone $start)->endOfMonth();
+
+            $rows = \App\Models\Payment::where('payment_type', 'new_payment')
+                ->whereBetween('payment_date', [$start, $end])
+                ->select('driver_id', \DB::raw('COUNT(*) as count'))
+                ->groupBy('driver_id')
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'driver_id' => (string) $r->driver_id,
+                        'count' => (int) $r->count,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'New payments map',
+                'data' => [
+                    'month' => $start->format('Y-m'),
+                    'drivers' => $rows,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch map: '.$e->getMessage(),
             ], 500);
         }
     }

@@ -17,6 +17,7 @@ use App\Http\Controllers\API\TestReportController;
 use App\Http\Controllers\API\PaymentReceiptController;
 use App\Http\Controllers\API\CommunicationController;
 use App\Http\Controllers\DriverAgreementController;
+use App\Http\Controllers\API\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,8 +39,8 @@ Route::prefix('auth')->group(function () {
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 });
 
-// Payment Receipt routes (temporary - no auth required for testing)
-Route::prefix('payment-receipts')->group(function () {
+// Payment Receipt routes - PROTECTED
+Route::middleware(['auth:sanctum'])->prefix('payment-receipts')->group(function () {
     Route::get('pending', [PaymentReceiptController::class, 'getPendingReceipts']);
     Route::post('generate', [PaymentReceiptController::class, 'generateReceipt']);
     Route::get('{receiptId}/preview', [PaymentReceiptController::class, 'getReceiptPreview']);
@@ -48,63 +49,46 @@ Route::prefix('payment-receipts')->group(function () {
     Route::get('{receiptId}', [PaymentReceiptController::class, 'getReceiptPreview']);
 });
 
-// Temporary development routes (bypass authentication until database is set up)
-Route::prefix('admin')->group(function () {
-    // Dashboard (temporary - no auth required for testing)
-    Route::get('dashboard', [AdminController::class, 'publicDashboard']);
+// PROTECTED ADMIN ROUTES
+Route::middleware(['auth:sanctum','role:admin'])->prefix('admin')->group(function () {
+    // Dashboard
+    Route::get('dashboard', [AdminController::class, 'dashboard']);
+    Route::get('dashboard-data', [DashboardController::class, 'index']);
+    Route::get('dashboard-stats', [DashboardController::class, 'getStats']);
     
-    // Driver management (temporary - no auth required)
+    // Individual Dashboard Card Endpoints
+    Route::prefix('dashboard')->group(function () {
+        Route::get('active-drivers-count', [DashboardController::class, 'getActiveDriversCount']);
+        Route::get('active-devices-count', [DashboardController::class, 'getActiveDevicesCount']);
+        Route::get('unpaid-debts-count', [DashboardController::class, 'getUnpaidDebtsCount']);
+        Route::get('generated-receipts-count', [DashboardController::class, 'getGeneratedReceiptsCount']);
+        Route::get('pending-receipts-count', [DashboardController::class, 'getPendingReceiptsCountApi']);
+        Route::get('daily-revenue', [DashboardController::class, 'getDailyRevenueApi']);
+        Route::get('weekly-revenue', [DashboardController::class, 'getWeeklyRevenueApi']);
+        Route::get('monthly-revenue', [DashboardController::class, 'getMonthlyRevenueApi']);
+    });
+
+    // Drivers
     Route::get('drivers', [AdminController::class, 'getDrivers']);
     Route::get('drivers/{id}', [AdminController::class, 'getDriver']);
+    Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\Admin\DriverPredictionController::class, 'show']);
     Route::post('drivers', [AdminController::class, 'createDriver']);
     Route::put('drivers/{id}', [AdminController::class, 'updateDriver']);
     Route::delete('drivers/{id}', [AdminController::class, 'deleteDriver']);
-    
-    // Driver trends and analytics
     Route::get('drivers/{driverId}/debt-trends', [AdminController::class, 'getDriverDebtTrends']);
     Route::get('drivers/{driverId}/payment-trends', [AdminController::class, 'getDriverPaymentTrends']);
-    // Driver history PDF (server-side PDF generation)
+    Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\API\PredictionController::class, 'getDriverPrediction']);
     Route::get('drivers/{driverId}/history-pdf', [\App\Http\Controllers\API\DriverReportController::class, 'driverHistoryPdf']);
-    
-    // Payment management (temporary - no auth required)
-    Route::post('record-payment', [AdminController::class, 'recordPayment']);
-    Route::get('payment-history', [AdminController::class, 'getPaymentHistory']);
-    
-    // Vehicle management (temporary - no auth required)
+
+    // Vehicles
     Route::get('vehicles', [AdminController::class, 'getVehicles']);
     Route::post('vehicles', [AdminController::class, 'createVehicle']);
     Route::put('vehicles/{id}', [AdminController::class, 'updateVehicle']);
     Route::delete('vehicles/{id}', [AdminController::class, 'deleteVehicle']);
     Route::post('vehicles/{id}/unassign', [AdminController::class, 'unassignDriverFromVehicle']);
-    
-    // Reminders management (temporary - no auth required)
-    Route::get('reminders', [AdminController::class, 'getReminders']);
-    Route::post('reminders', [AdminController::class, 'addReminder']);
-    Route::put('reminders/{id}', [AdminController::class, 'updateReminder']);
-    Route::delete('reminders/{id}', [AdminController::class, 'deleteReminder']);
-    
-    // Receipts management (temporary - no auth required) 
-    Route::get('receipts', [AdminController::class, 'getReceipts']);
-    
-    // Reports management (temporary - no auth required for testing)
-    Route::prefix('reports')->group(function () {
-        Route::get('dashboard', [AdminReportController::class, 'getDashboardReport']);
-        Route::get('revenue', [AdminReportController::class, 'getRevenueReport']);
-        Route::get('expenses', [AdminReportController::class, 'getExpenseReport']);
-        Route::get('profit-loss', [AdminReportController::class, 'getProfitLossReport']);
-        Route::get('device-performance', [AdminReportController::class, 'getDevicePerformanceReport']);
-        Route::post('export-pdf', [AdminReportController::class, 'exportToPdf']);
-    });
-    
-    // Analytics management (mobile-focused - no auth required for testing)
-    Route::prefix('analytics')->group(function () {
-        Route::get('overview', [AdminReportController::class, 'getAnalyticsOverview']);
-        Route::get('top-performers', [AdminReportController::class, 'getTopPerformers']);
-        Route::get('live', [AdminReportController::class, 'getLiveAnalytics']);
-        Route::get('trends', [AdminReportController::class, 'getRevenueReport']); // Reuse revenue for trends
-    });
-    
-    // Payment management (temporary - no auth required for testing)
+    Route::post('assign-driver', [AdminController::class, 'assignDriverToVehicle']);
+
+    // Payments (use PaymentController under admin/payments)
     Route::prefix('payments')->group(function () {
         Route::get('drivers-with-debts', [PaymentController::class, 'getDriversWithDebts']);
         Route::get('driver-debt-summary/{driverId}', [PaymentController::class, 'getDriverDebtSummary']);
@@ -115,9 +99,11 @@ Route::prefix('admin')->group(function () {
         Route::delete('{paymentId}', [PaymentController::class, 'deletePayment']);
         Route::get('summary', [PaymentController::class, 'getPaymentSummary']);
         Route::put('mark-debt-paid/{debtId}', [PaymentController::class, 'markDebtAsPaid']);
+        Route::post('new', [PaymentController::class, 'storeNewPayment']);
+        Route::get('new-payments-map', [PaymentController::class, 'getNewPaymentsMap']);
     });
 
-    // Debts management (temporary - no auth required for testing)
+    // Debts
     Route::prefix('debts')->group(function () {
         Route::get('drivers', [\App\Http\Controllers\API\DebtsController::class, 'listDrivers']);
         Route::get('driver/{driverId}/records', [\App\Http\Controllers\API\DebtsController::class, 'listDriverRecords']);
@@ -125,8 +111,8 @@ Route::prefix('admin')->group(function () {
         Route::put('records/{id}', [\App\Http\Controllers\API\DebtsController::class, 'updateRecord']);
         Route::delete('records/{id}', [\App\Http\Controllers\API\DebtsController::class, 'deleteRecord']);
     });
-    
-    // Driver agreements management (temporary - no auth required for testing)
+
+    // Driver agreements
     Route::prefix('driver-agreements')->group(function () {
         Route::get('', [DriverAgreementController::class, 'index']);
         Route::post('', [DriverAgreementController::class, 'store']);
@@ -136,19 +122,49 @@ Route::prefix('admin')->group(function () {
         Route::get('driver/{driverId}', [DriverAgreementController::class, 'getByDriver']);
         Route::post('calculate-preview', [DriverAgreementController::class, 'calculatePreview']);
     });
-    
-    // Communications management (temporary - no auth required for testing)
-    Route::prefix('communications')->group(function () {
-        Route::get('', [CommunicationController::class, 'index']);
-        Route::post('', [CommunicationController::class, 'store']);
-        Route::get('summary', [CommunicationController::class, 'summary']);
-        Route::get('modes', [CommunicationController::class, 'modes']);
-        Route::get('driver/{driverId}', [CommunicationController::class, 'byDriver']);
-        Route::get('{id}', [CommunicationController::class, 'show']);
-        Route::put('{id}', [CommunicationController::class, 'update']);
-        Route::delete('{id}', [CommunicationController::class, 'destroy']);
+
+    // Reminders
+    Route::prefix('reminders')->group(function () {
+        Route::get('', [AdminController::class, 'getReminders']);
+        Route::post('', [AdminController::class, 'addReminder']);
+        Route::put('{id}', [AdminController::class, 'updateReminder']);
+        Route::delete('{id}', [AdminController::class, 'deleteReminder']);
     });
-    
+
+    // Receipts Management (admin view)
+    Route::prefix('receipts')->group(function () {
+        Route::get('pending', [PaymentReceiptController::class, 'getPendingReceipts']);
+        Route::post('generate', [PaymentReceiptController::class, 'generateReceipt']);
+        Route::get('{receiptId}/preview', [PaymentReceiptController::class, 'getReceiptPreview']);
+        Route::post('send', [PaymentReceiptController::class, 'sendReceipt']);
+        Route::get('', [PaymentReceiptController::class, 'getReceipts']);
+        Route::get('{receiptId}', [PaymentReceiptController::class, 'getReceiptPreview']);
+        Route::put('{receiptId}/status', [PaymentReceiptController::class, 'updateReceiptStatus']);
+        Route::put('{receiptId}/cancel', [PaymentReceiptController::class, 'cancelReceipt']);
+        Route::delete('{receiptId}', [PaymentReceiptController::class, 'deleteReceipt']);
+        Route::get('stats', [PaymentReceiptController::class, 'getReceiptStats']);
+        Route::post('export', [PaymentReceiptController::class, 'exportReceipts']);
+        Route::post('bulk-generate', [PaymentReceiptController::class, 'generateBulkReceipts']);
+        Route::get('search', [PaymentReceiptController::class, 'searchReceipts']);
+    });
+
+    // Reports
+    Route::prefix('reports')->group(function () {
+        Route::get('dashboard', [AdminReportController::class, 'getDashboardReport']);
+        Route::get('revenue', [AdminReportController::class, 'getRevenueReport']);
+        Route::get('expenses', [AdminReportController::class, 'getExpenseReport']);
+        Route::get('profit-loss', [AdminReportController::class, 'getProfitLossReport']);
+        Route::get('device-performance', [AdminReportController::class, 'getDevicePerformanceReport']);
+        Route::post('export-pdf', [AdminReportController::class, 'exportToPdf']);
+    });
+
+    // Analytics
+    Route::prefix('analytics')->group(function () {
+        Route::get('overview', [AdminReportController::class, 'getAnalyticsOverview']);
+        Route::get('top-performers', [AdminReportController::class, 'getTopPerformers']);
+        Route::get('live', [AdminReportController::class, 'getLiveAnalytics']);
+        Route::get('trends', [AdminReportController::class, 'getRevenueReport']);
+    });
 });
 
 // Protected routes (authentication required)
@@ -235,99 +251,7 @@ Route::get('health', function () {
     ]);
 });
 
-    // Test routes for development
-Route::prefix('test')->group(function () {
-    Route::post('seed-debts', [TestController::class, 'seedDebts']);
-    // Test AdminReportController directly
-    Route::get('admin-reports/dashboard', [AdminReportController::class, 'getDashboardReport']);
-    Route::get('admin-reports/revenue', [AdminReportController::class, 'getRevenueReport']);
-    Route::get('admin-reports/expenses', [AdminReportController::class, 'getExpenseReport']);
-    Route::get('admin-reports/profit-loss', [AdminReportController::class, 'getProfitLossReport']);
-    Route::get('admin-reports/device-performance', [AdminReportController::class, 'getDevicePerformanceReport']);
-    Route::get('otp-flow', [TestController::class, 'testOtpFlow']);
-    Route::get('otp-status', [TestController::class, 'getOtpStatus']);
-    Route::post('cleanup-otps', [TestController::class, 'cleanupOtps']);
-    Route::get('system-status', [TestController::class, 'systemStatus']);
-    
-    // Report testing routes
-    Route::get('reports', [TestReportController::class, 'testReports']);
-    Route::get('reports/status', [TestReportController::class, 'getTestDataStatus']);
-    Route::post('reports/cleanup', [TestReportController::class, 'cleanupTestData']);
-    
-    // Test report endpoints without authentication
-    Route::get('reports/revenue', [TestReportController::class, 'testRevenueReport']);
-    Route::get('reports/expenses', [TestReportController::class, 'testExpenseReport']);
-    Route::get('reports/profit-loss', [TestReportController::class, 'testProfitLossReport']);
-    Route::get('reports/device-performance', [TestReportController::class, 'testDevicePerformanceReport']);
-    
-    // Test driver creation
-    Route::post('create-driver', function (\Illuminate\Http\Request $request) {
-        try {
-            $adminController = new \App\Http\Controllers\API\AdminController();
-            $createDriverRequest = \App\Http\Requests\CreateDriverRequest::createFrom($request);
-            return $adminController->createDriver($createDriverRequest);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Test failed: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ], 500);
-        }
-    });
-    
-    // Test vehicle creation
-    Route::post('create-vehicle', function (\Illuminate\Http\Request $request) {
-        try {
-            $adminController = new \App\Http\Controllers\API\AdminController();
-            $createVehicleRequest = \App\Http\Requests\CreateVehicleRequest::createFrom($request);
-            return $adminController->createVehicle($createVehicleRequest);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Test failed: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
-        }
-    });
-});
-
-// Simple test route
-Route::get('test', function () {
-    return response()->json([
-        'message' => 'Simple test route working',
-        'time' => now(),
-    ]);
-});
-
-// Test payment receipt route
-Route::post('test-receipt', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'Test receipt endpoint working!',
-        'data' => ['test' => true],
-        'time' => now(),
-    ]);
-});
-
-// Test payment receipt controller directly
-Route::post('test-payment-receipt-generate', [PaymentReceiptController::class, 'generateReceipt']);
-
-// Debug route to check what's happening
-Route::get('debug', function () {
-    return response()->json([
-        'message' => 'Debug endpoint',
-        'request_method' => request()->method(),
-        'request_url' => request()->fullUrl(),
-        'headers' => request()->headers->all(),
-        'server_info' => [
-            'php_version' => PHP_VERSION,
-            'laravel_version' => app()->version(),
-            'server_time' => now(),
-        ],
-    ]);
-});
+// Removed testing and debug routes for production
 
 // Fallback route for undefined API endpoints
 Route::fallback(function () {

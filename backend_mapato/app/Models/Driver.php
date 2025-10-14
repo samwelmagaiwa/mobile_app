@@ -99,6 +99,38 @@ class Driver extends Model
     }
 
     /**
+     * Get the driver trips.
+     */
+    public function trips()
+    {
+        return $this->hasMany(DriverTrip::class);
+    }
+
+    /**
+     * Get the driver performance metrics.
+     */
+    public function performanceMetrics()
+    {
+        return $this->hasOne(DriverPerformanceMetric::class);
+    }
+
+    /**
+     * Get the driver status history.
+     */
+    public function statusHistory()
+    {
+        return $this->hasMany(DriverStatusHistory::class);
+    }
+
+    /**
+     * Get the payments made by this driver.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Get active devices for the driver.
      */
     public function activeDevices()

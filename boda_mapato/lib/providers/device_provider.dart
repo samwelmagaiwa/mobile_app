@@ -1,6 +1,7 @@
 import "package:flutter/foundation.dart";
 import "../models/device.dart";
 import "../services/api_service.dart";
+import "../services/auth_service.dart";
 
 class DeviceProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -22,6 +23,11 @@ class DeviceProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // Guard: only fetch when authenticated
+      if (!await AuthService.isAuthenticated()) {
+        _devices = <Device>[];
+        return;
+      }
       final Map<String, dynamic> resp = await _api.getDevices();
       final dynamic data = resp["data"];
       List<dynamic> list = <dynamic>[];

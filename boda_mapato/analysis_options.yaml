@@ -28,6 +28,8 @@ analyzer:
     unused_import: error
     avoid_print: warning
     use_build_context_synchronously: warning
+    # Suppress informational TODOs from showing in Problems list
+    todo: ignore
 
 linter:
   rules:

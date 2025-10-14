@@ -1,0 +1,112 @@
+Analyzing boda_mapato...                                        
+
+   info - Sort directive sections alphabetically - lib\main.dart:11:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\main.dart:19:1 - directives_ordering
+   info - Place 'dart:' imports before other imports - lib\providers\auth_provider.dart:6:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\providers\auth_provider.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\providers\auth_provider.dart:9:1 - directives_ordering
+   info - Constructor declarations should be before non-constructor declarations - lib\providers\auth_provider.dart:27:3 - sort_constructors_first
+   info - The declaration 'dispose' isn't referenced - lib\providers\auth_provider.dart:53:8 - unused_element
+   info - Sort directive sections alphabetically - lib\screens\admin\admin_dashboard_screen.dart:3:1 - directives_ordering
+   info - Place 'package:' imports before relative imports - lib\screens\admin\admin_dashboard_screen.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\screens\admin\admin_dashboard_screen.dart:10:1 - directives_ordering
+   info - Unnecessary use of a 'double' literal - lib\screens\admin\admin_dashboard_screen.dart:758:79 - prefer_int_literals
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\admin_dashboard_screen.dart:782:40 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\admin_dashboard_screen.dart:783:53 - avoid_redundant_argument_values
+   info - Type could be non-nullable - lib\screens\admin\debts_management_screen.dart:92:23 - unnecessary_nullable_for_final_variable_declarations
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:104:24 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:106:26 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:107:28 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:108:26 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:110:23 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\debts_management_screen.dart:111:25 - avoid_redundant_argument_values
+warning - Don't use 'BuildContext's across async gaps - lib\screens\admin\driver_agreement_screen.dart:356:30 - use_build_context_synchronously
+warning - Don't use 'BuildContext's across async gaps - lib\screens\admin\driver_agreement_screen.dart:365:30 - use_build_context_synchronously
+   info - Missing an 'await' for the 'Future' computed by this expression - lib\screens\admin\driver_agreement_screen.dart:427:13 - unawaited_futures
+   info - Required named parameters should be before optional named parameters - lib\screens\admin\driver_prediction_screen.dart:12:58 - always_put_required_named_parameters_first
+   info - Required named parameters should be before optional named parameters - lib\screens\admin\driver_prediction_screen.dart:12:82 - always_put_required_named_parameters_first
+   info - The private field _spots could be 'final' - lib\screens\admin\driver_prediction_screen.dart:36:16 - prefer_final_fields
+   info - The private field _labels could be 'final' - lib\screens\admin\driver_prediction_screen.dart:37:16 - prefer_final_fields
+   info - Method invocation or property access on a 'dynamic' target - lib\screens\admin\driver_prediction_screen.dart:77:30 - avoid_dynamic_calls
+   info - Method invocation or property access on a 'dynamic' target - lib\screens\admin\driver_prediction_screen.dart:77:69 - avoid_dynamic_calls
+   info - Method invocation or property access on a 'dynamic' target - lib\screens\admin\driver_prediction_screen.dart:80:44 - avoid_dynamic_calls
+   info - Method invocation or property access on a 'dynamic' target - lib\screens\admin\driver_prediction_screen.dart:81:42 - avoid_dynamic_calls
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\driver_prediction_screen.dart:105:9 - avoid_catches_without_on_clauses
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:132:15 - avoid_redundant_argument_values
+   info - Method invocation or property access on a 'dynamic' target - lib\screens\admin\driver_prediction_screen.dart:137:32 - avoid_dynamic_calls
+   info - Unnecessary 'break' statement - lib\screens\admin\driver_prediction_screen.dart:182:9 - unnecessary_breaks
+   info - Unnecessary 'break' statement - lib\screens\admin\driver_prediction_screen.dart:185:9 - unnecessary_breaks
+   info - Invalid use of 'default' member in a switch - lib\screens\admin\driver_prediction_screen.dart:187:7 - no_default_cases
+   info - Multiple variables declared on a single line - lib\screens\admin\driver_prediction_screen.dart:283:22 - avoid_multiple_declarations_per_line
+   info - Multiple variables declared on a single line - lib\screens\admin\driver_prediction_screen.dart:294:23 - avoid_multiple_declarations_per_line
+   info - Local variables should be final - lib\screens\admin\driver_prediction_screen.dart:338:5 - prefer_final_locals
+   info - Multiple variables declared on a single line - lib\screens\admin\driver_prediction_screen.dart:380:22 - avoid_multiple_declarations_per_line
+   info - Unnecessary 'dynamic' type annotation - lib\screens\admin\driver_prediction_screen.dart:432:24 - avoid_annotating_with_dynamic
+   info - Unnecessary 'dynamic' type annotation - lib\screens\admin\driver_prediction_screen.dart:439:21 - avoid_annotating_with_dynamic
+   info - Unnecessary 'dynamic' type annotation - lib\screens\admin\driver_prediction_screen.dart:445:15 - avoid_annotating_with_dynamic
+   info - Unnecessary braces in a string interpolation - lib\screens\admin\driver_prediction_screen.dart:525:44 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\screens\admin\driver_prediction_screen.dart:525:67 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\screens\admin\driver_prediction_screen.dart:525:89 - unnecessary_brace_in_string_interps
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:549:71 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:549:94 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:550:69 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:550:92 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\driver_prediction_screen.dart:575:54 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\driver_prediction_screen.dart:575:118 - prefer_const_constructors
+   info - Invalid use of 'default' member in a switch - lib\screens\admin\driver_prediction_screen.dart:650:9 - no_default_cases
+   info - Unnecessary braces in a string interpolation - lib\screens\admin\driver_prediction_screen.dart:682:28 - unnecessary_brace_in_string_interps
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\admin\driver_prediction_screen.dart:718:9 - sort_constructors_first
+   info - 'bool' parameters should be named parameters - lib\screens\admin\driver_prediction_screen.dart:718:20 - avoid_positional_boolean_parameters
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\admin\driver_prediction_screen.dart:719:11 - sort_constructors_first
+   info - Sort directive sections alphabetically - lib\screens\admin\drivers_management_screen.dart:16:1 - directives_ordering
+   info - Unnecessary 'dynamic' type annotation - lib\screens\admin\drivers_management_screen.dart:1076:24 - avoid_annotating_with_dynamic
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\drivers_management_screen.dart:1082:9 - avoid_catches_without_on_clauses
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\drivers_management_screen.dart:1160:13 - avoid_catches_without_on_clauses
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\drivers_management_screen.dart:1169:13 - avoid_catches_without_on_clauses
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1198:44 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1199:26 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1200:26 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1201:26 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1204:51 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1206:90 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1213:40 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1214:21 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1215:21 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1216:21 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1225:59 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1226:57 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1228:29 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1229:42 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\admin\drivers_management_screen.dart:1230:42 - unnecessary_non_null_assertion
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\drivers_management_screen.dart:1249:11 - avoid_catches_without_on_clauses
+warning - The value of the field '_filteredPayments' isn't used - lib\screens\admin\payments_management_screen.dart:21:30 - unused_field
+   info - Use 'late' for private members with a non-nullable type - lib\screens\admin\payments_management_screen.dart:24:18 - use_late_for_private_fields_and_variables
+warning - The value of the field '_selectedDateRange' isn't used - lib\screens\admin\payments_management_screen.dart:24:18 - unused_field
+   info - The private field _rowActionLoading could be 'final' - lib\screens\admin\payments_management_screen.dart:27:23 - prefer_final_fields
+warning - The value of the field '_rowActionLoading' isn't used - lib\screens\admin\payments_management_screen.dart:27:23 - unused_field
+warning - The value of the field '_isLoading' isn't used - lib\screens\admin\payments_management_screen.dart:30:8 - unused_field
+warning - The value of the field '_errorMessage' isn't used - lib\screens\admin\payments_management_screen.dart:31:11 - unused_field
+   info - Unnecessary use of a 'double' literal - lib\screens\admin\payments_management_screen.dart:36:31 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\admin\payments_management_screen.dart:42:12 - prefer_int_literals
+   info - The declaration '_showErrorSnackBar' isn't referenced - lib\screens\admin\payments_management_screen.dart:46:8 - unused_element
+   info - A value for optional parameter 'refresh' isn't ever given - lib\screens\admin\payments_management_screen.dart:58:36 - unused_element
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\admin\payments_management_screen.dart:75:7 - avoid_catches_without_on_clauses
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\payments_management_screen.dart:118:72 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\admin\payments_management_screen.dart:118:82 - avoid_redundant_argument_values
+   info - Unnecessary use of parentheses - lib\screens\admin\payments_management_screen.dart:342:49 - unnecessary_parenthesis
+   info - Local variables should be final - lib\screens\analytics\analytics_screen.dart:98:9 - prefer_final_locals
+   info - Local variables should be final - lib\screens\analytics\analytics_screen.dart:99:9 - prefer_final_locals
+   info - Unnecessary 'dynamic' type annotation - lib\screens\analytics\analytics_screen.dart:452:16 - avoid_annotating_with_dynamic
+   info - Unnecessary use of a 'double' literal - lib\screens\dashboard\modern_dashboard_screen.dart:180:26 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\dashboard\modern_dashboard_screen.dart:653:73 - prefer_int_literals
+   info - The value of the argument is redundant because it matches the default value - lib\screens\dashboard\modern_dashboard_screen.dart:667:36 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\dashboard\modern_dashboard_screen.dart:668:49 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\screens\dashboard\modern_dashboard_screen.dart:1230:91 - avoid_redundant_argument_values
+   info - Sort directive sections alphabetically - lib\screens\payments\new_payment_screen.dart:3:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\screens\payments\new_payment_screen.dart:9:1 - directives_ordering
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\payments\new_payment_screen.dart:132:9 - avoid_catches_without_on_clauses
+   info - Catch clause needs to use 'on' to specify the type of exception being caught - lib\screens\payments\payments_screen.dart:175:7 - avoid_catches_without_on_clauses
+   info - Sort directive sections alphabetically - lib\services\api_service.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\services\api_service.dart:10:1 - directives_ordering
+
+108 issues found. (ran in 3.2s)

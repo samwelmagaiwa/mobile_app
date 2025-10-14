@@ -6,22 +6,25 @@ import "package:http/http.dart" as http;
 
 mixin ApiConfig {
   // Environment enum
-  static const String _environment =
-      Environment.network; // Use "network" for mobile device testing
+  // Default to local for Flutter web/desktop running on the same machine as Laravel
+  static const String _environment = Environment.local;
 
   // Get base URL based on environment
   static String get baseUrl {
     switch (_environment) {
       case Environment.local:
-        return "http://127.0.1:8000/api";
+        // Localhost/dev machine
+        return "http://127.0.0.1:8000/api";
       case Environment.network:
-        return "http://192.168.1.124:8000/api";
+        // LAN IP of the dev machine hosting Laravel (update if your IP changes)
+        return "http://192.168.1.2:8000/api";
       case Environment.emulator:
-        return "http://10.2.2:8000/api";
+        // Android emulator loopback to host
+        return "http://10.0.2.2:8000/api";
       case Environment.production:
         return "https://yourdomain.com/api";
       default:
-        return "http://127.0.1:8000/api";
+        return "http://127.0.0.1:8000/api";
     }
   }
 
@@ -29,15 +32,15 @@ mixin ApiConfig {
   static String get webBaseUrl {
     switch (_environment) {
       case Environment.local:
-        return "http://127.0.1:8000";
+        return "http://127.0.0.1:8000";
       case Environment.network:
-        return "http://192.168.1.124:8000";
+        return "http://192.168.1.2:8000";
       case Environment.emulator:
-        return "http://10.2.2:8000";
+        return "http://10.0.2.2:8000";
       case Environment.production:
         return "https://yourdomain.com";
       default:
-        return "http://127.0.1:8000";
+        return "http://127.0.0.1:8000";
     }
   }
 

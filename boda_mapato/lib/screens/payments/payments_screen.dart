@@ -8,6 +8,7 @@ import '../../models/payment.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
+import 'new_payment_screen.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -40,6 +41,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   PaymentSummary? _driverPaymentSummary;
   final List<DebtRecord> _selectedDebts = [];
   PaymentChannel _selectedChannel = PaymentChannel.cash;
+  final Set<String> _newPaymentDriversThisMonth = <String>{};
 
   bool _isLoadingDrivers = true;
   bool _isLoadingDebts = false;
@@ -103,7 +105,9 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             dp.consume();
           }
         });
-      } on Exception catch (_) {}
+      } on Exception catch (e) {
+        debugPrint('Failed to set up DebtsProvider listener: $e');
+      }
     }
   }
 
@@ -119,13 +123,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Future<void> _loadDriversWithDebts() async {
     try {
-      setState(() {
-        _isLoadingDrivers = true;
-        _errorMessage = null;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingDrivers = true;
+          _errorMessage = null;
+        });
+      }
 
+      // Backend moved drivers-with-debts under /admin/debts/drivers
       final Map<String, Object?> response =
-          await _apiService.getDriversWithDebts() as Map<String, Object?>;
+          await _apiService.getDebtDrivers() as Map<String, Object?>;
 
       final bool success = (response['success'] as bool?) ?? false;
 
@@ -134,48 +141,79 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             (response['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
         final List<dynamic> driversData =
             (data['drivers'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-        setState(() {
-          _drivers = driversData
-              .map((driver) => Driver.fromJson(driver as Map<String, dynamic>))
-              .toList();
-          _filteredDrivers = List<Driver>.from(_drivers);
-          _isLoadingDrivers = false;
-        });
+        if (mounted) {
+          setState(() {
+            _drivers = driversData
+                .map((driver) => Driver.fromJson(driver as Map<String, dynamic>))
+                .toList();
+            _filteredDrivers = List<Driver>.from(_drivers);
+            _isLoadingDrivers = false;
+          });
+        }
+        // After loading drivers, fetch new-payment map for this month
+        await _loadNewPaymentsMapForThisMonth();
       } else {
         final String msg = response['message'] as String? ?? 'Failed to load drivers';
         throw Exception(msg);
       }
     } on Exception catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load drivers: $e';
-        _isLoadingDrivers = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load drivers: $e';
+          _isLoadingDrivers = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadNewPaymentsMapForThisMonth() async {
+    try {
+      final DateTime now = DateTime.now();
+      final String month = '${now.year.toString().padLeft(4,'0')}-${now.month.toString().padLeft(2,'0')}';
+      final Map<String, dynamic> res = await _apiService.getNewPaymentsMap(month: month);
+      final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
+      final List<dynamic> drivers = (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+      if (mounted) {
+        setState(() {
+          _newPaymentDriversThisMonth
+            ..clear()
+            ..addAll(drivers.map((e) => (e as Map)['driver_id']?.toString() ?? '').where((s) => s.isNotEmpty));
+        });
+      }
+    } on Exception catch (_) {
+      // Silently ignore; badge is optional
     }
   }
 
   Future<void> _loadDriverDebts(String driverId) async {
     try {
-      setState(() {
-        _isLoadingDebts = true;
-        _errorMessage = null;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingDebts = true;
+          _errorMessage = null;
+        });
+      }
 
       final response = await _apiService.getDriverDebtSummary(driverId);
 
       if (response['success'] == true) {
         final summaryData = response['data'] as Map<String, dynamic>;
-        setState(() {
-          _driverPaymentSummary = PaymentSummary.fromJson(summaryData);
-          _isLoadingDebts = false;
-        });
+        if (mounted) {
+          setState(() {
+            _driverPaymentSummary = PaymentSummary.fromJson(summaryData);
+            _isLoadingDebts = false;
+          });
+        }
       } else {
         throw Exception(response['message'] ?? 'Failed to load debt records');
       }
     } on Exception catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load debt records: $e';
-        _isLoadingDebts = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load debt records: $e';
+          _isLoadingDebts = false;
+        });
+      }
     }
   }
 
@@ -229,6 +267,20 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     });
   }
 
+  String _mapChannelToMethod(PaymentChannel ch) {
+    // Map to backend-expected values: cash, bank, mobile, other
+    switch (ch) {
+      case PaymentChannel.cash:
+        return 'cash';
+      case PaymentChannel.bank:
+        return 'bank';
+      case PaymentChannel.mobile:
+        return 'mobile';
+      case PaymentChannel.other:
+        return 'other';
+    }
+  }
+
   Future<void> _submitPayment() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -240,18 +292,21 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     }
 
     try {
-      setState(() {
-        _isSubmittingPayment = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmittingPayment = true;
+        });
+      }
 
-      final paymentData = {
-        'driver_id': _selectedDriver!.id,
+      final Map<String, dynamic> paymentData = <String, dynamic>{
+        'driver_id': _selectedDriver!.id.trim(),
         'amount': double.parse(_amountController.text),
-        'payment_channel': _selectedChannel.value,
+        // Backend expects 'payment_channel' values: cash | bank | mobile | other
+        'payment_channel': _mapChannelToMethod(_selectedChannel),
+        // Backend expects 'covers_days' as an array of YYYY-MM-DD strings
         'covers_days': _selectedDebts.map((debt) => debt.date).toList(),
-        'remarks': _remarksController.text.trim().isEmpty
-            ? null
-            : _remarksController.text.trim(),
+        if (_remarksController.text.trim().isNotEmpty)
+          'remarks': _remarksController.text.trim(),
       };
 
       final response = await _apiService.recordPayment(paymentData);
@@ -269,9 +324,11 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     } on Exception catch (e) {
       _showErrorDialog('Hitilafu katika kuhifadhi malipo: $e');
     } finally {
-      setState(() {
-        _isSubmittingPayment = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmittingPayment = false;
+        });
+      }
     }
   }
 
@@ -1116,10 +1173,17 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                                   size: 12,
                                   color: ThemeConstants.textSecondary),
                               const SizedBox(width: 4),
-                              Text('Leseni: ${debt.licenseNumber}',
+                              Flexible(
+                                child: Text(
+                                  'Leseni: ${debt.licenseNumber}',
                                   style: const TextStyle(
                                       color: ThemeConstants.textSecondary,
-                                      fontSize: 10)),
+                                      fontSize: 10),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: false,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1138,13 +1202,18 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                               const Icon(Icons.event_available,
                                   size: 12, color: ThemeConstants.warningAmber),
                               const SizedBox(width: 4),
-                              Text(
-                                debt.promiseToPayAt == null
-                                    ? 'Ahadi ya kulipa'
-                                    : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
-                                style: const TextStyle(
-                                    color: ThemeConstants.warningAmber,
-                                    fontSize: 10),
+                              Flexible(
+                                child: Text(
+                                  debt.promiseToPayAt == null
+                                      ? 'Ahadi ya kulipa'
+                                      : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
+                                  style: const TextStyle(
+                                      color: ThemeConstants.warningAmber,
+                                      fontSize: 10),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: false,
+                                ),
                               ),
                             ],
                           ),
@@ -1467,7 +1536,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: ThemeConstants.buildGlassCard(
-            onTap: () => _selectDriver(driver),
+            onTap: () => _showDriverActionPopup(driver),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -1540,6 +1609,25 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ),
                     ),
                   ),
+                  if (_newPaymentDriversThisMonth.contains(driver.id)) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.primaryOrange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ThemeConstants.primaryOrange.withOpacity(0.5)),
+                      ),
+                      child: const Text(
+                        'MPYA',
+                        style: TextStyle(
+                          color: ThemeConstants.primaryOrange,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 8),
                   const Icon(
                     Icons.arrow_forward_ios,
@@ -1552,6 +1640,130 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           ),
         );
       }).toList(),
+    );
+  }
+
+  void _showDriverActionPopup(Driver driver) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        final bool hasDebt = (driver.totalDebt) > 0;
+        return AlertDialog(
+          backgroundColor: ThemeConstants.primaryBlue,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  CircleAvatar(
+                    backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                    child: Text(
+                      (driver.name.isNotEmpty ? driver.name[0] : '?').toUpperCase(),
+                      style: const TextStyle(color: ThemeConstants.primaryOrange),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          driver.name,
+                          style: const TextStyle(
+                            color: ThemeConstants.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if ((driver.vehicleNumber ?? '').isNotEmpty)
+                          Text(driver.vehicleNumber!,
+                              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.18)),
+                ),
+                child: Text(
+                  hasDebt
+                      ? 'Dereva ana deni TSh ${_formatCurrency(driver.totalDebt.toString())}'
+                      : 'Dereva hana deni, unaweza kurekodi malipo mapya.',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (hasDebt)
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _selectDriver(driver);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white24),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Madeni'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => NewPaymentScreen(initialDriver: driver),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ThemeConstants.primaryOrange,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Malipo Mapya'),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => NewPaymentScreen(initialDriver: driver),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeConstants.primaryOrange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Rekodi Malipo Mapya'),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

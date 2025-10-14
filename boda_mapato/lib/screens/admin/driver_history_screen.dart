@@ -484,13 +484,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ));
 
       // First, try to get a server-generated PDF (backend API)
+      // Skip on web to avoid noisy console errors and rely on client generation.
       Uint8List? backendPdf;
-      try {
-        backendPdf = await _apiService.getPdf(
-            '/admin/drivers/${widget.driver.id}/history-pdf',
-            requireAuth: false);
-      } on Exception catch (_) {
-        backendPdf = null; // fall back to client generation
+      if (!kIsWeb) {
+        try {
+          backendPdf = await _apiService.getPdf(
+              '/admin/drivers/${widget.driver.id}/history-pdf');
+        } on Exception catch (_) {
+          backendPdf = null; // fall back to client generation
+        }
       }
 
       if (backendPdf != null) {

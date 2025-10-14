@@ -1,19 +1,23 @@
-import "dart:convert";
-import "dart:io";
-import "dart:typed_data";
-import "package:http/http.dart" as http;
-import "package:shared_preferences/shared_preferences.dart";
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
-import "../models/dashboard_report.dart";
-import "../models/revenue_report.dart";
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../config/api_config.dart';
+import '../models/dashboard_report.dart';
+import '../models/revenue_report.dart';
+import 'auth_events.dart';
+import 'auth_service.dart';
 
 class ApiService {
   // API Configuration - Updated for Laravel backend
   // For development on localhost (when running flutter on same machine)
-  static const String baseUrl =
-      "http://127.0.0.1/mobile_app/backend_mapato/public/api";
-  static const String webBaseUrl =
-      "http://127.0.0.1/mobile_app/backend_mapato/public";
+  // Use centralized API configuration
+  // See lib/config/api_config.dart
+  static String get baseUrl => ApiConfig.baseUrl;
+  static String get webBaseUrl => ApiConfig.webBaseUrl;
 
   // Alternative URLs for different environments:
   // For real device testing: "http://192.168.1.124:8000/api";
@@ -136,6 +140,11 @@ class ApiService {
     try {
       final Map<String, String> headers =
           requireAuth ? await _authHeaders : _headers;
+      
+      // If auth is required but no token present, avoid hitting the server at all
+      if (requireAuth && !headers.containsKey("Authorization")) {
+        throw ApiException("Hauruhusiwi - tafadhali ingia tena");
+      }
       final http.Response response = await http
           .get(
             Uri.parse("$baseUrl$endpoint"),
@@ -163,6 +172,9 @@ class ApiService {
     try {
       final Map<String, String> headers =
           requireAuth ? await _authHeaders : _headers;
+      if (requireAuth && !headers.containsKey("Authorization")) {
+        throw ApiException("Hauruhusiwi - tafadhali ingia tena");
+      }
 
       final http.Response response = await http
           .post(
@@ -190,6 +202,9 @@ class ApiService {
   ) async {
     try {
       final Map<String, String> headers = await _authHeaders;
+      if (!headers.containsKey("Authorization")) {
+        throw ApiException("Hauruhusiwi - tafadhali ingia tena");
+      }
       final http.Response response = await http
           .put(
             Uri.parse("$baseUrl$endpoint"),
@@ -213,6 +228,9 @@ class ApiService {
   Future<Map<String, dynamic>> _delete(final String endpoint) async {
     try {
       final Map<String, String> headers = await _authHeaders;
+      if (!headers.containsKey("Authorization")) {
+        throw ApiException("Hauruhusiwi - tafadhali ingia tena");
+      }
       final http.Response response = await http
           .delete(
             Uri.parse("$baseUrl$endpoint"),
@@ -232,6 +250,23 @@ class ApiService {
     }
   }
 
+  // Payments APIs
+  Future<void> markPaymentAsPaid(final String paymentId) async {
+    await _post("/admin/payments/$paymentId/mark-paid", <String, dynamic>{});
+  }
+
+
+
+
+  // Drivers APIs for import/create
+
+  // Vehicles APIs for import/create
+
+  // Driver payment requests (driver app)
+  Future<void> createPaymentRequest(final Map<String, dynamic> data) async {
+    await _post("/driver/payment-requests", data);
+  }
+
   Map<String, dynamic> _handleResponse(final http.Response response) {
     Map<String, dynamic> data;
 
@@ -248,6 +283,15 @@ class ApiService {
       case 400:
         throw ApiException(data["message"] ?? "Ombi si sahihi");
       case 401:
+        // Clear auth data so UI can return to login
+        try {
+          // fire-and-forget
+          AuthService.clearAuthData();
+        } on Exception {
+          // ignore
+        }
+        // Broadcast unauthorized so UI can react immediately
+        AuthEvents.instance.emit(AuthEvent.unauthorized);
         throw ApiException("Hauruhusiwi - tafadhali ingia tena");
       case 403:
         throw ApiException("Hauruhusiwi kufikia rasilimali hii");
@@ -290,8 +334,16 @@ class ApiService {
     final Map<String, dynamic> response =
         await _post("/auth/login", requestData, requireAuth: false);
 
-    if (response["token"] != null) {
-      await setAuthToken(response["token"]);
+    // Handle nested response structure: response.data.token
+    String? token;
+    if (response["data"] is Map && response["data"]["token"] != null) {
+      token = response["data"]["token"];
+    } else if (response["token"] != null) {
+      token = response["token"];
+    }
+    
+    if (token != null) {
+      await setAuthToken(token);
     }
 
     return response;
@@ -324,15 +376,91 @@ class ApiService {
   }
 
   // Dashboard endpoints
+  // Summary dashboard (AdminController::dashboard)
   Future<Map<String, dynamic>> getDashboardData() async =>
       _get("/admin/dashboard");
+  // Detailed dashboard data (DashboardController::index)
+  Future<Map<String, dynamic>> getDashboardDataDetailed() async =>
+      _get("/admin/dashboard-data");
+  // Aggregated stats (DashboardController::getStats)
   Future<Map<String, dynamic>> getDashboardStats() async =>
-      _get("/admin/dashboard/data");
+      _get("/admin/dashboard-stats");
+
+  // Token verification helper (wraps /auth/user)
+  Future<bool> verifyToken() async {
+    try {
+      await _get("/auth/user");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Specific dashboard counts from database tables with exact column filtering
+  
+  /// Get unpaid debts count from debt_records table WHERE is_paid = 0
+  Future<Map<String, dynamic>> getUnpaidDebtsCount() async =>
+      _get("/admin/dashboard/unpaid-debts-count");
+
+  /// Get active devices count from devices table WHERE is_active = 1
+  Future<Map<String, dynamic>> getActiveDevicesCount() async =>
+      _get("/admin/dashboard/active-devices-count");
+
+  /// Get active drivers count from drivers table WHERE is_active = 1
+  Future<Map<String, dynamic>> getActiveDriversCount() async =>
+      _get("/admin/dashboard/active-drivers-count");
+
+  /// Get generated receipts count from payment_receipts table WHERE receipt_status = 'generated'
+  Future<Map<String, dynamic>> getGeneratedReceiptsCount() async =>
+      _get("/admin/dashboard/generated-receipts-count");
+
+  /// Get pending receipts count from payments table WHERE receipt_status = 'pending'
+  Future<Map<String, dynamic>> getPendingReceiptsCount() async =>
+      _get("/admin/dashboard/pending-receipts-count");
+
+  /// Get daily revenue from debt_records (is_paid=1) + payments tables for today
+  Future<Map<String, dynamic>> getDailyRevenue() async =>
+      _get("/admin/dashboard/daily-revenue");
+
+  /// Get weekly revenue from debt_records (is_paid=1) + payments tables for current week
+  Future<Map<String, dynamic>> getWeeklyRevenue() async =>
+      _get("/admin/dashboard/weekly-revenue");
+
+  /// Get monthly revenue from debt_records (is_paid=1) + payments tables for current month
+  Future<Map<String, dynamic>> getMonthlyRevenue() async =>
+      _get("/admin/dashboard/monthly-revenue");
+
+  /// Get comprehensive dashboard data with all database table counts and exact column filtering
+  Future<Map<String, dynamic>> getComprehensiveDashboardData() async =>
+      _get("/admin/dashboard/comprehensive");
 
   Future<List<dynamic>> getRevenueChart({final int days = 30}) async {
-    final Map<String, dynamic> response =
-        await _get("/admin/dashboard/revenue-chart?days=$days");
-    return response["data"] ?? <dynamic>[];
+    // Backend provides revenue daily breakdown via /admin/reports/revenue
+    // Build a date window that includes today and the previous (days-1) days
+    final DateTime end = DateTime.now();
+    final DateTime start = end.subtract(Duration(days: days - 1));
+    final String startDate = start.toIso8601String().split('T')[0];
+    final String endDate = end.toIso8601String().split('T')[0];
+
+    final String endpoint =
+        "/admin/reports/revenue?start_date=$startDate&end_date=$endDate";
+
+    final Map<String, dynamic> response = await _get(endpoint);
+
+    // Expected shape (HTTP 200):
+    // { status: "success", data: { daily_data: [ {date, amount}, ... ] } }
+    final dynamic data = response["data"];
+    if (data is Map<String, dynamic>) {
+      final dynamic daily = data["daily_data"];
+      if (daily is List) return daily;
+    }
+
+    // If the shape differs, try common alternatives and return an empty list if none match
+    if (response["daily_data"] is List) {
+      return (response["daily_data"] as List).cast<dynamic>();
+    }
+
+    return <dynamic>[];
   }
 
   // Driver management endpoints
@@ -447,6 +575,10 @@ class ApiService {
   }) async =>
       _get(
           "/admin/drivers/$driverId/payment-trends?period=$period&months=$months");
+
+  // Driver prediction analytics (server-side)
+  Future<Map<String, dynamic>> getDriverPrediction(final String driverId) async =>
+      _get("/admin/drivers/$driverId/prediction");
 
   Future<Map<String, dynamic>> getDriverDebtTrends({
     required final String driverId,
@@ -574,12 +706,6 @@ class ApiService {
     final Map<String, dynamic> receiptData,
   ) async =>
       _post("/admin/generate-receipt", receiptData);
-
-  Future<Map<String, dynamic>> getReceipts({
-    final int page = 1,
-    final int limit = 20,
-  }) async =>
-      _get("/admin/receipts?page=$page&limit=$limit");
 
   // Reports endpoints
   Future<Map<String, dynamic>> getDashboardReport() async =>
@@ -757,7 +883,8 @@ class ApiService {
     final int page = 1,
     final int limit = 50,
   }) async =>
-      _get("/admin/payments/drivers-with-debts?page=$page&limit=$limit");
+      // Updated to new debts route (payments routes removed on backend)
+      _get("/admin/debts/drivers?page=$page&limit=$limit");
 
   // Debts management endpoints
   Future<Map<String, dynamic>> getDebtDrivers({
@@ -818,8 +945,65 @@ class ApiService {
 
   Future<Map<String, dynamic>> getDriverDebtSummary(
     final String driverId,
-  ) async =>
-      _get("/admin/payments/driver-debt-summary/$driverId");
+  ) async {
+    // Backend no longer exposes /admin/payments/driver-debt-summary.
+    // Fetch records and compute a summary compatible with existing UI models.
+    final Map<String, dynamic> resp =
+        await _get("/admin/debts/driver/$driverId/records");
+
+    final dynamic data = resp["data"];
+    final List<dynamic> records = (data is Map && data["debt_records"] is List)
+        ? (data["debt_records"] as List).cast<dynamic>()
+        : (resp["debt_records"] is List)
+            ? (resp["debt_records"] as List).cast<dynamic>()
+            : <dynamic>[];
+
+    double toDouble(Object? v) {
+      if (v == null) return 0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    double totalDebt = 0;
+    int unpaidDays = 0;
+    DateTime? lastPaidAt;
+    String driverName = "";
+
+    for (final dynamic r in records) {
+      final Map<String, dynamic> m = (r as Map).cast<String, dynamic>();
+      driverName = driverName.isEmpty
+          ? (m['driver_name']?.toString() ?? driverName)
+          : driverName;
+      final bool isPaid = m['is_paid'] == true || m['is_paid'] == 1;
+      if (!isPaid) {
+        unpaidDays += 1;
+        totalDebt += toDouble(m['remaining_amount']);
+      } else {
+        final String? paidAtStr = m['paid_at']?.toString();
+        final DateTime? dt =
+            paidAtStr != null ? DateTime.tryParse(paidAtStr) : null;
+        if (dt != null) {
+          if (lastPaidAt == null || dt.isAfter(lastPaidAt)) {
+            lastPaidAt = dt;
+          }
+        }
+      }
+    }
+
+    return <String, dynamic>{
+      'success': true,
+      'message': 'Driver debt summary computed',
+      'data': <String, dynamic>{
+        'driver_id': driverId,
+        'driver_name': driverName,
+        'total_debt': totalDebt,
+        'unpaid_days': unpaidDays,
+        'debt_records': records,
+        'last_payment_date': lastPaidAt?.toIso8601String(),
+      },
+    };
+  }
 
   Future<Map<String, dynamic>> getDriverDebtRecords(
     final String driverId, {
@@ -837,6 +1021,20 @@ class ApiService {
     final Map<String, dynamic> paymentData,
   ) async =>
       _post("/admin/payments/record", paymentData);
+
+  // Store new monthly payment (not tied to debt clearance)
+  Future<Map<String, dynamic>> storeNewPayment(
+    final Map<String, dynamic> paymentData,
+  ) async =>
+      _post("/admin/payments/new", paymentData);
+
+  Future<Map<String, dynamic>> getNewPaymentsMap({String? month}) async {
+    String endpoint = "/admin/payments/new-payments-map";
+    if (month != null && month.isNotEmpty) {
+      endpoint += "?month=$month";
+    }
+    return _get(endpoint);
+  }
 
   Future<Map<String, dynamic>> getPaymentHistory({
     final int page = 1,
@@ -905,46 +1103,47 @@ class ApiService {
 
   /// Get pending receipts (payments without receipts generated)
   Future<Map<String, dynamic>> getPendingReceipts() async =>
-      _get("/payment-receipts/pending");
+      _get("/admin/receipts/pending");
 
   /// Generate receipt for a payment
   Future<Map<String, dynamic>> generatePaymentReceipt(String paymentId) async =>
-      _post("/payment-receipts/generate", {
+      _post("/admin/receipts/generate", {
         "payment_id": paymentId,
       });
 
-  /// Get payment receipt preview by receipt ID
-  Future<Map<String, dynamic>> getPaymentReceiptPreview(
-          String receiptId) async =>
-      _get("/payment-receipts/$receiptId/preview");
-
-  /// Send payment receipt to driver via specified method
-  Future<Map<String, dynamic>> sendPaymentReceipt({
-    required String receiptId,
-    required String sendVia, // 'whatsapp', 'email', 'system'
-    required String contactInfo, // phone number for WhatsApp, email for email
-  }) async =>
-      _post("/payment-receipts/send", {
-        "receipt_id": receiptId,
-        "send_via": sendVia,
-        "contact_info": contactInfo,
+  /// Generate bulk receipts for multiple payments
+  Future<Map<String, dynamic>> generateBulkReceipts(
+    List<String> paymentIds,
+  ) async =>
+      _post("/admin/receipts/bulk-generate", {
+        "payment_ids": paymentIds,
       });
 
-  /// Get all payment receipts with optional filtering
-  Future<Map<String, dynamic>> getPaymentReceipts({
+  /// Get receipt by ID
+  Future<Map<String, dynamic>> getReceipt(String receiptId) async =>
+      _get("/admin/receipts/$receiptId");
+
+  /// Get all receipts with optional filtering and pagination
+  Future<Map<String, dynamic>> getReceipts({
+    int page = 1,
+    int limit = 20,
     String? status,
     String? driverId,
+    String? query,
     DateTime? dateFrom,
     DateTime? dateTo,
   }) async {
-    String endpoint = "/payment-receipts";
+    String endpoint = "/admin/receipts?page=$page&limit=$limit";
     final List<String> params = <String>[];
 
-    if (status != null) {
+    if (status != null && status.isNotEmpty) {
       params.add("status=$status");
     }
-    if (driverId != null) {
+    if (driverId != null && driverId.isNotEmpty) {
       params.add("driver_id=$driverId");
+    }
+    if (query != null && query.isNotEmpty) {
+      params.add("q=${Uri.encodeComponent(query)}");
     }
     if (dateFrom != null) {
       params.add("date_from=${dateFrom.toIso8601String().split('T')[0]}");
@@ -954,15 +1153,119 @@ class ApiService {
     }
 
     if (params.isNotEmpty) {
+      endpoint += "&${params.join("&")}";
+    }
+
+    return _get(endpoint);
+  }
+
+  /// Search receipts
+  Future<Map<String, dynamic>> searchReceipts({
+    required String query,
+    int page = 1,
+    int limit = 20,
+  }) async =>
+      _get("/admin/receipts/search?q=${Uri.encodeComponent(query)}&page=$page&limit=$limit");
+
+  /// Get payment receipt preview by receipt ID
+  Future<Map<String, dynamic>> getPaymentReceiptPreview(
+          String receiptId) async =>
+      _get("/admin/receipts/$receiptId/preview");
+
+  /// Send payment receipt to driver via specified method
+  Future<Map<String, dynamic>> sendPaymentReceipt({
+    required String receiptId,
+    required String sendVia, // 'whatsapp', 'email', 'sms'
+    required String contactInfo, // phone number for WhatsApp/SMS, email for email
+    String? message,
+  }) async =>
+      _post("/admin/receipts/send", {
+        "receipt_id": receiptId,
+        "send_via": sendVia,
+        "contact_info": contactInfo,
+        if (message != null && message.isNotEmpty) "message": message,
+      });
+
+  /// Update receipt status
+  Future<Map<String, dynamic>> updateReceiptStatus(
+    String receiptId,
+    String status,
+  ) async =>
+      _put("/admin/receipts/$receiptId/status", {
+        "status": status,
+      });
+
+  /// Cancel receipt
+  Future<Map<String, dynamic>> cancelReceipt(String receiptId) async =>
+      _put("/admin/receipts/$receiptId/cancel", <String, dynamic>{});
+
+  /// Delete receipt
+  Future<Map<String, dynamic>> deleteReceipt(String receiptId) async =>
+      _delete("/admin/receipts/$receiptId");
+
+  /// Get receipt statistics
+  Future<Map<String, dynamic>> getReceiptStats({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String endpoint = "/admin/receipts/stats";
+    final List<String> params = <String>[];
+
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
+
+    if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
     }
 
     return _get(endpoint);
   }
 
-  /// Get payment receipt by ID
+  /// Export receipts to PDF or Excel
+  Future<Map<String, dynamic>> exportReceipts({
+    required String format, // 'pdf' or 'excel'
+    String? status,
+    String? driverId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    final Map<String, dynamic> data = <String, dynamic>{
+      "format": format,
+    };
+
+    if (status != null) data["status"] = status;
+    if (driverId != null) data["driver_id"] = driverId;
+    if (dateFrom != null) {
+      data["date_from"] = dateFrom.toIso8601String().split('T')[0];
+    }
+    if (dateTo != null) {
+      data["date_to"] = dateTo.toIso8601String().split('T')[0];
+    }
+
+    return _post("/admin/receipts/export", data);
+  }
+
+  /// Get payment receipt by ID (alias for getReceipt)
   Future<Map<String, dynamic>> getPaymentReceiptById(String receiptId) async =>
-      _get("/payment-receipts/$receiptId");
+      getReceipt(receiptId);
+
+  /// Get all payment receipts (alias for getReceipts)
+  Future<Map<String, dynamic>> getPaymentReceipts({
+    String? status,
+    String? driverId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async =>
+      getReceipts(
+        status: status,
+        driverId: driverId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
 
   // Health check
   Future<Map<String, dynamic>> healthCheck() async =>

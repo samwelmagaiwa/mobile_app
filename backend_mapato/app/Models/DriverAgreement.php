@@ -71,17 +71,35 @@ class DriverAgreement extends Model
             // Auto-calculate faida_jumla for 'kwa_mkataba' agreements
             if ($model->agreement_type === 'kwa_mkataba' && $model->start_date && $model->end_date) {
                 $model->calculateFaidaJumla();
+                $model->calculateContractPeriodMonths();
             }
         });
         
         static::updating(function ($model) {
-            // Recalculate faida_jumla if relevant fields changed for 'kwa_mkataba'
+            // Recalculate values if relevant fields changed for 'kwa_mkataba'
             if ($model->agreement_type === 'kwa_mkataba') {
                 $relevantFieldsChanged = $model->isDirty(['start_date', 'end_date', 'kiasi_cha_makubaliano']);
                 if ($relevantFieldsChanged && $model->start_date && $model->end_date) {
                     $model->calculateFaidaJumla();
+                    $model->calculateContractPeriodMonths();
+                }
+            } else {
+                // Not a contract-based agreement: ensure months is null
+                if ($model->isDirty(['agreement_type'])) {
+                    $model->contract_period_months = null;
                 }
             }
+        });
+
+        // Trigger prediction refresh when agreements change
+        static::created(function ($agreement) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($agreement->driver_id);
+        });
+        static::updated(function ($agreement) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($agreement->driver_id);
+        });
+        static::deleted(function ($agreement) {
+            \App\Jobs\PredictDriverCompletionJob::dispatch($agreement->driver_id);
         });
     }
 
@@ -113,6 +131,28 @@ class DriverAgreement extends Model
             }
             
             $this->faida_jumla = $totalDays * $this->kiasi_cha_makubaliano;
+        }
+    }
+
+    /**
+     * Calculate and set contract period in months based on start and end dates.
+     * Counts any partial month as a full month.
+     */
+    public function calculateContractPeriodMonths(): void
+    {
+        if ($this->start_date && $this->end_date) {
+            $start = Carbon::parse($this->start_date);
+            $end = Carbon::parse($this->end_date);
+
+            // Base difference in whole months (floor)
+            $months = $start->diffInMonths($end);
+            // If there are remaining days beyond full months, count as an extra month
+            if ($start->copy()->addMonths($months)->lt($end)) {
+                $months++;
+            }
+            $this->contract_period_months = max(1, (int) $months);
+        } else {
+            $this->contract_period_months = null;
         }
     }
 

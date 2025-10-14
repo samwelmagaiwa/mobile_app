@@ -5,13 +5,15 @@ import '../../constants/theme_constants.dart';
 import '../../models/driver.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/app_events.dart';
 import '../../utils/responsive_helper.dart';
 import 'debt_records_list_screen.dart';
 
 enum MonthFilter { mweziHuu, mweziUliopita, mwakaHuu, zote }
 
 class DebtsManagementScreen extends StatefulWidget {
-  const DebtsManagementScreen({super.key});
+  const DebtsManagementScreen({super.key, this.initialDriverId});
+  final String? initialDriverId;
 
   @override
   State<DebtsManagementScreen> createState() => _DebtsManagementScreenState();
@@ -30,6 +32,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
   late final TabController _tabController;
 
   bool _listeningProvider = false;
+  DebtsProvider? _debtsProvider;
+  VoidCallback? _dpListener;
 
   // Month/Year quick filter
   MonthFilter _monthFilter = MonthFilter.zote;
@@ -51,47 +55,86 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_listeningProvider) {
-      _listeningProvider = true;
-      final DebtsProvider dp =
-          Provider.of<DebtsProvider>(context, listen: false);
-      dp.addListener(() {
+    final DebtsProvider dp = Provider.of<DebtsProvider>(context, listen: false);
+    if (!_listeningProvider || _debtsProvider != dp) {
+      // Remove old listener if provider instance changed
+      if (_debtsProvider != null && _dpListener != null) {
+        _debtsProvider!.removeListener(_dpListener!);
+      }
+      _debtsProvider = dp;
+      _dpListener = () {
+        if (!mounted) return;
         if (dp.shouldRefresh) {
           _loadDrivers();
           dp.consume();
         }
-      });
+      };
+      dp.addListener(_dpListener!);
+      _listeningProvider = true;
     }
   }
 
   @override
   void dispose() {
+    // Remove provider listener to avoid callbacks after dispose
+    if (_debtsProvider != null && _dpListener != null) {
+      _debtsProvider!.removeListener(_dpListener!);
+    }
     _search.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
+  bool _autoOpened = false;
   Future<void> _loadDrivers() async {
     try {
+      if (!mounted) return;
       setState(() {
         _loading = true;
         _error = null;
       });
       final Map<String, dynamic> res = await _api.getDebtDrivers(limit: 200);
+      if (!mounted) return;
       final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
       final List<dynamic> list =
           (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
       _drivers =
           list.map((j) => Driver.fromJson(j as Map<String, dynamic>)).toList();
-      _applyFilter();
+      if (mounted) _applyFilter();
+
+      // If an initial driver was provided, open the create form prefilled once
+      if (!_autoOpened && widget.initialDriverId != null) {
+        final Driver d = _drivers.firstWhere(
+          (Driver x) => x.id == widget.initialDriverId,
+          orElse: () => Driver(
+            id: widget.initialDriverId!,
+            name: '',
+            email: '',
+            phone: '',
+            licenseNumber: '',
+            status: 'inactive',
+            totalPayments: 0,
+            joinedDate: DateTime.now(),
+            rating: 0,
+            tripsCompleted: 0,
+          ),
+        );
+        _autoOpened = true;
+        // Open form with driver (if found)
+        await _openDetailForm(d);
+      }
     } on Exception catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   void _applyFilter() {
+    if (!mounted) return;
     final String q = _search.text.toLowerCase();
     List<Driver> base = _drivers;
 
@@ -489,12 +532,19 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   String? _driverLoadError;
   final TextEditingController _driverSearch = TextEditingController();
 
+  // Agreement-derived defaults
+  double? _agreementDefaultAmount;
+  List<String> _agreementFrequencies = <String>[];
+
   @override
   void initState() {
     super.initState();
     _selectedDriver = widget.driver;
     if (_selectedDriver == null) {
       _fetchDrivers();
+    } else {
+      // Preload agreement info for provided driver
+      _fetchAgreementForDriver(_selectedDriver!.id);
     }
     // Initialize search filtering
     _driverSearch.addListener(() {
@@ -516,6 +566,45 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         }
       });
     });
+  }
+
+  Future<void> _fetchAgreementForDriver(String driverId) async {
+    try {
+      final Map<String, dynamic> res = await _api.getDriverAgreementByDriverId(driverId);
+      final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
+      double defAmount = 0;
+      if (data != null) {
+        defAmount = (data['default_amount'] is num)
+            ? (data['default_amount'] as num).toDouble()
+            : 0;
+        if (defAmount == 0 && data['daily_amount'] is num) {
+          defAmount = (data['daily_amount'] as num).toDouble();
+        }
+        if (defAmount == 0 && data['amount'] is num) {
+          defAmount = (data['amount'] as num).toDouble();
+        }
+        if (defAmount == 0 && data['agreed_amount'] is num) {
+          defAmount = (data['agreed_amount'] as num).toDouble();
+        }
+      }
+      final List<String> freqs = <String>[];
+      final dynamic f = data?['payment_frequencies'];
+      if (f is List) {
+        for (final dynamic x in f) {
+          final String s = (x ?? '').toString();
+          if (s.isNotEmpty) freqs.add(s);
+        }
+      }
+      setState(() {
+        _agreementDefaultAmount = defAmount > 0 ? defAmount : null;
+        _agreementFrequencies = freqs;
+      });
+    } on Exception {
+      setState(() {
+        _agreementDefaultAmount = null;
+        _agreementFrequencies = <String>[];
+      });
+    }
   }
 
   Future<void> _fetchDrivers() async {
@@ -732,6 +821,33 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                   style: TextStyle(color: Colors.white70)),
             ),
           ),
+          const SizedBox(height: 8),
+          if (_agreementDefaultAmount != null || _agreementFrequencies.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text('Makubaliano Yanayotumika',
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  if (_agreementFrequencies.isNotEmpty)
+                    Text('Mzunguko: ${_agreementFrequencies.join(', ')}',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w600)),
+                  if (_agreementDefaultAmount != null)
+                    Text('Kiasi chaguo-msingi: TSH ${_agreementDefaultAmount!.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
         ],
       );
     }
@@ -834,6 +950,9 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                   _selectedDriver =
                       _allDrivers.firstWhere((Driver d) => d.id == id);
                 });
+                if (id != null && id.isNotEmpty) {
+                  _fetchAgreementForDriver(id);
+                }
               },
               validator: (String? v) =>
                   (_selectedDriver == null) ? 'Chagua dereva' : null,
@@ -969,6 +1088,9 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             surface: ThemeConstants.primaryBlue,
             onPrimary: Colors.white,
           ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+          ),
         ),
         child: child!,
       ),
@@ -978,6 +1100,11 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
         if (!_selectedDates.contains(picked)) {
           _selectedDates.add(picked);
           _amountCtrls[picked] = TextEditingController();
+          // Prefill amount from agreement default when available
+          final TextEditingController c = _amountCtrls[picked]!;
+          if ((_agreementDefaultAmount ?? 0) > 0 && c.text.trim().isEmpty) {
+            c.text = _agreementDefaultAmount!.toStringAsFixed(0);
+          }
           _selectedDates.sort((DateTime a, DateTime b) => a.compareTo(b));
         }
       });
@@ -997,6 +1124,9 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             primary: ThemeConstants.primaryOrange,
             surface: ThemeConstants.primaryBlue,
             onPrimary: Colors.white,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
           ),
         ),
         child: child!,
@@ -1099,6 +1229,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
       } on Exception catch (_) {
         debugPrint('Provider notification failed');
       }
+      
+      // Emit events to notify other screens of debt changes
+      AppEvents.instance.emit(AppEventType.debtsUpdated);
+      AppEvents.instance.emit(AppEventType.receiptsUpdated);
+      AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
+      
       _showSnack('Madeni yamehifadhiwa kikamilifu', success: true);
       Navigator.pop(context, true);
     } on Exception catch (e) {
@@ -1109,14 +1245,10 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   }
 
   void _showSnack(String m, {bool success = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(m),
-        backgroundColor:
-            success ? ThemeConstants.successGreen : Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    if (success) {
+      ThemeConstants.showSuccessSnackBar(context, m);
+    } else {
+      ThemeConstants.showErrorSnackBar(context, m);
+    }
   }
 }

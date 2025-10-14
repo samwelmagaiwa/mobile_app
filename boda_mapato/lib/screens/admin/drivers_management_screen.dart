@@ -1,12 +1,20 @@
 // ignore_for_file: avoid_dynamic_calls, unused_element
 import "dart:async";
+import "dart:convert";
+import "dart:io";
+import "package:file_picker/file_picker.dart";
+import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
+import "package:intl/intl.dart";
+import "package:path_provider/path_provider.dart";
 import "../../constants/theme_constants.dart";
 import "../../models/driver.dart";
 import "../../services/api_service.dart";
 import "../../utils/responsive_helper.dart";
+import "debts_management_screen.dart";
 import "driver_agreement_screen.dart";
 import "driver_history_screen.dart";
+import "driver_prediction_screen.dart";
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -53,6 +61,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   Future<void> _loadDrivers({final bool refresh = false}) async {
     if (refresh) {
+      if (!mounted) return;
       setState(() {
         _isLoading = true;
         _currentPage = 1;
@@ -64,6 +73,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       if (_currentPage == 1) {
         _isLoading = true;
@@ -92,6 +102,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           .map((final json) => Driver.fromJson(json as Map<String, dynamic>))
           .toList();
 
+      if (!mounted) return;
       setState(() {
         if (_currentPage == 1) {
           _drivers = newDrivers;
@@ -104,18 +115,21 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         _currentPage++;
       });
 
-      _filterDrivers();
+      if (mounted) _filterDrivers();
     } on Exception catch (e) {
-      _showErrorSnackBar("Hitilafu katika kupakia madereva: $e");
+      if (mounted) _showErrorSnackBar("Hitilafu katika kupakia madereva: $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
   void _filterDrivers() {
+    if (!mounted) return;
     setState(() {
       _filteredDrivers = _drivers.where((final Driver driver) {
         final bool matchesSearch = _searchQuery.isEmpty ||
@@ -149,14 +163,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   }
 
   void _showErrorSnackBar(final String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: SelectableText(message),
-        backgroundColor: ThemeConstants.errorRed,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   @override
@@ -201,6 +208,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   _exportDrivers();
                 case "import":
                   _importDrivers();
+                case "template":
+                  _exportDriversTemplate();
               }
             },
             itemBuilder: (final BuildContext context) =>
@@ -222,6 +231,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                     Icon(Icons.upload, color: Colors.orange),
                     SizedBox(width: 8),
                     Text("Ingiza Data"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: "template",
+                child: Row(
+                  children: <Widget>[
+                    Icon(Icons.description, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text("Pakua Template (CSV)"),
                   ],
                 ),
               ),
@@ -523,7 +542,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           if (index == _filteredDrivers.length) {
             // Load more indicator
             if (!_isLoadingMore) {
-              _loadDrivers();
+              // Defer load to next frame to avoid setState during build
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  unawaited(_loadDrivers());
+                }
+              });
             }
             return const Padding(
               padding: EdgeInsets.all(16),
@@ -722,6 +746,36 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         ],
                       ),
                     ),
+                    const PopupMenuItem(
+                      value: "predict",
+                      child: Row(
+                        children: <Widget>[
+                          Icon(Icons.trending_up, color: Colors.greenAccent),
+                          SizedBox(width: 8),
+                          Text("Utabiri"),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: "record_payment",
+                      child: Row(
+                        children: <Widget>[
+                          Icon(Icons.payments, color: ThemeConstants.primaryOrange),
+                          SizedBox(width: 8),
+                          Text("Rekodi Malipo"),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: "record_debt",
+                      child: Row(
+                        children: <Widget>[
+                          Icon(Icons.receipt_long, color: Colors.amber),
+                          SizedBox(width: 8),
+                          Text("Rekodi Deni"),
+                        ],
+                      ),
+                    ),
                     // Show "Complete Agreement" option if not completed
                     if (!driver.hasCompletedAgreement)
                       const PopupMenuItem(
@@ -909,6 +963,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         _showEditDriverDialog(driver);
       case "history":
         _navigateToDriverHistory(driver);
+      case "predict":
+        _navigateToDriverPrediction(driver);
+      case "record_payment":
+        Navigator.of(context).pushNamed('/payments');
+      case "record_debt":
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DebtsManagementScreen(initialDriverId: driver.id),
+          ),
+        );
       case "activate":
       case "deactivate":
         _toggleDriverStatus(driver);
@@ -919,7 +983,12 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     }
   }
 
-  void _showDriverDetails(final Driver driver) {
+  void _showDriverDetails(
+    final Driver driver, {
+    String? daysText,
+    String? paymentsText,
+    String? debtText,
+  }) {
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -939,7 +1008,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               _buildDetailRow("Simu:", driver.phone),
               _buildDetailRow("Leseni:", driver.licenseNumber),
               _buildDetailRow(
-                "Gari:",
+                "Chombo:",
                 "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})",
               ),
               _buildDetailRow(
@@ -948,10 +1017,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               ),
               _buildDetailRow(
                 "Jumla ya Malipo:",
-                "TSH ${_formatCurrency(driver.totalPayments)}",
+                paymentsText ?? "TSH ${_formatThousands(driver.totalPayments)}",
               ),
-              _buildDetailRow("Safari:", "${driver.tripsCompleted}"),
-              _buildDetailRow("Kiwango:", "${driver.rating}"),
+              _buildDetailRow(
+                "Leo ni siku ya:",
+                daysText ?? "-",
+              ),
+              _buildDetailRow(
+                "Deni:",
+                debtText ?? "TSH ${_formatThousands(0)}",
+              ),
               _buildDetailRow("Aliungana:", _formatDate(driver.joinedDate)),
             ],
           ),
@@ -1000,6 +1075,54 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   String _formatDate(final DateTime date) =>
       "${date.day}/${date.month}/${date.year}";
 
+  String _formatThousands(num value) => NumberFormat('#,##0', 'sw_TZ').format(value);
+
+  DateTime? _parseDate(final Object? value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String && value.isNotEmpty) {
+      try {
+        return DateTime.parse(value);
+      } on Exception catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  int _countWorkingDaysInclusive(
+    final DateTime start,
+    final DateTime end, {
+    required final bool weekendsCountable,
+    required final bool saturdayIncluded,
+    required final bool sundayIncluded,
+  }) {
+    DateTime s = start;
+    DateTime e = end;
+    if (e.isBefore(s)) {
+      final DateTime tmp = s;
+      s = e;
+      e = tmp;
+    }
+    int count = 0;
+    DateTime d = DateTime(s.year, s.month, s.day);
+    final DateTime last = DateTime(e.year, e.month, e.day);
+    while (!d.isAfter(last)) {
+      final int wd = d.weekday; // 1=Mon..7=Sun
+      bool include = true;
+      if (!weekendsCountable) {
+        if (wd == DateTime.saturday || wd == DateTime.sunday) include = false;
+      } else {
+        if (wd == DateTime.saturday && !saturdayIncluded) include = false;
+        if (wd == DateTime.sunday && !sundayIncluded) include = false;
+      }
+      if (include) count++;
+      d = d.add(const Duration(days: 1));
+    }
+    // Ensure at least 1 day when start == end and included
+    return count == 0 ? 1 : count;
+  }
+
   Future<void> _fetchAndShowDriverDetails(final Driver driver) async {
     // Show a small loading dialog while fetching
     unawaited(showDialog(
@@ -1031,9 +1154,113 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
       final Driver fresh = Driver.fromJson(data);
 
+      // Fetch agreement (for days and totals) and debt summary in parallel
+      final futures = await Future.wait<List<dynamic>>([
+        () async {
+          try {
+            final Map<String, dynamic> a =
+                await _apiService.getDriverAgreementByDriverId(fresh.id);
+            return [a];
+          } on Exception catch (_) {
+            return [];
+          }
+        }(),
+        () async {
+          try {
+            final Map<String, dynamic> d =
+                await _apiService.getDriverDebtSummary(fresh.id);
+            return [d];
+          } on Exception catch (_) {
+            return [];
+          }
+        }(),
+      ]);
+
+      Map<String, dynamic>? agreementData;
+      if (futures.isNotEmpty && futures[0].isNotEmpty) {
+        final Map<String, dynamic> a = futures[0][0] as Map<String, dynamic>;
+        final dynamic inner = a['data'] ?? a;
+        if (inner is Map<String, dynamic>) agreementData = inner;
+      }
+
+      Map<String, dynamic>? debtData;
+      if (futures.length > 1 && futures[1].isNotEmpty) {
+        final Map<String, dynamic> d = futures[1][0] as Map<String, dynamic>;
+        final dynamic inner = d['data'] ?? d;
+        if (inner is Map<String, dynamic>) debtData = inner;
+      }
+
+      // Build computed strings
+      String? daysText;
+      String? paymentsText;
+      String? debtText;
+
+      // Payments text (and remaining if agreement total provided)
+      final double totalPaid = fresh.totalPayments;
+      double? agreementTotal;
+      if (agreementData != null) {
+        final dynamic total = agreementData['total_amount'] ??
+            agreementData['total_profit'] ??
+            agreementData['grand_total'] ??
+            agreementData['expected_total'];
+        if (total is num) agreementTotal = total.toDouble();
+      }
+      if (agreementTotal != null && agreementTotal > 0) {
+        paymentsText =
+            "TSH ${_formatThousands(totalPaid)} kati ya ${_formatThousands(agreementTotal)}";
+      } else {
+        paymentsText = "TSH ${_formatThousands(totalPaid)}";
+      }
+
+      // Debt text
+      if (debtData != null) {
+        final dynamic unpaid = debtData['total_unpaid'] ??
+            debtData['unpaid_total'] ??
+            debtData['outstanding_amount'] ??
+            debtData['total_debt'];
+        if (unpaid is num) {
+          debtText = "TSH ${_formatCurrency(unpaid.toDouble())}";
+        }
+      }
+
+      // Days text using agreement dates and weekend rules
+      if (agreementData != null) {
+        try {
+          final DateTime? start = _parseDate(agreementData['start_date']);
+          final DateTime? end = _parseDate(agreementData['end_date']);
+          final bool weekendsCountable =
+              (agreementData['weekends_countable'] ?? true) == true;
+          final bool sat = (agreementData['saturday_included'] ?? true) == true;
+          final bool sun = (agreementData['sunday_included'] ?? true) == true;
+          if (start != null) {
+            final DateTime today = DateTime.now();
+            int dayNumber = today.difference(start).inDays + 1; // inclusive
+            if (dayNumber < 1) dayNumber = 1;
+
+            int? totalDays;
+            if (end != null) {
+              totalDays = _countWorkingDaysInclusive(start, end,
+                  weekendsCountable: weekendsCountable,
+                  saturdayIncluded: sat,
+                  sundayIncluded: sun);
+              if (dayNumber > totalDays) dayNumber = totalDays;
+            }
+
+            daysText = totalDays != null
+                ? "$dayNumber kati ya $totalDays"
+                : "$dayNumber";
+          }
+        } on Exception catch (_) {}
+      }
+
       if (mounted) {
         Navigator.pop(context); // close loader
-        _showDriverDetails(fresh);
+        _showDriverDetails(
+          fresh,
+          daysText: daysText,
+          paymentsText: paymentsText,
+          debtText: debtText,
+        );
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -1088,6 +1315,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     );
   }
 
+  void _navigateToDriverPrediction(final Driver driver) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (final BuildContext context) => DriverPredictionScreen(
+          driverId: driver.id,
+          driverName: driver.name,
+        ),
+      ),
+    );
+  }
+
   void _navigateToDriverAgreement(final Driver driver) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1106,6 +1344,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   void _toggleDriverStatus(final Driver driver) {
     final bool isActive = driver.status == "active";
     final String newStatus = isActive ? "inactive" : "active";
+    // Capture root context to use after async gaps inside dialog callbacks
+    final BuildContext rootContext = context;
 
     showDialog(
       context: context,
@@ -1132,8 +1372,6 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
-              final ScaffoldMessengerState scaffoldMessenger =
-                  ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               try {
@@ -1141,6 +1379,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 await _apiService.updateDriver(driver.id, <String, dynamic>{
                   "status": newStatus,
                 });
+
+                if (!mounted) return;
 
                 // Update local state
                 final Driver updatedDriver = driver.copyWith(status: newStatus);
@@ -1153,24 +1393,18 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   _filterDrivers();
                 }
 
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isActive
-                            ? "${driver.name} amezimwa"
-                            : "${driver.name} amewashwa",
-                      ),
-                      backgroundColor: isActive
-                          ? ThemeConstants.errorRed
-                          : ThemeConstants.successGreen,
-                    ),
-                  );
+                final String message = isActive
+                    ? "${driver.name} amezimwa"
+                    : "${driver.name} amewashwa";
+                if (!mounted) return;
+                if (isActive) {
+                  ThemeConstants.showErrorSnackBar(rootContext, message);
+                } else {
+                  ThemeConstants.showSuccessSnackBar(rootContext, message);
                 }
               } on Exception catch (e) {
-                if (mounted) {
-                  _showErrorSnackBar("Hitilafu katika kubadilisha hali: $e");
-                }
+                if (!mounted) return;
+                _showErrorSnackBar("Hitilafu katika kubadilisha hali: $e");
               }
             },
             child: Text(
@@ -1188,6 +1422,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   }
 
   void _confirmDeleteDriver(final Driver driver) {
+    // Capture root context for safe snackbar usage after awaits
+    final BuildContext rootContext = context;
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -1211,32 +1447,24 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
-              final ScaffoldMessengerState scaffoldMessenger =
-                  ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               try {
                 // Call API to delete driver
                 await _apiService.deleteDriver(driver.id);
 
+                if (!mounted) return;
                 // Remove from local state
                 setState(() {
                   _drivers.removeWhere((final Driver d) => d.id == driver.id);
                 });
                 _filterDrivers();
 
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text("${driver.name} amefutwa"),
-                      backgroundColor: ThemeConstants.errorRed,
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                ThemeConstants.showErrorSnackBar(rootContext, "${driver.name} amefutwa");
               } on Exception catch (e) {
-                if (mounted) {
-                  _showErrorSnackBar("Hitilafu katika kufuta dereva: $e");
-                }
+                if (!mounted) return;
+                _showErrorSnackBar("Hitilafu katika kufuta dereva: $e");
               }
             },
             child: const Text(
@@ -1249,22 +1477,206 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     );
   }
 
-  void _exportDrivers() {
-    // TODO(dev): Implement export functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
-      ),
-    );
+  Future<void> _exportDrivers() async {
+    if (kIsWeb) {
+      ThemeConstants.showErrorSnackBar(context, "Uhamishaji wa faili haupatikani kwenye web. Tumia simu/desktop.");
+      return;
+    }
+
+    try {
+      final String csv = _buildDriversCsv(_drivers);
+
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final String filePath = "${dir.path}/boda_drivers_$timestamp.csv";
+
+      final File file = File(filePath);
+      await file.writeAsString(csv);
+
+      if (!mounted) return;
+      ThemeConstants.showSuccessSnackBar(context, "Faili limehifadhiwa: $filePath");
+    } on Exception catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar("Imeshindikana kuhamisha data: $e");
+    }
   }
 
-  void _importDrivers() {
-    // TODO(dev): Implement import functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Kipengele cha kuingiza kinatengenezwa..."),
-      ),
-    );
+  String _buildDriversCsv(final List<Driver> drivers) {
+    String esc(String? v) {
+      final String s = (v ?? '').replaceAll('"', '""');
+      if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+        return '"$s"';
+      }
+      return s;
+    }
+
+    final String header = [
+      'id',
+      'name',
+      'email',
+      'phone',
+      'vehicle_number',
+      'vehicle_type',
+      'status',
+      'total_payments',
+      'rating',
+      'trips_completed',
+      'joined_date'
+    ].join(',');
+
+    final List<String> lines = <String>[
+      header,
+      ...drivers.map((d) => [
+            esc(d.id),
+            esc(d.name),
+            esc(d.email),
+            esc(d.phone),
+            esc(d.vehicleNumber),
+            esc(d.vehicleType),
+            esc(d.status),
+            d.totalPayments.toStringAsFixed(0),
+            d.rating.toStringAsFixed(1),
+            d.tripsCompleted.toString(),
+            DateFormat('yyyy-MM-dd').format(d.joinedDate),
+          ].join(',')),
+    ];
+
+    return lines.join('\n');
+  }
+
+  Future<void> _importDrivers() async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: <String>['csv'],
+        withData: true,
+      );
+      if (result == null) return;
+
+      String csvContent;
+      final PlatformFile file = result.files.first;
+      if (kIsWeb || file.bytes != null) {
+        csvContent = utf8.decode(file.bytes!);
+      } else if (file.path != null) {
+        csvContent = await File(file.path!).readAsString();
+      } else {
+        _showErrorSnackBar("Imeshindikana kusoma faili");
+        return;
+      }
+
+      // Parse CSV
+      final List<Map<String, String>> rows = _parseDriversCsv(csvContent);
+      if (rows.isEmpty) {
+        if (mounted) _showErrorSnackBar("Hakuna rekodi kwenye faili");
+        return;
+      }
+      // Validate headers
+      final Set<String> required = {'name', 'phone_number'};
+      final Set<String> headers = rows.first.keys.toSet();
+      if (!headers.containsAll(required)) {
+        if (mounted) {
+          _showErrorSnackBar("Faili halina vichwa sahihi. Vinavyotakiwa: name, phone_number");
+        }
+        return;
+      }
+
+      // Show progress
+      int success = 0;
+      int failed = 0;
+
+      for (final Map<String, String> r in rows) {
+        try {
+          final Map<String, dynamic> payload = <String, dynamic>{
+            'name': r['name'] ?? r['full_name'] ?? '',
+            'email': r['email'] ?? '',
+            'phone_number': r['phone'] ?? r['phone_number'] ?? '',
+            'license_number': r['license_number'] ?? r['license'] ?? '',
+            'vehicle_number': r['vehicle_number'],
+            'vehicle_type': r['vehicle_type']?.toLowerCase(),
+            'status': r['status']?.toLowerCase() ?? 'active',
+          };
+          await _apiService.createDriver(payload);
+          success++;
+        } on Exception {
+          failed++;
+        }
+      }
+
+      final String message = "Uingizaji umekamilika: $success mafanikio, $failed imeshindikana";
+      if (!mounted) return;
+      if (failed == 0) {
+        ThemeConstants.showSuccessSnackBar(context, message);
+      } else {
+        ThemeConstants.showWarningSnackBar(context, message);
+      }
+
+      // Refresh list
+      await _loadDrivers(refresh: true);
+    } on Exception catch (e) {
+      if (mounted) _showErrorSnackBar("Imeshindikana kuingiza data: $e");
+    }
+  }
+
+  Future<void> _exportDriversTemplate() async {
+    if (kIsWeb) {
+      ThemeConstants.showErrorSnackBar(context, "Upakuaji wa faili kwenye web haupatikani");
+      return;
+    }
+    try {
+      const String header = 'name,email,phone_number,license_number,vehicle_number,vehicle_type,status';
+      const String example = 'John Doe,john@example.com,+255712345678,DL123456,T123ABC,pikipiki,active';
+      const String csv = '$header\n$example\n';
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String filePath = "${dir.path}/drivers_template.csv";
+      await File(filePath).writeAsString(csv);
+      if (!mounted) return;
+      ThemeConstants.showSuccessSnackBar(context, "Template imehifadhiwa: $filePath");
+    } on Exception catch (e) {
+      _showErrorSnackBar("Imeshindikana kutengeneza template: $e");
+    }
+  }
+
+  List<Map<String, String>> _parseDriversCsv(String content) {
+    final List<String> lines = content.split(RegExp(r"\r?\n"));
+    if (lines.isEmpty) return <Map<String, String>>[];
+    final List<String> headers = _splitCsvLine(lines.first);
+    final List<Map<String, String>> rows = <Map<String, String>>[];
+
+    for (int i = 1; i < lines.length; i++) {
+      final String line = lines[i].trim();
+      if (line.isEmpty) continue;
+      final List<String> cols = _splitCsvLine(line);
+      final Map<String, String> row = <String, String>{};
+      for (int j = 0; j < headers.length && j < cols.length; j++) {
+        row[headers[j].trim().toLowerCase()] = cols[j];
+      }
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  List<String> _splitCsvLine(String line) {
+    final List<String> out = <String>[];
+    final StringBuffer cur = StringBuffer();
+    bool inQuotes = false;
+    for (int i = 0; i < line.length; i++) {
+      final String ch = line[i];
+      if (ch == '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
+          cur.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch == ',' && !inQuotes) {
+        out.add(cur.toString());
+        cur.clear();
+      } else {
+        cur.write(ch);
+      }
+    }
+    out.add(cur.toString());
+    return out;
   }
 }
 
@@ -1388,22 +1800,10 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
       Navigator.pop(context);
       widget.onDriverUpdated(updated);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Taarifa za dereva zimehifadhiwa."),
-          backgroundColor: ThemeConstants.successGreen,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ThemeConstants.showSuccessSnackBar(context, "Taarifa za dereva zimehifadhiwa.");
     } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Hitilafu katika kuhariri: $e"),
-          backgroundColor: ThemeConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuhariri: $e");
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -1670,16 +2070,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         Navigator.pop(context);
         widget.onDriverAdded();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text("Dereva ${_nameController.text} ameongezwa kikamilifu!"),
-            backgroundColor: ThemeConstants.successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Dereva ${_nameController.text} ameongezwa kikamilifu!");
 
         // Debug: Print the response
         debugPrint('Driver creation response: $response');
@@ -1717,13 +2108,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                   'Error navigating to Driver Agreement Screen: $navError');
               if (!mounted) return;
               // Show error to user
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'Hitilafu katika kuongoza kwenye makubaliano: $navError'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              ThemeConstants.showErrorSnackBar(context, 'Hitilafu katika kuongoza kwenye makubaliano: $navError');
             }
           } else {
             debugPrint(
@@ -1737,15 +2122,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kuongeza dereva: $e"),
-            backgroundColor: ThemeConstants.errorRed,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuongeza dereva: $e");
       }
     } finally {
       if (mounted) {

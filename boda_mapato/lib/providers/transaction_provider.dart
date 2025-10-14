@@ -2,6 +2,7 @@
 import "package:flutter/foundation.dart";
 import "../models/transaction.dart";
 import "../services/api_service.dart";
+import "../services/auth_service.dart";
 
 class TransactionProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -27,6 +28,12 @@ class TransactionProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // Guard: only fetch when authenticated
+      if (!await AuthService.isAuthenticated()) {
+        _transactions = <Transaction>[];
+        _applyFilters();
+        return;
+      }
       await _api.initialize();
       final Map<String, dynamic> resp = await _api.getTransactions();
       final dynamic data = resp["data"];

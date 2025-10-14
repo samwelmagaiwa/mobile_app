@@ -91,6 +91,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           .map((final json) => Vehicle.fromJson(json as Map<String, dynamic>))
           .toList();
 
+      if (!mounted) return;
       setState(() {
         if (_currentPage == 1) {
           _vehicles = newVehicles;
@@ -105,12 +106,16 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
       _filterVehicles();
     } on Exception catch (e) {
-      _showErrorSnackBar("Hitilafu katika kupakia magari: $e");
+      if (mounted) {
+        _showErrorSnackBar("Hitilafu katika kupakia magari: $e");
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -154,25 +159,11 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   }
 
   void _showErrorSnackBar(final String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: SelectableText(message),
-        backgroundColor: ThemeConstants.errorRed,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   void _showSuccessSnackBar(final String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: ThemeConstants.successGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    ThemeConstants.showSuccessSnackBar(context, message);
   }
 
   @override
@@ -593,7 +584,10 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
           if (index == _filteredVehicles.length) {
             // Load more indicator
             if (!_isLoadingMore) {
-              _loadVehicles();
+              // Schedule loading after this frame to avoid setState during build
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _loadVehicles();
+              });
             }
             return const Padding(
               padding: EdgeInsets.all(16),
@@ -1049,6 +1043,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               Navigator.pop(context);
               try {
                 await _apiService.unassignDriverFromVehicle(vehicle.id);
+                if (!mounted) return;
                 setState(() {
                   final int idx =
                       _vehicles.indexWhere((final v) => v.id == vehicle.id);
@@ -1060,7 +1055,9 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 _showSuccessSnackBar(
                     "Dereva ameondolewa kwenye ${vehicle.plateNumber}");
               } on Exception catch (e) {
-                _showErrorSnackBar("Imeshindikana kuondoa dereva: $e");
+                if (mounted) {
+                  _showErrorSnackBar("Imeshindikana kuondoa dereva: $e");
+                }
               }
             },
             child: const Text(
@@ -1099,6 +1096,7 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 await _apiService.updateVehicle(vehicle.id, <String, dynamic>{
                   "is_active": newActive,
                 });
+                if (!mounted) return;
                 setState(() {
                   final int idx =
                       _vehicles.indexWhere((final v) => v.id == vehicle.id);
@@ -1111,8 +1109,10 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 _showSuccessSnackBar(
                     newActive ? "Chombo kimewashwa" : "Chombo kimezimwa");
               } on Exception catch (e) {
-                _showErrorSnackBar(
-                    "Imeshindikana kubadilisha hali ya chombo: $e");
+                if (mounted) {
+                  _showErrorSnackBar(
+                      "Imeshindikana kubadilisha hali ya chombo: $e");
+                }
               }
             },
             child: Text(
@@ -1148,12 +1148,15 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
               Navigator.pop(context);
               try {
                 await _apiService.deleteVehicle(vehicle.id);
+                if (!mounted) return;
                 setState(() =>
                     _vehicles.removeWhere((final v) => v.id == vehicle.id));
                 _filterVehicles();
                 _showSuccessSnackBar("Chombo kimefutwa");
               } on Exception catch (e) {
-                _showErrorSnackBar("Imeshindikana kufuta chombo: $e");
+                if (mounted) {
+                  _showErrorSnackBar("Imeshindikana kufuta chombo: $e");
+                }
               }
             },
             child: const Text(

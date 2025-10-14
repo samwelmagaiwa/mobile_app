@@ -3,11 +3,13 @@ import "dart:developer" as developer;
 
 import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
+import "../config/api_config.dart";
 
 mixin AuthService {
   // API Configuration - Updated for Laravel backend
   // For mobile device testing via USB debugging on this PC (192.168.1.124)
-  static const String baseUrl = "http://192.168.1.124:8000/api";
+  // Use centralized API configuration for consistency with ApiService
+  static String get baseUrl => ApiConfig.baseUrl;
 
   // Alternative URLs for different environments:
   // For development on localhost: "http://127.0.1:8000/api"
@@ -212,6 +214,66 @@ mixin AuthService {
       return data;
     } on Exception catch (e) {
       throw Exception("Forgot password request failed: $e");
+    }
+  }
+
+  // Update profile
+  static Future<Map<String, dynamic>> updateProfile({
+    final String? name,
+    final String? email,
+    final String? phone,
+  }) async {
+    try {
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http
+          .put(
+            Uri.parse("$baseUrl/auth/profile"),
+            headers: headers,
+            body: jsonEncode(<String, String?>{
+              if (name != null) "name": name,
+              if (email != null) "email": email,
+              if (phone != null) "phone_number": phone,
+            }),
+          )
+          .timeout(timeoutDuration);
+
+      final Map<String, dynamic> data = _handleResponse(response);
+
+      final Map<String, dynamic>? user =
+          data['user'] is Map ? Map<String, dynamic>.from(data['user']) : null;
+      if (user != null) {
+        await saveUserData(user);
+      }
+
+      return data;
+    } on Exception catch (e) {
+      throw Exception("Profile update failed: $e");
+    }
+  }
+
+  // Change password
+  static Future<void> changePassword({
+    required final String currentPassword,
+    required final String newPassword,
+    required final String confirmPassword,
+  }) async {
+    try {
+      final Map<String, String> headers = await _authHeaders;
+      final http.Response response = await http
+          .post(
+            Uri.parse("$baseUrl/auth/change-password"),
+            headers: headers,
+            body: jsonEncode(<String, String>{
+              "current_password": currentPassword,
+              "password": newPassword,
+              "password_confirmation": confirmPassword,
+            }),
+          )
+          .timeout(timeoutDuration);
+
+      _handleResponse(response);
+    } on Exception catch (e) {
+      throw Exception("Change password failed: $e");
     }
   }
 

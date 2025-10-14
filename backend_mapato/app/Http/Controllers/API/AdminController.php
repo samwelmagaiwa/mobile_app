@@ -24,71 +24,57 @@ class AdminController extends Controller
     public function dashboard(Request $request)
     {
         try {
-            $admin = $request->user();
-
-            // Get admin's drivers and vehicles
-            $drivers = User::where('created_by', $admin->id)
-                          ->where('role', 'driver')
-                          ->with('driver', 'assignedDevice')
-                          ->get();
-
-            $vehicles = Device::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
+            // Use the same logic as DashboardController for consistency
+            // Get real data from actual database tables
+            
+            // Drivers data
+            $totalDrivers = Driver::count();
+            $activeDrivers = Driver::where('is_active', 1)->count();
+            
+            // Vehicles data  
+            $totalVehicles = Device::count();
+            $activeVehicles = Device::where('is_active', 1)->count();
+            
+            // Payment data - use Payment model instead of Transaction
+            $totalPaymentsToday = \App\Models\Payment::where('status', 'completed')
+                ->whereDate('payment_date', today())
+                ->sum('amount');
+                
+            $totalPaymentsThisWeek = \App\Models\Payment::where('status', 'completed')
+                ->whereBetween('payment_date', [now()->startOfWeek(), now()->endOfWeek()])
+                ->sum('amount');
+                
+            $totalPaymentsThisMonth = \App\Models\Payment::where('status', 'completed')
+                ->whereMonth('payment_date', now()->month)
+                ->whereYear('payment_date', now()->year)
+                ->sum('amount');
+            
+            // Recent payments data
+            $recentPayments = \App\Models\Payment::with(['driver.user'])
+                ->where('status', 'completed')
+                ->orderBy('payment_date', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function ($payment) {
+                    return [
+                        'id' => $payment->id,
+                        'reference_number' => $payment->reference_number,
+                        'driver_name' => $payment->driver->name ?? 'Unknown Driver',
+                        'amount' => $payment->amount,
+                        'payment_date' => $payment->payment_date->format('Y-m-d H:i:s'),
+                        'payment_channel' => $payment->payment_channel,
+                    ];
                 });
-            })->with('driver.user')->get();
-
-            // Get payment statistics
-            $totalPaymentsToday = Transaction::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
-                });
-            })
-            ->where('type', 'income')
-            ->where('status', 'completed')
-            ->whereDate('created_at', today())
-            ->sum('amount');
-
-            $totalPaymentsThisWeek = Transaction::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
-                });
-            })
-            ->where('type', 'income')
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-            ->sum('amount');
-
-            $totalPaymentsThisMonth = Transaction::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
-                });
-            })
-            ->where('type', 'income')
-            ->where('status', 'completed')
-            ->whereMonth('created_at', now()->month)
-            ->sum('amount');
-
-            // Recent transactions
-            $recentTransactions = Transaction::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
-                });
-            })
-            ->with('driver.user', 'device')
-            ->latest()
-            ->take(10)
-            ->get();
 
             $stats = [
-                'total_drivers' => $drivers->count(),
-                'active_drivers' => $drivers->where('is_active', true)->count(),
-                'total_vehicles' => $vehicles->count(),
-                'active_vehicles' => $vehicles->where('is_active', true)->count(),
+                'total_drivers' => $totalDrivers,
+                'active_drivers' => $activeDrivers,
+                'total_vehicles' => $totalVehicles,
+                'active_vehicles' => $activeVehicles,
                 'payments_today' => $totalPaymentsToday,
                 'payments_this_week' => $totalPaymentsThisWeek,
                 'payments_this_month' => $totalPaymentsThisMonth,
-                'recent_transactions' => $recentTransactions,
+                'recent_transactions' => $recentPayments,
             ];
 
             return ResponseHelper::success($stats, 'Dashboard data retrieved successfully');

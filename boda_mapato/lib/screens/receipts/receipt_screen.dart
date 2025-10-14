@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
@@ -69,12 +70,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         setState(() {
           _isLoadingReceipts = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kupakia risiti: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kupakia risiti: $e");
       }
     }
   }
@@ -107,12 +103,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kutengeneza risiti: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kutengeneza risiti: $e");
       }
     } finally {
       if (mounted) {
@@ -537,12 +528,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                     text: AppStrings.printReceipt,
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(AppStrings.receiptGenerated),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
+                      ThemeConstants.showSuccessSnackBar(context, AppStrings.receiptGenerated);
                     },
                     backgroundColor: AppColors.primary,
                   ),
@@ -553,12 +539,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                     text: "Hifadhi",
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Risiti imehifadhiwa"),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
+                      ThemeConstants.showSuccessSnackBar(context, "Risiti imehifadhiwa");
                     },
                     backgroundColor: AppColors.success,
                   ),
