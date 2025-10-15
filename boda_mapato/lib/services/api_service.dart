@@ -111,6 +111,7 @@ class ApiService {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
+        print('DEBUG _postFirst: Trying endpoint: $e');
         return await _post(e, data, requireAuth: requireAuth);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
@@ -245,9 +246,11 @@ class ApiService {
         throw ApiException("Hauruhusiwi - tafadhali ingia tena");
       }
 
+      final String fullUrl = "$baseUrl$endpoint";
+      print('DEBUG _post: Making POST request to: $fullUrl');
       final http.Response response = await http
           .post(
-            Uri.parse("$baseUrl$endpoint"),
+            Uri.parse(fullUrl),
             headers: headers,
             body: json.encode(data),
           )
@@ -609,8 +612,10 @@ class ApiService {
     return _getFirst(endpoints);
   }
 
-  Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async =>
-      _postFirst(<String>["/admin/users", "/users", "/admin/user-management/users"], userData);
+  Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async {
+    print('DEBUG ApiService.createUser: Trying endpoints for user creation');
+    return _postFirst(<String>["/admin/users", "/users", "/admin/user-management/users"], userData);
+  }
 
   Future<Map<String, dynamic>> updateUser(String userId, Map<String, dynamic> userData) async =>
       _putFirst(<String>["/admin/users/$userId", "/users/$userId", "/admin/user-management/users/$userId"], userData);

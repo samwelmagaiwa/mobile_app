@@ -1,10 +1,12 @@
-import 'package:flutter/foundation.dart';
-import 'dart:html' as html;
 
 /// Fix for web keyboard event null errors
+// Deprecated: kept for backward compatibility. Use conditional imports.
 class WebKeyboardFix {
+  static bool _initialized = false;
   static void initialize() {
+    if (_initialized) return;
     if (kIsWeb) {
+      _initialized = true;
       // Add keyboard event listeners that handle null values gracefully
       html.document.addEventListener('keydown', _handleKeyEvent);
       html.document.addEventListener('keyup', _handleKeyEvent);

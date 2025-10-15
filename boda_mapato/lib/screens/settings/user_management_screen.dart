@@ -62,15 +62,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   String _defaultPasswordFromName(String fullName) {
     final String trimmed = fullName.trim();
-    if (trimmed.isEmpty) return 'PASSWORD';
+    if (trimmed.isEmpty) return 'PASSWORD8';
     final List<String> parts = trimmed.split(RegExp(r"\s+")).where((p) => p.isNotEmpty).toList();
     final String base = (parts.isNotEmpty ? parts.last : trimmed).toUpperCase();
-    // Ensure backend validation (min 6 chars). If surname is shorter, repeat it until length >= 6.
+    // Ensure password has exactly 8 characters
     String pwd = base;
-    while (pwd.length < 6) {
+    while (pwd.length < 8) {
       pwd += base;
     }
-    return pwd.substring(0, 6);
+    return pwd.substring(0, 8);
   }
 
   Future<void> _openCreateDialog() async {
@@ -207,10 +207,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             child: Text(_loc.translate('cancel'), style: const TextStyle(color: ThemeConstants.textSecondary)),
           ),
           FilledButton(
-            onPressed: _creating
+                  onPressed: _creating
                 ? null
                 : () async {
                     if (!formKey.currentState!.validate()) return;
+                    
+                    // Check if email already exists in current users list
+                    final String emailToCheck = email.text.trim().toLowerCase();
+                    final bool emailExists = _users.any((u) => 
+                        (u['email']?.toString().toLowerCase() ?? '') == emailToCheck);
+                    
+                    if (emailExists) {
+                      ThemeConstants.showErrorSnackBar(context, 
+                          _loc.isSwahili ? 'Barua pepe tayari ipo' : 'Email already exists');
+                      return;
+                    }
+                    
                     setState(() => _creating = true);
                     try {
                       final String password = _defaultPasswordFromName(name.text);
@@ -223,21 +235,32 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         'password': password,
                         'password_confirmation': password,
                       }..removeWhere((key, value) => value == null);
-                      // Use backend's existing registration endpoint
-                      final Map<String, dynamic> res = await AuthService.register(
-                        name: payload['name'] as String,
-                        email: payload['email'] as String,
-                        password: password,
-                        passwordConfirmation: password,
-                        phone: payload['phone_number'] as String?,
-                      );
-                      if (mounted) {
-                        ThemeConstants.showSuccessSnackBar(context, _loc.translate('user_created_successfully'));
+                      // Use admin users endpoint
+                      print('DEBUG: About to call createUser with payload: $payload');
+                      final Map<String, dynamic> res = await _api.createUser(payload);
+                      print('DEBUG: createUser response: $res');
+                      if ((res['success'] == true) || res.containsKey('data')) {
+                        if (mounted) {
+                          ThemeConstants.showSuccessSnackBar(context, _loc.translate('user_created_successfully'));
+                        }
+                        Navigator.pop(context, true);
+                      } else {
+                        throw Exception(res['message'] ?? 'Failed to create user');
                       }
-                      Navigator.pop(context, true);
                     } catch (e) {
                       if (mounted) {
-                        ThemeConstants.showErrorSnackBar(context, e.toString());
+                        String errorMsg = e.toString();
+                        // Extract specific validation error from API response
+                        if (errorMsg.contains('email has already been taken')) {
+                          errorMsg = _loc.isSwahili 
+                              ? 'Barua pepe tayari inatumika. Tumia barua pepe nyingine.'
+                              : 'Email already exists. Please use a different email.';
+                        } else if (errorMsg.contains('validation')) {
+                          errorMsg = _loc.isSwahili 
+                              ? 'Taarifa za mtumiaji si sahihi. Angalia na ujaribu tena.'
+                              : 'User information is invalid. Please check and try again.';
+                        }
+                        ThemeConstants.showErrorSnackBar(context, errorMsg);
                       }
                     } finally {
                       if (mounted) setState(() => _creating = false);

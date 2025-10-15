@@ -30,7 +30,7 @@ import 'screens/reports/report_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/demo_language_screen.dart';
 import 'services/app_messenger.dart';
-import 'utils/web_keyboard_fix.dart';
+import 'utils/web_keyboard_fix_stub.dart' if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
