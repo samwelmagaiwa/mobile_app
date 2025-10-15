@@ -5,6 +5,7 @@ import "package:provider/provider.dart";
 import "../../constants/styles.dart";
 import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_utils.dart";
 import "../../widgets/custom_button.dart";
 
@@ -60,14 +61,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (success) {
         // Show success message
         if (mounted) {
-          _showSnackBar("Umeingia kikamilifu!", Colors.green);
+          _showSnackBar(LocalizationService.instance.translate('login_successful'), Colors.green);
         }
         // Navigation will be handled by AuthWrapper
       } else {
         // Show error message
         if (mounted) {
           _showSnackBar(
-            authProvider.errorMessage ?? "Kuingia kumeshindikana",
+            authProvider.errorMessage ?? LocalizationService.instance.translate('login_failed'),
             Colors.red,
           );
         }
@@ -81,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         _showSnackBar(
-          "Hitilafu katika kuingia: ${e.toString().replaceAll("Exception: ", "")}",
+          "${LocalizationService.instance.translate('login_error')}${e.toString().replaceAll("Exception: ", "")}",
           Colors.red,
         );
       }
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.text = "+255743519104";
     _passwordController.text = "12345678";
 
-    _showSnackBar("Taarifa za demo zimejazwa", Colors.blue);
+    _showSnackBar(LocalizationService.instance.translate('demo_credentials_filled'), Colors.blue);
   }
 
   // Fill actual database credentials
@@ -114,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.text = "+255743519104";
     _passwordController.text = "12345678";
 
-    _showSnackBar("Taarifa za database zimejazwa", Colors.orange);
+    _showSnackBar(LocalizationService.instance.translate('database_credentials_filled'), Colors.orange);
   }
 
   // Forgot password functionality
@@ -148,7 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(final BuildContext context) {
     final bool isLandscape = ResponsiveUtils.isLandscape(context);
 
-    return Scaffold(
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: LayoutBuilder(
@@ -217,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           Text(
-                            "Boda Mapato",
+                            localizationService.translate('app_name'),
                             style:
                                 AppStyles.heading1Responsive(context).copyWith(
                               color: const Color(0xFF1F2937),
@@ -231,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           Text(
-                            "Simamia biashara yako ya boda boda",
+                            localizationService.translate('app_description'),
                             style:
                                 AppStyles.bodyLargeResponsive(context).copyWith(
                               color: Colors.black54,
@@ -279,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
                             Text(
-                              "Ingia",
+                              localizationService.translate('signin'),
                               style: AppStyles.heading2Responsive(context)
                                   .copyWith(
                                 color: const Color(0xFF1F2937),
@@ -301,8 +303,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: AppStyles.bodyMediumResponsive(context),
                               decoration:
                                   AppStyles.inputDecoration(context).copyWith(
-                                labelText: "Barua pepe",
-                                hintText: "Ingiza barua pepe yako",
+                                labelText: localizationService.translate('email'),
+                                hintText: "${localizationService.translate('email')} (admin@gmail.com)",
                                 prefixIcon: Icon(
                                   Icons.email_outlined,
                                   size: ResponsiveUtils.getResponsiveIconSize(
@@ -339,8 +341,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: AppStyles.bodyMediumResponsive(context),
                               decoration:
                                   AppStyles.inputDecoration(context).copyWith(
-                                labelText: "Namba ya simu",
-                                hintText: "Ingiza namba ya simu",
+                                labelText: localizationService.translate('phone_number'),
+                                hintText: "${localizationService.translate('phone_number')} (+255743519104)",
                                 prefixIcon: Icon(
                                   Icons.phone_outlined,
                                   size: ResponsiveUtils.getResponsiveIconSize(
@@ -375,8 +377,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: AppStyles.bodyMediumResponsive(context),
                               decoration:
                                   AppStyles.inputDecoration(context).copyWith(
-                                labelText: "Nywila",
-                                hintText: "Ingiza nywila yako",
+                                labelText: localizationService.translate('password'),
+                                hintText: localizationService.translate('password'),
                                 prefixIcon: Icon(
                                   Icons.lock_outlined,
                                   size: ResponsiveUtils.getResponsiveIconSize(
@@ -421,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             // Login Button
                             CustomButton(
-                              text: "Ingia",
+                              text: localizationService.translate('signin'),
                               onPressed: _isLoading ? null : _handleLogin,
                               isLoading: _isLoading,
                               backgroundColor: const Color(0xFF1E40AF),
@@ -581,6 +583,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

@@ -99,6 +99,22 @@ class AuthController extends Controller
             // Update last login
             $user->updateLastLogin();
 
+            // Record login activity
+            try {
+                \App\Models\LoginActivity::create([
+                    'user_id' => $user->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'login_at' => now(),
+                    'success' => true,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to record login activity', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Revoke existing tokens
             $tokensRevoked = $user->tokens()->count();
             $user->tokens()->delete();
@@ -332,6 +348,22 @@ class AuthController extends Controller
             ]);
             
             $request->user()->currentAccessToken()->delete();
+
+            // Record logout time on latest login activity
+            try {
+                $last = \App\Models\LoginActivity::where('user_id', $user->id)
+                    ->orderByDesc('login_at')
+                    ->first();
+                if ($last && !$last->logout_at) {
+                    $last->logout_at = now();
+                    $last->save();
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to record logout activity', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Log successful logout
             Log::info('Logout successful', [

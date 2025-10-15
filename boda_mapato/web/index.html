@@ -34,6 +34,24 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Global error handler for Flutter web keyboard events
+    window.addEventListener('error', function(e) {
+      if (e.error && e.error.message && e.error.message.includes('shiftKey')) {
+        // Suppress keyboard event errors
+        e.preventDefault();
+        return false;
+      }
+    });
+    
+    // Unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', function(e) {
+      if (e.reason && e.reason.message && e.reason.message.includes('shiftKey')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

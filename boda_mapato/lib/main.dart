@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,7 @@ import 'providers/debts_provider.dart';
 import 'providers/device_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'services/localization_service.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/communications_screen.dart';
 import 'screens/admin/debts_management_screen.dart';
@@ -26,10 +28,18 @@ import 'screens/payments/payments_screen.dart';
 import 'screens/reminders/reminders_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/demo_language_screen.dart';
 import 'services/app_messenger.dart';
+import 'utils/web_keyboard_fix.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize web keyboard fix for Flutter web
+  WebKeyboardFix.initialize();
+
+  // Initialize localization service
+  await LocalizationService.instance.initialize();
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
@@ -59,6 +69,9 @@ class BodaMapatoApp extends StatelessWidget {
         builder: (final BuildContext context, final Widget? child) =>
             MultiProvider(
           providers: <SingleChildWidget>[
+            ChangeNotifierProvider<LocalizationService>.value(
+              value: LocalizationService.instance,
+            ),
             ChangeNotifierProvider<AuthProvider>(
               create: (final BuildContext _) => AuthProvider(),
             ),
@@ -75,12 +88,23 @@ class BodaMapatoApp extends StatelessWidget {
               create: (final BuildContext _) => DashboardProvider()..loadAll(),
             ),
           ],
-          child: MaterialApp(
-            title: "Boda Mapato",
-            theme: _buildTheme(context),
-            scaffoldMessengerKey: AppMessenger.key,
-            home: const AuthWrapper(),
-            debugShowCheckedModeBanner: false,
+          child: Consumer<LocalizationService>(
+            builder: (context, localizationService, child) => MaterialApp(
+              title: localizationService.translate('app_name'),
+              theme: _buildTheme(context),
+              scaffoldMessengerKey: AppMessenger.key,
+              locale: localizationService.currentLocale,
+              supportedLocales: const [
+                Locale('en', 'US'),
+                Locale('sw', 'TZ'),
+              ],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: const AuthWrapper(),
+              debugShowCheckedModeBanner: false,
             routes: <String, WidgetBuilder>{
               "/admin/dashboard": (final BuildContext context) =>
                   const AdminDashboardScreen(),
@@ -104,7 +128,10 @@ class BodaMapatoApp extends StatelessWidget {
                   const CommunicationsScreen(),
               "/settings": (final BuildContext context) =>
                   const SettingsScreen(),
+              "/demo": (final BuildContext context) =>
+                  const DemoLanguageScreen(),
             },
+            ),
           ),
         ),
       );
@@ -175,10 +202,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   @override
-  Widget build(final BuildContext context) => Consumer<AuthProvider>(
+  Widget build(final BuildContext context) => Consumer2<AuthProvider, LocalizationService>(
         builder: (
           final BuildContext context,
           final AuthProvider authProvider,
+          final LocalizationService localizationService,
           final Widget? child,
         ) {
           // Show loading screen while initializing
@@ -192,7 +220,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     const CircularProgressIndicator(),
                     SizedBox(height: 16.h),
                     Text(
-                      "Inapakia...",
+                      localizationService.translate('loading'),
                       style: TextStyle(
                         fontSize: 16.sp,
                         color: AppColors.textSecondary,

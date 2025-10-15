@@ -1,11 +1,13 @@
 import "dart:ui";
 
 import "package:flutter/material.dart";
+import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../models/communication.dart";
 import "../../models/driver.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class CommunicationsScreen extends StatefulWidget {
@@ -370,29 +372,33 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
 
   @override
   Widget build(BuildContext context) {
-    ResponsiveHelper.init(context);
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "Mawasiliano",
-      body: _isLoading
-          ? ThemeConstants.buildResponsiveLoadingWidget(context)
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _buildCommunicationSummary(),
-                  ResponsiveHelper.verticalSpace(1),
-                  _buildFiltersSection(),
-                  ResponsiveHelper.verticalSpace(1),
-                  _buildCommunicationsTable(),
-                  ResponsiveHelper.verticalSpace(1),
-                ],
-              ),
-            ),
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) {
+        ResponsiveHelper.init(context);
+        return ThemeConstants.buildResponsiveScaffold(
+          context,
+          title: localizationService.translate("communications_title"),
+          body: _isLoading
+              ? ThemeConstants.buildResponsiveLoadingWidget(context)
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _buildCommunicationSummary(localizationService),
+                      ResponsiveHelper.verticalSpace(1),
+                      _buildFiltersSection(localizationService),
+                      ResponsiveHelper.verticalSpace(1),
+                      _buildCommunicationsTable(localizationService),
+                      ResponsiveHelper.verticalSpace(1),
+                    ],
+                  ),
+                ),
+        );
+      },
     );
   }
 
-  Widget _buildCommunicationSummary() {
+  Widget _buildCommunicationSummary(LocalizationService localizationService) {
     if (_summary == null) return const SizedBox.shrink();
 
     return _buildBlueBlendGlassCard(
@@ -408,7 +414,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
               ),
               ResponsiveHelper.horizontalSpace(2),
               Text(
-                "Muhtasari wa Mawasiliano",
+                localizationService.translate("communications_summary_title"),
                 style: ThemeConstants.responsiveHeadingStyle(context),
               ),
             ],
@@ -423,25 +429,25 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
             crossAxisSpacing: ResponsiveHelper.spacingM,
             children: <Widget>[
               _buildSummaryCard(
-                "Jumla ya Mazungumzo",
+                localizationService.translate("total_communications"),
                 _summary!.totalCommunications,
                 Icons.chat_bubble_outline,
                 ThemeConstants.primaryOrange,
               ),
               _buildSummaryCard(
-                "Bila Jibu",
+                localizationService.translate("unanswered"),
                 _summary!.unansweredCommunications,
                 Icons.help_outline,
                 ThemeConstants.errorRed,
               ),
               _buildSummaryCard(
-                "Hivi Karibuni (7 siku)",
+                localizationService.translate("recent_7_days"),
                 _summary!.recentCommunications,
                 Icons.access_time,
                 ThemeConstants.successGreen,
               ),
               _buildSummaryCard(
-                "Kiwango cha Majibu",
+                localizationService.translate("response_rate"),
                 (((_summary!.totalCommunications -
                                 _summary!.unansweredCommunications) /
                             (_summary!.totalCommunications == 0
@@ -497,7 +503,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
     );
   }
 
-  Widget _buildFiltersSection() {
+  Widget _buildFiltersSection(LocalizationService localizationService) {
     return _buildBlueBlendGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,12 +517,12 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
               ),
               ResponsiveHelper.horizontalSpace(2),
               Text(
-                "Chuja Mazungumzo",
+                localizationService.translate("filter_communications"),
                 style: ThemeConstants.responsiveHeadingStyle(context),
               ),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: _showAddCommunicationDialog,
+onPressed: () => _showAddCommunicationDialog(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
@@ -525,7 +531,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
                 ),
                 icon: const Icon(Icons.add, size: 16),
                 label: Text(
-                  ResponsiveHelper.isMobile ? "Ongeza" : "Ongeza Mawasiliano",
+                  ResponsiveHelper.isMobile ? localizationService.translate("add") : localizationService.translate("add_communication"),
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
@@ -537,7 +543,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
             controller: _searchController,
             style: ThemeConstants.responsiveBodyStyle(context),
             decoration: InputDecoration(
-              hintText: "Tafuta kwa jina la dereva au maudhui...",
+              hintText: localizationService.translate("search_driver_content"),
               hintStyle: ThemeConstants.responsiveBodyStyle(context).copyWith(
                 color: ThemeConstants.textSecondary,
               ),
@@ -563,27 +569,27 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
           if (ResponsiveHelper.isMobile)
             Column(
               children: <Widget>[
-                _buildMobileFilterRow("Aina:", _buildModeFilters()),
+                _buildMobileFilterRow(localizationService.translate("type"), _buildModeFilters(localizationService)),
                 ResponsiveHelper.verticalSpace(0.5),
-                _buildMobileFilterRow("Hali:", _buildStatusFilters()),
+                _buildMobileFilterRow(localizationService.translate("status"), _buildStatusFilters(localizationService)),
               ],
             )
           else
             Row(
               children: <Widget>[
                 Text(
-                  "Aina:",
+                  localizationService.translate("type"),
                   style: ThemeConstants.responsiveSubHeadingStyle(context),
                 ),
                 ResponsiveHelper.horizontalSpace(1),
-                Expanded(child: _buildModeFilters()),
+                Expanded(child: _buildModeFilters(localizationService)),
                 ResponsiveHelper.horizontalSpace(2),
                 Text(
-                  "Hali:",
+                  localizationService.translate("status"),
                   style: ThemeConstants.responsiveSubHeadingStyle(context),
                 ),
                 ResponsiveHelper.horizontalSpace(1),
-                Expanded(child: _buildStatusFilters()),
+                Expanded(child: _buildStatusFilters(localizationService)),
               ],
             ),
         ],
@@ -605,12 +611,12 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
     );
   }
 
-  Widget _buildModeFilters() {
+  Widget _buildModeFilters(LocalizationService localizationService) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _buildFilterChip("Zote", "all", _selectedFilterMode, (value) {
+          _buildFilterChip(localizationService.translate("all"), "all", _selectedFilterMode, (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -622,7 +628,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Simu", "call", _selectedFilterMode, (value) {
+          _buildFilterChip(localizationService.translate("call"), "call", _selectedFilterMode, (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -635,7 +641,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Kumbuka", "system_note", _selectedFilterMode,
+          _buildFilterChip(localizationService.translate("note"), "system_note", _selectedFilterMode,
               (value) {
             setState(() {
               _selectedFilterMode = value;
@@ -646,25 +652,25 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
     );
   }
 
-  Widget _buildStatusFilters() {
+  Widget _buildStatusFilters(LocalizationService localizationService) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _buildFilterChip("Zote", "all", _selectedFilterStatus, (value) {
+          _buildFilterChip(localizationService.translate("all"), "all", _selectedFilterStatus, (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Zimejibiwa", "answered", _selectedFilterStatus,
+          _buildFilterChip(localizationService.translate("answered"), "answered", _selectedFilterStatus,
               (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("Hazijajibiwa", "unanswered", _selectedFilterStatus,
+          _buildFilterChip(localizationService.translate("unanswered"), "unanswered", _selectedFilterStatus,
               (value) {
             setState(() {
               _selectedFilterStatus = value;
@@ -705,7 +711,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
     );
   }
 
-  Widget _buildCommunicationsTable() {
+  Widget _buildCommunicationsTable(LocalizationService localizationService) {
     final List<Communication> filteredCommunications =
         _getFilteredCommunications();
 
@@ -713,7 +719,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          "Mawasiliano (${filteredCommunications.length})",
+          "${localizationService.translate("communications")} (${filteredCommunications.length})",
           style: ThemeConstants.responsiveHeadingStyle(context),
         ),
         ResponsiveHelper.verticalSpace(1),
@@ -731,26 +737,26 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
                   children: <Widget>[
                     Expanded(
                         flex: 2,
-                        child: Text("Tarehe",
+                        child: Text(localizationService.translate("date"),
                             style: ThemeConstants.responsiveCaptionStyle(
                                 context))),
                     Expanded(
                         flex: 2,
-                        child: Text("Dereva",
+                        child: Text(localizationService.translate("driver"),
                             style: ThemeConstants.responsiveCaptionStyle(
                                 context))),
                     Expanded(
                         flex: 3,
-                        child: Text("Ujumbe",
+                        child: Text(localizationService.translate("message"),
                             style: ThemeConstants.responsiveCaptionStyle(
                                 context))),
                     Expanded(
                         flex: 2,
-                        child: Text("Jibu",
+                        child: Text(localizationService.translate("response"),
                             style: ThemeConstants.responsiveCaptionStyle(
                                 context))),
                     Expanded(
-                        child: Text("Aina",
+                        child: Text(localizationService.translate("type"),
                             style: ThemeConstants.responsiveCaptionStyle(
                                 context))),
                   ],
@@ -771,7 +777,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
                         ),
                         ResponsiveHelper.verticalSpace(1),
                         Text(
-                          "Hakuna mawasiliano yoyote",
+                          localizationService.translate("no_communications"),
                           style: ThemeConstants.responsiveBodyStyle(context),
                         ),
                       ],
@@ -789,7 +795,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
                   ),
                   itemBuilder: (context, index) {
                     final communication = filteredCommunications[index];
-                    return _buildCommunicationRow(communication);
+                    return _buildCommunicationRow(communication, localizationService);
                   },
                 ),
             ],
@@ -799,9 +805,9 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
     );
   }
 
-  Widget _buildCommunicationRow(Communication communication) {
+  Widget _buildCommunicationRow(Communication communication, LocalizationService localizationService) {
     return GestureDetector(
-      onTap: () => _showCommunicationDetails(communication),
+onTap: () => _showCommunicationDetails(communication),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         child: Row(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../services/api_service.dart';
+import '../../services/localization_service.dart';
 
 class PaymentsManagementScreen extends StatefulWidget {
   const PaymentsManagementScreen({super.key, this.initialDriverId});
@@ -91,9 +93,10 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: 'Simamia Malipo',
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+        context,
+        title: localizationService.translate('manage_payments'),
       body: _loadingDrivers
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -138,9 +141,10 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
               backgroundColor: ThemeConstants.primaryOrange,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
-              label: const Text('Rekodi Malipo'),
+              label: Text(localizationService.translate('record_payment')),
             )
           : null,
+      ),
     );
   }
 

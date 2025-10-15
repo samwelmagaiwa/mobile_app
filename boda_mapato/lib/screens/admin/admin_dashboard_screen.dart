@@ -11,6 +11,7 @@ import '../../models/login_response.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/localization_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -268,9 +269,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ),
     );
 
-    return Scaffold(
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) {
+        return Scaffold(
       key: _scaffoldKey,
-      drawer: _buildNavigationDrawer(),
+      drawer: _buildNavigationDrawer(localizationService),
       backgroundColor: primaryBlue,
       body: Container(
         width: MediaQuery.of(context).size.width,
@@ -280,23 +283,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
         child: SafeArea(
           bottom: false, // Allow content to extend to bottom
-          child: _isLoading ? _buildLoadingScreen() : _buildMainContent(),
+          child: _isLoading ? _buildLoadingScreen(localizationService) : _buildMainContent(),
         ),
       ),
+      );
+      },
     );
   }
 
-  Widget _buildLoadingScreen() => const Center(
+  Widget _buildLoadingScreen(LocalizationService localizationService) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             Text(
-              "Inapakia Dashboard...",
-              style: TextStyle(
+              localizationService.translate("loading_dashboard"),
+              style: const TextStyle(
                 color: textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -912,14 +917,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
       );
 
-  Widget _buildNavigationDrawer() => Drawer(
+  Widget _buildNavigationDrawer(LocalizationService localizationService) => Drawer(
         backgroundColor: primaryBlue,
         child: Column(
           children: <Widget>[
             UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: primaryBlue),
               accountName: Text(
-                Provider.of<AuthProvider>(context).user?.name ?? "Admin",
+                Provider.of<AuthProvider>(context).user?.name ?? localizationService.translate("admin"),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -941,53 +946,53 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: <Widget>[
                   _buildNavItem(
                       icon: Icons.dashboard,
-                      title: "Dashboard",
+                      title: localizationService.translate("dashboard"),
                       page: "dashboard"),
                   _buildNavItem(
                       icon: Icons.auto_graph,
-                      title: "Modern Da...",
+                      title: localizationService.translate("modern_dashboard"),
                       page: "modern_dashboard"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
                       icon: Icons.people,
-                      title: "Madereva",
+                      title: localizationService.translate("drivers"),
                       page: "drivers",
                       badge: "${_dashboardData["total_drivers"] ?? 0}"),
                   _buildNavItem(
                       icon: Icons.directions_car,
-                      title: "Magari",
+                      title: localizationService.translate("vehicles"),
                       page: "vehicles",
                       badge: "${_dashboardData["total_vehicles"] ?? 0}"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
                       icon: Icons.assignment_turned_in,
-                      title: "Rekodi Madeni",
+                      title: localizationService.translate("debts_records"),
                       page: "debts"),
                   _buildNavItem(
-                      icon: Icons.receipt, title: "Risiti", page: "receipts"),
+                      icon: Icons.receipt, title: localizationService.translate("receipts"), page: "receipts"),
                   _buildNavItem(
                       icon: Icons.swap_horiz,
-                      title: "Miamala",
+                      title: localizationService.translate("transactions"),
                       page: "transactions"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
-                      icon: Icons.analytics, title: "Ripoti", page: "reports"),
+                      icon: Icons.analytics, title: localizationService.translate("reports"), page: "reports"),
                   _buildNavItem(
                       icon: Icons.trending_up,
-                      title: "Uchambuzi",
+                      title: localizationService.translate("analytics"),
                       page: "analytics"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
                       icon: Icons.notifications,
-                      title: "Mikumbuzi",
+                      title: localizationService.translate("reminders"),
                       page: "reminders"),
                   _buildNavItem(
                       icon: Icons.chat,
-                      title: "Mawasiliano",
+                      title: localizationService.translate("communications"),
                       page: "communications"),
                   _buildNavItem(
                       icon: Icons.settings,
-                      title: "Mipangilio",
+                      title: localizationService.translate("settings"),
                       page: "settings"),
                 ],
               ),
@@ -995,14 +1000,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             Container(
               padding: const EdgeInsets.all(16),
               child: ElevatedButton.icon(
-                onPressed: _handleLogout,
+                onPressed: () => _handleLogout(localizationService),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: errorRed,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 48),
                 ),
                 icon: const Icon(Icons.logout),
-                label: const Text("Toka"),
+                label: Text(localizationService.translate("logout")),
               ),
             ),
           ],
@@ -1085,7 +1090,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Future<void> _handleLogout() async {
+  Future<void> _handleLogout(LocalizationService localizationService) async {
     final AuthProvider authProvider =
         Provider.of<AuthProvider>(context, listen: false);
 
@@ -1093,19 +1098,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Toka"),
-        content: const Text("Je, una uhakika unataka kutoka?"),
+        title: Text(localizationService.translate("logout")),
+        content: Text(localizationService.translate("logout_confirmation")),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Hapana"),
+            child: Text(localizationService.translate("no")),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await authProvider.logout();
             },
-            child: const Text("Ndio", style: TextStyle(color: errorRed)),
+            child: Text(localizationService.translate("yes"), style: const TextStyle(color: errorRed)),
           ),
         ],
       ),

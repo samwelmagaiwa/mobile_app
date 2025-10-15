@@ -1,10 +1,12 @@
 // ignore_for_file: avoid_dynamic_calls
 import "package:flutter/material.dart";
+import "package:provider/provider.dart";
 
 import "../../constants/colors.dart";
 import "../../constants/styles.dart";
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 import "../../widgets/custom_card.dart";
 
@@ -126,65 +128,67 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "Uchambuzi",
-      body: _isLoading
-          ? ThemeConstants.buildResponsiveLoadingWidget(context)
-          : SingleChildScrollView(
-              padding: ResponsiveHelper.defaultPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // Period Selection
-                  _buildPeriodSelector(),
-                  const SizedBox(height: AppStyles.spacingL),
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+        context,
+        title: localizationService.translate('analytics_dashboard'),
+        body: _isLoading
+            ? ThemeConstants.buildResponsiveLoadingWidget(context)
+            : SingleChildScrollView(
+                padding: ResponsiveHelper.defaultPadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // Period Selection
+                    _buildPeriodSelector(localizationService),
+                    const SizedBox(height: AppStyles.spacingL),
 
-                  // Key Metrics
-                  const Text(
-                    "Vipimo Muhimu",
-                    style: ThemeConstants.headingStyle,
-                  ),
-                  const SizedBox(height: AppStyles.spacingM),
-                  _buildKeyMetrics(),
-                  const SizedBox(height: AppStyles.spacingL),
+                    // Key Metrics
+                    Text(
+                      localizationService.translate('performance_metrics'),
+                      style: ThemeConstants.headingStyle,
+                    ),
+                    const SizedBox(height: AppStyles.spacingM),
+                    _buildKeyMetrics(localizationService),
+                    const SizedBox(height: AppStyles.spacingL),
 
-                  // Performance Charts
-                  const Text(
-                    "Jedwali za Utendaji",
-                    style: ThemeConstants.headingStyle,
-                  ),
-                  const SizedBox(height: AppStyles.spacingM),
-                  _buildPerformanceCharts(),
-                  const SizedBox(height: AppStyles.spacingL),
+                    // Performance Charts
+                    Text(
+                      localizationService.translate('revenue_trends'),
+                      style: ThemeConstants.headingStyle,
+                    ),
+                    const SizedBox(height: AppStyles.spacingM),
+                    _buildPerformanceCharts(localizationService),
+                    const SizedBox(height: AppStyles.spacingL),
 
-                  // Trends Analysis
-                  const Text(
-                    "Uchambuzi wa Mwelekeo",
-                    style: ThemeConstants.headingStyle,
-                  ),
-                  const SizedBox(height: AppStyles.spacingM),
-                  _buildTrendsAnalysis(),
-                  const SizedBox(height: AppStyles.spacingL),
+                    // Trends Analysis
+                    Text(
+                      localizationService.translate('revenue_analytics'),
+                      style: ThemeConstants.headingStyle,
+                    ),
+                    const SizedBox(height: AppStyles.spacingM),
+                    _buildTrendsAnalysis(localizationService),
+                    const SizedBox(height: AppStyles.spacingL),
 
-                  // Insights
-                  const Text(
-                    "Maarifa Muhimu",
-                    style: ThemeConstants.headingStyle,
-                  ),
-                  const SizedBox(height: AppStyles.spacingM),
-                  _buildInsights(),
-                ],
+                    // Insights
+                    Text(
+                      localizationService.translate('analytics'),
+                      style: ThemeConstants.headingStyle,
+                    ),
+                    const SizedBox(height: AppStyles.spacingM),
+                    _buildInsights(localizationService),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
-  Widget _buildPeriodSelector() => Row(
+  Widget _buildPeriodSelector(LocalizationService localizationService) => Row(
         children: <Widget>[
           Expanded(
             child: _PeriodButton(
-              label: "Wiki",
+              label: localizationService.translate('weekly'),
               isSelected: _selectedPeriod == "weekly",
               onTap: () {
                 setState(() {
@@ -197,7 +201,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(width: AppStyles.spacingS),
           Expanded(
             child: _PeriodButton(
-              label: "Mwezi",
+              label: localizationService.translate('monthly'),
               isSelected: _selectedPeriod == "monthly",
               onTap: () {
                 setState(() {
@@ -210,7 +214,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(width: AppStyles.spacingS),
           Expanded(
             child: _PeriodButton(
-              label: "Mwaka",
+              label: localizationService.translate('yearly'),
               isSelected: _selectedPeriod == "yearly",
               onTap: () {
                 setState(() {
@@ -223,13 +227,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       );
 
-  Widget _buildKeyMetrics() => Column(
+  Widget _buildKeyMetrics(LocalizationService localizationService) => Column(
         children: <Widget>[
           Row(
             children: <Widget>[
               Expanded(
                 child: _MetricCard(
-                  title: "Jumla ya Mapato",
+                  title: localizationService.translate('total_revenue'),
                   value:
                       "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const ['total_revenue','revenue_total','total']))}",
                   change: "+${(_analyticsData?['growth_rate'] as num? ?? 0).toStringAsFixed(1)}%",
@@ -240,7 +244,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(width: AppStyles.spacingM),
               Expanded(
                 child: _MetricCard(
-                  title: "Faida Halisi",
+                  title: localizationService.translate('net_profit'),
                   value:
                       "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
                   change: "+${_computeProfitChange(_analyticsData)}%",
@@ -255,7 +259,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: <Widget>[
               Expanded(
                 child: _MetricCard(
-                  title: "Kiwango cha Faida",
+                  title: localizationService.translate('profit_margin'),
                   value:
                       "${(_analyticsData?['profit_margin'] as num? ?? 0).toStringAsFixed(1)}%",
                   change: "",
@@ -266,7 +270,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(width: AppStyles.spacingM),
               Expanded(
                 child: _MetricCard(
-                  title: "Wateja Wapya",
+                  title: localizationService.translate('new_customers'),
                   value:
                       "${_extractFirstInt(_analyticsData?['revenue'], const ['new_customers','customers_new','customers'])}",
                   change: "",
@@ -279,28 +283,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       );
 
-  Widget _buildPerformanceCharts() => CustomCard(
+  Widget _buildPerformanceCharts(LocalizationService localizationService) => CustomCard(
         child: Container(
           padding: const EdgeInsets.all(AppStyles.spacingM),
           height: 200,
-          child: const Center(
+          child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(
+                const Icon(
                   Icons.bar_chart,
                   size: 48,
                   color: AppColors.primary,
                 ),
-                SizedBox(height: AppStyles.spacingM),
+                const SizedBox(height: AppStyles.spacingM),
                 Text(
-                  "Jedwali za Utendaji",
+                  localizationService.translate('performance_charts'),
                   style: AppStyles.heading3,
                 ),
-                SizedBox(height: AppStyles.spacingS),
+                const SizedBox(height: AppStyles.spacingS),
                 Text(
-                  "Jedwali za kina zinaonekana hapa",
-                  style: TextStyle(color: AppColors.textSecondary),
+                  localizationService.translate('detailed_charts_shown_here'),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -308,28 +312,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
       );
 
-  Widget _buildTrendsAnalysis() => Column(
+  Widget _buildTrendsAnalysis(LocalizationService localizationService) => Column(
         children: <Widget>[
           _buildTrendItem(
-              "Ukuaji wa Mapato",
-              "+12.5% mwezi huu",
+              localizationService.translate('revenue_growth'),
+              "+12.5% ${localizationService.translate('this_month')}",
               Icons.trending_up,
               AppColors.success,
-              "Ukuaji wa mapato umeimarika kwa mwezi huu kwa wastani wa 12.5%"),
+              localizationService.translate('revenue_growth_improved')),
           const SizedBox(height: AppStyles.spacingM),
           _buildTrendItem(
-              "Ufanisi wa Gharama",
-              "Punguzo la 8%",
+              localizationService.translate('expense_efficiency'),
+              "${localizationService.translate('decrease')} 8%",
               Icons.trending_down,
               AppColors.info,
-              "Gharama zimepungua kwa 8% kutokana na uongozi bora"),
+              localizationService.translate('expenses_reduced_management')),
           const SizedBox(height: AppStyles.spacingM),
           _buildTrendItem(
-              "Utendaji wa Wateja",
-              "+15 wateja wapya",
+              localizationService.translate('customer_performance'),
+              "+15 ${localizationService.translate('new_customers')}",
               Icons.people,
               AppColors.warning,
-              "Tumeongeza wateja wapya 15 mwezi huu"),
+              localizationService.translate('added_customers_this_month')),
         ],
       );
 
@@ -388,40 +392,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
       );
 
-  Widget _buildInsights() => CustomCard(
+  Widget _buildInsights(LocalizationService localizationService) => CustomCard(
         child: Padding(
           padding: const EdgeInsets.all(AppStyles.spacingM),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Row(
+              Row(
                 children: <Widget>[
-                  Icon(
+                  const Icon(
                     Icons.lightbulb,
                     color: AppColors.warning,
                     size: 24,
                   ),
-                  SizedBox(width: AppStyles.spacingS),
+                  const SizedBox(width: AppStyles.spacingS),
                   Text(
-                    "Maarifa ya Akili Bandia",
+                    localizationService.translate('ai_insights'),
                     style: AppStyles.heading3,
                   ),
                 ],
               ),
               const SizedBox(height: AppStyles.spacingM),
               _buildInsightItem(
-                "Siku Bora zaidi ni Jumanne na Alhamisi",
-                "Mapato ni makubwa zaidi katika siku hizi za wiki",
+                localizationService.translate('best_days_insights'),
+                localizationService.translate('best_days_description'),
               ),
               const SizedBox(height: AppStyles.spacingM),
               _buildInsightItem(
-                "Madereva wengi wanaongeza mapato mchana",
-                "Safari za mchana (12PM-3PM) zina faida kubwa zaidi",
+                localizationService.translate('afternoon_earnings_insights'),
+                localizationService.translate('afternoon_trips_profitable'),
               ),
               const SizedBox(height: AppStyles.spacingM),
               _buildInsightItem(
-                "Matumizi ya mafuta yamepungua kwa 15%",
-                "Uongozi bora wa mafuta umesaidia kupunguza gharama",
+                localizationService.translate('fuel_usage_reduced'),
+                localizationService.translate('fuel_management_helped'),
               ),
             ],
           ),

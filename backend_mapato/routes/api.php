@@ -175,6 +175,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('user', [AuthController::class, 'user']);
         Route::post('refresh', [AuthController::class, 'refresh']);
+        // Security
+        Route::post('change-password', [\App\Http\Controllers\API\SecurityController::class, 'changePassword']);
+        Route::get('security', [\App\Http\Controllers\API\SecurityController::class, 'getSecuritySettings']);
+        Route::post('two-factor', [\App\Http\Controllers\API\SecurityController::class, 'setTwoFactor']);
+        Route::get('login-history', [\App\Http\Controllers\API\SecurityController::class, 'getLoginHistory']);
     });
 
     // Admin routes (Vehicle Owner/Admin only)

@@ -375,6 +375,25 @@ class ApiService {
     return response;
   }
 
+  // Security endpoints
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async =>
+      _post("/auth/change-password", <String, dynamic>{
+        "current_password": currentPassword,
+        "new_password": newPassword,
+      });
+
+  Future<Map<String, dynamic>> getSecuritySettings() async =>
+      _get("/auth/security");
+
+  Future<Map<String, dynamic>> setTwoFactor(bool enabled) async =>
+      _post("/auth/two-factor", <String, dynamic>{"enabled": enabled});
+
+  Future<Map<String, dynamic>> getLoginHistory({int page = 1, int limit = 20}) async =>
+      _get("/auth/login-history?page=$page&limit=$limit");
+
   // Dashboard endpoints
   // Summary dashboard (AdminController::dashboard)
   Future<Map<String, dynamic>> getDashboardData() async =>
@@ -461,6 +480,41 @@ class ApiService {
     }
 
     return <dynamic>[];
+  }
+
+  // Upload profile image (avatar)
+  Future<Map<String, dynamic>> uploadProfileImage({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    final Map<String, String> headers = await _authHeaders;
+    if (!headers.containsKey("Authorization")) {
+      throw ApiException("Hauruhusiwi - tafadhali ingia tena");
+    }
+
+    Future<Map<String, dynamic>> _send(String endpoint, String fieldName) async {
+      final uri = Uri.parse("$baseUrl$endpoint");
+      final request = http.MultipartRequest('POST', uri);
+      final Map<String, String> h = Map.of(headers);
+      // Let MultipartRequest set the correct boundary header
+      h.remove('Content-Type');
+      request.headers.addAll(h);
+      request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
+      final streamed = await request.send().timeout(timeoutDuration);
+      final response = await http.Response.fromStream(streamed);
+      return _handleResponse(response);
+    }
+
+    // Try common endpoints/field names
+    try {
+      return await _send('/auth/profile/avatar', 'avatar');
+    } on Exception {
+      try {
+        return await _send('/auth/profile/photo', 'photo');
+      } on Exception {
+        return _send('/auth/profile/image', 'image');
+      }
+    }
   }
 
   // Driver management endpoints

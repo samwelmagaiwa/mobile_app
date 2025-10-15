@@ -6,6 +6,7 @@ import "../../constants/strings.dart";
 import "../../constants/styles.dart";
 import "../../providers/device_provider.dart";
 import "../../providers/transaction_provider.dart";
+import "../../services/localization_service.dart";
 import "../../widgets/custom_card.dart";
 import "../device_selection/device_selection_screen.dart";
 import "../receipts/receipt_screen.dart";
@@ -41,11 +42,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
-  Widget build(final BuildContext context) => Scaffold(
+  Widget build(final BuildContext context) => Consumer<LocalizationService>(
+    builder: (context, localizationService, child) {
+      return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: const Text(
-            AppStrings.dashboard,
+          title: Text(
+            localizationService.translate("dashboard"),
             style: AppStyles.heading2,
           ),
           backgroundColor: AppColors.primary,
@@ -91,12 +94,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: AppStyles.spacingL),
 
                       // Quick Actions
-                      const Text(
-                        "Vitendo vya Haraka",
+                      Text(
+                        localizationService.translate("quick_actions"),
                         style: AppStyles.heading3,
                       ),
                       const SizedBox(height: AppStyles.spacingM),
-                      const QuickActionsSection(),
+                      QuickActionsSection(localizationService: localizationService),
 
                       const SizedBox(height: AppStyles.spacingL),
 
@@ -104,9 +107,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
-                          const Flexible(
+                          Flexible(
                             child: Text(
-                              AppStrings.recentTransactions,
+                              localizationService.translate("recent_transactions"),
                               style: AppStyles.heading3,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -121,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               );
                             },
-                            child: const Text("Ona Zote"),
+                            child: Text(localizationService.translate("view_all")),
                           ),
                         ],
                       ),
@@ -131,8 +134,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: AppStyles.spacingL),
 
                       // Device Status
-                      const Text(
-                        "Hali ya Vyombo",
+                      Text(
+                        localizationService.translate("device_status"),
                         style: AppStyles.heading3,
                       ),
                       const SizedBox(height: AppStyles.spacingM),
@@ -151,22 +154,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.textSecondary,
-          items: const <BottomNavigationBarItem>[
+          items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: "Dashibodi",
+              icon: const Icon(Icons.dashboard),
+              label: localizationService.translate("dashboard"),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet),
-              label: "Miamala",
+              icon: const Icon(Icons.account_balance_wallet),
+              label: localizationService.translate("transactions"),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.receipt),
-              label: "Toa Risiti",
+              icon: const Icon(Icons.receipt),
+              label: localizationService.translate("generate_receipt"),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assessment),
-              label: "Ripoti",
+              icon: const Icon(Icons.assessment),
+              label: localizationService.translate("reports"),
             ),
           ],
           onTap: (final int index) {
@@ -215,10 +218,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: const Icon(Icons.add, color: Colors.white),
         ),
       );
+    },
+  );
 }
 
 class QuickActionsSection extends StatelessWidget {
-  const QuickActionsSection({super.key});
+  const QuickActionsSection({super.key, required this.localizationService});
+  
+  final LocalizationService localizationService;
 
   @override
   Widget build(final BuildContext context) => LayoutBuilder(
@@ -229,7 +236,7 @@ class QuickActionsSection extends StatelessWidget {
               children: <Widget>[
                 _QuickActionCard(
                   icon: Icons.add_circle,
-                  title: "Muamala Mpya",
+                  title: localizationService.translate("new_transaction"),
                   color: AppColors.success,
                   onTap: () {
                     Navigator.push(
@@ -244,7 +251,7 @@ class QuickActionsSection extends StatelessWidget {
                 const SizedBox(height: AppStyles.spacingM),
                 _QuickActionCard(
                   icon: Icons.receipt_long,
-                  title: "Tengeneza Risiti",
+                  title: localizationService.translate("generate_receipt"),
                   color: AppColors.info,
                   onTap: () {
                     Navigator.push(
@@ -266,7 +273,7 @@ class QuickActionsSection extends StatelessWidget {
               Expanded(
                 child: _QuickActionCard(
                   icon: Icons.add_circle,
-                  title: "Muamala Mpya",
+                  title: localizationService.translate("new_transaction"),
                   color: AppColors.success,
                   onTap: () {
                     Navigator.push(
@@ -283,7 +290,7 @@ class QuickActionsSection extends StatelessWidget {
               Expanded(
                 child: _QuickActionCard(
                   icon: Icons.receipt_long,
-                  title: "Tengeneza Risiti",
+                  title: localizationService.translate("generate_receipt"),
                   color: AppColors.info,
                   onTap: () {
                     Navigator.push(

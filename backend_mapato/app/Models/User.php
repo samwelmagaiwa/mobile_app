@@ -28,6 +28,9 @@ class User extends Authenticatable
         'phone_verified',
         'email_verified_at',
         'last_login_at',
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_confirmed_at',
     ];
 
     /**
@@ -44,10 +47,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
         'email_verified' => 'boolean',
         'phone_verified' => 'boolean',
+        'two_factor_enabled' => 'boolean',
     ];
 
     /**

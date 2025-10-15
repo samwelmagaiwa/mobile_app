@@ -7,9 +7,11 @@ import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:path_provider/path_provider.dart";
+import "package:provider/provider.dart";
 import "../../constants/theme_constants.dart";
 import "../../models/driver.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 import "debts_management_screen.dart";
 import "driver_agreement_screen.dart";
@@ -169,13 +171,15 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   @override
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "Simamia Madereva",
-      body: _isLoading
-          ? ThemeConstants.buildResponsiveLoadingWidget(context)
-          : _buildMainContent(),
-      floatingActionButton: _buildFloatingActionButton(),
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+        context,
+        title: localizationService.translate('drivers_management'),
+        body: _isLoading
+            ? ThemeConstants.buildResponsiveLoadingWidget(context)
+            : _buildMainContent(localizationService),
+        floatingActionButton: _buildFloatingActionButton(localizationService),
+      ),
     );
   }
 
@@ -269,9 +273,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         ),
       );
 
-  Widget _buildMainContent() => Column(
+  Widget _buildMainContent(LocalizationService localizationService) => Column(
         children: <Widget>[
-          _buildSearchAndFilter(),
+          _buildSearchAndFilter(localizationService),
           _buildStatsCards(),
           Expanded(
             child: RefreshIndicator(
@@ -286,7 +290,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         ],
       );
 
-  Widget _buildSearchAndFilter() => Container(
+  Widget _buildSearchAndFilter(LocalizationService localizationService) => Container(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: <Widget>[
@@ -304,7 +308,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 onChanged: _onSearchChanged,
                 style: ThemeConstants.bodyStyle,
                 decoration: InputDecoration(
-                  hintText: "Tafuta dereva, simu, au namba ya chombo...",
+                  hintText: localizationService.translate('search_drivers'),
                   hintStyle: ThemeConstants.captionStyle.copyWith(
                     color: ThemeConstants.textSecondary,
                   ),
@@ -900,14 +904,14 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         ],
       );
 
-  Widget _buildFloatingActionButton() => FloatingActionButton.extended(
+  Widget _buildFloatingActionButton(LocalizationService localizationService) => FloatingActionButton.extended(
         onPressed: _showAddDriverDialog,
         backgroundColor: ThemeConstants.primaryOrange,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text(
-          "Ongeza Dereva",
-          style: TextStyle(fontWeight: FontWeight.w600),
+        label: Text(
+          localizationService.translate('add_driver'),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       );
 

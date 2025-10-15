@@ -1,10 +1,12 @@
 import "dart:async";
 import "package:flutter/material.dart";
+import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../models/reminder.dart";
 import "../../services/api_service.dart";
 import "../../services/auth_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class RemindersScreen extends StatefulWidget {
@@ -166,9 +168,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
     final upcomingReminders =
         _filteredReminders.where((r) => r.isUpcoming).toList();
 
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "Mikumbusho",
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+        context,
+        title: localizationService.translate('reminders'),
       body: _isLoading
           ? ThemeConstants.buildResponsiveLoadingWidget(context)
           : RefreshIndicator(
@@ -222,6 +225,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         backgroundColor: ThemeConstants.primaryBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
+    ),
     );
   }
 

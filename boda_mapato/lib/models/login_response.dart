@@ -64,6 +64,7 @@ class UserData {
     this.lastLoginAt,
     this.driver,
     this.assignedDevice,
+    this.avatarUrl,
   });
 
   factory UserData.fromJson(final Map<String, dynamic> json) => UserData(
@@ -87,6 +88,8 @@ class UserData {
                 json["assigned_device"] as Map<String, dynamic>,
               )
             : null,
+        // Flexible avatar/profile image keys from backend
+        avatarUrl: _pickAvatarUrl(json),
       );
   final String id;
   final String name;
@@ -98,11 +101,29 @@ class UserData {
   final DateTime? lastLoginAt;
   final DriverData? driver;
   final DeviceData? assignedDevice;
+  final String? avatarUrl;
 
   bool get isSuperAdmin => role == "super_admin";
   bool get isAdmin => role == "admin";
   bool get isDriver => role == "driver";
   bool get canManageDrivers => isSuperAdmin || isAdmin;
+
+  static String? _pickAvatarUrl(Map<String, dynamic> json) {
+    final List<String> keys = <String>[
+      'avatar_url',
+      'avatar',
+      'profile_image_url',
+      'profile_image',
+      'profile_photo_url',
+      'photo_url',
+      'image_url',
+    ];
+    for (final String k in keys) {
+      final dynamic v = json[k];
+      if (v is String && v.trim().isNotEmpty) return v.trim();
+    }
+    return null;
+  }
 }
 
 class DriverData {

@@ -1,10 +1,12 @@
 // ignore_for_file: avoid_dynamic_calls, unused_element
 import "package:flutter/material.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
+import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../models/vehicle.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class VehiclesManagementScreen extends StatefulWidget {
@@ -169,58 +171,60 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
   @override
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      backgroundColor:
-          ThemeConstants.primaryBlue, // Solid blue background like drivers page
-      appBar: ThemeConstants.buildResponsiveAppBar(context, "Simamia Magari",
-          actions: <Widget>[
-            IconButton(
-              onPressed: () => _loadVehicles(refresh: true),
-              icon: const Icon(Icons.refresh),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (final String value) {
-                switch (value) {
-                  case "export":
-                    _exportVehicles();
-                  case "import":
-                    _importVehicles();
-                }
-              },
-              itemBuilder: (final BuildContext context) =>
-                  <PopupMenuEntry<String>>[
-                const PopupMenuItem(
-                  value: "export",
-                  child: Row(
-                    children: <Widget>[
-                      Icon(Icons.download, color: ThemeConstants.primaryBlue),
-                      SizedBox(width: 8),
-                      Text("Hamisha Data"),
-                    ],
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => Scaffold(
+        backgroundColor:
+            ThemeConstants.primaryBlue, // Solid blue background like drivers page
+        appBar: ThemeConstants.buildResponsiveAppBar(context, localizationService.translate('manage_vehicles'),
+            actions: <Widget>[
+              IconButton(
+                onPressed: () => _loadVehicles(refresh: true),
+                icon: const Icon(Icons.refresh),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (final String value) {
+                  switch (value) {
+                    case "export":
+_exportVehicles();
+                    case "import":
+_importVehicles();
+                  }
+                },
+                itemBuilder: (final BuildContext context) =>
+                    <PopupMenuEntry<String>>[
+                  PopupMenuItem(
+                    value: "export",
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(Icons.download, color: ThemeConstants.primaryBlue),
+                        const SizedBox(width: 8),
+                        Text(localizationService.translate('export_data')),
+                      ],
+                    ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: "import",
-                  child: Row(
-                    children: <Widget>[
-                      Icon(Icons.upload, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text("Ingiza Data"),
-                    ],
+                  PopupMenuItem(
+                    value: "import",
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(Icons.upload, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Text(localizationService.translate('import_data')),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ]),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
-        child: SafeArea(
-          child: _isLoading
-              ? ThemeConstants.buildResponsiveLoadingWidget(context)
-              : _buildMainContent(),
+                ],
+              ),
+            ]),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
+          child: SafeArea(
+            child: _isLoading
+                ? ThemeConstants.buildResponsiveLoadingWidget(context)
+                : _buildMainContent(),
+          ),
         ),
+floatingActionButton: _buildFloatingActionButton(),
       ),
-      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 

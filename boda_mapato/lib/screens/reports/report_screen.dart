@@ -1,7 +1,9 @@
 import "package:flutter/material.dart";
+import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class ReportScreen extends StatefulWidget {
@@ -133,8 +135,9 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
-    return ThemeConstants.buildScaffold(
-      title: "Ripoti",
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildScaffold(
+        title: localizationService.translate('reports'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -162,6 +165,7 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

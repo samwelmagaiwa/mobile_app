@@ -9,9 +9,12 @@ import "package:provider/provider.dart";
 
 import "../../debug_auth_test.dart";
 import "../../models/login_response.dart";
+import "../../models/user_permissions.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
 import "../../services/app_events.dart";
+import "../../services/localization_service.dart";
+import "../../services/navigation_builder.dart";
 import "../../utils/responsive_helper.dart";
 import "../receipts/receipts_screen.dart";
 
@@ -351,7 +354,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         final response = await _apiService.getUnpaidDebtsCount();
         final data = _extractDataFromResponse(response);
         endpointCount = _toInt(data['count'] ?? data['unpaid_debts_count'] ?? 0);
-        debugPrint('DEBUG: unpaid_debts_count endpoint -> response=$response, mapped=$endpointCount');
       } on Exception {
         // 2) Fallback to a generic summary if endpoint not available
         try {
@@ -384,7 +386,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           }
           return false;
         }).length;
-        debugPrint('DEBUG: unpaid_debts_count drivers -> uniqueDebtorDrivers=$uniqueDebtorDrivers (from ${list.length} drivers)');
       } catch (_) {
         // ignore; keep endpointCount
       }
@@ -405,7 +406,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         final response = await _apiService.getGeneratedReceiptsCount();
         final data = _extractDataFromResponse(response);
         final int cnt = _toInt(data['count'] ?? data['generated_receipts_count'] ?? 0);
-        debugPrint('DEBUG: generated_receipts_count endpoint -> response=$response, mapped=$cnt');
         return {
           'payment_receipts_count': cnt,
           'receipts_count': cnt,
@@ -452,7 +452,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         final response = await _apiService.getPendingReceiptsCount();
         final data = _extractDataFromResponse(response);
         endpointCount = _toInt(data['count'] ?? data['pending_receipts_count'] ?? 0);
-        debugPrint('DEBUG: pending_receipts_count endpoint -> response=$response, mapped=$endpointCount');
       } on Exception {
         // ignore and keep endpointCount = 0
       }
@@ -501,7 +500,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           // As a last resort, fall back to total count extraction
           totalItemsCount = list.length > 0 ? list.length : _extractTotalCountFromResponse(response);
         }
-        debugPrint('DEBUG: pending_receipts_count total items -> $totalItemsCount (from ${list.length} items, ${uniqueDriverIds.length} unique drivers)');
       } catch (_) {
         // ignore; keep endpointCount
       }
@@ -725,31 +723,33 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      drawer: _buildDrawer(), // Add drawer
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          color:
-              primaryBlue, // Solid blue background matching admin dashboard image
-        ),
-        child: SafeArea(
-          child: _isLoading ? _buildLoadingScreen() : _buildMainContent(),
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => Scaffold(
+        drawer: _buildDrawer(localizationService), // Add drawer with localization
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            color:
+                primaryBlue, // Solid blue background matching admin dashboard image
+          ),
+          child: SafeArea(
+            child: _isLoading ? _buildLoadingScreen(localizationService) : _buildMainContent(localizationService),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingScreen() => const Center(
+  Widget _buildLoadingScreen(LocalizationService localizationService) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             Text(
-              "Inapakia Dashboard...",
-              style: TextStyle(
+              localizationService.translate('loading_dashboard'),
+              style: const TextStyle(
                 color: textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -759,7 +759,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildMainContent() => FadeTransition(
+  Widget _buildMainContent(LocalizationService localizationService) => FadeTransition(
         opacity: _fadeAnimation,
         child: AnimatedBuilder(
           animation: _slideAnimation,
@@ -778,7 +778,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _buildHeader(),
+                      _buildHeader(localizationService),
                       ResponsiveHelper.verticalSpace(2),
                       _buildBalanceCard(),
                       ResponsiveHelper.verticalSpace(2),
@@ -786,7 +786,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       ResponsiveHelper.verticalSpace(2),
                       _buildChartSection(),
                       ResponsiveHelper.verticalSpace(2),
-                      _buildQuickActions(),
+                      _buildQuickActions(localizationService),
                       ResponsiveHelper.verticalSpace(2),
                     ],
                   ),
@@ -797,7 +797,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildHeader() {
+  Widget _buildHeader(LocalizationService localizationService) {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
     final UserData? user = authProvider.user;
 
@@ -813,11 +813,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             ),
           ),
         ),
-        const Expanded(
+        Expanded(
           child: Text(
-            "Dashboard",
+            localizationService.translate('dashboard'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -934,11 +934,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                     ),
                   ),
                   SizedBox(height: gapSmall),
-                  Text(
-                    "Mapato yote",
-                    style: TextStyle(
-                      color: textSecondary,
-                      fontSize: ResponsiveHelper.bodyM,
+                  Consumer<LocalizationService>(
+                    builder: (context, localizationService, child) => Text(
+                      localizationService.translate("total_revenue"),
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: ResponsiveHelper.bodyM,
+                      ),
                     ),
                   ),
                 ],
@@ -951,116 +953,120 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   Widget _buildStatsCards() {
-        // Active vs total for drivers and vehicles (exact backend values)
-        final int activeDrivers = _toInt(_dashboardData['active_drivers'] ?? 0);
-        final int totalDrivers = _toInt(
-          _dashboardData['total_drivers'] ?? _dashboardData['drivers_count'] ?? 0,
-        );
-        final int activeVehicles = _toInt(_dashboardData['active_vehicles'] ?? 0);
-        final int totalVehicles = _toInt(
-          _dashboardData['total_vehicles'] ?? _dashboardData['devices_count'] ?? 0,
-        );
+        return Consumer<LocalizationService>(
+          builder: (context, localizationService, child) {
+            // Active vs total for drivers and vehicles (exact backend values)
+            final int activeDrivers = _toInt(_dashboardData['active_drivers'] ?? 0);
+            final int totalDrivers = _toInt(
+              _dashboardData['total_drivers'] ?? _dashboardData['drivers_count'] ?? 0,
+            );
+            final int activeVehicles = _toInt(_dashboardData['active_vehicles'] ?? 0);
+            final int totalVehicles = _toInt(
+              _dashboardData['total_vehicles'] ?? _dashboardData['devices_count'] ?? 0,
+            );
 
-        return Column(
-        children: <Widget>[
-          // First row: Revenue cards (Daily, Weekly, Monthly)
-          Row(
+            return Column(
             children: <Widget>[
-              Expanded(
-                child: _buildStatCard(
-                  "Mapato ya Siku",
-                  "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
-                  "",
-                  Icons.today,
-                  true,
-                ),
+              // First row: Revenue cards (Daily, Weekly, Monthly)
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("daily_revenue"),
+                      "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
+                      "",
+                      Icons.today,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("weekly_revenue"),
+                      "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
+                      "",
+                      Icons.calendar_view_week,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("monthly_revenue"),
+                      "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
+                      "",
+                      Icons.trending_up,
+                      true,
+                    ),
+                  ),
+                ],
               ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Mapato ya Wiki",
-                  "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
-                  "",
-                  Icons.calendar_view_week,
-                  true,
-                ),
+              ResponsiveHelper.verticalSpace(2),
+              // Second row: Payment/Receipt cards
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("payments_with_receipts"),
+                      "${_dashboardData["payment_receipts_count"] ?? 0}",
+                      "",
+                      Icons.receipt,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("paid_awaiting_receipts"),
+                      "${_dashboardData["pending_receipts_count"] ?? 0}",
+                      "",
+                      Icons.receipt_long,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("unpaid_payments"),
+                      "${_dashboardData["unpaid_debts_count"] ?? 0}",
+                      "",
+                      Icons.pending_actions,
+                      false,
+                    ),
+                  ),
+                ],
               ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Mapato ya Mwezi",
-                  "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
-                  "",
-                  Icons.trending_up,
-                  true,
-                ),
+              ResponsiveHelper.verticalSpace(2),
+              // Third row: Resources (Drivers, Vehicles)
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("drivers"),
+                      "${activeDrivers}",
+                      "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
+                      Icons.person,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("vehicles"),
+                      "${activeVehicles}",
+                      "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
+                      Icons.directions_car,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  // Empty space to maintain 3-column layout
+                  const Expanded(child: SizedBox()),
+                ],
               ),
             ],
-          ),
-          ResponsiveHelper.verticalSpace(2),
-          // Second row: Payment/Receipt cards
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _buildStatCard(
-                  "Malipo Yenye Risiti",
-                  "${_dashboardData["payment_receipts_count"] ?? 0}",
-                  "",
-                  Icons.receipt,
-                  true,
-                ),
-              ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Yamelipwa Bado Risiti",
-                  "${_dashboardData["pending_receipts_count"] ?? 0}",
-                  "",
-                  Icons.receipt_long,
-                  true,
-                ),
-              ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Malipo Yasiyolipwa",
-                  "${_dashboardData["unpaid_debts_count"] ?? 0}",
-                  "",
-                  Icons.pending_actions,
-                  false,
-                ),
-              ),
-            ],
-          ),
-          ResponsiveHelper.verticalSpace(2),
-          // Third row: Resources (Drivers, Vehicles)
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _buildStatCard(
-                  "Madereva",
-                  "${activeDrivers}",
-                  "Hai $activeDrivers/$totalDrivers",
-                  Icons.person,
-                  true,
-                ),
-              ),
-              ResponsiveHelper.horizontalSpace(4),
-              Expanded(
-                child: _buildStatCard(
-                  "Vyombo vya Usafiri",
-                  "${activeVehicles}",
-                  "Hai $activeVehicles/$totalVehicles",
-                  Icons.directions_car,
-                  true,
-                ),
-              ),
-              ResponsiveHelper.horizontalSpace(4),
-              // Empty space to maintain 3-column layout
-              const Expanded(child: SizedBox()),
-            ],
-          ),
-        ],
+          );
+        },
       );
     }
 
@@ -1143,10 +1149,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                                 .toList() ??
                             <double>[];
                     if (points.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'Hakuna data ya chart kupatikana',
-                          style: TextStyle(color: Colors.white70),
+                      return Consumer<LocalizationService>(
+                        builder: (context, localizationService, child) => Center(
+                          child: Text(
+                            localizationService.translate('no_chart_data'),
+                            style: const TextStyle(color: Colors.white70),
+                          ),
                         ),
                       );
                     }
@@ -1299,36 +1307,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildQuickActions() => _buildGlassCard(
+  Widget _buildQuickActions(LocalizationService localizationService) => _buildGlassCard(
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildActionButton(Icons.bar_chart, "Takwimu", () {
-                Navigator.pushNamed(context, "/admin/analytics");
-              }),
-              Builder(
-                builder: (BuildContext context) =>
-                    _buildActionButton(Icons.apps, "Menyu", () {
-                  Scaffold.of(context).openDrawer();
-                }),
-              ),
-              _buildActionButton(Icons.receipt_long, "Toa Risiti", () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (BuildContext context) => const ReceiptsScreen(),
-                  ),
-                );
-              }),
-              _buildActionButton(Icons.receipt, "Ripoti", () {
-                Navigator.pushNamed(context, "/admin/reports");
-              }),
-              _buildActionButton(Icons.settings, "Mipangilio", () {
-                Navigator.pushNamed(context, "/settings");
-              }),
-            ],
+            children: NavigationBuilder.buildQuickActions(
+              localization: localizationService,
+              permissions: UserPermissions.fromRole('admin'),
+              context: context,
+            ),
           ),
         ),
       );
@@ -1358,117 +1346,111 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   /// Get menu items based on card type
   List<PopupMenuEntry<String>> _getMenuItems(String title, IconData icon) {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     final List<PopupMenuEntry<String>> items = [];
     
     // Common actions for all cards
     items.add(_buildMenuItem(
       'view_details', 
-      'Ona Maelezo', 
+      localizationService.translate('view_details'), 
       Icons.visibility,
     ));
     
     // Card-specific actions
-    switch (title) {
-      case 'Mapato ya Siku':
-      case 'Mapato ya Wiki':
-      case 'Mapato ya Mwezi':
-        items.add(_buildMenuItem(
-          'view_revenue_drivers', 
-          'Madereva Waliolipa', 
-          Icons.people,
-        ));
-        items.add(_buildMenuItem(
-          'revenue_breakdown', 
-          'Mgawanyiko wa Mapato', 
-          Icons.pie_chart,
-        ));
-        break;
-        
-      case 'Madereva':
-        items.add(_buildMenuItem(
-          'view_all_drivers', 
-          'Madereva Wote', 
-          Icons.people,
-        ));
-        items.add(_buildMenuItem(
-          'active_drivers', 
-          'Madereva Hai', 
-          Icons.check_circle,
-        ));
-        items.add(_buildMenuItem(
-          'add_driver', 
-          'Ongeza Dereva', 
-          Icons.person_add,
-        ));
-        break;
-        
-      case 'Vyombo vya Usafiri':
-        items.add(_buildMenuItem(
-          'view_all_vehicles', 
-          'Magari Yote', 
-          Icons.directions_car,
-        ));
-        items.add(_buildMenuItem(
-          'active_vehicles', 
-          'Magari Yanayotumika', 
-          Icons.check_circle,
-        ));
-        items.add(_buildMenuItem(
-          'add_vehicle', 
-          'Ongeza Gari', 
-          Icons.add_circle,
-        ));
-        break;
-        
-      case 'Malipo Yenye Risiti':
-        items.add(_buildMenuItem(
-          'view_receipts', 
-          'Risiti Zote', 
-          Icons.receipt,
-        ));
-        items.add(_buildMenuItem(
-          'generate_receipt', 
-          'Tengeneza Risiti', 
-          Icons.add_circle,
-        ));
-        break;
-        
-      case 'Yamelipwa Bado Risiti':
-        items.add(_buildMenuItem(
-          'pending_receipts', 
-          'Risiti za Kusubiri', 
-          Icons.pending,
-        ));
-        items.add(_buildMenuItem(
-          'process_pending', 
-          'Shughulikia', 
-          Icons.play_arrow,
-        ));
-        break;
-        
-      case 'Malipo Yasiyolipwa':
-        items.add(_buildMenuItem(
-          'unpaid_debts', 
-          'Madeni Yasiyolipwa', 
-          Icons.warning,
-        ));
-        items.add(_buildMenuItem(
-          'send_reminders', 
-          'Tuma Mikumbuzo', 
-          Icons.notifications_active,
-        ));
-        break;
+    if (_isRevenueCard(title)) {
+      items.add(_buildMenuItem(
+        'view_revenue_drivers', 
+        localizationService.translate('drivers_who_paid'), 
+        Icons.people,
+      ));
+      items.add(_buildMenuItem(
+        'revenue_breakdown', 
+        localizationService.translate('revenue_breakdown'), 
+        Icons.pie_chart,
+      ));
+    } else if (title == localizationService.translate('drivers')) {
+      items.add(_buildMenuItem(
+        'view_all_drivers', 
+        localizationService.translate('all_drivers'), 
+        Icons.people,
+      ));
+      items.add(_buildMenuItem(
+        'active_drivers', 
+        localizationService.translate('active_drivers_only'), 
+        Icons.check_circle,
+      ));
+      items.add(_buildMenuItem(
+        'add_driver', 
+        localizationService.translate('add_driver'), 
+        Icons.person_add,
+      ));
+    } else if (title == localizationService.translate('vehicles')) {
+      items.add(_buildMenuItem(
+        'view_all_vehicles', 
+        localizationService.translate('all_vehicles'), 
+        Icons.directions_car,
+      ));
+      items.add(_buildMenuItem(
+        'active_vehicles', 
+        localizationService.translate('active_vehicles_only'), 
+        Icons.check_circle,
+      ));
+      items.add(_buildMenuItem(
+        'add_vehicle', 
+        localizationService.translate('add_vehicle'), 
+        Icons.add_circle,
+      ));
+    } else if (title == localizationService.translate('payments_with_receipts')) {
+      items.add(_buildMenuItem(
+        'view_receipts', 
+        localizationService.translate('all_receipts'), 
+        Icons.receipt,
+      ));
+      items.add(_buildMenuItem(
+        'generate_receipt', 
+        localizationService.translate('generate_receipt'), 
+        Icons.add_circle,
+      ));
+    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+      items.add(_buildMenuItem(
+        'pending_receipts', 
+        localizationService.translate('pending_receipts'), 
+        Icons.pending,
+      ));
+      items.add(_buildMenuItem(
+        'process_pending', 
+        localizationService.translate('process'), 
+        Icons.play_arrow,
+      ));
+    } else if (title == localizationService.translate('unpaid_payments')) {
+      items.add(_buildMenuItem(
+        'unpaid_debts', 
+        localizationService.translate('unpaid_debts'), 
+        Icons.warning,
+      ));
+      items.add(_buildMenuItem(
+        'send_reminders', 
+        localizationService.translate('send_reminders'), 
+        Icons.notifications_active,
+      ));
     }
     
     // Add divider and export option for all cards
     items.add(const PopupMenuDivider());
     items.add(_buildMenuItem(
       'export', 
-      'Hamisha Data', 
+      localizationService.translate('export_data'), 
       Icons.download,
     ));
     
     return items;
+  }
+  
+  bool _isRevenueCard(String title) {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    return title == localizationService.translate('daily_revenue') ||
+           title == localizationService.translate('weekly_revenue') ||
+           title == localizationService.translate('monthly_revenue');
   }
 
   /// Build individual menu item with consistent styling
@@ -1570,76 +1552,78 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   void _showCardDetails(String title, String value) {
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: primaryBlue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              _getCardIcon(title),
-              color: textPrimary,
-              size: 24,
+      builder: (BuildContext context) => Consumer<LocalizationService>(
+        builder: (context, localizationService, child) => AlertDialog(
+          backgroundColor: primaryBlue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
             ),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: const TextStyle(
+          ),
+          title: Row(
+            children: [
+              Icon(
+                _getCardIcon(title),
                 color: textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                localizationService.translate('current_value'),
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _getCardDescription(title, localizationService),
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                localizationService.translate('close'),
+                style: const TextStyle(
+                  color: textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Thamani ya Sasa:',
-              style: TextStyle(
-                color: textSecondary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                color: textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _getCardDescription(title),
-              style: TextStyle(
-                color: textSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Funga',
-              style: TextStyle(
-                color: textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1724,85 +1708,88 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   /// Action methods
   void _processPendingReceipts() {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
-      title: 'Shughulikia Risiti za Kusubiri',
-      message: 'Je, unataka kushughulikia risiti zote za kusubiri?',
-      confirmText: 'Shughulikia',
+      title: localizationService.translate('process_pending_receipts'),
+      message: localizationService.translate('confirm_process_pending_receipts'),
+      confirmText: localizationService.translate('process'),
       onConfirm: () {
         // Implement pending receipts processing
-        _showSuccessSnackBar('Risiti za kusubiri zimeshughulikiwa');
+        _showSuccessSnackBar(localizationService.translate('pending_receipts_processed'));
       },
     );
   }
 
   void _sendPaymentReminders() {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
-      title: 'Tuma Mikumbuzo ya Malipo',
-      message: 'Je, unataka kutuma mikumbuzo kwa waliolipa madeni yasiyolipwa?',
-      confirmText: 'Tuma',
+      title: localizationService.translate('send_payment_reminders'),
+      message: localizationService.translate('confirm_send_reminders'),
+      confirmText: localizationService.translate('send'),
       onConfirm: () {
         // Implement reminder sending
-        _showSuccessSnackBar('Mikumbuzo ya malipo imetumwa');
+        _showSuccessSnackBar(localizationService.translate('payment_reminders_sent'));
       },
     );
   }
 
   void _exportCardData(String cardTitle) {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
-      title: 'Hamisha Data',
-      message: 'Je, unataka kuhamisha data ya "$cardTitle"?',
-      confirmText: 'Hamisha',
+      title: localizationService.translate('export_data'),
+      message: '${localizationService.translate('confirm_export_data')} "$cardTitle"?',
+      confirmText: localizationService.translate('export'),
       onConfirm: () {
         // Implement data export
-        _showSuccessSnackBar('Data imehamishwa kikamilifu');
+        _showSuccessSnackBar(localizationService.translate('data_exported_successfully'));
       },
     );
   }
 
   /// Helper methods
   IconData _getCardIcon(String title) {
-    switch (title) {
-      case 'Mapato ya Siku':
-        return Icons.today;
-      case 'Mapato ya Wiki':
-        return Icons.calendar_view_week;
-      case 'Mapato ya Mwezi':
-        return Icons.trending_up;
-      case 'Madereva':
-        return Icons.person;
-      case 'Vyombo vya Usafiri':
-        return Icons.directions_car;
-      case 'Malipo Yenye Risiti':
-        return Icons.receipt;
-      case 'Yamelipwa Bado Risiti':
-        return Icons.receipt_long;
-      case 'Malipo Yasiyolipwa':
-        return Icons.pending_actions;
-      default:
-        return Icons.info;
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    
+    if (title == localizationService.translate('daily_revenue')) {
+      return Icons.today;
+    } else if (title == localizationService.translate('weekly_revenue')) {
+      return Icons.calendar_view_week;
+    } else if (title == localizationService.translate('monthly_revenue')) {
+      return Icons.trending_up;
+    } else if (title == localizationService.translate('drivers')) {
+      return Icons.person;
+    } else if (title == localizationService.translate('vehicles')) {
+      return Icons.directions_car;
+    } else if (title == localizationService.translate('payments_with_receipts')) {
+      return Icons.receipt;
+    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+      return Icons.receipt_long;
+    } else if (title == localizationService.translate('unpaid_payments')) {
+      return Icons.pending_actions;
+    } else {
+      return Icons.info;
     }
   }
 
-  String _getCardDescription(String title) {
-    switch (title) {
-      case 'Mapato ya Siku':
-        return 'Jumla ya mapato yaliyopatikana leo kutoka kwa malipo ya madereva.';
-      case 'Mapato ya Wiki':
-        return 'Jumla ya mapato ya wiki hii kutoka kwa malipo ya madereva.';
-      case 'Mapato ya Mwezi':
-        return 'Jumla ya mapato ya mwezi huu kutoka kwa malipo ya madereva.';
-      case 'Madereva':
-        return 'Idadi ya madereva wote waliojisajili kwenye mfumo.';
-      case 'Vyombo vya Usafiri':
-        return 'Idadi ya vyombo vya usafiri vilivyosajiliwa kwenye mfumo.';
-      case 'Malipo Yenye Risiti':
-        return 'Idadi ya malipo ambayo yamepata risiti za uthibitisho.';
-      case 'Yamelipwa Bado Risiti':
-        return 'Idadi ya malipo ambayo yamelipwa lakini bado hawajapatia risiti.';
-      case 'Malipo Yasiyolipwa':
-        return 'Idadi ya madeni ambayo hayajalipwa na madereva.';
-      default:
-        return 'Maelezo ya ziada kuhusu kadi hii.';
+  String _getCardDescription(String title, LocalizationService localizationService) {
+    if (title == localizationService.translate('daily_revenue')) {
+      return localizationService.translate('daily_revenue_desc');
+    } else if (title == localizationService.translate('weekly_revenue')) {
+      return localizationService.translate('weekly_revenue_desc');
+    } else if (title == localizationService.translate('monthly_revenue')) {
+      return localizationService.translate('monthly_revenue_desc');
+    } else if (title == localizationService.translate('drivers')) {
+      return localizationService.translate('drivers_desc');
+    } else if (title == localizationService.translate('vehicles')) {
+      return localizationService.translate('vehicles_desc');
+    } else if (title == localizationService.translate('payments_with_receipts')) {
+      return localizationService.translate('payments_with_receipts_desc');
+    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+      return localizationService.translate('paid_awaiting_receipts_desc');
+    } else if (title == localizationService.translate('unpaid_payments')) {
+      return localizationService.translate('unpaid_payments_desc');
+    } else {
+      return localizationService.translate('additional_card_info');
     }
   }
 
@@ -1814,61 +1801,64 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }) {
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: primaryBlue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: textSecondary,
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Ghairi',
-              style: TextStyle(
-                color: textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+      builder: (BuildContext context) => Consumer<LocalizationService>(
+        builder: (context, localizationService, child) => AlertDialog(
+          backgroundColor: primaryBlue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
             ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              onConfirm();
-            },
-            child: Text(
-              confirmText,
-              style: const TextStyle(
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-              ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
+          content: Text(
+            message,
+            style: TextStyle(
+              color: textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                localizationService.translate('cancel'),
+                style: TextStyle(
+                  color: textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onConfirm();
+              },
+              child: Text(
+                confirmText,
+                style: const TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -1876,7 +1866,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         action: SnackBarAction(
-          label: 'Funga',
+          label: localizationService.translate('close'),
           textColor: Colors.white,
           onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         ),
@@ -1884,39 +1874,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-              Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: icon == Icons.apps
-                    ? accentColor
-                    : Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Icon(
-                icon,
-                color: textPrimary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
 
   Widget _buildGlassCard({required Widget child}) => DecoratedBox(
         decoration: BoxDecoration(
@@ -1942,9 +1899,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildDrawer() {
+  Widget _buildDrawer(LocalizationService localizationService) {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
     final UserData? user = authProvider.user;
+    
+    // Get user permissions (defaulting to admin for now)
+    final UserPermissions permissions = UserPermissions.fromRole('admin');
+    
+    // Get badge counts from dashboard data
+    final badges = NavigationBuilder.getBadgesFromDashboardData(_dashboardData);
+    badges['reminders'] = _remindersCount;
 
     return Drawer(
       backgroundColor: primaryBlue,
@@ -2003,100 +1967,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
-              children: <Widget>[
-                _buildDrawerItem(
-                  icon: Icons.dashboard,
-                  title: "Dashboard",
-                  onTap: () => Navigator.pop(context),
-                ),
-                _buildDrawerItem(
-                  icon: Icons.people,
-                  title: "Madereva",
-                  badgeCount: _driversCount,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/drivers");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.directions_car,
-                  title: "Magari",
-                  badgeCount: _vehiclesCount,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/vehicles");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.payment,
-                  title: "Malipo",
-                  badgeCount: _pendingPaymentsCount,
-                  badgeColor: Colors.red.shade400,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/payments");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.assignment_turned_in,
-                  title: "Rekodi Madeni",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/debts");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.analytics,
-                  title: "Takwimu",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/analytics");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.receipt_long,
-                  title: "Ripoti",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/reports");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.notifications,
-                  title: "Mikumbuzo",
-                  badgeCount: _remindersCount,
-                  badgeColor: Colors.orange.shade400,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/reminders");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.chat,
-                  title: "Mawasiliano",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/admin/communications");
-                  },
-                ),
-                const Divider(color: textSecondary),
-                _buildDrawerItem(
-                  icon: Icons.settings,
-                  title: "Mipangilio",
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, "/settings");
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.logout,
-                  title: "Toka",
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await authProvider.logout();
-                  },
-                ),
-              ],
+              children: NavigationBuilder.buildDrawerItems(
+                localization: localizationService,
+                badges: badges,
+                permissions: permissions,
+                context: context,
+                onLogout: () async {
+                  Navigator.pop(context);
+                  await authProvider.logout();
+                },
+              ),
             ),
           ),
         ],
@@ -2104,90 +1984,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     );
   }
 
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    int? badgeCount,
-    Color? badgeColor,
-  }) =>
-      ListTile(
-        leading: Stack(
-          clipBehavior: Clip.none,
-          children: <Widget>[
-            Icon(
-              icon,
-              color: textPrimary,
-              size: 24,
-            ),
-            if (badgeCount != null && badgeCount > 0)
-              Positioned(
-                right: -8,
-                top: -8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: badgeColor ?? accentColor,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  child: Text(
-                    badgeCount > 99 ? '99+' : badgeCount.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: textPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: badgeCount != null && badgeCount > 0
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: (badgeColor ?? accentColor).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: (badgeColor ?? accentColor).withOpacity(0.5),
-                  ),
-                ),
-                child: Text(
-                  badgeCount > 99 ? '99+' : badgeCount.toString(),
-                  style: TextStyle(
-                    color: badgeColor ?? accentColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            : null,
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 4,
-        ),
-      );
 
   String _formatCurrency(amount) {
     final double value = _toDouble(amount);

@@ -233,6 +233,7 @@ class AuthProvider extends ChangeNotifier {
           "phone_number": phone ?? _user!.phoneNumber,
           "role": _user!.role,
           "is_active": _user!.isActive,
+          if (_user!.avatarUrl != null) 'avatar_url': _user!.avatarUrl,
         };
         await AuthService.saveUserData(updatedUserData);
         _user = UserData.fromJson(updatedUserData);
@@ -242,6 +243,38 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } on Exception catch (e) {
       _setError("Failed to update profile: $e");
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Upload profile image (avatar)
+  Future<bool> uploadProfileImage({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    if (!_isAuthenticated) return false;
+    _setLoading(true);
+    _clearError();
+    try {
+      final api = ApiService();
+      final res = await api.uploadProfileImage(bytes: Uint8List.fromList(bytes), filename: filename);
+      // Try to get updated user from response
+      Map<String, dynamic>? updated;
+      if (res['data'] is Map && (res['data'] as Map)['user'] is Map) {
+        updated = Map<String, dynamic>.from((res['data'] as Map)['user'] as Map);
+      } else if (res['user'] is Map) {
+        updated = Map<String, dynamic>.from(res['user'] as Map);
+      }
+      if (updated != null) {
+        _user = UserData.fromJson(updated);
+        await AuthService.saveUserData(updated);
+      }
+      notifyListeners();
+      return true;
+    } on Exception catch (e) {
+      _setError("Failed to upload image: $e");
       return false;
     } finally {
       _setLoading(false);

@@ -6,6 +6,7 @@ import '../../models/driver.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/app_events.dart';
+import '../../services/localization_service.dart';
 import '../../utils/responsive_helper.dart';
 import 'debt_records_list_screen.dart';
 
@@ -182,14 +183,15 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      backgroundColor: ThemeConstants.primaryBlue,
-      appBar: ThemeConstants.buildAppBar('Rekodi Madeni', actions: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          onPressed: _loadDrivers,
-        ),
-      ]),
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => Scaffold(
+        backgroundColor: ThemeConstants.primaryBlue,
+        appBar: ThemeConstants.buildAppBar(localizationService.translate('debt_records'), actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadDrivers,
+          ),
+        ]),
       body: DecoratedBox(
         decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
         child: SafeArea(
@@ -206,7 +208,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                             const TextStyle(color: ThemeConstants.textPrimary),
                         decoration: InputDecoration(
                           hintText:
-                              'Tafuta dereva kwa jina, simu au namba ya chombo',
+                              localizationService.translate('search_driver_hint'),
                           hintStyle: const TextStyle(
                               color: ThemeConstants.textSecondary),
                           filled: true,
@@ -228,7 +230,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                         foregroundColor: Colors.white,
                       ),
                       icon: const Icon(Icons.add),
-                      label: const Text('Rekodi Deni'),
+                      label: Text(localizationService.translate('record_debt')),
                     ),
                   ],
                 ),
@@ -244,10 +246,10 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                   indicatorColor: ThemeConstants.primaryOrange,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white70,
-                  tabs: const <Widget>[
-                    Tab(text: 'Wanaodaiwa'),
-                    Tab(text: 'Wasiodaiwa'),
-                    Tab(text: 'Zote'),
+                  tabs: <Widget>[
+                    Tab(text: localizationService.translate('with_debts')),
+                    Tab(text: localizationService.translate('without_debts')),
+                    Tab(text: localizationService.translate('all')),
                   ],
                 ),
               ),
@@ -258,10 +260,10 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                 child: Wrap(
                   spacing: 8,
                   children: <Widget>[
-                    _buildFilterChip('Mwezi Huu', MonthFilter.mweziHuu),
-                    _buildFilterChip('Uliopita', MonthFilter.mweziUliopita),
-                    _buildFilterChip('Mwaka Huu', MonthFilter.mwakaHuu),
-                    _buildFilterChip('Zote', MonthFilter.zote),
+                    _buildFilterChip(localizationService.translate('this_month'), MonthFilter.mweziHuu),
+                    _buildFilterChip(localizationService.translate('last_month'), MonthFilter.mweziUliopita),
+                    _buildFilterChip(localizationService.translate('this_year'), MonthFilter.mwakaHuu),
+                    _buildFilterChip(localizationService.translate('all'), MonthFilter.zote),
                   ],
                 ),
               ),
@@ -277,6 +279,7 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -286,16 +289,22 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
           children: <Widget>[
             const Icon(Icons.error_outline, color: Colors.redAccent),
             const SizedBox(height: 8),
-            Text(_error ?? 'Hitilafu isiyojulikana',
-                style: const TextStyle(color: Colors.white70)),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _loadDrivers,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryOrange,
-                foregroundColor: Colors.white,
+            Consumer<LocalizationService>(
+              builder: (context, localizationService, child) => Column(
+                children: [
+                  Text(_error ?? localizationService.translate('unknown_error'),
+                      style: const TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _loadDrivers,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeConstants.primaryOrange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(localizationService.translate('try_again')),
+                  ),
+                ],
               ),
-              child: const Text('Jaribu tena'),
             ),
           ],
         ),
@@ -303,13 +312,18 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
 
   Widget _buildList() {
     if (_filtered.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.search_off, color: Colors.white54, size: 40),
-            SizedBox(height: 8),
-            Text('Hakuna matokeo', style: TextStyle(color: Colors.white70)),
+            const Icon(Icons.search_off, color: Colors.white54, size: 40),
+            const SizedBox(height: 8),
+            Consumer<LocalizationService>(
+              builder: (context, localizationService, child) => Text(
+                localizationService.translate('no_results'), 
+                style: const TextStyle(color: Colors.white70)
+              ),
+            ),
           ],
         ),
       );
@@ -339,92 +353,94 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
 
   Widget _buildDriverTile(Driver d) {
     final bool hasDebt = d.totalDebt > 0;
-    return ThemeConstants.buildGlassCard(
-      onTap: () => _openDriverRecords(d),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                CircleAvatar(
-                  backgroundColor: ThemeConstants.cardColor,
-                  child: Text(d.name.isNotEmpty ? d.name[0].toUpperCase() : '?',
-                      style: const TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        d.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: (hasDebt
-                                  ? ThemeConstants.errorRed
-                                  : ThemeConstants.successGreen)
-                              .withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          hasDebt ? 'Ana deni' : 'Hana deni',
-                          style: TextStyle(
-                            color: hasDebt
-                                ? ThemeConstants.errorRed
-                                : ThemeConstants.successGreen,
-                            fontSize: 12,
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => ThemeConstants.buildGlassCard(
+        onTap: () => _openDriverRecords(d),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  CircleAvatar(
+                    backgroundColor: ThemeConstants.cardColor,
+                    child: Text(d.name.isNotEmpty ? d.name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          d.name,
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.w700,
+                            fontSize: 16,
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (hasDebt
+                                    ? ThemeConstants.errorRed
+                                    : ThemeConstants.successGreen)
+                                .withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            hasDebt ? localizationService.translate('has_debt') : localizationService.translate('no_debt'),
+                            style: TextStyle(
+                              color: hasDebt
+                                  ? ThemeConstants.errorRed
+                                  : ThemeConstants.successGreen,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Two-column details inside the tile
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints c) {
-                final double colW = (c.maxWidth - 8) / 2; // spacing 8
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    _infoBox(Icons.badge, 'Leseni: ${d.licenseNumber}', colW),
-                    _infoBox(Icons.payments,
-                        'Deni: ${d.totalDebt.toStringAsFixed(0)}', colW),
-                    _infoBox(
-                        Icons.event_available,
-                        hasDebt && d.dueDates.isNotEmpty
-                            ? 'Tarehe inayofuata: ${d.dueDates.first}'
-                            : 'Hakuna tarehe',
-                        colW),
-                    _infoBox(
-                        Icons.event,
-                        hasDebt
-                            ? 'Siku za deni: ${d.unpaidDays}'
-                            : 'Hakuna deni',
-                        colW),
-                  ],
-                );
-              },
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Two-column details inside the tile
+              LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints c) {
+                  final double colW = (c.maxWidth - 8) / 2; // spacing 8
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      _infoBox(Icons.badge, '${localizationService.translate('license')}: ${d.licenseNumber}', colW),
+                      _infoBox(Icons.payments,
+                          '${localizationService.translate('debt')}: ${d.totalDebt.toStringAsFixed(0)}', colW),
+                      _infoBox(
+                          Icons.event_available,
+                          hasDebt && d.dueDates.isNotEmpty
+                              ? '${localizationService.translate('next_due_date')}: ${d.dueDates.first}'
+                              : localizationService.translate('no_due_date'),
+                          colW),
+                      _infoBox(
+                          Icons.event,
+                          hasDebt
+                              ? '${localizationService.translate('debt_days')}: ${d.unpaidDays}'
+                              : localizationService.translate('no_debt'),
+                          colW),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
