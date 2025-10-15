@@ -98,11 +98,24 @@ class AppLocalizations {
       'about_app': 'About App',
       'about_app_subtitle': 'App information',
       'help': 'Help',
-      'help_subtitle': 'Get help using the app',
+'help_subtitle': 'Get help using the app',
       'logout_confirm': 'Are you sure you want to logout?',
       'version': 'Version',
       'app_description': 'Motorcycle business management app',
       'copyright': '© 2024 Boda Income',
+
+      // Users management
+      'users': 'Users',
+      'users_subtitle': 'Manage application users',
+      'users_management': 'Users Management',
+      'create_user': 'Create User',
+      'full_name': 'Full Name',
+      'role': 'Role',
+      'active': 'Active',
+      'reset_password': 'Reset Password',
+      'user_created_successfully': 'User created successfully',
+      'password_reset_successfully': 'Password reset successfully',
+      'default_password_note': 'Default password will be the LAST surname in CAPITAL letters (e.g., Samwel Mahenye Magaiwa => "MAGAIWA").',
       
       // Language Selection
       'select_language': 'Select Language',
@@ -427,11 +440,24 @@ class AppLocalizations {
       'about_app': 'Kuhusu Programu',
       'about_app_subtitle': 'Maelezo ya programu',
       'help': 'Msaada',
-      'help_subtitle': 'Pata msaada wa kutumia programu',
+'help_subtitle': 'Pata msaada wa kutumia programu',
       'logout_confirm': 'Je, una uhakika unataka kutoka?',
       'version': 'Toleo',
       'app_description': 'Programu ya kusimamia biashara za pikipiki',
       'copyright': '© 2024 Boda Mapato',
+
+      // Users management
+      'users': 'Watumiaji',
+      'users_subtitle': 'Dhibiti watumiaji wa programu',
+      'users_management': 'Usimamizi wa Watumiaji',
+      'create_user': 'Tengeneza Mtumiaji',
+      'full_name': 'Jina Kamili',
+      'role': 'Jukumu',
+      'active': 'Hai',
+      'reset_password': 'Rejesha Nywila',
+      'user_created_successfully': 'Mtumiaji ameundwa kikamilifu',
+      'password_reset_successfully': 'Nywila imerejeshwa kikamilifu',
+      'default_password_note': 'Nywila chaguomsingi itakuwa jina la mwisho (surname) kwa HERUFI KUBWA. Mfano: Samwel Mahenye Magaiwa => "MAGAIWA".',
       
       // Language Selection
       'select_language': 'Chagua Lugha',

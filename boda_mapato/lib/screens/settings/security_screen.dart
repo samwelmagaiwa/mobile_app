@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/auth_events.dart';
 import '../../services/auth_service.dart';
+import '../../screens/auth/login_screen.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -376,6 +377,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
         }
         if (mounted) {
           AuthEvents.instance.emit(AuthEvent.unauthorized);
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
         }
         return;
       } else {

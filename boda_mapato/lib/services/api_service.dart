@@ -89,6 +89,75 @@ class ApiService {
     return _get(endpoint, requireAuth: requireAuth);
   }
 
+  // Helper: try multiple endpoints sequentially (useful when backend routes differ)
+  Future<Map<String, dynamic>> _getFirst(List<String> endpoints, {bool requireAuth = true}) async {
+    ApiException? last404;
+    for (final String e in endpoints) {
+      try {
+        return await _get(e, requireAuth: requireAuth);
+      } on ApiException catch (err) {
+        final String m = err.message.toLowerCase();
+        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+          last404 = err;
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw last404 ?? ApiException('Rasilimali haipatikani');
+  }
+
+  Future<Map<String, dynamic>> _postFirst(List<String> endpoints, Map<String, dynamic> data, {bool requireAuth = true}) async {
+    ApiException? last404;
+    for (final String e in endpoints) {
+      try {
+        return await _post(e, data, requireAuth: requireAuth);
+      } on ApiException catch (err) {
+        final String m = err.message.toLowerCase();
+        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+          last404 = err;
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw last404 ?? ApiException('Rasilimali haipatikani');
+  }
+
+  Future<Map<String, dynamic>> _putFirst(List<String> endpoints, Map<String, dynamic> data) async {
+    ApiException? last404;
+    for (final String e in endpoints) {
+      try {
+        return await _put(e, data);
+      } on ApiException catch (err) {
+        final String m = err.message.toLowerCase();
+        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+          last404 = err;
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw last404 ?? ApiException('Rasilimali haipatikani');
+  }
+
+  Future<Map<String, dynamic>> _deleteFirst(List<String> endpoints) async {
+    ApiException? last404;
+    for (final String e in endpoints) {
+      try {
+        return await _delete(e);
+      } on ApiException catch (err) {
+        final String m = err.message.toLowerCase();
+        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+          last404 = err;
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw last404 ?? ApiException('Rasilimali haipatikani');
+  }
+
   // Fetch raw PDF bytes from API (application/pdf)
   Future<Uint8List> getPdf(
     final String endpoint, {
@@ -516,6 +585,51 @@ class ApiService {
       }
     }
   }
+
+  // Users management endpoints
+  Future<Map<String, dynamic>> getUsers({int page = 1, int limit = 50, String? query}) async {
+    final String q = (query != null && query.isNotEmpty) ? "&q=${Uri.encodeComponent(query)}" : "";
+    final List<String> endpoints = <String>[
+      "/admin/users?page=$page&limit=$limit$q",
+      "/users?page=$page&limit=$limit$q",
+      "/admin/user-management/users?page=$page&limit=$limit$q",
+    ];
+    return _getFirst(endpoints);
+  }
+
+  /// Get users created by the currently authenticated admin
+  Future<Map<String, dynamic>> getMyUsers({int page = 1, int limit = 50, String? query}) async {
+    final String q = (query != null && query.isNotEmpty) ? "&q=${Uri.encodeComponent(query)}" : "";
+    final List<String> endpoints = <String>[
+      "/admin/users?created_by=me&page=$page&limit=$limit$q",
+      "/admin/users/mine?page=$page&limit=$limit$q",
+      "/users?created_by=me&page=$page&limit=$limit$q",
+      "/admin/user-management/users/mine?page=$page&limit=$limit$q",
+    ];
+    return _getFirst(endpoints);
+  }
+
+  Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async =>
+      _postFirst(<String>["/admin/users", "/users", "/admin/user-management/users"], userData);
+
+  Future<Map<String, dynamic>> updateUser(String userId, Map<String, dynamic> userData) async =>
+      _putFirst(<String>["/admin/users/$userId", "/users/$userId", "/admin/user-management/users/$userId"], userData);
+
+  Future<Map<String, dynamic>> deleteUser(String userId) async =>
+      _deleteFirst(<String>["/admin/users/$userId", "/users/$userId", "/admin/user-management/users/$userId"]);
+
+  Future<Map<String, dynamic>> resetUserPassword({
+    required String userId,
+    required String newPassword,
+  }) async => _postFirst(<String>[
+        "/admin/users/$userId/reset-password",
+        "/admin/users/$userId/password/reset",
+        "/users/$userId/reset-password",
+        "/users/$userId/password/reset",
+      ], {
+        "password": newPassword,
+        "password_confirmation": newPassword,
+      });
 
   // Driver management endpoints
   Future<Map<String, dynamic>> getDrivers({

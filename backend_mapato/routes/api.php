@@ -68,6 +68,16 @@ Route::middleware(['auth:sanctum','role:admin'])->prefix('admin')->group(functio
         Route::get('monthly-revenue', [DashboardController::class, 'getMonthlyRevenueApi']);
     });
 
+    // Users management
+    Route::prefix('users')->group(function () {
+        Route::get('mine', [\App\Http\Controllers\API\UserManagementController::class, 'myUsers']);
+        Route::get('', [\App\Http\Controllers\API\UserManagementController::class, 'myUsers']); // fallback with created_by=me assumption
+        Route::post('', [\App\Http\Controllers\API\UserManagementController::class, 'store']);
+        Route::put('{id}', [\App\Http\Controllers\API\UserManagementController::class, 'update']);
+        Route::delete('{id}', [\App\Http\Controllers\API\UserManagementController::class, 'destroy']);
+        Route::post('{id}/reset-password', [\App\Http\Controllers\API\UserManagementController::class, 'resetPassword']);
+    });
+
     // Drivers
     Route::get('drivers', [AdminController::class, 'getDrivers']);
     Route::get('drivers/{id}', [AdminController::class, 'getDriver']);

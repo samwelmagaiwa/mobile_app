@@ -16,6 +16,7 @@ import "../../services/app_events.dart";
 import "../../services/localization_service.dart";
 import "../../services/navigation_builder.dart";
 import "../../utils/responsive_helper.dart";
+import "../../config/api_config.dart";
 import "../receipts/receipts_screen.dart";
 
 class ModernDashboardScreen extends StatefulWidget {
@@ -845,19 +846,22 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             CircleAvatar(
               radius: 20,
               backgroundColor: cardColor,
-              child: user?.name != null
-                  ? Text(
-                      user!.name.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person,
-                      color: textPrimary,
-                      size: 20,
-                    ),
+              backgroundImage: _avatarImage(user),
+              child: _avatarImage(user) == null
+                  ? (user?.name != null && user!.name.isNotEmpty)
+                      ? Text(
+                          user.name.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.person,
+                          color: textPrimary,
+                          size: 20,
+                        )
+                  : null,
             ),
           ],
         ),
@@ -1928,20 +1932,23 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: cardColor,
-                    child: user?.name != null
-                        ? Text(
-                            user!.name.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                              color: textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.person,
-                            color: textPrimary,
-                            size: 30,
-                          ),
+                    backgroundImage: _avatarImage(user),
+                    child: _avatarImage(user) == null
+                        ? (user?.name != null && user!.name.isNotEmpty)
+                            ? Text(
+                                user.name.substring(0, 1).toUpperCase(),
+                                style: const TextStyle(
+                                  color: textPrimary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                color: textPrimary,
+                                size: 30,
+                              )
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -1982,6 +1989,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ],
       ),
     );
+  }
+
+  ImageProvider? _avatarImage(UserData? user) {
+    final String? url = user?.avatarUrl;
+    if (url == null || url.isEmpty) return null;
+    final String fullUrl = url.startsWith('http')
+        ? url
+        : "${ApiConfig.webBaseUrl}${url.startsWith('/') ? '' : '/'}$url";
+    return NetworkImage(fullUrl);
   }
 
 

@@ -4,11 +4,14 @@ import "package:provider/provider.dart";
 import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/localization_service.dart";
+import "../../config/api_config.dart";
+import "package:file_picker/file_picker.dart";
 import "language_screen.dart";
 import "notifications_screen.dart";
 import "security_screen.dart";
 import "backup_screen.dart";
 import "help_screen.dart";
+import "user_management_screen.dart";
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -49,25 +52,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: ThemeConstants.primaryOrange,
-                        child: authProvider.user?.name != null
-                            ? Text(
-                                authProvider.user!.name
-                                    .substring(0, 1)
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: ThemeConstants.primaryOrange,
+                            backgroundImage: _buildAvatarImage(authProvider),
+                            child: _buildAvatarImage(authProvider) == null
+                                ? (authProvider.user?.name != null && authProvider.user!.name.isNotEmpty)
+                                    ? Text(
+                                        authProvider.user!.name.substring(0, 1).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 40,
+                                      )
+                                : null,
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: InkWell(
+                              onTap: () => _pickAndUploadImage(authProvider),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  shape: BoxShape.circle,
                                 ),
-                              )
-                            : const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 40,
+                                child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
                               ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -116,6 +140,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _localizationService.translate('security_subtitle'),
                       () => _navigateToScreen(const SecurityScreen()),
                     ),
+                    // Users management (admins only)
+                    if (authProvider.user?.isAdmin == true || authProvider.user?.isSuperAdmin == true) ...[
+                      const Divider(color: Colors.white24, height: 1),
+                      _buildSettingsTile(
+                        Icons.people,
+                        _localizationService.translate('users'),
+                        _localizationService.translate('users_subtitle'),
+                        () => _navigateToScreen(const UserManagementScreen()),
+                      ),
+                    ],
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
                       Icons.backup,
@@ -325,6 +359,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if ((confirm ?? false) && context.mounted) {
       await authProvider.logout();
+    }
+  }
+
+  ImageProvider? _buildAvatarImage(AuthProvider authProvider) {
+    final String? url = authProvider.user?.avatarUrl;
+    if (url == null || url.isEmpty) return null;
+    final String fullUrl = url.startsWith('http')
+        ? url
+        : "${ApiConfig.webBaseUrl}${url.startsWith('/') ? '' : '/'}$url";
+    return NetworkImage(fullUrl);
+  }
+
+  Future<void> _pickAndUploadImage(AuthProvider authProvider) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      if (file.bytes == null) return;
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uploading image...')),
+      );
+      final ok = await authProvider.uploadProfileImage(
+        bytes: file.bytes!,
+        filename: file.name,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ok ? 'Image uploaded successfully' : 'Failed to upload image')),
+      );
+      if (ok && mounted) setState(() {});
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
     }
   }
 }
