@@ -21,7 +21,6 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
 
   bool _isGenerating = false;
   bool _isSending = false;
-  bool _isCheckingExisting = false;
   Map<String, dynamic>? _generatedReceipt; // from preview/generate
   Map<String, dynamic>? _existingReceipt; // if receipt already exists
 
@@ -60,7 +59,6 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
   }
 
   Future<void> _checkExistingReceipt() async {
-    setState(() => _isCheckingExisting = true);
     try {
       // Ask API for any receipts related to this payment. We'll validate by payment_id locally.
       final response = await _api.getReceipts(
@@ -99,7 +97,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     } on Exception catch (_) {
       // Ignore errors when checking existing receipts
     } finally {
-      if (mounted) setState(() => _isCheckingExisting = false);
+      // no-op
     }
   }
 
@@ -112,7 +110,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     return res;
   }
 
-  String _asString(dynamic v) => v == null ? '' : v.toString().trim();
+  String _asString(v) => v == null ? '' : v.toString().trim();
 
   Future<void> _generateReceipt() async {
     // Check if receipt already exists

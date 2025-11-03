@@ -85,7 +85,7 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  int _toInt(dynamic v) {
+  int _toInt(v) {
     if (v == null) return 0;
     if (v is int) return v;
     if (v is double) return v.round();
@@ -93,7 +93,7 @@ class DashboardProvider extends ChangeNotifier {
     return 0;
   }
 
-  double _toDouble(dynamic v) {
+  double _toDouble(v) {
     if (v == null) return 0;
     if (v is double) return v;
     if (v is int) return v.toDouble();

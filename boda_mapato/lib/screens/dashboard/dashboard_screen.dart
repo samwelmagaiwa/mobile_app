@@ -222,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class QuickActionsSection extends StatelessWidget {
-  const QuickActionsSection({super.key, required this.localizationService});
+  const QuickActionsSection({required this.localizationService, super.key});
   
   final LocalizationService localizationService;
 

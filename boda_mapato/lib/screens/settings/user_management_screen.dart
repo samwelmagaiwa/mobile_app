@@ -5,8 +5,8 @@ import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/localization_service.dart';
-import '../../services/auth_service.dart';
 
+// ignore_for_file: use_string_buffers, use_if_null_to_convert_nulls_to_bools, avoid_catches_without_on_clauses, control_flow_in_finally
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
 
@@ -32,7 +32,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Future<void> _loadMyUsers() async {
     setState(() => _loading = true);
     try {
-      final Map<String, dynamic> res = await _api.getMyUsers(page: 1, limit: 100);
+      final Map<String, dynamic> res = await _api.getMyUsers(limit: 100);
       final List<Map<String, dynamic>> items = _extractUsers(res);
       setState(() {
         _users = items;
@@ -236,13 +236,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         'password_confirmation': password,
                       }..removeWhere((key, value) => value == null);
                       // Use admin users endpoint
-                      print('DEBUG: About to call createUser with payload: $payload');
+                      debugPrint('DEBUG: About to call createUser with payload: $payload');
                       final Map<String, dynamic> res = await _api.createUser(payload);
-                      print('DEBUG: createUser response: $res');
+                      debugPrint('DEBUG: createUser response: $res');
                       if ((res['success'] == true) || res.containsKey('data')) {
-                        if (mounted) {
-                          ThemeConstants.showSuccessSnackBar(context, _loc.translate('user_created_successfully'));
-                        }
+                        if (!mounted) return;
+                        // ignore: use_build_context_synchronously
+                        ThemeConstants.showSuccessSnackBar(context, _loc.translate('user_created_successfully'));
+                        // ignore: use_build_context_synchronously
                         Navigator.pop(context, true);
                       } else {
                         throw Exception(res['message'] ?? 'Failed to create user');
@@ -260,10 +261,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               ? 'Taarifa za mtumiaji si sahihi. Angalia na ujaribu tena.'
                               : 'User information is invalid. Please check and try again.';
                         }
+                        // ignore: use_build_context_synchronously
                         ThemeConstants.showErrorSnackBar(context, errorMsg);
                       }
                     } finally {
-                      if (mounted) setState(() => _creating = false);
+                      if (!mounted) return;
+                      setState(() => _creating = false);
                       await _loadMyUsers();
                     }
                   },
@@ -282,11 +285,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     showDialog(
       context: context,
-      barrierDismissible: true,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 280, maxWidth: 360),
           child: Column(
@@ -365,7 +367,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     try {
       final String id = (user['id'] ?? user['user_id'] ?? '').toString();
-      final Map<String, dynamic> res = await _api.resetUserPassword(userId: id, newPassword: defaultPassword);
+      await _api.resetUserPassword(userId: id, newPassword: defaultPassword);
       if (mounted) ThemeConstants.showSuccessSnackBar(context, _loc.translate('password_reset_successfully'));
     } catch (e) {
       if (mounted) ThemeConstants.showErrorSnackBar(context, e.toString());
@@ -418,50 +420,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _resetPasswordForCurrentUser() async {
-    final user = context.read<AuthProvider>().user;
-    if (user == null) return;
-    final String name = user.name;
-    final String defaultPassword = _defaultPasswordFromName(name);
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: ThemeConstants.primaryBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(_loc.translate('reset_password'), style: const TextStyle(color: ThemeConstants.textPrimary)),
-        content: Text(
-          _loc.isSwahili
-              ? 'Utarejesha nywila yako kuwa "$defaultPassword"?'
-              : "Reset your password to \"$defaultPassword\"?",
-          style: const TextStyle(color: ThemeConstants.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(_loc.translate('no'), style: const TextStyle(color: ThemeConstants.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(_loc.translate('yes'), style: const TextStyle(color: ThemeConstants.primaryOrange)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    try {
-      final res = await AuthService.resetPassword(
-        email: user.email,
-        password: defaultPassword,
-        passwordConfirmation: defaultPassword,
-      );
-      if (mounted) {
-        ThemeConstants.showSuccessSnackBar(context, _loc.translate('password_reset_successfully'));
-      }
-    } catch (e) {
-      if (mounted) ThemeConstants.showErrorSnackBar(context, e.toString());
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

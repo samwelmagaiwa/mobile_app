@@ -3,7 +3,11 @@ import '../config/navigation_config.dart';
 import '../models/user_permissions.dart';
 import '../services/localization_service.dart';
 import '../screens/receipts/receipts_screen.dart';
+import '../constants/theme_constants.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
+// ignore_for_file: directives_ordering
 /// Service for building navigation UI components dynamically
 class NavigationBuilder {
   
@@ -154,7 +158,11 @@ class NavigationBuilder {
               ),
             )
           : null,
-      onTap: () => _handleNavigation(item, context),
+      onTap: () {
+        // Close the drawer first, then navigate
+        Navigator.pop(context);
+        _navigateTo(item, context);
+      },
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 20,
         vertical: 4,
@@ -229,15 +237,12 @@ class NavigationBuilder {
     );
   }
 
-  /// Handle navigation for drawer items
-  static void _handleNavigation(NavigationItem item, BuildContext context) {
-    Navigator.pop(context); // Close drawer
-    
+  /// Navigate to a route represented by a NavigationItem (no popping assumptions)
+  static void _navigateTo(NavigationItem item, BuildContext context) {
     if (item.route == '/dashboard') {
       // Already on dashboard, do nothing
       return;
     }
-    
     Navigator.pushNamed(context, item.route);
   }
 
@@ -250,9 +255,16 @@ class NavigationBuilder {
     
     switch (action.route) {
       case '/menu':
-        // Open drawer
-        Scaffold.of(context).openDrawer();
-        break;
+        // Show drawer items as a 3-column grid menu on top of the main screen
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final String role = auth.user?.role ?? 'viewer';
+        final perms = UserPermissions.fromRole(role);
+        _showGridMenu(
+          context: context,
+          localization: LocalizationService.instance,
+          permissions: perms,
+        );
+        return;
       case '/receipts':
         // Navigate to receipts screen
         Navigator.push(
@@ -261,12 +273,81 @@ class NavigationBuilder {
             builder: (context) => const ReceiptsScreen(),
           ),
         );
-        break;
+        return;
       default:
         // Standard navigation
         Navigator.pushNamed(context, action.route);
-        break;
+        return;
     }
+  }
+
+  /// Present the drawer navigation options in a tabular (grid) format
+  static Future<void> _showGridMenu({
+    required BuildContext context,
+    required LocalizationService localization,
+    required UserPermissions permissions,
+  }) async {
+    final items = NavigationConfig.drawerItems
+        .where((item) => _hasPermission(item, permissions))
+        .toList();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: ThemeConstants.primaryBlue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localization.translate('menu') ?? 'Menu',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.9,
+                ),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return _MenuGridTile(
+                    icon: item.icon,
+                    label: localization.translate(item.key),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _navigateTo(item, context);
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Check if user has permission for navigation item
@@ -310,14 +391,54 @@ class NavigationBuilder {
     };
   }
 
-  /// Helper method to safely convert dynamic values to int
-  static int _toInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is double) return value.round();
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
+}
+
+class _MenuGridTile extends StatelessWidget {
+  const _MenuGridTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+}
+
+/// Helper method to safely convert dynamic values to int
+int _toInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is double) return value.round();
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
   }
+  return 0;
 }

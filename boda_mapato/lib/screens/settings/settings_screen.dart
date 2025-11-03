@@ -1,11 +1,11 @@
 import "package:flutter/material.dart";
+import "package:file_picker/file_picker.dart";
 import "package:provider/provider.dart";
 
+import "../../config/api_config.dart";
 import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/localization_service.dart";
-import "../../config/api_config.dart";
-import "package:file_picker/file_picker.dart";
 import "language_screen.dart";
 import "notifications_screen.dart";
 import "security_screen.dart";
@@ -13,6 +13,7 @@ import "backup_screen.dart";
 import "help_screen.dart";
 import "user_management_screen.dart";
 
+// ignore_for_file: directives_ordering
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -141,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       () => _navigateToScreen(const SecurityScreen()),
                     ),
                     // Users management (admins only)
-                    if (authProvider.user?.isAdmin == true || authProvider.user?.isSuperAdmin == true) ...[
+if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ?? false)) ...[
                       const Divider(color: Colors.white24, height: 1),
                       _buildSettingsTile(
                         Icons.people,
@@ -171,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Icons.info,
                       _localizationService.translate('about_app'),
                       _localizationService.translate('about_app_subtitle'),
-                      () => _showAboutDialog(),
+                      _showAboutDialog,
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
@@ -313,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLogoutDialog(AuthProvider authProvider) async {
+  Future<void> _showLogoutDialog(AuthProvider authProvider) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -375,13 +376,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
-        allowMultiple: false,
         withData: true,
       );
       if (result == null || result.files.isEmpty) return;
       final file = result.files.first;
       if (file.bytes == null) return;
       if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Uploading image...')),
       );
@@ -390,13 +391,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         filename: file.name,
       );
       if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(ok ? 'Image uploaded successfully' : 'Failed to upload image')),
       );
       if (ok && mounted) setState(() {});
-    } catch (e) {
+    } on Exception catch (e) {
       if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Upload failed: $e')),
       );

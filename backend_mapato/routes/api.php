@@ -177,6 +177,9 @@ Route::middleware(['auth:sanctum','role:admin'])->prefix('admin')->group(functio
     });
 });
 
+// Public file proxy for web images (CORS-enabled)
+Route::get('files/public/{path}', [\App\Http\Controllers\API\MediaController::class, 'publicFile'])->where('path', '.*');
+
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
     
@@ -185,6 +188,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('user', [AuthController::class, 'user']);
         Route::post('refresh', [AuthController::class, 'refresh']);
+        // Profile avatar upload (multipart)
+        Route::post('profile/avatar', [AuthController::class, 'uploadAvatar']);
+        Route::post('profile/photo', [AuthController::class, 'uploadAvatar']);
+        Route::post('profile/image', [AuthController::class, 'uploadAvatar']);
         // Security
         Route::post('change-password', [\App\Http\Controllers\API\SecurityController::class, 'changePassword']);
         Route::get('security', [\App\Http\Controllers\API\SecurityController::class, 'getSecuritySettings']);

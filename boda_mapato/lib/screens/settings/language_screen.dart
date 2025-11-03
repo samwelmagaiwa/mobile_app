@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
@@ -165,11 +166,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
     );
   }
 
-  void _changeLanguage(String languageCode) async {
+  Future<void> _changeLanguage(String languageCode) async {
     if (languageCode == _localizationService.currentLanguage) return;
     
-    // Show loading
-    showDialog(
+// Show loading (fire-and-forget)
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -192,7 +193,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           ],
         ),
       ),
-    );
+    ));
     
     // Change language
     await _localizationService.changeLanguage(languageCode);

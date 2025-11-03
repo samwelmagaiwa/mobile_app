@@ -729,9 +729,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             maxX: (points.length - 1).toDouble(),
                             minY: 0,
                             maxY: maxY,
+                            // Prevent zero intervals when data points are all zero
                             gridData: FlGridData(
                               drawVerticalLine: false,
-                              horizontalInterval: maxY / 5,
+                              horizontalInterval: (maxY <= 0 ? 1 : (maxY / 5).clamp(1, double.infinity)),
                               getDrawingHorizontalLine: (value) => FlLine(
                                 color: Colors.white.withOpacity(0.15),
                                 strokeWidth: 1,
@@ -742,7 +743,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   reservedSize: 40,
-                                  interval: maxY / 4,
+                                  interval: (maxY <= 0 ? 1 : (maxY / 4).clamp(1, double.infinity)),
                                   getTitlesWidget: (value, meta) => Text(
                                     _formatShort(value),
                                     style: const TextStyle(color: Colors.white70, fontSize: 10),

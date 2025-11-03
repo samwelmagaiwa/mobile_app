@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_dynamic_calls, avoid_redundant_argument_values
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -65,11 +66,7 @@ class Receipt {
         remarks: json['remarks']?.toString(),
         paidDates: parseStringList(json['covered_days'] ?? json['covers_days']),
         status: 'pending', // Status for pending receipts
-        sentAt: null,
         sentTo: null,
-        companyName: 'Boda Mapato',
-        companyPhone: null,
-        companyEmail: null,
       );
     } else {
       // This is regular receipt data

@@ -6,6 +6,7 @@ import '../../models/receipt.dart';
 import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
 
+// ignore_for_file: avoid_catches_without_on_clauses
 class ReceiptViewerScreen extends StatefulWidget {
   const ReceiptViewerScreen({required this.receipt, super.key});
 
@@ -21,7 +22,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
 
   bool _isLoading = true;
   bool _isSending = false;
-  Map<String, dynamic>? _receiptDetails;
   String? _errorMessage;
 
   // Send options
@@ -62,7 +62,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       
       if (response['success'] == true) {
         setState(() {
-          _receiptDetails = response['data'] as Map<String, dynamic>?;
           _isLoading = false;
         });
       } else {
@@ -338,15 +337,15 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.check_circle,
                   color: ThemeConstants.successGreen,
                   size: 20,
                 ),
-                const SizedBox(width: 8),
-                const Text(
+                SizedBox(width: 8),
+                Text(
                   'Maelezo ya Kutuma',
                   style: TextStyle(
                     color: ThemeConstants.textPrimary,

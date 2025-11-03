@@ -11,6 +11,7 @@ import '../../utils/responsive_helper.dart';
 import 'receipt_detail_screen.dart';
 import 'receipt_viewer_screen.dart';
 
+// ignore_for_file: directives_ordering
 class ReceiptsScreen extends StatefulWidget {
   const ReceiptsScreen({super.key, this.initialFilter = 'all'});
   
@@ -50,13 +51,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           if (mounted) {
             _loadReceipts();
           }
-          break;
         case AppEventType.dashboardShouldRefresh:
           // Also refresh when dashboard requests refresh
           if (mounted) {
             _loadReceipts();
           }
-          break;
       }
     });
   }
@@ -517,14 +516,14 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.touch_app,
                   color: ThemeConstants.primaryOrange,
                   size: 16,
                 ),
-                const SizedBox(width: 4),
+                SizedBox(width: 4),
                 Text(
                   'Gonga kuona maelezo na kutengeneza risiti',
                   style: TextStyle(

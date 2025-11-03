@@ -301,10 +301,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
         .where((s) => s.isNotEmpty)
         .toSet();
 
-    // Capture root context to use for snackbars after async gaps inside dialog
-    final BuildContext rootContext = context;
-
-    await showDialog<void>(
+  await showDialog<void>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
         builder: (BuildContext context, void Function(void Function()) setStateDialog) {
@@ -401,12 +398,14 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                     };
                     await _api.recordPayment(payload);
                     if (!mounted) return;
-                    ThemeConstants.showSuccessSnackBar(rootContext, 'Malipo yamehifadhiwa kikamilifu');
+                    // ignore: use_build_context_synchronously
+                    ThemeConstants.showSuccessSnackBar(context, 'Malipo yamehifadhiwa kikamilifu');
                     await _loadSummary(_selectedDriverId!);
                     await _loadDrivers();
                   } on Exception catch (e) {
                     if (!mounted) return;
-                    ThemeConstants.showErrorSnackBar(rootContext, 'Imeshindikana kuhifadhi: $e');
+                    // ignore: use_build_context_synchronously
+                    ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuhifadhi: $e');
                   }
                 },
                 child: const Text('Hifadhi'),

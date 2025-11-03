@@ -14,7 +14,7 @@ class DemoLanguageScreen extends StatelessWidget {
           backgroundColor: const Color(0xFF1E40AF),
           foregroundColor: Colors.white,
         ),
-        body: Container(
+        body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -24,7 +24,7 @@ class DemoLanguageScreen extends StatelessWidget {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

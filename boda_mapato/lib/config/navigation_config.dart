@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Represents a single navigation item with its properties
-class NavigationItem {
-  final String key;
-  final IconData icon;
-  final String route;
-  final List<String>? requiredPermissions;
-  final String? badgeKey; // Key to get badge count from dashboard data
-  final Color? badgeColor;
-  final bool isSystemItem; // For items like settings, logout that appear in all roles
+class NavigationItem { // For items like settings, logout that appear in all roles
 
   const NavigationItem({
     required this.key,
@@ -19,16 +12,17 @@ class NavigationItem {
     this.badgeColor,
     this.isSystemItem = false,
   });
-}
-
-/// Represents a quick action item for dashboard
-class QuickActionItem {
   final String key;
   final IconData icon;
   final String route;
   final List<String>? requiredPermissions;
-  final VoidCallback? customAction;
-  final bool isHighlighted; // For special styling
+  final String? badgeKey; // Key to get badge count from dashboard data
+  final Color? badgeColor;
+  final bool isSystemItem;
+}
+
+/// Represents a quick action item for dashboard
+class QuickActionItem { // For special styling
 
   const QuickActionItem({
     required this.key,
@@ -38,6 +32,12 @@ class QuickActionItem {
     this.customAction,
     this.isHighlighted = false,
   });
+  final String key;
+  final IconData icon;
+  final String route;
+  final List<String>? requiredPermissions;
+  final VoidCallback? customAction;
+  final bool isHighlighted;
 }
 
 /// Central configuration for all navigation items

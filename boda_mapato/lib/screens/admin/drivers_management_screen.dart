@@ -1348,8 +1348,6 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   void _toggleDriverStatus(final Driver driver) {
     final bool isActive = driver.status == "active";
     final String newStatus = isActive ? "inactive" : "active";
-    // Capture root context to use after async gaps inside dialog callbacks
-    final BuildContext rootContext = context;
 
     showDialog(
       context: context,
@@ -1402,9 +1400,11 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                     : "${driver.name} amewashwa";
                 if (!mounted) return;
                 if (isActive) {
-                  ThemeConstants.showErrorSnackBar(rootContext, message);
+                  // ignore: use_build_context_synchronously
+                  ThemeConstants.showErrorSnackBar(context, message);
                 } else {
-                  ThemeConstants.showSuccessSnackBar(rootContext, message);
+                  // ignore: use_build_context_synchronously
+                  ThemeConstants.showSuccessSnackBar(context, message);
                 }
               } on Exception catch (e) {
                 if (!mounted) return;
@@ -1426,8 +1426,6 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   }
 
   void _confirmDeleteDriver(final Driver driver) {
-    // Capture root context for safe snackbar usage after awaits
-    final BuildContext rootContext = context;
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
@@ -1465,7 +1463,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 _filterDrivers();
 
                 if (!mounted) return;
-                ThemeConstants.showErrorSnackBar(rootContext, "${driver.name} amefutwa");
+                // ignore: use_build_context_synchronously
+                ThemeConstants.showErrorSnackBar(context, "${driver.name} amefutwa");
               } on Exception catch (e) {
                 if (!mounted) return;
                 _showErrorSnackBar("Hitilafu katika kufuta dereva: $e");

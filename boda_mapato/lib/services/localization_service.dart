@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ignore_for_file: prefer_constructors_over_static_methods
 class LocalizationService extends ChangeNotifier {
+  
+  LocalizationService._internal();
   static const String _languageKey = 'selected_language';
   
   Locale _currentLocale = const Locale('sw', 'TZ'); // Default to Swahili
@@ -17,8 +20,6 @@ class LocalizationService extends ChangeNotifier {
     _instance ??= LocalizationService._internal();
     return _instance!;
   }
-  
-  LocalizationService._internal();
   
   Future<void> initialize() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -55,13 +56,13 @@ class LocalizationService extends ChangeNotifier {
 }
 
 class AppLocalizations {
+  
+  AppLocalizations._internal();
   static AppLocalizations? _instance;
   static AppLocalizations get instance {
     _instance ??= AppLocalizations._internal();
     return _instance!;
   }
-  
-  AppLocalizations._internal();
   
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -182,8 +183,46 @@ class AppLocalizations {
       'export': 'Export',
       'import': 'Import',
       'print': 'Print',
-      'share': 'Share',
-      'send': 'Send',
+'share': 'Share',
+'send': 'Send',
+
+      // Dashboard card menu items and actions
+      'drivers_who_paid': 'Drivers Who Paid',
+      'revenue_breakdown': 'Revenue Breakdown',
+      'export_data': 'Export Data',
+      'import_data': 'Import Data',
+      'current_value': 'Current Value',
+      'close': 'Close',
+      'process_pending_receipts': 'Process Pending Receipts',
+      'confirm_process_pending_receipts': 'Are you sure you want to process all pending receipts?',
+      'process': 'Process',
+      'pending_receipts_processed': 'Pending receipts processed',
+      'send_payment_reminders': 'Send Payment Reminders',
+      'send_reminders': 'Send Reminders',
+      'confirm_send_reminders': 'Send reminders to all unpaid drivers?',
+      'payment_reminders_sent': 'Payment reminders sent',
+      'confirm_export_data': 'Export data for',
+      'data_exported_successfully': 'Data exported successfully',
+'menu': 'Menu',
+      'active_drivers_only': 'Active Drivers Only',
+      'all_vehicles': 'All Vehicles',
+      'active_vehicles_only': 'Active Vehicles Only',
+      'all_receipts': 'All Receipts',
+      'manage_vehicles': 'Manage Vehicles',
+
+      // Extra dashboard titles/descriptions used by cards
+      'payments_with_receipts': 'Payments with Receipts',
+      'payments_with_receipts_desc': 'Number of payments that already have receipts.',
+      'paid_awaiting_receipts': 'Paid Awaiting Receipts',
+      'paid_awaiting_receipts_desc': 'Payments that are paid and waiting for receipt generation.',
+      'unpaid_payments': 'Unpaid Payments',
+      'unpaid_payments_desc': 'Payments that are still unpaid.',
+      'daily_revenue_desc': 'Revenue collected today.',
+      'weekly_revenue_desc': 'Revenue collected this week.',
+      'monthly_revenue_desc': 'Revenue collected this month.',
+      'drivers_desc': 'Total number of registered drivers.',
+      'vehicles_desc': 'Total number of registered vehicles.',
+      'additional_card_info': 'Additional information.',
       
       // Navigation Drawer (additional entries)
       'payments': 'Payments',
@@ -524,8 +563,46 @@ class AppLocalizations {
       'export': 'Hamisha',
       'import': 'Ingiza',
       'print': 'Chapisha',
-      'share': 'Shiriki',
-      'send': 'Tuma',
+'share': 'Shiriki',
+'send': 'Tuma',
+
+      // Dashboard card menu items and actions (Swahili)
+      'drivers_who_paid': 'Madereva Waliolipa',
+      'revenue_breakdown': 'Muhtasari wa Mapato',
+      'export_data': 'Hamisha Data',
+      'import_data': 'Ingiza Data',
+      'current_value': 'Thamani ya sasa',
+      'close': 'Funga',
+      'process_pending_receipts': 'Chakata Risiti Zinazosubiri',
+      'confirm_process_pending_receipts': 'Je, unataka kuchakata risiti zote zinazosubiri?',
+      'process': 'Chakata',
+      'pending_receipts_processed': 'Risiti zilizosubiri zimechakata',
+      'send_payment_reminders': 'Tuma Vikumbusho vya Malipo',
+      'send_reminders': 'Tuma Vikumbusho',
+      'confirm_send_reminders': 'Tuma vikumbusho kwa waliokosa kulipa?',
+      'payment_reminders_sent': 'Vikumbusho vimetumwa',
+      'confirm_export_data': 'Thibitisha uhamishaji wa data kwa',
+      'data_exported_successfully': 'Data imehamishwa kikamilifu',
+'menu': 'Menyu',
+      'active_drivers_only': 'Madereva Hai Pekee',
+      'all_vehicles': 'Magari Yote',
+      'active_vehicles_only': 'Magari Yanayotumika Pekee',
+      'all_receipts': 'Risiti Zote',
+      'manage_vehicles': 'Simamia Magari',
+
+      // Extra dashboard titles/descriptions used by cards
+      'payments_with_receipts': 'Malipo yenye Risiti',
+      'payments_with_receipts_desc': 'Idadi ya malipo ambayo tayari yana risiti.',
+      'paid_awaiting_receipts': 'Yamelipwa Bado Risiti',
+      'paid_awaiting_receipts_desc': 'Malipo yaliyolipwa yakisubiri risiti kutengenezwa.',
+      'unpaid_payments': 'Malipo Yasiyolipwa',
+      'unpaid_payments_desc': 'Malipo ambayo bado hayajalipwa.',
+      'daily_revenue_desc': 'Mapato yaliyokusanywa leo.',
+      'weekly_revenue_desc': 'Mapato ya wiki hii.',
+      'monthly_revenue_desc': 'Mapato ya mwezi huu.',
+      'drivers_desc': 'Idadi ya madereva waliosajiliwa.',
+      'vehicles_desc': 'Idadi ya magari yaliyosajiliwa.',
+      'additional_card_info': 'Maelezo ya ziada.',
       
       // Navigation Drawer (additional entries)
       'payments': 'Malipo',

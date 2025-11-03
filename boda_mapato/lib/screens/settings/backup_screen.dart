@@ -11,6 +11,7 @@ class BackupScreen extends StatefulWidget {
   State<BackupScreen> createState() => _BackupScreenState();
 }
 
+// ignore_for_file: control_flow_in_finally, avoid_catches_without_on_clauses, unnecessary_brace_in_string_interps
 class _BackupScreenState extends State<BackupScreen> {
   final LocalizationService _localizationService = LocalizationService.instance;
   final ApiService _apiService = ApiService();
@@ -257,7 +258,7 @@ class _BackupScreenState extends State<BackupScreen> {
         final now = DateTime.now();
         final dateStr = '${now.day}/${now.month}/${now.year}';
         await prefs.setString('last_backup_date', dateStr);
-        
+        if (!mounted) return;
         setState(() => _lastBackupDate = dateStr);
 
         ThemeConstants.showSuccessSnackBar(
@@ -268,13 +269,15 @@ class _BackupScreenState extends State<BackupScreen> {
         throw Exception(response['message'] ?? 'Backup failed');
       }
     } catch (e) {
+      if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
         _localizationService.isSwahili 
-          ? 'Imeshindikana kuhifadhi: ${e.toString()}'
-          : 'Backup failed: ${e.toString()}',
+          ? 'Imeshindikana kuhifadhi: ${e}'
+          : 'Backup failed: ${e}',
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isBackingUp = false);
     }
   }
@@ -334,6 +337,7 @@ class _BackupScreenState extends State<BackupScreen> {
       });
 
       if (response['success'] == true) {
+        if (!mounted) return;
         ThemeConstants.showSuccessSnackBar(
           context,
           _localizationService.translate('restore_successful'),
@@ -342,13 +346,15 @@ class _BackupScreenState extends State<BackupScreen> {
         throw Exception(response['message'] ?? 'Restore failed');
       }
     } catch (e) {
+      if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
         _localizationService.isSwahili 
-          ? 'Imeshindikana kurejesha: ${e.toString()}'
-          : 'Restore failed: ${e.toString()}',
+          ? 'Imeshindikana kurejesha: ${e}'
+          : 'Restore failed: ${e}',
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isRestoring = false);
     }
   }

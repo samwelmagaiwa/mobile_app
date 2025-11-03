@@ -1,5 +1,5 @@
 // Web-specific implementation for keyboard fixes
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 
 class WebKeyboardFix {
   static bool _initialized = false;
@@ -11,6 +11,8 @@ class WebKeyboardFix {
     _initialized = true;
 
     // Add web-specific keyboard handling if needed
-    print('WebKeyboardFix: Initialized for web platform');
+    if (kDebugMode) {
+      debugPrint('WebKeyboardFix: Initialized for web platform');
+    }
   }
 }

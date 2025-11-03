@@ -185,9 +185,9 @@ class HelpScreen extends StatelessWidget {
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       leading: const Icon(Icons.chat, color: ThemeConstants.textSecondary),
-                      title: Text(
+                      title: const Text(
                         'WhatsApp',
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style: TextStyle(color: ThemeConstants.textPrimary),
                       ),
                       subtitle: const Text(
                         '+255 123 456 789',

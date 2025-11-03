@@ -522,7 +522,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
               ),
               const Spacer(),
               ElevatedButton.icon(
-onPressed: () => _showAddCommunicationDialog(),
+onPressed: _showAddCommunicationDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,

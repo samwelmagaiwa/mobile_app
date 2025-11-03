@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+// ignore_for_file: avoid_dynamic_calls, avoid_catches_without_on_clauses
 
 class DashboardService {
   static const String baseUrl = 'http://your-laravel-backend.com/api/admin';
@@ -60,7 +63,9 @@ class DashboardService {
       }
       return 0;
     } catch (e) {
-      print('Error fetching active drivers count: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching active drivers count: $e');
+      }
       return 0;
     }
   }
@@ -80,7 +85,9 @@ class DashboardService {
       }
       return 0;
     } catch (e) {
-      print('Error fetching active devices count: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching active devices count: $e');
+      }
       return 0;
     }
   }
@@ -100,7 +107,9 @@ class DashboardService {
       }
       return 0;
     } catch (e) {
-      print('Error fetching unpaid debts count: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching unpaid debts count: $e');
+      }
       return 0;
     }
   }
@@ -120,7 +129,9 @@ class DashboardService {
       }
       return 0;
     } catch (e) {
-      print('Error fetching generated receipts count: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching generated receipts count: $e');
+      }
       return 0;
     }
   }
@@ -140,7 +151,9 @@ class DashboardService {
       }
       return 0;
     } catch (e) {
-      print('Error fetching pending receipts count: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching pending receipts count: $e');
+      }
       return 0;
     }
   }
@@ -160,7 +173,9 @@ class DashboardService {
       }
       return 0.0;
     } catch (e) {
-      print('Error fetching daily revenue: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching daily revenue: $e');
+      }
       return 0.0;
     }
   }
@@ -180,7 +195,9 @@ class DashboardService {
       }
       return 0.0;
     } catch (e) {
-      print('Error fetching weekly revenue: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching weekly revenue: $e');
+      }
       return 0.0;
     }
   }
@@ -200,7 +217,9 @@ class DashboardService {
       }
       return 0.0;
     } catch (e) {
-      print('Error fetching monthly revenue: $e');
+      if (kDebugMode) {
+        debugPrint('Error fetching monthly revenue: $e');
+      }
       return 0.0;
     }
   }
@@ -208,14 +227,6 @@ class DashboardService {
 
 /// Dashboard data model to structure the comprehensive response
 class DashboardData {
-  final int unpaidDebtsCount;
-  final int activeDevicesCount;
-  final int activeDriversCount;
-  final int generatedReceiptsCount;
-  final int pendingReceiptsCount;
-  final double dailyRevenue;
-  final double weeklyRevenue;
-  final double monthlyRevenue;
 
   DashboardData({
     required this.unpaidDebtsCount,
@@ -240,6 +251,14 @@ class DashboardData {
       monthlyRevenue: (json['monthly_revenue'] ?? 0.0).toDouble(),
     );
   }
+  final int unpaidDebtsCount;
+  final int activeDevicesCount;
+  final int activeDriversCount;
+  final int generatedReceiptsCount;
+  final int pendingReceiptsCount;
+  final double dailyRevenue;
+  final double weeklyRevenue;
+  final double monthlyRevenue;
 
   Map<String, dynamic> toJson() {
     return {

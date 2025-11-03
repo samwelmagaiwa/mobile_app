@@ -1,9 +1,11 @@
+import 'dart:async';
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
 import "../../services/localization_service.dart";
+import "../../services/app_events.dart";
 import "../../utils/responsive_helper.dart";
 
 class ReportScreen extends StatefulWidget {
@@ -16,27 +18,171 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   final ApiService _apiService = ApiService();
   String _selectedPeriod = "daily";
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
+  DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   bool _isGenerating = false;
   Map<String, dynamic>? _currentReportData;
+  late final StreamSubscription<AppEvent> _eventSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    // Auto-refresh when relevant app events occur (e.g., new payments/receipts)
+    _eventSubscription = AppEvents.instance.stream.listen((event) {
+      switch (event.type) {
+        case AppEventType.receiptsUpdated:
+        case AppEventType.paymentsUpdated:
+        case AppEventType.dashboardShouldRefresh:
+        case AppEventType.debtsUpdated:
+          if (mounted) _generateReport();
+          break;
+      }
+    });
   }
+
+  Map<String, dynamic> _normalizeSummary(Map<String, dynamic>? raw,
+      {required DateTime start, required DateTime end}) {
+    Map<String, dynamic> m = raw ?? <String, dynamic>{};
+    // If backend wraps in { data: {...} }
+    if (m['data'] is Map<String, dynamic>) m = Map<String, dynamic>.from(m['data']);
+
+    num parseNum(dynamic v) {
+      if (v is num) return v;
+      if (v is String) return num.tryParse(v.replaceAll(',', '')) ?? 0;
+      return 0;
+    }
+
+    num firstNum(Map<String, dynamic> src, List<String> keys) {
+      for (final k in keys) {
+        final v = src[k];
+        if (v != null) return parseNum(v);
+      }
+      return 0;
+    }
+
+    // Try direct totals (cover many backend variants)
+    num totalRevenue = firstNum(m, [
+      'total_revenue', 'revenue_total', 'total', 'total_income', 'grand_total',
+      'total_collected', 'total_paid', 'payments_total', 'collections_total',
+      'debt_payments_total', 'income_total'
+    ]);
+    num totalExpenses = firstNum(m, ['total_expenses', 'expenses_total', 'expense_total']);
+
+    // Try nested maps if direct missing
+    if (totalRevenue == 0 && m['revenue'] is Map<String, dynamic>) {
+      totalRevenue = firstNum(Map<String, dynamic>.from(m['revenue']), [
+        'total_revenue', 'revenue_total', 'total', 'total_income', 'grand_total'
+      ]);
+    }
+    if (totalExpenses == 0 && m['expenses'] is Map<String, dynamic>) {
+      totalExpenses = firstNum(Map<String, dynamic>.from(m['expenses']), [
+        'total_expenses', 'expenses_total', 'total'
+      ]);
+    }
+
+    // If backend returns daily_data over a range, sum within [start, end]
+    num sumDaily(dynamic daily) {
+      num s = 0;
+      if (daily is List) {
+        for (final e in daily) {
+          if (e is Map<String, dynamic>) {
+            final String? d = (e['date'] ?? e['day'] ?? e['label'])?.toString();
+            if (d != null) {
+              final DateTime? dt = DateTime.tryParse(d);
+              if (dt != null) {
+                final DateTime dd = DateTime(dt.year, dt.month, dt.day);
+                if (!dd.isBefore(DateTime(start.year, start.month, start.day)) &&
+                    !dd.isAfter(DateTime(end.year, end.month, end.day))) {
+                  s += firstNum(e, ['amount', 'total', 'revenue', 'paid', 'value']);
+                }
+              } else {
+                s += firstNum(e, ['amount', 'total', 'revenue', 'paid', 'value']);
+              }
+            }
+          }
+        }
+      }
+      return s;
+    }
+
+    // Last-resort: sum amounts from lists when totals missing
+    num sumAmounts(dynamic list) {
+      num s = 0;
+      if (list is List) {
+        for (final e in list) {
+          if (e is Map<String, dynamic>) {
+            s += firstNum(e, [
+              'amount', 'total', 'revenue', 'paid', 'paid_amount', 'amount_paid',
+              'amount_received', 'received', 'value'
+            ]);
+          }
+        }
+      }
+      return s;
+    }
+
+    if (totalRevenue == 0) {
+      if (m['daily_data'] is List) totalRevenue = sumDaily(m['daily_data']);
+      if (totalRevenue == 0 && m['transactions'] is List) totalRevenue = sumAmounts(m['transactions']);
+      if (totalRevenue == 0 && m['payments'] is List) totalRevenue = sumAmounts(m['payments']);
+      if (totalRevenue == 0 && m['revenues'] is List) totalRevenue = sumAmounts(m['revenues']);
+      if (totalRevenue == 0 && m['items'] is List) totalRevenue = sumAmounts(m['items']);
+      if (totalRevenue == 0 && m['data'] is List) totalRevenue = sumAmounts(m['data']);
+    }
+
+    // Transaction count from common shapes
+    int transactionCount = 0;
+    if (m['transaction_count'] != null) {
+      transactionCount = parseNum(m['transaction_count']).toInt();
+    } else if (m['count'] != null) {
+      transactionCount = parseNum(m['count']).toInt();
+    } else if (m['transactions'] is List) {
+      transactionCount = (m['transactions'] as List).length;
+    } else if (m['payments'] is List) {
+      transactionCount = (m['payments'] as List).length;
+    }
+
+    // Average per day (fallback computed)
+    num averagePerDay = 0;
+    if (m['average_per_day'] != null) {
+      averagePerDay = parseNum(m['average_per_day']);
+    } else {
+      final int days = end.difference(start).inDays + 1;
+      if (days > 0) averagePerDay = totalRevenue / days;
+    }
+
+    return <String, dynamic>{
+      'total_revenue': totalRevenue,
+      'total_expenses': totalExpenses,
+      'transaction_count': transactionCount,
+      'average_per_day': averagePerDay,
+      // Preserve any progress fields if provided
+      if (m['progress_percent'] != null) 'progress_percent': parseNum(m['progress_percent']),
+      if (m['goal_progress'] != null) 'goal_progress': parseNum(m['goal_progress']),
+      if (m['revenue_growth'] != null) 'revenue_growth': parseNum(m['revenue_growth']),
+    };
+  }
+
+  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 0, 0, 0);
+  DateTime _endOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
 
   Future<void> _loadInitialData() async {
     try {
-      final reportData = await _apiService.getRevenueReport(
-        startDate: _startDate,
-        endDate: _endDate,
+      final DateTime start = _startOfDay(_startDate);
+      final DateTime end = _endOfDay(_endDate);
+
+      final report = await _apiService.getRevenueReport(
+        startDate: start,
+        endDate: end,
       );
+
+      final Map<String, dynamic> normalized =
+          _normalizeSummary(Map<String, dynamic>.from(report), start: start, end: end);
 
       if (mounted) {
         setState(() {
-          _currentReportData = reportData;
+          _currentReportData = normalized;
         });
       }
     } on Exception catch (e) {
@@ -70,33 +216,68 @@ class _ReportScreenState extends State<ReportScreen> {
     try {
       Map<String, dynamic>? reportData;
 
+      // Always send a full-day range for accuracy
+      final DateTime start = _startOfDay(_startDate);
+      final DateTime end = _endOfDay(_endDate);
+
       // Determine which API endpoint to call based on selected period
       switch (_selectedPeriod) {
         case 'revenue':
           reportData = await _apiService.getRevenueReport(
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: start,
+            endDate: end,
           );
+          break;
         case 'expense':
           reportData = await _apiService.getExpenseReport(
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: start,
+            endDate: end,
           );
+          break;
         case 'profit_loss':
           reportData = await _apiService.getProfitLossReport(
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: start,
+            endDate: end,
           );
+          break;
         default:
           // For daily/weekly/monthly, use revenue report as default
           reportData = await _apiService.getRevenueReport(
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: start,
+            endDate: end,
           );
       }
 
+      Map<String, dynamic> normalized =
+          _normalizeSummary(reportData != null ? Map<String, dynamic>.from(reportData!) : null,
+              start: start, end: end);
+
+      // Fallback: if revenue total is still zero, try aggregating from payment history
+      if (((normalized['total_revenue'] as num?) ?? 0) == 0) {
+        try {
+          final Map<String, dynamic> paymentsResp = await _apiService.getPaymentHistory(
+            startDate: start,
+            endDate: end,
+            limit: 1000,
+          );
+          final Map<String, dynamic> fromPayments =
+              _normalizeSummary(paymentsResp, start: start, end: end);
+          if (((fromPayments['total_revenue'] as num?) ?? 0) > 0) {
+            normalized = {
+              ...normalized,
+              // ensure totals reflect actual collections
+              'total_revenue': fromPayments['total_revenue'],
+              'transaction_count': fromPayments['transaction_count'] ?? normalized['transaction_count'],
+              'average_per_day': fromPayments['average_per_day'] ?? normalized['average_per_day'],
+            };
+          }
+        } catch (_) {
+          // ignore fallback errors
+        }
+      }
+
       setState(() {
-        _currentReportData = reportData;
+        _currentReportData = normalized;
       });
 
       if (mounted) {
@@ -136,37 +317,50 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildScaffold(
-        title: localizationService.translate('reports'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Welcome Header with Overview
-            _buildWelcomeHeader(),
-            const SizedBox(height: 24),
+      builder: (context, localizationService, child) {
+        return ThemeConstants.buildScaffold(
+          title: localizationService.translate('reports'),
+          body: RefreshIndicator(
+            onRefresh: _generateReport,
+            color: Colors.white,
+            backgroundColor: ThemeConstants.primaryBlue,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Welcome Header with Overview
+                  _buildWelcomeHeader(),
+                  const SizedBox(height: 24),
 
-            // Quick Stats Preview - Moved up for better visibility
-            _buildQuickStatsSection(),
-            const SizedBox(height: 24),
+                  // Quick Stats Preview - Moved up for better visibility
+                  _buildQuickStatsSection(),
+                  const SizedBox(height: 24),
 
-            // Report Types with enhanced design
-            _buildReportTypesSection(),
-            const SizedBox(height: 24),
+                  // Report Types with enhanced design
+                  _buildReportTypesSection(),
+                  const SizedBox(height: 24),
 
-            // Date Range Selection with better UX
-            _buildDateRangeSection(),
-            const SizedBox(height: 24),
+                  // Date Range Selection with better UX
+                  _buildDateRangeSection(),
+                  const SizedBox(height: 24),
 
-            // Generate Report Button with enhanced styling
-            _buildGenerateReportButton(),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    ),
+                  // Generate Report Button with enhanced styling
+                  _buildGenerateReportButton(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  @override
+  void dispose() {
+    _eventSubscription.cancel();
+    super.dispose();
   }
 
   // Welcome header with summary
@@ -250,9 +444,9 @@ class _ReportScreenState extends State<ReportScreen> {
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Miamala",
-                  value: _currentReportData != null
-                      ? "${_currentReportData!['transaction_count'] ?? 23}"
-                      : "23",
+value: _currentReportData != null
+                      ? "${_currentReportData!['transaction_count'] ?? 0}"
+                      : "0",
                   icon: Icons.receipt_long,
                   color: const Color(0xFF06B6D4),
                   subtitle: "Leo",
@@ -262,9 +456,9 @@ class _ReportScreenState extends State<ReportScreen> {
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Vyombo",
-                  value: _currentReportData != null
-                      ? "${_currentReportData!['vehicle_count'] ?? 3}"
-                      : "3",
+value: _currentReportData != null
+                      ? "${_currentReportData!['vehicle_count'] ?? 0}"
+                      : "0",
                   icon: Icons.directions_car,
                   color: const Color(0xFF8B5CF6),
                   subtitle: "Vimefanya kazi",
@@ -278,9 +472,9 @@ class _ReportScreenState extends State<ReportScreen> {
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Wastani",
-                  value: _currentReportData != null
-                      ? "TSh ${_formatCurrency(_currentReportData!['average_per_day'] ?? 64286)}"
-                      : "TSh 64,286",
+value: _currentReportData != null
+                      ? "TSh ${_formatCurrency(_currentReportData!['average_per_day'] ?? 0)}"
+                      : "TSh 0",
                   icon: Icons.trending_up,
                   color: ThemeConstants.primaryOrange,
                   subtitle: "Kila siku",
@@ -288,9 +482,14 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildEnhancedStatCard(
+child: _buildEnhancedStatCard(
                   title: "Faida",
-                  value: "85%",
+                  value: (() {
+                    final num tr = (_currentReportData?['total_revenue'] as num?) ?? 0;
+                    final num te = (_currentReportData?['total_expenses'] as num?) ?? 0;
+                    final double p = tr == 0 ? 0 : (((tr - te) / tr) * 100).toDouble();
+                    return "${p.toStringAsFixed(0)}%";
+                  })(),
                   icon: Icons.show_chart,
                   color: ThemeConstants.successGreen,
                   subtitle: "Ya mapato",
@@ -336,10 +535,10 @@ class _ReportScreenState extends State<ReportScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+Text(
                           _currentReportData != null
-                              ? "TSh ${_formatCurrency(_currentReportData!['total_revenue'] ?? 450000)}"
-                              : "TSh 450,000",
+                              ? "TSh ${_formatCurrency((_currentReportData!['total_revenue'] ?? 0) as num)}"
+                              : "TSh 0",
                           style: const TextStyle(
                             color: ThemeConstants.textPrimary,
                             fontSize: 24,
@@ -349,6 +548,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       ],
                     ),
                   ),
+if ((_currentReportData?['revenue_growth'] as num?) != null)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -356,9 +556,9 @@ class _ReportScreenState extends State<ReportScreen> {
                       color: ThemeConstants.successGreen.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      "+12.5%",
-                      style: TextStyle(
+                    child: Text(
+                      "+${((_currentReportData?['revenue_growth'] as num?) ?? 0).toString()}%",
+                      style: const TextStyle(
                         color: ThemeConstants.successGreen,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -368,31 +568,37 @@ class _ReportScreenState extends State<ReportScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Progress bar
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: FractionallySizedBox(
-                  widthFactor: 0.75, // 75% progress
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: ThemeConstants.successGreen,
-                      borderRadius: BorderRadius.circular(3),
+// Progress bar (shown only if backend provides 'progress_percent' or 'goal_progress')
+              if (((_currentReportData?['progress_percent'] as num?) != null) ||
+                  ((_currentReportData?['goal_progress'] as num?) != null)) ...[
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: FractionallySizedBox(
+                    widthFactor: (((_currentReportData?['progress_percent'] as num?)?.toDouble() ??
+                                (_currentReportData?['goal_progress'] as num?)?.toDouble() ??
+                                0) / 100)
+                            .clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.successGreen,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "75% ya lengo la mwezi",
-                style: TextStyle(
-                  color: ThemeConstants.textSecondary,
-                  fontSize: 12,
+                const SizedBox(height: 8),
+                Text(
+                  "${(((_currentReportData?['progress_percent'] as num?)?.toDouble() ?? (_currentReportData?['goal_progress'] as num?)?.toDouble() ?? 0)).toStringAsFixed(0)}% ya lengo",
+                  style: const TextStyle(
+                    color: ThemeConstants.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -799,8 +1005,14 @@ class _ReportPreviewDialog extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Dialog(
+        backgroundColor: ThemeConstants.primaryBlue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ThemeConstants.primaryBlue,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -810,6 +1022,7 @@ class _ReportPreviewDialog extends StatelessWidget {
                   const Text(
                     "Muhtasari wa Ripoti",
                     style: TextStyle(
+                      color: ThemeConstants.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -817,17 +1030,18 @@ class _ReportPreviewDialog extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, color: ThemeConstants.textPrimary),
                   ),
                 ],
               ),
 
-              const Divider(),
+              const Divider(color: Colors.white24),
 
               // Report Summary
               Text(
                 "Ripoti ya ${_getPeriodName(period)}",
                 style: const TextStyle(
+                  color: ThemeConstants.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -837,23 +1051,19 @@ class _ReportPreviewDialog extends StatelessWidget {
                 "${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}",
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: ThemeConstants.textSecondary,
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Report Data
+              // Report Data (no mock defaults)
               Builder(
                 builder: (context) {
-                  final num totalRevenue =
-                      (reportData?['total_revenue'] as num?) ?? 450000;
-                  final num totalExpenses =
-                      (reportData?['total_expenses'] as num?) ?? 125000;
-                  final int transactionCount =
-                      (reportData?['transaction_count'] as int?) ?? 23;
-                  final num averagePerDay =
-                      (reportData?['average_per_day'] as num?) ?? 64286;
+                  final num totalRevenue = (reportData?['total_revenue'] as num?) ?? 0;
+                  final num totalExpenses = (reportData?['total_expenses'] as num?) ?? 0;
+                  final int transactionCount = (reportData?['transaction_count'] as int?) ?? 0;
+                  final num averagePerDay = (reportData?['average_per_day'] as num?) ?? 0;
                   final num netProfit = totalRevenue - totalExpenses;
                   return Column(
                     children: <Widget>[
@@ -958,13 +1168,17 @@ class _ReportRow extends StatelessWidget {
           children: <Widget>[
             Text(
               label,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(
+                fontSize: 14,
+                color: ThemeConstants.textSecondary,
+              ),
             ),
             Text(
               value,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                color: ThemeConstants.textPrimary,
               ),
             ),
           ],

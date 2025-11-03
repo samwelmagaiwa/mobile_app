@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 
 import '../models/login_response.dart';
+import '../services/api_service.dart';
 import '../services/app_messenger.dart';
 import '../services/auth_events.dart';
 import '../services/auth_service.dart';
-import '../services/api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider() {

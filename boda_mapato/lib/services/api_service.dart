@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-
+// ignore_for_file: avoid_dynamic_calls, avoid_positional_boolean_parameters, cascade_invocations, avoid_catches_without_on_clauses
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -111,7 +111,9 @@ class ApiService {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
-        print('DEBUG _postFirst: Trying endpoint: $e');
+        if (kDebugMode) {
+          debugPrint('DEBUG _postFirst: Trying endpoint: $e');
+        }
         return await _post(e, data, requireAuth: requireAuth);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
@@ -247,7 +249,9 @@ class ApiService {
       }
 
       final String fullUrl = "$baseUrl$endpoint";
-      print('DEBUG _post: Making POST request to: $fullUrl');
+      if (kDebugMode) {
+        debugPrint('DEBUG _post: Making POST request to: $fullUrl');
+      }
       final http.Response response = await http
           .post(
             Uri.parse(fullUrl),
@@ -525,16 +529,16 @@ class ApiService {
   Future<Map<String, dynamic>> getComprehensiveDashboardData() async =>
       _get("/admin/dashboard/comprehensive");
 
-  Future<List<dynamic>> getRevenueChart({final int days = 30}) async {
+  Future<List<dynamic>> getRevenueChart({final int days = 30, DateTime? startDate, DateTime? endDate}) async {
     // Backend provides revenue daily breakdown via /admin/reports/revenue
-    // Build a date window that includes today and the previous (days-1) days
-    final DateTime end = DateTime.now();
-    final DateTime start = end.subtract(Duration(days: days - 1));
-    final String startDate = start.toIso8601String().split('T')[0];
-    final String endDate = end.toIso8601String().split('T')[0];
+    // Build a date window that includes today and the previous (days-1) days unless explicit range provided
+    final DateTime end = endDate ?? DateTime.now();
+    final DateTime start = startDate ?? end.subtract(Duration(days: days - 1));
+    final String startStr = start.toIso8601String().split('T')[0];
+    final String endStr = end.toIso8601String().split('T')[0];
 
     final String endpoint =
-        "/admin/reports/revenue?start_date=$startDate&end_date=$endDate";
+        "/admin/reports/revenue?start_date=$startStr&end_date=$endStr";
 
     final Map<String, dynamic> response = await _get(endpoint);
 
@@ -564,7 +568,7 @@ class ApiService {
       throw ApiException("Hauruhusiwi - tafadhali ingia tena");
     }
 
-    Future<Map<String, dynamic>> _send(String endpoint, String fieldName) async {
+    Future<Map<String, dynamic>> send(String endpoint, String fieldName) async {
       final uri = Uri.parse("$baseUrl$endpoint");
       final request = http.MultipartRequest('POST', uri);
       final Map<String, String> h = Map.of(headers);
@@ -579,12 +583,12 @@ class ApiService {
 
     // Try common endpoints/field names
     try {
-      return await _send('/auth/profile/avatar', 'avatar');
+      return await send('/auth/profile/avatar', 'avatar');
     } on Exception {
       try {
-        return await _send('/auth/profile/photo', 'photo');
+        return await send('/auth/profile/photo', 'photo');
       } on Exception {
-        return _send('/auth/profile/image', 'image');
+        return send('/auth/profile/image', 'image');
       }
     }
   }
@@ -613,7 +617,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async {
-    print('DEBUG ApiService.createUser: Trying endpoints for user creation');
+    if (kDebugMode) {
+      debugPrint('DEBUG ApiService.createUser: Trying endpoints for user creation');
+    }
     return _postFirst(<String>["/admin/users", "/users", "/admin/user-management/users"], userData);
   }
 
@@ -891,10 +897,15 @@ class ApiService {
     String endpoint = "/admin/reports/revenue";
     final List<String> params = <String>[];
 
-    if (startDate != null) {
-      params.add("start_date=${startDate.toIso8601String()}");
+    String _d(DateTime d) {
+      String two(int n) => n < 10 ? '0$n' : '$n';
+      return "${d.year}-${two(d.month)}-${two(d.day)}"; // send date-only to avoid TZ issues
     }
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
+
+    if (startDate != null) {
+      params.add("start_date=${_d(startDate)}");
+    }
+    if (endDate != null) params.add("end_date=${_d(endDate)}");
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -933,10 +944,15 @@ class ApiService {
     String endpoint = "/admin/reports/expenses";
     final List<String> params = <String>[];
 
-    if (startDate != null) {
-      params.add("start_date=${startDate.toIso8601String()}");
+    String _d(DateTime d) {
+      String two(int n) => n < 10 ? '0$n' : '$n';
+      return "${d.year}-${two(d.month)}-${two(d.day)}";
     }
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
+
+    if (startDate != null) {
+      params.add("start_date=${_d(startDate)}");
+    }
+    if (endDate != null) params.add("end_date=${_d(endDate)}");
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -952,10 +968,15 @@ class ApiService {
     String endpoint = "/admin/reports/profit-loss";
     final List<String> params = <String>[];
 
-    if (startDate != null) {
-      params.add("start_date=${startDate.toIso8601String()}");
+    String _d(DateTime d) {
+      String two(int n) => n < 10 ? '0$n' : '$n';
+      return "${d.year}-${two(d.month)}-${two(d.day)}";
     }
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String()}");
+
+    if (startDate != null) {
+      params.add("start_date=${_d(startDate)}");
+    }
+    if (endDate != null) params.add("end_date=${_d(endDate)}");
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -1218,14 +1239,19 @@ class ApiService {
   }) async {
     String endpoint = "/admin/payments/history?page=$page&limit=$limit";
 
+    String _d(DateTime d) {
+      String two(int n) => n < 10 ? '0$n' : '$n';
+      return "${d.year}-${two(d.month)}-${two(d.day)}";
+    }
+
     if (driverId != null) {
       endpoint += "&driver_id=$driverId";
     }
     if (startDate != null) {
-      endpoint += "&start_date=${startDate.toIso8601String()}";
+      endpoint += "&start_date=${_d(startDate)}";
     }
     if (endDate != null) {
-      endpoint += "&end_date=${endDate.toIso8601String()}";
+      endpoint += "&end_date=${_d(endDate)}";
     }
 
     return _get(endpoint);

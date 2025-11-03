@@ -1,4 +1,5 @@
 // ignore_for_file: cascade_invocations
+// ignore_for_file: directives_ordering, avoid_catches_without_on_clauses, prefer_foreach, unnecessary_brace_in_string_interps
 import "dart:async";
 import "dart:math" as math;
 import "dart:ui";
@@ -7,7 +8,6 @@ import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
-import "../../debug_auth_test.dart";
 import "../../models/login_response.dart";
 import "../../models/user_permissions.dart";
 import "../../providers/auth_provider.dart";
@@ -28,6 +28,11 @@ class ModernDashboardScreen extends StatefulWidget {
 
 class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     with TickerProviderStateMixin {
+  Timer? _autoRefreshTimer;
+  String? _lastSnapshotSig;
+  // Use a Scaffold key to safely control the drawer from anywhere in the tree
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late AnimationController _animationController;
   late AnimationController _chartAnimationController;
   late Animation<double> _fadeAnimation;
@@ -40,10 +45,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   final PageController _cardController = PageController();
   int _selectedMonth = DateTime.now().month;
 
-  // Badge counters for drawer notifications
-  int _driversCount = 0;
-  int _vehiclesCount = 0;
-  int _pendingPaymentsCount = 0;
+  // Badge counters for drawer notifications (only reminders kept)
   int _remindersCount = 0;
   
   // Event subscription for automatic refresh
@@ -76,6 +78,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     super.initState();
     _initializeAnimations();
     _loadDashboardData();
+    _startAutoRefresh();
     
     // Listen to app events for automatic refresh
     _eventSubscription = AppEvents.instance.stream.listen((event) {
@@ -88,7 +91,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           if (mounted) {
             _loadDashboardData();
           }
-          break;
       }
     });
   }
@@ -138,6 +140,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   @override
   void dispose() {
     _eventSubscription.cancel();
+    _autoRefreshTimer?.cancel();
     _animationController.dispose();
     _chartAnimationController.dispose();
     _cardController.dispose();
@@ -145,10 +148,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
     try {
       // Guard: only load if authenticated
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (!auth.isAuthenticated) {
+        if (!mounted) return;
         setState(() => _isLoading = false);
         return;
       }
@@ -161,9 +166,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       await _loadComprehensiveRealTimeData();
 
       // Load revenue chart data for visualization
-      await _loadRevenueChartData();
+      await _loadRevenueChartData(year: DateTime.now().year, month: _selectedMonth);
 
       // Load additional badge counts (reminders)
+      if (!mounted) return;
       await _loadAdditionalBadgeCounts();
 
       // Update UI and start animations
@@ -190,6 +196,36 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   /// Load comprehensive real-time data using existing backend endpoints
+  void _startAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      await _pollForUpdates();
+    });
+  }
+
+  Future<void> _pollForUpdates() async {
+    if (!mounted || _isLoading) return;
+    try {
+      final Map<String, dynamic> dashboardResponse = await _apiService.getDashboardData();
+      final Map<String, dynamic> main = _extractDataFromResponse(dashboardResponse);
+      final String sig = _buildSignatureFromMain(main);
+      if (sig != _lastSnapshotSig) {
+        await _loadDashboardData();
+      }
+    } catch (_) {
+      // ignore network errors during polling
+    }
+  }
+
+  String _buildSignatureFromMain(Map<String, dynamic> m) {
+    final List<dynamic> parts = [
+      m['payments_today'], m['payments_this_week'], m['payments_this_month'],
+      m['total_drivers'], m['total_vehicles'], m['active_drivers'], m['active_vehicles'],
+      m['pending_receipts'] ?? 0, m['recent_transactions'] is List ? (m['recent_transactions'] as List).length : 0,
+    ];
+    return parts.map((e) => (e ?? 0).toString()).join('|');
+  }
+
   Future<void> _loadComprehensiveRealTimeData() async {
     try {
       // Use main dashboard endpoint which returns complete and accurate data
@@ -246,101 +282,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         _dashboardData['total_revenue'] = _dashboardData['monthly_revenue'] ?? 0;
       }
       
-      // Update badge counts for drawer
-      _updateBadgeCounts();
+      // Update snapshot signature for polling comparison
+      _lastSnapshotSig = _buildSignatureFromMain(mainData);
+      
+      // Badge counts derived directly in _buildDrawer from _dashboardData
       
     } on Exception catch (e) {
       // Initialize with empty data if all fails
       _dashboardData = _getEmptyDashboardData();
       if (mounted) {
-        _showErrorSnackBar("Imeshindikana kupakia data za dashboard: ${e.toString()}");
+        _showErrorSnackBar("Imeshindikana kupakia data za dashboard: ${e}");
       }
-    }
-  }
-
-  /// Load active drivers count from drivers table WHERE is_active = 1
-  Future<Map<String, dynamic>> _loadDriversCountFromExisting() async {
-    try {
-      // Try new endpoint first for active drivers (is_active = 1)
-      try {
-        final response = await _apiService.getActiveDriversCount();
-        final data = _extractDataFromResponse(response);
-        return {
-          'drivers_count': _toInt(data['count'] ?? data['active_drivers_count'] ?? 0),
-          'total_drivers': _toInt(data['count'] ?? data['active_drivers_count'] ?? 0),
-        };
-      } on Exception {
-        // Fallback to existing drivers endpoint and filter active drivers
-        final response = await _apiService.getDrivers();
-        final data = _extractDataFromResponse(response);
-        
-        // Try to extract active drivers count from response
-        int activeCount = 0;
-        if (data['drivers'] is List) {
-          final List<dynamic> drivers = data['drivers'] as List<dynamic>;
-          activeCount = drivers.where((driver) {
-            if (driver is Map<String, dynamic>) {
-              return driver['is_active'] == 1 || 
-                     driver['is_active'] == true || 
-                     driver['status'] == 'active';
-            }
-            return false;
-          }).length;
-        } else {
-          // If no filtering possible, use total count as fallback
-          activeCount = _extractTotalCountFromResponse(response);
-        }
-        
-        return {
-          'drivers_count': activeCount,
-          'total_drivers': activeCount,
-        };
-      }
-    } on Exception {
-      return {'drivers_count': 0, 'total_drivers': 0};
-    }
-  }
-
-  /// Load active devices count from devices table WHERE is_active = 1
-  Future<Map<String, dynamic>> _loadDevicesCountFromExisting() async {
-    try {
-      // Try new endpoint first for active devices (is_active = 1)
-      try {
-        final response = await _apiService.getActiveDevicesCount();
-        final data = _extractDataFromResponse(response);
-        return {
-          'devices_count': _toInt(data['count'] ?? data['active_devices_count'] ?? 0),
-          'total_vehicles': _toInt(data['count'] ?? data['active_devices_count'] ?? 0),
-        };
-      } on Exception {
-        // Fallback to existing vehicles endpoint and filter active devices
-        final response = await _apiService.getVehicles();
-        final data = _extractDataFromResponse(response);
-        
-        // Try to extract active devices count from response
-        int activeCount = 0;
-        if (data['vehicles'] is List) {
-          final List<dynamic> vehicles = data['vehicles'] as List<dynamic>;
-          activeCount = vehicles.where((vehicle) {
-            if (vehicle is Map<String, dynamic>) {
-              return vehicle['is_active'] == 1 || 
-                     vehicle['is_active'] == true || 
-                     vehicle['status'] == 'active';
-            }
-            return false;
-          }).length;
-        } else {
-          // If no filtering possible, use total count as fallback
-          activeCount = _extractTotalCountFromResponse(response);
-        }
-        
-        return {
-          'devices_count': activeCount,
-          'total_vehicles': activeCount,
-        };
-      }
-    } on Exception {
-      return {'devices_count': 0, 'total_vehicles': 0};
     }
   }
 
@@ -499,7 +451,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           totalItemsCount = validItemsCount;
         } else {
           // As a last resort, fall back to total count extraction
-          totalItemsCount = list.length > 0 ? list.length : _extractTotalCountFromResponse(response);
+          totalItemsCount = list.isNotEmpty ? list.length : _extractTotalCountFromResponse(response);
         }
       } catch (_) {
         // ignore; keep endpointCount
@@ -513,104 +465,19 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     }
   }
 
-  /// Load revenue data from debt_records (is_paid=1) + payments tables with daily/weekly/monthly filtering
-  Future<Map<String, dynamic>> _loadRevenueDataFromExisting() async {
-    try {
-      final Map<String, dynamic> revenueData = <String, dynamic>{
-        'daily_revenue': 0,
-        'weekly_revenue': 0,
-        'monthly_revenue': 0,
-      };
-
-      // Try new specific revenue endpoints first
-      try {
-        // Load daily revenue from debt_records (is_paid=1) + payments for today
-        final dailyResponse = await _apiService.getDailyRevenue();
-        final dailyData = _extractDataFromResponse(dailyResponse);
-        revenueData['daily_revenue'] = _toDouble(
-          dailyData['revenue'] ?? 
-          dailyData['daily_revenue'] ?? 
-          dailyData['total'] ?? 0
-        );
-      } on Exception {
-        revenueData['daily_revenue'] = 0;
-      }
-
-      try {
-        // Load weekly revenue from debt_records (is_paid=1) + payments for current week
-        final weeklyResponse = await _apiService.getWeeklyRevenue();
-        final weeklyData = _extractDataFromResponse(weeklyResponse);
-        revenueData['weekly_revenue'] = _toDouble(
-          weeklyData['revenue'] ?? 
-          weeklyData['weekly_revenue'] ?? 
-          weeklyData['total'] ?? 0
-        );
-      } on Exception {
-        revenueData['weekly_revenue'] = 0;
-      }
-
-      try {
-        // Load monthly revenue from debt_records (is_paid=1) + payments for current month
-        final monthlyResponse = await _apiService.getMonthlyRevenue();
-        final monthlyData = _extractDataFromResponse(monthlyResponse);
-        revenueData['monthly_revenue'] = _toDouble(
-          monthlyData['revenue'] ?? 
-          monthlyData['monthly_revenue'] ?? 
-          monthlyData['total'] ?? 0
-        );
-      } on Exception {
-        // Fallback to existing revenue report endpoint for monthly
-        try {
-          final DateTime now = DateTime.now();
-          final DateTime startOfMonth = DateTime(now.year, now.month, 1);
-          
-          final response = await _apiService.getRevenueReport(
-            startDate: startOfMonth,
-            endDate: now,
-          );
-          final data = _extractDataFromResponse(response);
-          
-          // Extract monthly revenue (fallback)
-          revenueData['monthly_revenue'] = _toDouble(
-            data['total_revenue'] ?? 
-            data['revenue'] ?? 
-            data['total_amount'] ?? 0
-          );
-          
-          // Try to extract daily/weekly if available in response (fallback)
-          if (revenueData['daily_revenue'] == 0) {
-            revenueData['daily_revenue'] = _toDouble(
-              data['daily_revenue'] ?? 
-              data['today_revenue'] ?? 0
-            );
-          }
-          
-          if (revenueData['weekly_revenue'] == 0) {
-            revenueData['weekly_revenue'] = _toDouble(
-              data['weekly_revenue'] ?? 
-              data['week_revenue'] ?? 0
-            );
-          }
-          
-        } on Exception {
-          // Keep monthly revenue as 0 if all fails
-        }
-      }
-
-      return revenueData;
-    } on Exception {
-      return {
-        'daily_revenue': 0,
-        'weekly_revenue': 0,
-        'monthly_revenue': 0,
-      };
-    }
-  }
-
   /// Load revenue chart data for visualization
-  Future<void> _loadRevenueChartData() async {
+  Future<void> _loadRevenueChartData({int? year, int? month}) async {
     try {
-      final List<dynamic> chart = await _apiService.getRevenueChart();
+      DateTime? start;
+      DateTime? end;
+      if (year != null && month != null) {
+        start = DateTime(year, month, 1);
+        end = DateTime(year, month + 1, 0);
+      }
+      final List<dynamic> chart = await _apiService.getRevenueChart(
+        startDate: start,
+        endDate: end,
+      );
       // Parse entries supporting both 'amount' and 'revenue' keys and capture dates
       final List<double> values = <double>[];
       final List<String> dates = <String>[];
@@ -621,7 +488,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           if (rawVal is num) {
             val = rawVal.toDouble();
           } else if (rawVal != null) {
-            val = double.tryParse(rawVal.toString()) ?? 0.0;
+            final String cleaned = rawVal.toString().replaceAll(RegExp(r'[^0-9\.-]'), '');
+            val = double.tryParse(cleaned) ?? 0.0;
           }
           values.add(val);
           final String? dateStr = (e['date'] ?? e['created_at'])?.toString();
@@ -631,13 +499,29 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           dates.add('');
         }
       }
+      // Ensure today's value is aligned with the Daily Revenue card when viewing the current month
+      if (year != null && month != null) {
+        final String todayLabel = _formatDateLabel(DateTime.now().toIso8601String());
+        final int idx = dates.indexOf(todayLabel);
+        final double todayCard = _toDouble(_dashboardData['daily_revenue']);
+        if (idx >= 0) {
+          if (todayCard > 0 && (idx < values.length && values[idx] <= 0)) {
+            values[idx] = todayCard;
+          }
+        } else if (month == DateTime.now().month && DateTime.now().year == (year)) {
+          dates.add(todayLabel);
+          values.add(todayCard);
+        }
+      }
       if (values.isNotEmpty) {
-        final int len = values.length;
-        final int start = len >= 7 ? len - 7 : 0;
-        _dashboardData['weekly_earnings'] = values.sublist(start);
-        _dashboardData['weekly_dates'] = dates.length == len
-            ? dates.sublist(start)
-            : List<String>.generate(len - start, (i) => '');
+        // Use the full range for the selected month; if no range specified, fallback to last 30 days
+        _dashboardData['weekly_earnings'] = values;
+        _dashboardData['weekly_dates'] = dates.length == values.length ? dates : List<String>.filled(values.length, '');
+        // Keep monthly card in sync when we loaded a specific month
+        if (year != null && month != null) {
+          final double sum = values.fold<double>(0, (a, b) => a + b);
+          _dashboardData['monthly_revenue'] = sum;
+        }
       } else {
         _dashboardData['weekly_earnings'] = <double>[];
         _dashboardData['weekly_dates'] = <String>[];
@@ -665,12 +549,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     return response;
   }
 
-  /// Update badge counts for drawer navigation
-  void _updateBadgeCounts() {
-    _driversCount = _toInt(_dashboardData["drivers_count"] ?? _dashboardData["total_drivers"] ?? 0);
-    _vehiclesCount = _toInt(_dashboardData["devices_count"] ?? _dashboardData["total_vehicles"] ?? 0);
-    _pendingPaymentsCount = _toInt(_dashboardData["unpaid_debts_count"] ?? _dashboardData["pending_payments"] ?? 0);
-  }
 
   /// Get empty dashboard data structure with defaults
   Map<String, dynamic> _getEmptyDashboardData() {
@@ -726,6 +604,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) => Scaffold(
+        key: _scaffoldKey,
         drawer: _buildDrawer(localizationService), // Add drawer with localization
         body: DecoratedBox(
           decoration: const BoxDecoration(
@@ -806,7 +685,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       children: <Widget>[
         Builder(
           builder: (BuildContext context) => IconButton(
-            onPressed: () => Scaffold.of(context).openDrawer(),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             icon: const Icon(
               Icons.menu,
               color: textPrimary,
@@ -827,22 +706,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
         Row(
           children: [
-            // Debug button
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DebugAuthTest(),
-                  ),
-                );
-              },
-              icon: const Icon(
-                Icons.bug_report,
-                color: textPrimary,
-                size: 20,
-              ),
-            ),
             CircleAvatar(
               radius: 20,
               backgroundColor: cardColor,
@@ -1047,7 +910,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   Expanded(
                     child: _buildStatCard(
                       localizationService.translate("drivers"),
-                      "${activeDrivers}",
+                      "$activeDrivers",
                       "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
                       Icons.person,
                       true,
@@ -1057,7 +920,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   Expanded(
                     child: _buildStatCard(
                       localizationService.translate("vehicles"),
-                      "${activeVehicles}",
+                      "$activeVehicles",
                       "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
                       Icons.directions_car,
                       true,
@@ -1162,16 +1025,21 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                         ),
                       );
                     }
-                    final double maxY = points.reduce(math.max) * 1.2;
+                    final double dataMax = points.reduce(math.max);
+                    final double displayMax = _niceCeilValue(((dataMax <= 0 ? 1 : dataMax) * 1.1));
+                    final double interval = math.max(1, _niceStep(displayMax / 5));
+                    final String maxLabel = _formatShort(displayMax);
+                    final double reserved = (maxLabel.length * 8 + 12).clamp(44, 72).toDouble();
                     return LineChart(
                       LineChartData(
                         minX: 0,
                         maxX: (points.length - 1).toDouble(),
                         minY: 0,
-                        maxY: maxY,
+                        maxY: displayMax,
+                        // Guard against zero intervals when all points are zero
                         gridData: FlGridData(
                           drawVerticalLine: false,
-                          horizontalInterval: maxY / 5,
+                          horizontalInterval: interval,
                           getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.white.withOpacity(0.15),
                             strokeWidth: 1,
@@ -1181,8 +1049,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                           leftTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
-                              reservedSize: 44,
-                              interval: maxY / 4,
+                              reservedSize: reserved,
+                              interval: interval,
                               getTitlesWidget: (value, meta) => Text(
                                 _formatShort(value),
                                 style: const TextStyle(color: Colors.white70, fontSize: 10),
@@ -1192,13 +1060,24 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
+                              interval: 1,
+                              reservedSize: 40,
                               getTitlesWidget: (value, meta) {
                                 final List<String> labels =
                                     (_dashboardData['weekly_dates'] as List?)?.cast<String>() ?? <String>[];
                                 final int i = value.toInt();
-                                final String text = (i >= 0 && i < labels.length) ? labels[i] : '';
+                                if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                                final String text = labels[i];
+                                // Compute an adaptive step so labels don't overlap, keep ~30° tilt
+                                final double width = MediaQuery.of(context).size.width - 40; // padding approx
+                                const double approxLabelWidth = 22; // rotated width estimate
+                                final int step = (labels.isEmpty)
+                                    ? 1
+                                    : (labels.length * approxLabelWidth / width).ceil().clamp(1, 6);
+                                if (i % step != 0) return const SizedBox.shrink();
+
                                 return Transform.rotate(
-                                  angle: -math.pi / 6, // -30 degrees for readability
+                                  angle: -math.pi / 6, // -30 degrees
                                   alignment: Alignment.topRight,
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 8),
@@ -1284,6 +1163,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 setState(() {
                   _selectedMonth = index + 1;
                 });
+                unawaited(_loadRevenueChartData(year: DateTime.now().year, month: _selectedMonth));
                 _chartAnimationController.reset();
                 _chartAnimationController.forward();
               },
@@ -1314,13 +1194,30 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   Widget _buildQuickActions(LocalizationService localizationService) => _buildGlassCard(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: NavigationBuilder.buildQuickActions(
-              localization: localizationService,
-              permissions: UserPermissions.fromRole('admin'),
-              context: context,
-            ),
+          child: Builder(
+            builder: (context) {
+              // Build the same quick actions as in the drawer, but arrange in ONE ROW
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final String role = auth.user?.role ?? 'viewer';
+              final actions = NavigationBuilder.buildQuickActions(
+                localization: localizationService,
+                permissions: UserPermissions.fromRole(role),
+                context: context,
+              );
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: actions
+                      .map((w) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: w,
+                          ))
+                      .toList(),
+                ),
+              );
+            },
           ),
         ),
       );
@@ -1338,7 +1235,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: Colors.white.withOpacity(0.2),
-          width: 1,
         ),
       ),
       elevation: 8,
@@ -1488,67 +1384,51 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     switch (action) {
       case 'view_details':
         _showCardDetails(cardTitle, value);
-        break;
         
       case 'view_revenue_drivers':
         _navigateToRevenueDrivers(cardTitle);
-        break;
         
       case 'revenue_breakdown':
         _navigateToRevenueBreakdown(cardTitle);
-        break;
         
       case 'view_all_drivers':
         _navigateToDriversList(filter: 'all');
-        break;
         
       case 'active_drivers':
         _navigateToDriversList(filter: 'active');
-        break;
         
       case 'add_driver':
         _navigateToAddDriver();
-        break;
         
       case 'view_all_vehicles':
         _navigateToVehiclesList(filter: 'all');
-        break;
         
       case 'active_vehicles':
         _navigateToVehiclesList(filter: 'active');
-        break;
         
       case 'add_vehicle':
         _navigateToAddVehicle();
-        break;
         
       case 'view_receipts':
         _navigateToReceiptsList(filter: 'generated');
-        break;
         
       case 'generate_receipt':
         _navigateToGenerateReceipt();
-        break;
         
       case 'pending_receipts':
         _navigateToReceiptsList(filter: 'pending');
-        break;
         
       case 'process_pending':
         _processPendingReceipts();
-        break;
         
       case 'unpaid_debts':
         _navigateToDebtsList(filter: 'unpaid');
-        break;
         
       case 'send_reminders':
         _sendPaymentReminders();
-        break;
         
       case 'export':
         _exportCardData(cardTitle);
-        break;
     }
   }
 
@@ -1563,7 +1443,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: Colors.white.withOpacity(0.2),
-              width: 1,
             ),
           ),
           title: Row(
@@ -1590,7 +1469,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             children: [
               Text(
                 localizationService.translate('current_value'),
-                style: TextStyle(
+                style: const TextStyle(
                   color: textSecondary,
                   fontSize: 14,
                 ),
@@ -1607,7 +1486,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               const SizedBox(height: 16),
               Text(
                 _getCardDescription(title, localizationService),
-                style: TextStyle(
+                style: const TextStyle(
                   color: textSecondary,
                   fontSize: 14,
                   height: 1.4,
@@ -1696,7 +1575,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       context,
       MaterialPageRoute(
         builder: (context) => const ReceiptsScreen(
-          initialFilter: 'all',
+          
         ),
       ),
     );
@@ -1812,7 +1691,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: Colors.white.withOpacity(0.2),
-              width: 1,
             ),
           ),
           title: Text(
@@ -1825,7 +1703,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           ),
           content: Text(
             message,
-            style: TextStyle(
+            style: const TextStyle(
               color: textSecondary,
               fontSize: 14,
               height: 1.4,
@@ -1836,7 +1714,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 localizationService.translate('cancel'),
-                style: TextStyle(
+                style: const TextStyle(
                   color: textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1994,10 +1872,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   ImageProvider? _avatarImage(UserData? user) {
     final String? url = user?.avatarUrl;
     if (url == null || url.isEmpty) return null;
-    final String fullUrl = url.startsWith('http')
-        ? url
-        : "${ApiConfig.webBaseUrl}${url.startsWith('/') ? '' : '/'}$url";
-    return NetworkImage(fullUrl);
+
+    // Always proxy storage files through API to ensure CORS headers on web
+    // Accept absolute or relative URLs; extract the path part.
+    String pathPart;
+    try {
+      final Uri u = Uri.parse(url);
+      pathPart = u.hasScheme ? (u.path.isEmpty ? '/' : u.path) : url;
+    } on Exception {
+      pathPart = url;
+    }
+
+    // Normalize to /files/public/<relative_path>
+    if (pathPart.startsWith('/storage')) {
+      pathPart = pathPart.replaceFirst('/storage', '');
+    }
+    if (!pathPart.startsWith('/')) pathPart = '/$pathPart';
+
+    final String apiBase = ApiConfig.baseUrl; // ends with /api
+    final String proxied = "$apiBase/files/public$pathPart";
+    return NetworkImage(proxied);
   }
 
 
@@ -2035,13 +1929,50 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     return datePart;
   }
 
+  // Compute a "nice" rounded-up ceiling for axis max (1, 2, or 5 times a power of 10)
+  double _niceCeilValue(double value) {
+    if (value <= 0) return 1;
+    final double exponent = (math.log(value) / math.ln10).floorToDouble();
+    final double fraction = value / math.pow(10, exponent);
+    double niceFraction;
+    if (fraction <= 1) {
+      niceFraction = 1;
+    } else if (fraction <= 2) {
+      niceFraction = 2;
+    } else if (fraction <= 5) {
+      niceFraction = 5;
+    } else {
+      niceFraction = 10;
+    }
+    return niceFraction * math.pow(10, exponent);
+  }
+
+  // Compute a nice tick step (1/2/5 * power of 10)
+  double _niceStep(double value) {
+    if (value <= 0) return 1;
+    final double exponent = (math.log(value) / math.ln10).floorToDouble();
+    final double fraction = value / math.pow(10, exponent);
+    double niceFraction;
+    if (fraction <= 1) {
+      niceFraction = 1;
+    } else if (fraction <= 2) {
+      niceFraction = 2;
+    } else if (fraction <= 5) {
+      niceFraction = 5;
+    } else {
+      niceFraction = 10;
+    }
+    return niceFraction * math.pow(10, exponent);
+  }
+
   // Helper method to safely convert dynamic values to double
   double _toDouble(value) {
     if (value == null) return 0;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
-      return double.tryParse(value) ?? 0.0;
+      final String cleaned = value.replaceAll(RegExp(r'[^0-9\.-]'), '');
+      return double.tryParse(cleaned) ?? 0.0;
     }
     return 0;
   }
@@ -2084,12 +2015,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   // Load additional counts (reminders, receipts, debts) via API calls
   Future<void> _loadAdditionalBadgeCounts() async {
+    if (!mounted) return;
     try {
-      // Ensure user is authenticated before hitting protected endpoints
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (!auth.isAuthenticated) return;
-
-      // Load reminders count for drawer badge
+      // Load reminders count for drawer badge; rely on ApiService auth guard
       try {
         final Map<String, dynamic> remindersResponse =
             await _apiService.getReminders(limit: 1);
@@ -2099,7 +2027,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       } on Exception {
         _remindersCount = 0;
       }
-
     } on Exception catch (_) {
       // If API fails, set reminder count to 0
       _remindersCount = 0;

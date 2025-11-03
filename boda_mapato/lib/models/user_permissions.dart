@@ -1,7 +1,6 @@
+// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes, avoid_dynamic_calls
 /// User permissions model for role-based access control
 class UserPermissions {
-  final List<String> _permissions;
-  final String? role;
 
   const UserPermissions({
     List<String>? permissions,
@@ -20,6 +19,8 @@ class UserPermissions {
   const UserPermissions.fromList(List<String> permissions)
     : _permissions = permissions,
       role = null;
+  final List<String> _permissions;
+  final String? role;
 
   /// Check if user has a specific permission
   bool has(String permission) {
@@ -28,12 +29,12 @@ class UserPermissions {
 
   /// Check if user has all of the given permissions
   bool hasAll(List<String> permissions) {
-    return permissions.every((permission) => _permissions.contains(permission));
+    return permissions.every(_permissions.contains);
   }
 
   /// Check if user has any of the given permissions
   bool hasAny(List<String> permissions) {
-    return permissions.any((permission) => _permissions.contains(permission));
+    return permissions.any(_permissions.contains);
   }
 
   /// Get all permissions as a list

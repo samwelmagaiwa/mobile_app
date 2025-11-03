@@ -6,6 +6,9 @@ import '../../services/auth_events.dart';
 import '../../services/auth_service.dart';
 import '../../screens/auth/login_screen.dart';
 
+import 'dart:async';
+
+// ignore_for_file: avoid_catches_without_on_clauses, unawaited_futures, unnecessary_brace_in_string_interps, control_flow_in_finally, directives_ordering
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
 
@@ -343,7 +346,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     );
   }
 
-  void _changePassword() async {
+  Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isChangingPassword = true);
@@ -387,26 +390,28 @@ class _SecurityScreenState extends State<SecurityScreen> {
         throw Exception(response['message'] ?? 'Failed to change password');
       }
     } catch (e) {
+      if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
         _localizationService.isSwahili 
-          ? 'Imeshindikana kubadilisha neno la siri: ${e.toString()}'
-          : 'Failed to change password: ${e.toString()}',
+          ? 'Imeshindikana kubadilisha neno la siri: ${e}'
+          : 'Failed to change password: ${e}',
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isChangingPassword = false);
     }
   }
 
-  void _viewLoginHistory() async {
+  Future<void> _viewLoginHistory() async {
     try {
-      final resp = await _apiService.getLoginHistory(page: 1, limit: 50);
-      final List<dynamic> items = (resp['data'] as List<dynamic>? ?? <dynamic>[]);
+      final resp = await _apiService.getLoginHistory(limit: 50);
+      final List<dynamic> items = resp['data'] as List<dynamic>? ?? <dynamic>[];
       if (!mounted) return;
       int page = 1;
       bool hasMore = false;
       bool loadingMore = false;
-      List<dynamic> all = List<dynamic>.from(items);
+      final List<dynamic> all = List<dynamic>.from(items);
       final meta = resp['pagination'] as Map<String, dynamic>?;
       hasMore = meta?['has_more_pages'] == true;
 
@@ -470,7 +475,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                       setStateDialog(() => loadingMore = true);
                                       try {
                                         final next = await _apiService.getLoginHistory(page: ++page, limit: 50);
-                                        final List<dynamic> nextItems = (next['data'] as List<dynamic>? ?? <dynamic>[]);
+                                        final List<dynamic> nextItems = next['data'] as List<dynamic>? ?? <dynamic>[];
                                         final nmeta = next['pagination'] as Map<String, dynamic>?;
                                         setStateDialog(() {
                                           all.addAll(nextItems);
@@ -480,6 +485,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                       } catch (e) {
                                         setStateDialog(() => loadingMore = false);
                                         if (mounted) {
+                                          // ignore: use_build_context_synchronously
                                           ThemeConstants.showErrorSnackBar(context, e.toString());
                                         }
                                       }
@@ -532,7 +538,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     }
   }
 
-  void _onToggleTwoFactor(bool value) async {
+  Future<void> _onToggleTwoFactor(bool value) async {
     final prev = _twoFactorEnabled;
     setState(() => _twoFactorEnabled = value);
     try {

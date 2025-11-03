@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class AuthController extends Controller
 {
@@ -403,6 +405,63 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to retrieve user data: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Upload or update user avatar/profile photo
+     */
+    public function uploadAvatar(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // Accept any of these field names from clients
+            $file = $request->file('avatar') ?? $request->file('photo') ?? $request->file('image');
+            if (!$file) {
+                return ResponseHelper::error('No image file provided', 422);
+            }
+
+            // Basic validation: ensure upload is valid and size is reasonable (~2MB)
+            if (!$file->isValid()) {
+                return ResponseHelper::error('Invalid image upload', 422);
+            }
+            if (($file->getSize() ?? 0) > 2 * 1024 * 1024) {
+                return ResponseHelper::error('Image too large (max 2MB)', 422);
+            }
+
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+            if (!in_array($ext, ['jpg','jpeg','png','webp'])) {
+                $ext = 'jpg';
+            }
+
+            // Remove previous avatar if exists
+            if (!empty($user->avatar_url)) {
+                $oldPath = str_replace('/storage/', '', $user->avatar_url);
+                if ($oldPath) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            // Store new avatar on public disk
+            $path = $file->storeAs('avatars', $user->id.'_'.time().'.'.$ext, 'public');
+            $publicUrl = '/storage/'.$path;
+
+            // Persist path on user (requires nullable column `avatar_url`)
+            if (Schema::hasColumn('users', 'avatar_url')) {
+                $user->avatar_url = $publicUrl;
+                $user->save();
+            }
+
+            $fresh = $this->getUserDataWithRelations($user->fresh());
+            // Ensure avatar_url is present in response even if column is missing
+            $fresh->setAttribute('avatar_url', $publicUrl);
+
+            return ResponseHelper::success([
+                'user' => $fresh,
+            ], 'Avatar updated successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to upload avatar: '.$e->getMessage(), 500);
         }
     }
 
