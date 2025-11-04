@@ -268,7 +268,12 @@ class AppLocalizations {
  'days': 'Days',
  'no_debt': 'No debt',
  'has_debt': 'You still have debt',
- 'total_debt_label': 'Total debt',
+'total_debt_label': 'Total debt',
+ // Reminders/Debts (driver)
+ 'outstanding_debts': 'Outstanding Debts',
+ 'total_outstanding': 'Total Outstanding',
+ 'due_date': 'Due Date',
+ 'days_overdue': 'Days Overdue',
  
       // Drivers Management Screen
       'drivers_management': 'Drivers Management',
@@ -685,7 +690,12 @@ class AppLocalizations {
  'days': 'Siku',
  'no_debt': 'Hakuna deni',
  'has_debt': 'Bado una deni',
- 'total_debt_label': 'Jumla ya deni',
+'total_debt_label': 'Jumla ya deni',
+ // Reminders/Debts (driver)
+ 'outstanding_debts': 'Madeni Yaliyosalia',
+ 'total_outstanding': 'Jumla ya Deni',
+ 'due_date': 'Tarehe ya Kulipa',
+ 'days_overdue': 'Siku za Kudaiwa',
  
       // Drivers Management Screen
       'drivers_management': 'Usimamizi wa Madereva',

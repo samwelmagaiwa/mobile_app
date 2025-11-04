@@ -71,7 +71,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       _driverTotalDebt = 0;
       _driverUnpaidDays = 0;
       _driverLastPaymentAt = null;
-      _driverAgreement = null;
+      _driverAgreement = data['agreement'] as Map<String, dynamic>?;
 
       // Prefer backend aggregation via driver controller (includes debt clearances + new payments)
       try {
@@ -534,8 +534,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       if (perWeek > 0) return 'TSh ${perWeek.toStringAsFixed(0)} / Wiki';
       return 'TSh ${perDay.toStringAsFixed(0)} / Siku';
     }
-    final double total = _toDouble(_driverAgreement?['kiasi_cha_makubaliano'] ?? _driverAgreement?['total_amount']);
-    return 'TSh ${total.toStringAsFixed(0)}';
+    final double remaining = _toDouble(_driverAgreement?['remaining_total'] ?? _driverAgreement?['total_expected']);
+    return 'TSh ${remaining.toStringAsFixed(0)}';
   }
 
   String _agreementSubtitle() {

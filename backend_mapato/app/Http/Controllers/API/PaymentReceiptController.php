@@ -231,12 +231,15 @@ class PaymentReceiptController extends Controller
             $humanMessage = $request->get('message');
             if (!$humanMessage || trim($humanMessage) === '') {
                 $humanMessage = sprintf(
-                    "Receipt %s\nAmount: %s\nPeriod: %s\nDays: %s\nTrips: %d%s",
+                    "Receipt %s\nAmount: %s\nPeriod: %s\nDays: %s\nTrips: %d\nOutstanding: %s%s",
                     $data['receipt_number'] ?? '',
                     number_format((float) ($receipt->amount ?? 0), 0),
                     $receipt->formatted_period,
                     implode(', ', $receipt->covered_days ?? []),
                     $tripsTotal,
+                    number_format((float) (DebtRecord::unpaid()->where('driver_id', $receipt->driver_id)
+                        ->selectRaw('COALESCE(SUM(COALESCE(expected_amount,0) - COALESCE(paid_amount,0)),0) as total')
+                        ->value('total')), 0),
                     $remarks ? ("\nRemarks: " . $remarks) : ''
                 );
             }
@@ -357,6 +360,12 @@ class PaymentReceiptController extends Controller
             'remarks' => $payment->remarks ?? '',
             'recorded_by' => $payment->recordedBy->name ?? '',
             'trips_total' => (int) PaymentReceipt::where('driver_id', $driver->id)->count() + 1,
+            // Outstanding debt snapshot
+            'outstanding_debt_total' => (float) DebtRecord::unpaid()
+                ->where('driver_id', $driver->id)
+                ->selectRaw('COALESCE(SUM(COALESCE(expected_amount,0) - COALESCE(paid_amount,0)),0) as total')
+                ->value('total'),
+            'outstanding_unpaid_days' => (int) DebtRecord::unpaid()->where('driver_id', $driver->id)->count(),
         ];
     }
 

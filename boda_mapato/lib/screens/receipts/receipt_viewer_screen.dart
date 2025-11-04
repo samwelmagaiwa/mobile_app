@@ -195,9 +195,11 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
           const SizedBox(height: 16),
           _buildReceiptDetails(),
           const SizedBox(height: 16),
-            _buildPaymentInfo(),
-            const SizedBox(height: 16),
-            _buildTripsInfo(),
+          _buildPaymentInfo(),
+          const SizedBox(height: 16),
+          _buildTripsInfo(),
+          const SizedBox(height: 16),
+          _buildOutstandingInfo(),
           const SizedBox(height: 16),
           if (widget.receipt.status.toLowerCase() == 'sent') ...[
             _buildSentInfo(),
@@ -391,6 +393,28 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
     // Use amount of paidDates length as weak fallback when not provided
     final List<String> days = widget.receipt.paidDates;
     return days.isNotEmpty ? days.length : 0;
+  }
+
+  Widget _buildOutstandingInfo() {
+    // This screen doesn't hold full preview payload; show placeholder that backend included when sending
+    // Admin page primarily; outstanding is informative before/after sending
+    return ThemeConstants.buildGlassCardStatic(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Outstanding debt details will be included in the sent receipt message.',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSentInfo() {

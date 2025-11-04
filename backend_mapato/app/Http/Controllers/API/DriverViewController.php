@@ -33,6 +33,30 @@ class DriverViewController extends Controller
                                         ->take(10)
                                         ->get();
 
+            // Agreement summary (remaining to complete contract)
+            $agreement = \App\Models\DriverAgreement::where('driver_id', $driver->id)
+                ->where('status', 'active')
+                ->first();
+
+            $agreementSummary = null;
+            if ($agreement) {
+                // Total amount expected for completion (for kwa_mkataba use faida_jumla; for dei_waka show daily salary)
+                $totalExpected = $agreement->agreement_type === 'kwa_mkataba'
+                    ? (float) ($agreement->faida_jumla ?? 0)
+                    : (float) ($agreement->salary_amount ?? $agreement->kiasi_cha_makubaliano ?? 0);
+                // Sum of completed payments so far
+                $totalPaid = (float) \App\Models\Payment::byDriver($driver->id)->completed()->sum('amount');
+                $remaining = max(0.0, $totalExpected - $totalPaid);
+                $agreementSummary = [
+                    'agreement_type' => $agreement->agreement_type,
+                    'total_expected' => $totalExpected,
+                    'total_paid' => $totalPaid,
+                    'remaining_total' => $remaining,
+                    'amount_per_day' => (float) ($agreement->salary_amount ?? $agreement->kiasi_cha_makubaliano ?? 0),
+                    'amount_per_week' => 0,
+                ];
+            }
+
             // Calculate statistics
             $totalPaymentsToday = Transaction::where('driver_id', $driver->id)
                                             ->where('type', 'income')
@@ -61,6 +85,7 @@ class DriverViewController extends Controller
                 'total_trips' => $driver->total_trips,
                 'total_earnings' => $driver->total_earnings,
                 'rating' => $driver->rating,
+                'agreement' => $agreementSummary,
             ];
 
             return ResponseHelper::success($stats, 'Driver dashboard data retrieved successfully');
@@ -279,6 +304,11 @@ class DriverViewController extends Controller
                     'status' => $r->status ?? 'generated',
                     'remarks' => optional($r->payment)->remarks,
                     'trips_total' => (int) \App\Models\PaymentReceipt::where('driver_id', $r->driver_id)->count(),
+                    'outstanding_debt_total' => (float) \App\Models\DebtRecord::unpaid()
+                        ->where('driver_id', $r->driver_id)
+                        ->selectRaw('COALESCE(SUM(COALESCE(expected_amount,0) - COALESCE(paid_amount,0)),0) as total')
+                        ->value('total'),
+                    'outstanding_unpaid_days' => (int) \App\Models\DebtRecord::unpaid()->where('driver_id', $r->driver_id)->count(),
                   ];
             })->values();
 

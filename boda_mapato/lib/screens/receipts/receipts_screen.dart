@@ -283,6 +283,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
             controller: _searchController,
             onChanged: _onSearchChanged,
             onSubmitted: (_) => _loadReceipts(),
+            textInputAction: TextInputAction.search,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Tafuta kwa jina la dereva, namba ya risiti...',
@@ -444,9 +445,10 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       );
     }
 
-    return RefreshIndicator(
+      return RefreshIndicator(
       onRefresh: _refreshReceipts,
       child: ListView.builder(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _selectedFilter == 'pending' ? _pendingReceipts.length : _receipts.length,
         itemBuilder: (context, index) {
