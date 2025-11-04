@@ -34,19 +34,24 @@ class CustomCard extends StatelessWidget {
     final double responsiveElevation =
         elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
 
+    final bool noShadow = (elevation != null && elevation == 0) ||
+        responsiveElevation <= 0.001;
+
     final Container card = Container(
       margin: margin ?? ResponsiveUtils.getResponsiveMargin(context),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.cardBackground,
         borderRadius: responsiveBorderRadius,
         border: border,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: responsiveElevation,
-            offset: Offset(0, 2.h),
-          ),
-        ],
+        boxShadow: noShadow
+            ? <BoxShadow>[]
+            : <BoxShadow>[
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: responsiveElevation,
+                  offset: Offset(0, 2.h),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: responsiveBorderRadius,
@@ -209,6 +214,10 @@ class CustomStatCard extends StatelessWidget {
     super.key,
     this.subtitle,
     this.onTap,
+    this.backgroundColor,
+    this.titleColor,
+    this.valueColor,
+    this.elevation,
   });
   final String title;
   final String value;
@@ -216,14 +225,23 @@ class CustomStatCard extends StatelessWidget {
   final Color color;
   final String? subtitle;
   final VoidCallback? onTap;
+  final Color? backgroundColor;
+  final Color? titleColor;
+  final Color? valueColor;
+  final double? elevation;
 
   @override
   Widget build(final BuildContext context) {
     final double responsiveIconSize =
         ResponsiveUtils.getResponsiveIconSize(context, 20);
 
+    final Color resolvedTitleColor = titleColor ?? AppColors.textSecondary;
+    final Color resolvedValueColor = valueColor ?? color;
+
     return CustomCard(
       onTap: onTap,
+      backgroundColor: backgroundColor,
+      elevation: elevation,
       child: Padding(
         padding:
             EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
@@ -235,7 +253,7 @@ class CustomStatCard extends StatelessWidget {
               children: <Widget>[
                 Icon(
                   icon,
-                  color: color,
+                  color: resolvedValueColor,
                   size: responsiveIconSize,
                 ),
                 SizedBox(
@@ -245,7 +263,7 @@ class CustomStatCard extends StatelessWidget {
                   child: Text(
                     title,
                     style: AppStyles.bodySmallResponsive(context).copyWith(
-                      color: AppColors.textSecondary,
+                      color: resolvedTitleColor,
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 2,
@@ -261,7 +279,7 @@ class CustomStatCard extends StatelessWidget {
               child: Text(
                 value,
                 style: AppStyles.heading2Responsive(context).copyWith(
-                  color: color,
+                  color: resolvedValueColor,
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
@@ -274,7 +292,7 @@ class CustomStatCard extends StatelessWidget {
               Text(
                 subtitle!,
                 style: AppStyles.bodySmallResponsive(context).copyWith(
-                  color: AppColors.textSecondary,
+                  color: resolvedTitleColor,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

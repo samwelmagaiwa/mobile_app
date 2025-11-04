@@ -479,26 +479,97 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         endDate: end,
       );
       // Parse entries supporting both 'amount' and 'revenue' keys and capture dates
-      final List<double> values = <double>[];
-      final List<String> dates = <String>[];
+      List<double> values = <double>[];
+      List<String> dates = <String>[];
       for (final e in chart) {
         if (e is Map) {
-          final dynamic rawVal = e['amount'] ?? e['revenue'] ?? e['value'];
+          final dynamic rawVal = e['amount'] ?? e['total'] ?? e['total_amount'] ?? e['revenue'] ?? e['paid'] ?? e['paid_amount'] ?? e['value'];
           double val = 0;
           if (rawVal is num) {
             val = rawVal.toDouble();
           } else if (rawVal != null) {
-            final String cleaned = rawVal.toString().replaceAll(RegExp(r'[^0-9\.-]'), '');
+            final String cleaned = rawVal.toString().replaceAll(RegExp(r'[^0-9\\.-]'), '');
             val = double.tryParse(cleaned) ?? 0.0;
           }
           values.add(val);
-          final String? dateStr = (e['date'] ?? e['created_at'])?.toString();
+          final String? dateStr = (e['date'] ?? e['day'] ?? e['label'] ?? e['created_at'])?.toString();
           dates.add(_formatDateLabel(dateStr));
         } else if (e is num) {
           values.add(e.toDouble());
           dates.add('');
         }
       }
+
+      // If the API returned zeros across the board, rebuild series from payment history
+      final bool allZero = values.isEmpty || values.every((v) => v == 0);
+      if (allZero) {
+        try {
+          // Build per-day map for the selected range
+          final DateTime rangeStart = start ?? DateTime(end!.year, end.month, 1);
+          final DateTime rangeEnd = end ?? DateTime.now();
+          final Map<String, double> perDay = <String, double>{};
+
+          final Map<String, dynamic> payments = await _apiService.getPaymentHistory(
+            startDate: rangeStart,
+            endDate: rangeEnd,
+            limit: 2000,
+          );
+          final dynamic root = payments['data'] ?? payments;
+          List<dynamic> list = const <dynamic>[];
+          if (root is Map && root['data'] is List) {
+            list = (root['data'] as List).cast<dynamic>();
+          } else if (root is Map && root['payments'] is List) {
+            list = (root['payments'] as List).cast<dynamic>();
+          } else if (root is List) {
+            list = root.cast<dynamic>();
+          }
+
+          double readAmount(Map<String, dynamic> m) {
+            final dynamic raw = m['amount'] ?? m['paid_amount'] ?? m['amount_received'] ?? m['total'] ?? m['total_amount'] ?? m['revenue'] ?? m['value'];
+            if (raw is num) return raw.toDouble();
+            if (raw is String) {
+              final String cleaned = raw.replaceAll(RegExp(r'[^0-9\\.-]'), '');
+              return double.tryParse(cleaned) ?? 0.0;
+            }
+            return 0.0;
+          }
+
+          String? readDate(Map<String, dynamic> m) {
+            final String? s = (m['paid_at'] ?? m['date'] ?? m['created_at'] ?? m['updated_at'])?.toString();
+            return s;
+          }
+
+          for (final dynamic it in list) {
+            if (it is Map) {
+              final Map<String, dynamic> m = it.cast<String, dynamic>();
+              final String? ds = readDate(m);
+              if (ds == null) continue;
+              final DateTime? dt = DateTime.tryParse(ds);
+              if (dt == null) continue;
+              if (dt.isBefore(DateTime(rangeStart.year, rangeStart.month, rangeStart.day)) || dt.isAfter(DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) continue;
+              final String key = _formatDateLabel(dt.toIso8601String());
+              perDay[key] = (perDay[key] ?? 0) + readAmount(m);
+            }
+          }
+
+          // Rebuild ordered series for the entire month range
+          final List<String> rebuiltDates = <String>[];
+          final List<double> rebuiltValues = <double>[];
+          DateTime cursor = DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
+          while (!cursor.isAfter(DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) {
+            final String key = _formatDateLabel(cursor.toIso8601String());
+            rebuiltDates.add(key);
+            rebuiltValues.add(perDay[key] ?? 0.0);
+            cursor = cursor.add(const Duration(days: 1));
+          }
+
+          dates = rebuiltDates;
+          values = rebuiltValues;
+        } catch (_) {
+          // keep original zeros
+        }
+      }
+
       // Ensure today's value is aligned with the Daily Revenue card when viewing the current month
       if (year != null && month != null) {
         final String todayLabel = _formatDateLabel(DateTime.now().toIso8601String());
@@ -665,9 +736,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       _buildStatsCards(),
                       ResponsiveHelper.verticalSpace(2),
                       _buildChartSection(),
-                      ResponsiveHelper.verticalSpace(2),
+                      ResponsiveHelper.verticalSpace(1),
                       _buildQuickActions(localizationService),
-                      ResponsiveHelper.verticalSpace(2),
                     ],
                   ),
                 ),
@@ -1006,7 +1076,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               _buildMonthSelector(),
               const SizedBox(height: 24),
               SizedBox(
-                height: MediaQuery.of(context).size.height < 700 ? 140 : 170,
+                height: MediaQuery.of(context).size.height < 700 ? 200 : 240,
                 child: AnimatedBuilder(
                   animation: _chartAnimation,
                   builder: (BuildContext context, Widget? child) {
@@ -1191,35 +1261,24 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildQuickActions(LocalizationService localizationService) => _buildGlassCard(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Builder(
-            builder: (context) {
-              // Build the same quick actions as in the drawer, but arrange in ONE ROW
-              final auth = Provider.of<AuthProvider>(context, listen: false);
-              final String role = auth.user?.role ?? 'viewer';
-              final actions = NavigationBuilder.buildQuickActions(
-                localization: localizationService,
-                permissions: UserPermissions.fromRole(role),
-                context: context,
-              );
-
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: actions
-                      .map((w) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: w,
-                          ))
-                      .toList(),
-                ),
-              );
-            },
-          ),
-        ),
+  Widget _buildQuickActions(LocalizationService localizationService) => Builder(
+        builder: (context) {
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          final String role = auth.user?.role ?? 'viewer';
+          final actions = NavigationBuilder.buildQuickActions(
+            localization: localizationService,
+            permissions: UserPermissions.fromRole(role),
+            context: context,
+          );
+          if (actions.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: actions.first,
+            ),
+          );
+        },
       );
 
   /// Build dropdown menu for each dashboard card

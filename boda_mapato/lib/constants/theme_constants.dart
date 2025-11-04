@@ -21,13 +21,7 @@ class ThemeConstants {
     color: cardColor,
     borderRadius: BorderRadius.circular(20),
     border: Border.all(color: Colors.white.withOpacity(0.2)),
-    boxShadow: <BoxShadow>[
-      BoxShadow(
-        color: Colors.black.withOpacity(0.1),
-        blurRadius: 20,
-        offset: const Offset(0, 10),
-      ),
-    ],
+    boxShadow: <BoxShadow>[],
   );
 
   // Standard app bar theme

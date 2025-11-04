@@ -9,6 +9,9 @@ mixin ApiConfig {
   // Default to local for Flutter web/desktop running on the same machine as Laravel
   static const String _environment = Environment.local;
 
+  // Toggle verbose HTTP logging in debug builds only
+  static const bool enableHttpLogs = false;
+
   // Get base URL based on environment
   static String get baseUrl {
     switch (_environment) {

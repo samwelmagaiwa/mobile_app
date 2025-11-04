@@ -111,8 +111,8 @@ class ApiService {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
-        if (kDebugMode) {
-          debugPrint('DEBUG _postFirst: Trying endpoint: $e');
+        if (kDebugMode && ApiConfig.enableHttpLogs) {
+          debugPrint('HTTP POST try -> $e');
         }
         return await _post(e, data, requireAuth: requireAuth);
       } on ApiException catch (err) {
@@ -249,8 +249,8 @@ class ApiService {
       }
 
       final String fullUrl = "$baseUrl$endpoint";
-      if (kDebugMode) {
-        debugPrint('DEBUG _post: Making POST request to: $fullUrl');
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP POST -> $fullUrl');
       }
       final http.Response response = await http
           .post(
@@ -398,26 +398,34 @@ class ApiService {
     final String? phoneNumber,
   }) async {
     final Map<String, dynamic> requestData = <String, dynamic>{
-      "email": email,
+      if (email.isNotEmpty) "email": email,
       "password": password,
     };
 
-    // Only add phone_number if provided
+    // Add phone_number if provided (drivers often login via phone)
     if (phoneNumber != null && phoneNumber.isNotEmpty) {
       requestData["phone_number"] = phoneNumber;
     }
 
-    final Map<String, dynamic> response =
-        await _post("/auth/login", requestData, requireAuth: false);
+    // Try multiple possible auth endpoints (admin and driver guards)
+    final List<String> endpoints = <String>[
+      "/auth/login",                  // default (admin/user)
+      "/driver/login",               // driver guard variant A
+      "/driver/auth/login",          // driver guard variant B
+      "/auth/driver/login",          // driver under auth namespace
+    ];
 
-    // Handle nested response structure: response.data.token
+    final Map<String, dynamic> response =
+        await _postFirst(endpoints, requestData, requireAuth: false);
+
+    // Handle nested response structure: response.data.token or response.token
     String? token;
     if (response["data"] is Map && response["data"]["token"] != null) {
       token = response["data"]["token"];
     } else if (response["token"] != null) {
       token = response["token"];
     }
-    
+
     if (token != null) {
       await setAuthToken(token);
     }
@@ -477,6 +485,52 @@ class ApiService {
   // Detailed dashboard data (DashboardController::index)
   Future<Map<String, dynamic>> getDashboardDataDetailed() async =>
       _get("/admin/dashboard-data");
+  
+  // Driver dashboard (read-only for driver role)
+  Future<Map<String, dynamic>> getDriverDashboard() async =>
+      _get("/driver/dashboard");
+  
+  // Driver self resources
+  Future<Map<String, dynamic>> getDriverReceipts({int page = 1, int limit = 20}) async =>
+      _get("/driver/receipts?per_page=$limit&page=$page");
+  
+  Future<Map<String, dynamic>> getDriverPayments({int page = 1, int limit = 50, DateTime? startDate, DateTime? endDate}) async {
+    final List<String> params = <String>["per_page=$limit", "page=$page"];
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    final String qs = params.join("&");
+    return _get("/driver/payments?$qs");
+  }
+
+  Future<Map<String, dynamic>> getDriverDebtRecordsSelf({int page = 1, int limit = 50, bool onlyPaid = false, bool onlyUnpaid = false, DateTime? startDate, DateTime? endDate}) async {
+    final List<String> params = <String>["per_page=$limit", "page=$page"];
+    if (onlyPaid) params.add("only_paid=true");
+    if (onlyUnpaid) params.add("only_unpaid=true");
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    final String qs = params.join("&");
+    return _get("/driver/debts/records?$qs");
+  }
+  
+  Future<Map<String, dynamic>> getDriverPaymentHistory({int page = 1, int limit = 200, DateTime? startDate, DateTime? endDate}) async {
+    final List<String> params = <String>["per_page=$limit", "page=$page"];
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
+    final String qs = params.join("&");
+    return _get("/driver/payment-history?$qs");
+  }
+
+  Future<Map<String, dynamic>> getDriverPaymentsSummary({DateTime? startDate, DateTime? endDate}) async {
+    final List<String> params = <String>[];
+    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    final String qs = params.isEmpty ? '' : '?${params.join('&')}';
+    return _get("/driver/payments/summary$qs");
+  }
   // Aggregated stats (DashboardController::getStats)
   Future<Map<String, dynamic>> getDashboardStats() async =>
       _get("/admin/dashboard-stats");
@@ -530,27 +584,27 @@ class ApiService {
       _get("/admin/dashboard/comprehensive");
 
   Future<List<dynamic>> getRevenueChart({final int days = 30, DateTime? startDate, DateTime? endDate}) async {
-    // Backend provides revenue daily breakdown via /admin/reports/revenue
-    // Build a date window that includes today and the previous (days-1) days unless explicit range provided
+    // Build date window (defaults to last N days)
     final DateTime end = endDate ?? DateTime.now();
     final DateTime start = startDate ?? end.subtract(Duration(days: days - 1));
     final String startStr = start.toIso8601String().split('T')[0];
     final String endStr = end.toIso8601String().split('T')[0];
 
-    final String endpoint =
-        "/admin/reports/revenue?start_date=$startStr&end_date=$endStr";
+    // Try multiple parameter conventions
+    final List<String> endpoints = <String>[
+      "/admin/reports/revenue?start_date=$startStr&end_date=$endStr",
+      "/admin/reports/revenue?date_from=$startStr&date_to=$endStr",
+    ];
 
-    final Map<String, dynamic> response = await _get(endpoint);
+    final Map<String, dynamic> response = await _getFirst(endpoints);
 
-    // Expected shape (HTTP 200):
-    // { status: "success", data: { daily_data: [ {date, amount}, ... ] } }
+    // Expected shape: { data: { daily_data: [ {date, amount|total|total_amount|paid}, ... ] } }
     final dynamic data = response["data"];
     if (data is Map<String, dynamic>) {
-      final dynamic daily = data["daily_data"];
-      if (daily is List) return daily;
+      final dynamic daily = data["daily_data"] ?? data["daily"] ?? data["series"];
+      if (daily is List) return daily.cast<dynamic>();
     }
 
-    // If the shape differs, try common alternatives and return an empty list if none match
     if (response["daily_data"] is List) {
       return (response["daily_data"] as List).cast<dynamic>();
     }
@@ -1004,6 +1058,10 @@ class ApiService {
     final int limit = 20,
   }) async =>
       _get("/admin/reminders?page=$page&limit=$limit");
+
+  // Driver reminders (read-only)
+  Future<Map<String, dynamic>> getDriverReminders({int page = 1, int limit = 50}) async =>
+      _get("/driver/reminders?page=$page&limit=$limit");
 
   Future<Map<String, dynamic>> updateReminder(
     final String reminderId,

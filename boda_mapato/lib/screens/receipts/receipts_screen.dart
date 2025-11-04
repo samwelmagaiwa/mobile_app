@@ -34,6 +34,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
   
   // Event subscription for automatic refresh
   late StreamSubscription<AppEvent> _eventSubscription;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     _eventSubscription.cancel();
     super.dispose();
@@ -77,10 +79,12 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       Map<String, dynamic> response;
       
       // Load receipts based on selected filter
+      final String q = _searchController.text.trim();
       if (_selectedFilter == 'pending') {
         response = await _apiService.getPendingReceipts();
       } else {
-        response = await _apiService.getReceipts();
+        // Use backend search by query when available
+        response = await _apiService.getReceipts(query: q.isNotEmpty ? q : null);
       }
 
       if (response['success'] == true) {
@@ -90,28 +94,39 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           // For pending receipts, parse as PendingReceiptItem objects
           final pendingReceiptsData = data['pending_receipts'] as List<dynamic>? ?? 
                                      data['data'] as List<dynamic>? ?? <dynamic>[];
+          // Apply client-side filtering for pending list (by driver name/phone/reference)
+          final String q = _searchController.text.trim().toLowerCase();
+          final List<PendingReceiptItem> items = pendingReceiptsData
+              .map((item) => PendingReceiptItem.fromJson(item as Map<String, dynamic>))
+              .toList();
+          final List<PendingReceiptItem> filtered = q.isEmpty
+              ? items
+              : items.where((e) {
+                  final s = '${e.driver.name} ${e.driver.phone} ${e.referenceNumber} ${e.paymentId}'.toLowerCase();
+                  return s.contains(q);
+                }).toList();
           setState(() {
-            _pendingReceipts = pendingReceiptsData
-                .map((item) => PendingReceiptItem.fromJson(item as Map<String, dynamic>))
-                .toList();
+            _pendingReceipts = filtered;
             _receipts = <Receipt>[]; // Clear regular receipts when showing pending
-            _totalReceipts = data['total'] as int? ?? 
-                           data['count'] as int? ?? 
-                           _pendingReceipts.length;
+            _totalReceipts = data['total'] as int? ?? data['count'] as int? ?? filtered.length;
             _isLoading = false;
           });
         } else {
           // For all receipts, parse as Receipt objects
-          final receiptsData = data['receipts'] as List<dynamic>? ?? 
-                              data['data'] as List<dynamic>? ?? <dynamic>[];
+          final receiptsData = data['receipts'] as List<dynamic>? ?? data['data'] as List<dynamic>? ?? <dynamic>[];
+          // As a safety, client-side filter if backend search isn't available
+          final String q = _searchController.text.trim().toLowerCase();
+          final List<Receipt> items = receiptsData.map((item) => Receipt.fromJson(item as Map<String, dynamic>)).toList();
+          final List<Receipt> filtered = q.isEmpty
+              ? items
+              : items.where((r) {
+                  final s = '${r.driverName} ${r.receiptNumber} ${r.paymentId}'.toLowerCase();
+                  return s.contains(q);
+                }).toList();
           setState(() {
-            _receipts = receiptsData
-                .map((item) => Receipt.fromJson(item as Map<String, dynamic>))
-                .toList();
+            _receipts = filtered;
             _pendingReceipts = <PendingReceiptItem>[]; // Clear pending receipts when showing all
-            _totalReceipts = data['total'] as int? ?? 
-                           data['count'] as int? ?? 
-                           _receipts.length;
+            _totalReceipts = data['total'] as int? ?? data['count'] as int? ?? filtered.length;
             _isLoading = false;
           });
         }
@@ -134,6 +149,19 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     setState(() {
       _selectedFilter = filter;
     });
+    _loadReceipts();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      _loadReceipts();
+    });
+  }
+
+  void _clearSearch() {
+    if (_searchController.text.isEmpty) return;
+    _searchController.clear();
     _loadReceipts();
   }
 
@@ -253,9 +281,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           // Search input field
           TextField(
             controller: _searchController,
+            onChanged: _onSearchChanged,
+            onSubmitted: (_) => _loadReceipts(),
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Zinazosubiri',
+              hintText: 'Tafuta kwa jina la dereva, namba ya risiti...',
               hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
               filled: true,
               fillColor: Colors.white.withOpacity(0.1),
@@ -267,6 +297,12 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 Icons.search,
                 color: Colors.white.withOpacity(0.7),
               ),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: _clearSearch,
+                    ),
             ),
           ),
           const SizedBox(height: 12),

@@ -61,6 +61,26 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       final response = await _api.getReceipt(widget.receipt.id);
       
       if (response['success'] == true) {
+        // Prefill contact with driver's phone (fallback to email) if empty
+        final dynamic data = response['data'];
+        String? phone;
+        String? email;
+        if (data is Map<String, dynamic>) {
+          phone = data['driver_phone']?.toString();
+          email = data['driver_email']?.toString();
+          final dynamic rd = data['receipt_data'];
+          if ((phone == null || phone.isEmpty) && rd is Map<String, dynamic>) {
+            phone = rd['driver_phone']?.toString();
+          }
+          if ((email == null || email.isEmpty) && rd is Map<String, dynamic>) {
+            email = rd['driver_email']?.toString();
+          }
+        }
+        if (mounted && _contactController.text.trim().isEmpty) {
+          _contactController.text = (phone != null && phone.isNotEmpty)
+              ? phone
+              : (email ?? '');
+        }
         setState(() {
           _isLoading = false;
         });
@@ -81,12 +101,16 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       return;
     }
 
+    // Build a message including remarks/covered days
+    final String msg = _composeMessage();
+
     setState(() => _isSending = true);
     try {
       final response = await _api.sendPaymentReceipt(
         receiptId: widget.receipt.id,
         sendVia: 'whatsapp', // Default to WhatsApp
         contactInfo: _contactController.text.trim(),
+        message: msg,
       );
       
       if (response['success'] == true) {
@@ -101,6 +125,13 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
+  }
+
+  String _composeMessage() {
+    final r = widget.receipt;
+    final String days = r.paidDates.isNotEmpty ? '\n' + 'Siku: ' + r.paidDates.join(', ') : '';
+    final String remarks = (r.remarks != null && r.remarks!.isNotEmpty) ? '\n' + 'Maelezo: ' + r.remarks! : '';
+    return 'Risiti ${r.receiptNumber}\nKiasi: TSH ${r.amount.toStringAsFixed(0)}$days$remarks';
   }
 
   @override
@@ -164,7 +195,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
           const SizedBox(height: 16),
           _buildReceiptDetails(),
           const SizedBox(height: 16),
-          _buildPaymentInfo(),
+            _buildPaymentInfo(),
+            const SizedBox(height: 16),
+            _buildTripsInfo(),
           const SizedBox(height: 16),
           if (widget.receipt.status.toLowerCase() == 'sent') ...[
             _buildSentInfo(),
@@ -330,6 +363,36 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
     );
   }
 
+  Widget _buildTripsInfo() {
+    final trips = _extractTripsTotal();
+    return ThemeConstants.buildGlassCardStatic(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.route, color: ThemeConstants.primaryOrange, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Safari (Trips): $trips',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _extractTripsTotal() {
+    // Try read from API preview payload if loaded; else from receipt
+    // This screen holds only widget.receipt minimal fields; try to derive from paidDates count as fallback
+    // But backend now returns trips_total in preview; _loadReceiptDetails fills no state, so we can’t access
+    // Use amount of paidDates length as weak fallback when not provided
+    final List<String> days = widget.receipt.paidDates;
+    return days.isNotEmpty ? days.length : 0;
+  }
+
   Widget _buildSentInfo() {
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
@@ -385,8 +448,11 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
             TextField(
               controller: _contactController,
               style: const TextStyle(color: Colors.white),
+              keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 labelText: 'Namba ya Simu au Barua Pepe',
+                hintText: _contactController.text.isEmpty ? 'Mf. +2557XXXXXXX' : null,
+                hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
                 labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.06),

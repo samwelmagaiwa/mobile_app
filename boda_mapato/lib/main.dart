@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'constants/colors.dart';
 import 'constants/styles.dart';
@@ -23,8 +24,12 @@ import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
 import 'screens/demo_language_screen.dart';
 import 'screens/driver/driver_dashboard_screen.dart';
-import 'screens/payments/payments_screen.dart';
+// import 'screens/payments/payments_screen.dart';
+import 'screens/driver/driver_payment_history_screen.dart';
+import 'screens/receipts/receipts_screen.dart';
+import 'screens/driver/driver_receipts_screen.dart';
 import 'screens/reminders/reminders_screen.dart';
+import 'screens/driver/driver_reminders_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'services/app_messenger.dart';
@@ -105,6 +110,12 @@ class BodaMapatoApp extends StatelessWidget {
               home: const AuthWrapper(),
               debugShowCheckedModeBanner: false,
             routes: <String, WidgetBuilder>{
+              "/receipts": (final BuildContext context) =>
+                  const ReceiptsScreen(),
+              "/driver/receipts": (final BuildContext context) =>
+                  const DriverReceiptsScreen(),
+              "/driver/payment-history": (final BuildContext context) =>
+                  const DriverPaymentHistoryScreen(),
               "/admin/dashboard": (final BuildContext context) =>
                   const AdminDashboardScreen(),
               "/modern-dashboard": (final BuildContext context) =>
@@ -113,14 +124,15 @@ class BodaMapatoApp extends StatelessWidget {
                   const DriversManagementScreen(),
               "/admin/vehicles": (final BuildContext context) =>
                   const VehiclesManagementScreen(),
-"/payments": (final BuildContext context) =>
-                  const PaymentsScreen(),
+// "/payments": (final BuildContext context) => const PaymentsScreen(),
               "/admin/analytics": (final BuildContext context) =>
                   const AnalyticsScreen(),
               "/admin/reports": (final BuildContext context) =>
                   const ReportScreen(),
               "/admin/reminders": (final BuildContext context) =>
                   const RemindersScreen(),
+              "/driver/reminders": (final BuildContext context) =>
+                  const DriverRemindersScreen(),
               "/admin/debts": (final BuildContext context) =>
                   const DebtsManagementScreen(),
               "/admin/communications": (final BuildContext context) =>
@@ -190,7 +202,79 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
+class _LanguageGateLoading extends StatelessWidget {
+  const _LanguageGateLoading();
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+        backgroundColor: ThemeConstants.primaryBlue,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+}
+
+class _LanguageSelectionPage extends StatelessWidget {
+  const _LanguageSelectionPage({required this.onSelected});
+  final Future<void> Function(String code) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
+    return Scaffold(
+      backgroundColor: ThemeConstants.primaryBlue,
+      body: Center(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ThemeConstants.primaryBlue,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white24),
+          ),
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.translate('select_language'),
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => onSelected('sw'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(loc.translate('swahili')),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => onSelected('en'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade700,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(loc.translate('english')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _languageChosenThisSession = false;
+
   @override
   void initState() {
     super.initState();
@@ -198,6 +282,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
     WidgetsBinding.instance.addPostFrameCallback((final Duration _) async {
       await Provider.of<AuthProvider>(context, listen: false).initialize();
     });
+  }
+
+  Future<void> _onLanguageChosen(String code) async {
+    final loc = LocalizationService.instance;
+    await loc.changeLanguage(code);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', code);
+    if (mounted) {
+      setState(() {
+        _languageChosenThisSession = true;
+      });
+    }
   }
 
   @override
@@ -233,7 +329,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
           // Show appropriate screen based on auth state
           if (authProvider.isAuthenticated && authProvider.user != null) {
-            // User is authenticated, show dashboard based on role
+            // Always show the language selection immediately after login for this session
+            if (!_languageChosenThisSession) {
+              return _LanguageSelectionPage(onSelected: _onLanguageChosen);
+            }
+            // After choosing language, show dashboard based on role
             if (authProvider.user!.role == "admin" ||
                 authProvider.user!.role == "super_admin") {
               return const ModernDashboardScreen();

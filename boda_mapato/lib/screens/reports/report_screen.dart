@@ -168,27 +168,8 @@ class _ReportScreenState extends State<ReportScreen> {
   DateTime _endOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
 
   Future<void> _loadInitialData() async {
-    try {
-      final DateTime start = _startOfDay(_startDate);
-      final DateTime end = _endOfDay(_endDate);
-
-      final report = await _apiService.getRevenueReport(
-        startDate: start,
-        endDate: end,
-      );
-
-      final Map<String, dynamic> normalized =
-          _normalizeSummary(Map<String, dynamic>.from(report), start: start, end: end);
-
-      if (mounted) {
-        setState(() {
-          _currentReportData = normalized;
-        });
-      }
-    } on Exception catch (e) {
-      // Silently fail for initial load - user can still generate report manually
-      debugPrint('Failed to load initial report data: $e');
-    }
+    // Generate using the full pipeline (with fallbacks) on first load
+    await _generateReport();
   }
 
   Future<void> _selectDateRange() async {
@@ -638,6 +619,7 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                       _startDate = DateTime.now();
                       _endDate = DateTime.now();
                     });
+                    _generateReport();
                   },
                 ),
               ),
@@ -656,6 +638,7 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                           DateTime.now().subtract(const Duration(days: 7));
                       _endDate = DateTime.now();
                     });
+                    _generateReport();
                   },
                 ),
               ),
@@ -674,6 +657,7 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                           DateTime(DateTime.now().year, DateTime.now().month);
                       _endDate = DateTime.now();
                     });
+                    _generateReport();
                   },
                 ),
               ),

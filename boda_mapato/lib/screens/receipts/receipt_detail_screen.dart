@@ -184,6 +184,14 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         contactInfo: _contactController.text.trim(),
       );
       if (res['success'] == true) {
+        // Try to capture updated receipt payload if provided
+        if (res['data'] is Map<String, dynamic>) {
+          setState(() {
+            _generatedReceipt = res['data'] as Map<String, dynamic>;
+            // keep _existingReceipt in sync if present
+            _existingReceipt = _generatedReceipt;
+          });
+        }
         _showSnack('Risiti imetumwa!');
         await _refreshPage();
         AppEvents.instance.emit(AppEventType.receiptsUpdated);
@@ -335,7 +343,11 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     );
   }
 
+  Map<String, dynamic>? get _receipt => _existingReceipt ?? _generatedReceipt;
+
   Widget _buildGenerateSection() {
+    final bool _isAlreadyGenerated = _receipt != null;
+
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -368,9 +380,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (_isGenerating || _existingReceipt != null) ? null : _generateReceipt,
+                onPressed: (_isGenerating || _isAlreadyGenerated) ? null : _generateReceipt,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _existingReceipt != null 
+                  backgroundColor: _isAlreadyGenerated 
                       ? Colors.grey 
                       : ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
@@ -387,18 +399,152 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                       )
                     : const Icon(Icons.receipt),
                 label: Text(
-                    _existingReceipt != null
+                    _isAlreadyGenerated
                         ? 'Tayari Imetengenezwa'
                         : (_isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti')),
               ),
             ),
+            // Preview moved to main layout when generated
           ],
         ),
       ),
     );
   }
 
+  Widget _receiptPaperPreviewLegacy() {
+    final Map<String, dynamic> map = _receipt ?? <String, dynamic>{};
+    final Map<String, dynamic> rd = (map['receipt_data'] is Map)
+        ? (map['receipt_data'] as Map).cast<String, dynamic>()
+        : <String, dynamic>{};
+
+    String _s(dynamic v) => v?.toString() ?? '';
+    double _d(dynamic v) {
+      if (v == null) return 0;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString()) ?? 0;
+    }
+
+    final String company = _s(rd['company_name']).isNotEmpty ? _s(rd['company_name']) : 'BODA MAPATO';
+    final String companyAddress = _s(rd['company_address']);
+    final String companyPhone = _s(rd['company_phone']);
+    final String receiptNumber = _s(map['receipt_number']);
+    final String driverName = _s(map['driver_name'].toString().isNotEmpty ? map['driver_name'] : rd['driver_name']);
+    final String driverPhone = _s(rd['driver_phone']);
+    final String vehicleInfo = _s(rd['vehicle_info']);
+    final double amount = _d(map['amount'].toString().isNotEmpty ? map['amount'] : rd['payment_amount']);
+    final String issueDate = _s(rd['issue_date']);
+    final String issueTime = _s(rd['issue_time']);
+    final String paymentChannel = _s(map['payment_channel'] ?? rd['payment_channel']);
+    final String coveredPeriod = _s(rd['covered_period']);
+
+    TextStyle _label() => const TextStyle(color: Colors.black54, fontSize: 12);
+    TextStyle _value() => const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600);
+
+    Widget dashedDivider() => LayoutBuilder(
+          builder: (context, constraints) {
+            final int dashes = (constraints.maxWidth / 6).floor();
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(
+                dashes,
+                (int _) => Container(width: 3, height: 1, color: Colors.black26),
+              ),
+            );
+          },
+        );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 6)),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top stub
+              Container(height: 6, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(3))),
+              const SizedBox(height: 12),
+              // Company
+              Text(company.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+              if (companyAddress.isNotEmpty)
+                Text(companyAddress, style: _label(), textAlign: TextAlign.center),
+              if (companyPhone.isNotEmpty)
+                Text('WASILIANA: $companyPhone', style: _label(), textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              dashedDivider(),
+              const SizedBox(height: 8),
+              const Text('RISITI YA MALIPO', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87)),
+              const SizedBox(height: 6),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('TAREHE: $issueDate', style: _label()),
+                Text('MUDA: $issueTime', style: _label()),
+              ]),
+              const SizedBox(height: 8),
+              dashedDivider(),
+              const SizedBox(height: 8),
+              // Receipt meta
+              _kv('Nambari ya Risiti', receiptNumber, _label, _value),
+              _kv('Mdereva', driverName, _label, _value),
+              if (driverPhone.isNotEmpty) _kv('Mawasiliano', driverPhone, _label, _value),
+              if (vehicleInfo.isNotEmpty) _kv('Usajili', vehicleInfo, _label, _value),
+              if (coveredPeriod.isNotEmpty) _kv('Kipindi', coveredPeriod, _label, _value),
+              const SizedBox(height: 8),
+              dashedDivider(),
+              const SizedBox(height: 8),
+              // Amount
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text('JUMLA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                Text('TSh ${_formatAmount(amount)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black)),
+              ]),
+              const SizedBox(height: 4),
+              _kv('Njia ya Malipo', paymentChannel, _label, _value),
+              const SizedBox(height: 8),
+              dashedDivider(),
+              const SizedBox(height: 8),
+              const Text('ASANTE KWA KUTUMIA HUDUMA ZETU!', style: TextStyle(color: Colors.black54, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v, TextStyle Function() l, TextStyle Function() s) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Expanded(child: Text(k, style: l())),
+            const SizedBox(width: 8),
+            Text(v, style: s(), textAlign: TextAlign.right),
+          ],
+        ),
+      );
+
+  String _formatAmount(double v) {
+    final String s = v.toStringAsFixed(0);
+    return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+  }
+
   Widget _buildSendSection() {
+    bool _isAlreadySent() {
+      final String status = (
+        (_existingReceipt?['status'] ?? _generatedReceipt?['status'])
+              ?.toString()
+              .toLowerCase()
+      ) ?? '';
+      return status == 'sent' || status == 'delivered';
+    }
+
+    final bool alreadySent = _isAlreadySent();
+
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -450,9 +596,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _isSending ? null : _sendReceipt,
+                onPressed: (_isSending || alreadySent) ? null : _sendReceipt,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeConstants.successGreen,
+                  backgroundColor: alreadySent ? Colors.grey : ThemeConstants.successGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -466,7 +612,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.send),
-                label: Text(_isSending ? 'Inatuma...' : 'Tuma Risiti'),
+                label: Text(_isSending ? 'Inatuma...' : (alreadySent ? 'Imetumwa' : 'Tuma Risiti')),
               ),
             ),
             const SizedBox(height: 8),
@@ -498,11 +644,6 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     }
   }
 
-  String _formatAmount(double v) {
-    final s = v.toStringAsFixed(0);
-    return s.replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
-  }
 
   Widget _debtNotice(double remaining, int days, List<String> sampleDates) {
     final sample = sampleDates.isNotEmpty

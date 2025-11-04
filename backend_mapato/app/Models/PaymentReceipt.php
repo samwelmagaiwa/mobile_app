@@ -127,6 +127,7 @@ class PaymentReceipt extends Model
      */
     public function getPreviewData(): array
     {
+        $tripsTotal = static::where('driver_id', $this->driver_id)->count();
         return [
             'id' => $this->id,
             'receipt_id' => $this->id, // Alternative key for compatibility
@@ -139,6 +140,7 @@ class PaymentReceipt extends Model
             'generated_at' => optional($this->generated_at)->format('d/m/Y H:i') ?? '',
             'status' => $this->status,
             'owner_name' => $this->generatedBy->name ?? '',
+            'trips_total' => (int) $tripsTotal,
         ];
     }
 

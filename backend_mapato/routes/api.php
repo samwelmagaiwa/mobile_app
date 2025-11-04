@@ -239,9 +239,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('dashboard', [DriverViewController::class, 'dashboard']);
             Route::get('profile', [DriverViewController::class, 'getProfile']);
             
-            // View payment history
+            // Payments summary (driver-authorized)
+            Route::get('payments/summary', [DriverViewController::class, 'getPaymentsSummary']);
+
+            // Payments list and history
+            Route::get('payments', [DriverViewController::class, 'getPayments']);
             Route::get('payment-history', [DriverViewController::class, 'getPaymentHistory']);
             
+            // Debts for driver
+            Route::get('debts/records', [DriverViewController::class, 'getDebtRecords']);
+
             // View receipts
             Route::get('receipts', [DriverViewController::class, 'getReceipts']);
             

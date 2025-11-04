@@ -71,6 +71,76 @@ class DriverViewController extends Controller
     }
 
     /**
+     * Payments summary for authenticated driver (totals for today/week/month or custom range)
+     */
+    public function getPaymentsSummary(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $driver = $user->driver;
+            if (!$driver) {
+                return \App\Helpers\ResponseHelper::error('Driver profile not found', 404);
+            }
+
+            $driverId = $driver->id;
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+
+            // Base queries
+            $payments = \App\Models\Payment::byDriver($driverId)->completed();
+            $debtPaidNoPayment = \App\Models\DebtRecord::byDriver($driverId)->paid()->whereNull('payment_id');
+            $transactions = \App\Models\Transaction::where('driver_id', $driverId)->where('type', 'income')->where('status', 'completed');
+
+            // Periods
+            $today = now()->toDateString();
+            $weekStart = now()->startOfWeek();
+            $weekEnd = now()->endOfWeek();
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $totals = [
+                'today' => (float) ($payments->clone()->whereDate('payment_date', $today)->sum('amount'))
+                    + (float) ($debtPaidNoPayment->clone()->whereDate('paid_at', $today)->sum('paid_amount'))
+                    + (float) ($transactions->clone()->whereDate('transaction_date', $today)->sum('amount')
+                        ?: $transactions->clone()->whereDate('created_at', $today)->sum('amount')),
+                'week' => (float) ($payments->clone()->whereBetween('payment_date', [$weekStart, $weekEnd])->sum('amount'))
+                    + (float) ($debtPaidNoPayment->clone()->whereBetween('paid_at', [$weekStart, $weekEnd])->sum('paid_amount'))
+                    + (float) ($transactions->clone()->whereBetween('transaction_date', [$weekStart, $weekEnd])->sum('amount')
+                        ?: $transactions->clone()->whereBetween('created_at', [$weekStart, $weekEnd])->sum('amount')),
+                'month' => (float) ($payments->clone()->whereBetween('payment_date', [$monthStart, $monthEnd])->sum('amount'))
+                    + (float) ($debtPaidNoPayment->clone()->whereBetween('paid_at', [$monthStart, $monthEnd])->sum('paid_amount'))
+                    + (float) ($transactions->clone()->whereBetween('transaction_date', [$monthStart, $monthEnd])->sum('amount')
+                        ?: $transactions->clone()->whereBetween('created_at', [$monthStart, $monthEnd])->sum('amount')),
+            ];
+
+            $data = [ 'totals' => $totals ];
+
+            if ($startDate && $endDate) {
+                // Normalize to date strings
+                $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+                $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+                $rangePayments = (float) \App\Models\Payment::byDriver($driverId)->completed()->whereBetween('payment_date', [$start, $end])->sum('amount');
+                $rangeDebt = (float) \App\Models\DebtRecord::byDriver($driverId)->paid()->whereNull('payment_id')->whereBetween('paid_at', [$start, $end])->sum('paid_amount');
+                $rangeTxn = (float) \App\Models\Transaction::where('driver_id', $driverId)->where('type','income')->where('status','completed')
+                    ->whereBetween('transaction_date', [$start, $end])->sum('amount');
+                if ($rangeTxn <= 0) {
+                    $rangeTxn = (float) \App\Models\Transaction::where('driver_id', $driverId)->where('type','income')->where('status','completed')
+                        ->whereBetween('created_at', [$start, $end])->sum('amount');
+                }
+                $data['range'] = [
+                    'start_date' => $start->toDateString(),
+                    'end_date' => $end->toDateString(),
+                    'total' => $rangePayments + $rangeDebt,
+                ];
+            }
+
+            return \App\Helpers\ResponseHelper::success($data, 'Driver payments summary retrieved successfully');
+        } catch (\Exception $e) {
+            return \App\Helpers\ResponseHelper::error('Failed to retrieve payments summary: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Get driver's payment history
      */
     public function getPaymentHistory(Request $request)
@@ -98,6 +168,83 @@ class DriverViewController extends Controller
     }
 
     /**
+     * List completed payments for authenticated driver (from payments table)
+     */
+    public function getPayments(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $driver = $user->driver;
+            $perPage = (int) $request->get('per_page', 20);
+            if (!$driver) {
+                return ResponseHelper::error('Driver profile not found', 404);
+            }
+            $query = \App\Models\Payment::byDriver($driver->id)
+                ->completed()
+                ->orderByDesc('payment_date');
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->dateRange($request->get('start_date'), $request->get('end_date'));
+            }
+            $payments = $query->paginate($perPage);
+            $items = collect($payments->items())->map(function ($p) {
+                return method_exists($p, 'toApiResponse') ? $p->toApiResponse() : $p;
+            })->values();
+            return ResponseHelper::success([
+                'payments' => $items,
+                'pagination' => [
+                    'current_page' => $payments->currentPage(),
+                    'per_page' => $payments->perPage(),
+                    'total' => $payments->total(),
+                    'total_pages' => $payments->lastPage(),
+                ],
+            ], 'Driver payments retrieved successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to retrieve payments: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get driver's debt records (paid/unpaid)
+     */
+    public function getDebtRecords(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $driver = $user->driver;
+            $perPage = (int) $request->get('per_page', 50);
+            if (!$driver) {
+                return ResponseHelper::error('Driver profile not found', 404);
+            }
+            $query = \App\Models\DebtRecord::byDriver($driver->id)
+                ->orderByDesc('earning_date');
+            if ($request->filled('only_paid')) {
+                $onlyPaid = filter_var($request->get('only_paid'), FILTER_VALIDATE_BOOLEAN);
+                if ($onlyPaid) $query->paid();
+            }
+            if ($request->filled('only_unpaid')) {
+                $onlyUnpaid = filter_var($request->get('only_unpaid'), FILTER_VALIDATE_BOOLEAN);
+                if ($onlyUnpaid) $query->unpaid();
+            }
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->dateRange($request->get('start_date'), $request->get('end_date'));
+            }
+            $records = $query->paginate($perPage);
+            $items = collect($records->items())->map(fn($r) => method_exists($r, 'toApiResponse') ? $r->toApiResponse() : $r)->values();
+            return ResponseHelper::success([
+                'debt_records' => $items,
+                'pagination' => [
+                    'current_page' => $records->currentPage(),
+                    'per_page' => $records->perPage(),
+                    'total' => $records->total(),
+                    'total_pages' => $records->lastPage(),
+                ],
+            ], 'Driver debt records retrieved successfully');
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Failed to retrieve debt records: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Get driver's receipts
      */
     public function getReceipts(Request $request)
@@ -111,14 +258,39 @@ class DriverViewController extends Controller
                 return ResponseHelper::error('Driver profile not found', 404);
             }
 
-            $receipts = \App\Models\Receipt::whereHas('transaction', function ($query) use ($driver) {
-                $query->where('driver_id', $driver->id);
-            })
-            ->with('transaction.device')
-            ->orderBy('issued_at', 'desc')
-            ->paginate($perPage);
+            // Use PaymentReceipt (admin-generated receipts) so drivers see what owners send
+            $query = \App\Models\PaymentReceipt::where('driver_id', $driver->id)
+                ->orderBy('generated_at', 'desc');
 
-            return ResponseHelper::success($receipts, 'Receipts retrieved successfully');
+            $receipts = $query->paginate($perPage);
+
+            // Normalize to a simple array structure the mobile app expects
+            $items = collect($receipts->items())->map(function ($r) {
+                return [
+                    'id' => (string) $r->id,
+                    'receipt_number' => $r->receipt_number,
+                    'payment_id' => (string) ($r->payment_id ?? ''),
+                    'driver_id' => (string) ($r->driver_id ?? ''),
+                    'driver_name' => optional($r->driver)->name ?? '',
+                    'amount' => (float) $r->amount,
+                    'payment_channel' => optional($r->payment)->payment_channel ?? 'cash',
+                    'generated_at' => optional($r->generated_at)->toIso8601String(),
+                    'paid_dates' => $r->covered_days ?? [],
+                    'status' => $r->status ?? 'generated',
+                    'remarks' => optional($r->payment)->remarks,
+                    'trips_total' => (int) \App\Models\PaymentReceipt::where('driver_id', $r->driver_id)->count(),
+                  ];
+            })->values();
+
+            return ResponseHelper::success([
+                'receipts' => $items,
+                'pagination' => [
+                    'current_page' => $receipts->currentPage(),
+                    'per_page' => $receipts->perPage(),
+                    'total' => $receipts->total(),
+                    'total_pages' => $receipts->lastPage(),
+                ],
+            ], 'Receipts retrieved successfully');
 
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to retrieve receipts: ' . $e->getMessage(), 500);

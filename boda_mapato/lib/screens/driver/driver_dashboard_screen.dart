@@ -1,12 +1,13 @@
 // ignore_for_file: avoid_dynamic_calls
 import "package:flutter/material.dart";
-import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
 
 import "../../constants/colors.dart";
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_utils.dart";
 import "../../widgets/custom_button.dart";
 import "../../widgets/custom_card.dart";
@@ -22,6 +23,16 @@ class DriverDashboardScreen extends StatefulWidget {
 class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   bool _isLoading = true;
   Map<String, dynamic> _dashboardData = <String, dynamic>{};
+  // Driver-specific aggregates
+  int _driverReceiptsCount = 0;
+  int _driverPendingReceipts = 0;
+  double _driverTotalDebt = 0;
+  int _driverUnpaidDays = 0;
+  DateTime? _driverLastPaymentAt;
+  Map<String, dynamic>? _driverAgreement; // raw agreement map
+  double _paidThisWeek = 0;
+  double _paidThisMonth = 0;
+  List<Map<String, dynamic>> _driverDebtRecords = <Map<String, dynamic>>[];
 
   @override
   void initState() {
@@ -35,12 +46,85 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     });
 
     try {
-      // Load real dashboard data from API
-      final Map<String, dynamic> response =
-          await ApiService().getDashboardData();
+      final ApiService api = ApiService();
+      // Driver dashboard (authorized for driver role)
+      final Map<String, dynamic> response = await api.getDriverDashboard();
+      final Map<String, dynamic> data = response['data'] as Map<String, dynamic>? ?? response;
+
+      // Load driver-focused data in parallel using driver endpoints
+      final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
+        api.getDriverReceipts(limit: 50),
+        api.getDriverPaymentHistory(limit: 1000, startDate: DateTime.now().subtract(const Duration(days: 31)), endDate: DateTime.now()),
+        api.getDriverPaymentsSummary(),
+      ]);
+
+      // Parse receipts counts
+      final Map<String, dynamic> rec = results[0] as Map<String, dynamic>;
+      final Map<String, dynamic> recData = rec['data'] as Map<String, dynamic>? ?? rec;
+      final List<dynamic> receiptsList = (recData['data'] as List<dynamic>?) ?? (recData['receipts'] as List<dynamic>?) ?? const <dynamic>[];
+      _driverReceiptsCount = recData['total'] as int? ?? recData['count'] as int? ?? receiptsList.length;
+
+      // Pending receipts (not available on driver route); set 0
+      _driverPendingReceipts = 0;
+
+      // No debt endpoints for driver in current API; default zeros
+      _driverTotalDebt = 0;
+      _driverUnpaidDays = 0;
+      _driverLastPaymentAt = null;
+      _driverAgreement = null;
+
+      // Prefer backend aggregation via driver controller (includes debt clearances + new payments)
+      try {
+        final Map<String, dynamic> sumResp = results[2] as Map<String, dynamic>;
+        final Map<String, dynamic> sumData = (sumResp['data'] as Map<String, dynamic>? ?? sumResp).cast<String, dynamic>();
+        final Map<String, dynamic> totals = (sumData['totals'] as Map<String, dynamic>? ?? <String, dynamic>{}).cast<String, dynamic>();
+        final double today = _toDouble(totals['today']);
+        final double week = _toDouble(totals['week']);
+        final double month = _toDouble(totals['month']);
+        _dashboardData['payments_today'] = today;
+        _paidThisWeek = week;
+        _paidThisMonth = month;
+      } catch (_) {
+        // Fallback: derive from driver payment history if summary not available
+        final Map<String, dynamic> pay = results[1] as Map<String, dynamic>;
+        final dynamic root = pay['data'] ?? pay;
+        final List<dynamic> payments = root is Map && root['data'] is List
+            ? (root['data'] as List).cast<dynamic>()
+            : root is Map && root['payments'] is List
+                ? (root['payments'] as List).cast<dynamic>()
+                : root is List
+                    ? root.cast<dynamic>()
+                    : const <dynamic>[];
+        double day = 0, week = 0, month = 0;
+        final DateTime now = DateTime.now();
+        final DateTime todayStart = DateTime(now.year, now.month, now.day);
+        final DateTime monthStart = DateTime(now.year, now.month, 1);
+        final DateTime weekStart = now.subtract(const Duration(days: 6));
+        for (final dynamic p in payments) {
+          if (p is Map) {
+            final Map<String, dynamic> m = p.cast<String, dynamic>();
+            final String? d = (m['paid_at'] ?? m['date'] ?? m['created_at'])?.toString();
+            final DateTime? dt = d != null ? DateTime.tryParse(d) : null;
+            final double amt = () {
+              final dynamic raw = m['amount'] ?? m['paid_amount'] ?? m['total'] ?? m['total_amount'];
+              if (raw is num) return raw.toDouble();
+              return double.tryParse(raw?.toString() ?? '') ?? 0.0;
+            }();
+            if (dt != null) {
+              if (!dt.isBefore(todayStart)) day += amt;
+              if (!dt.isBefore(weekStart)) week += amt;
+              if (!dt.isBefore(monthStart)) month += amt;
+            }
+          }
+        }
+        _paidThisWeek = week;
+        _paidThisMonth = month;
+        _dashboardData['payments_today'] = day;
+      }
+      
 
       setState(() {
-        _dashboardData = response['data'] ?? <String, dynamic>{};
+        _dashboardData = data;
       });
     } on Exception catch (e) {
       if (mounted) {
@@ -52,148 +136,87 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
-  Widget build(final BuildContext context) => ResponsiveScaffold(
-        backgroundColor: AppColors.background,
-        body: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            title: Text(
-              "Dashboard ya Dereva",
-              style: AppStyles.heading2Responsive(context)
-                  .copyWith(color: Colors.white),
+  Widget build(final BuildContext context) {
+        final String _welcomeTitle = LocalizationService.instance.translate('welcome') + ', ' +
+            ((Provider.of<AuthProvider>(context).user?.name.isNotEmpty == true)
+                ? Provider.of<AuthProvider>(context).user!.name
+                : 'Driver') +
+            '!';
+        return Scaffold(
+        backgroundColor: ThemeConstants.primaryBlue,
+        appBar: ThemeConstants.buildAppBar(
+          _welcomeTitle,
+          actions: <Widget>[
+            IconButton(
+              onPressed: _loadDashboardData,
+              icon: Icon(
+                Icons.refresh,
+                size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+              ),
             ),
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            toolbarHeight: ResponsiveUtils.getResponsiveAppBarHeight(context),
-            actions: <Widget>[
-              IconButton(
-                onPressed: _loadDashboardData,
-                icon: Icon(
-                  Icons.refresh,
-                  size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+            PopupMenuButton<String>(
+              color: ThemeConstants.primaryBlue,
+              onSelected: (final String value) {
+                if (value == "logout") {
+                  _handleLogout();
+                }
+              },
+              itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem(
+                  value: "logout",
+                  child: ResponsiveRow(
+                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                    children: <Widget>[
+                      const Icon(
+                        Icons.logout,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const Text(
+                        "Toka",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (final String value) {
-                  if (value == "logout") {
-                    _handleLogout();
-                  }
-                },
-                itemBuilder: (final BuildContext context) =>
-                    <PopupMenuEntry<String>>[
-                  PopupMenuItem(
-                    value: "logout",
-                    child: ResponsiveRow(
-                      spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                      children: <Widget>[
-                        Icon(
-                          Icons.logout,
-                          color: AppColors.error,
-                          size: ResponsiveUtils.getResponsiveIconSize(
-                            context,
-                            20,
-                          ),
-                        ),
-                        Text(
-                          "Toka",
-                          style: AppStyles.bodyMediumResponsive(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          body: _isLoading
-              ? Center(
-                  child: SizedBox(
-                    width: ResponsiveUtils.getResponsiveIconSize(context, 40),
-                    height: ResponsiveUtils.getResponsiveIconSize(context, 40),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3.w,
-                    ),
-                  ),
-                )
+              ],
+            ),
+          ],
+        ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
+          child: _isLoading
+              ? ThemeConstants.buildLoadingWidget()
               : RefreshIndicator(
                   onRefresh: _loadDashboardData,
+                  backgroundColor: Colors.white,
+                  color: ThemeConstants.primaryBlue,
                   child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                     padding: ResponsiveUtils.getResponsivePadding(context),
                     child: ResponsiveColumn(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing:
-                          ResponsiveUtils.getResponsiveSpacing(context, 24),
+                      spacing: ResponsiveUtils.getResponsiveSpacing(context, 24),
                       children: <Widget>[
-                        // Welcome message
-                        CustomCard(
-                          child: ResponsiveWrapper(
-                            child: ResponsiveRow(
-                              spacing: ResponsiveUtils.getResponsiveSpacing(
-                                context,
-                                16,
-                              ),
-                              children: <Widget>[
-                                Icon(
-                                  Icons.person,
-                                  size: ResponsiveUtils.getResponsiveIconSize(
-                                    context,
-                                    48,
-                                  ),
-                                  color: AppColors.primary,
-                                ),
-                                Expanded(
-                                  child: ResponsiveColumn(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    spacing:
-                                        ResponsiveUtils.getResponsiveSpacing(
-                                      context,
-                                      8,
-                                    ),
-                                    children: <Widget>[
-                                      Text(
-                                        "Karibu, Dereva!",
-                                        style: AppStyles.heading3Responsive(
-                                          context,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                      Text(
-                                        "Angalia takwimu zako za malipo",
-                                        style: AppStyles.bodyMediumResponsive(
-                                          context,
-                                        ).copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
                         // Assigned Vehicle
                         if (_dashboardData["assigned_vehicle"] !=
                             null) ...<Widget>[
                           Text(
-                            "Gari Lako",
+                            LocalizationService.instance.translate('your_vehicle'),
                             style: AppStyles.heading3Responsive(context),
                           ),
-                          CustomCard(
-                            child: ResponsiveWrapper(
+                          ThemeConstants.buildGlassCardStatic(
+                            child: Padding(
+                              padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
                               child: ResponsiveRow(
                                 spacing: ResponsiveUtils.getResponsiveSpacing(
                                   context,
@@ -248,21 +271,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                         Text(
                                           _dashboardData["assigned_vehicle"]
                                               ["name"],
-                                          style: AppStyles.bodyLargeResponsive(
-                                            context,
-                                          ).copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: AppStyles.bodyLargeResponsive(context)
+                                              .copyWith(fontWeight: FontWeight.w600, color: Colors.white),
                                           overflow: TextOverflow.ellipsis,
                                           maxLines: 1,
                                         ),
                                         Text(
-                                          "Nambari: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
-                                          style: AppStyles.bodyMediumResponsive(
-                                            context,
-                                          ).copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
+                                          "${LocalizationService.instance.translate('plate_number')}: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
+                                          style: AppStyles.bodyMediumResponsive(context)
+                                              .copyWith(color: Colors.white70),
                                           overflow: TextOverflow.ellipsis,
                                           maxLines: 1,
                                         ),
@@ -291,14 +308,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                             ),
                                           ),
                                           child: Text(
-                                            "Inatumika",
-                                            style:
-                                                AppStyles.bodySmallResponsive(
-                                              context,
-                                            ).copyWith(
-                                              color: AppColors.success,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                            LocalizationService.instance.translate('status_active'),
+                                            style: AppStyles.bodySmallResponsive(context)
+                                                .copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
                                           ),
                                         ),
                                       ],
@@ -312,122 +324,81 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
                         // Payment Statistics
                         Text(
-                          "Takwimu za Malipo",
-                          style: AppStyles.heading3Responsive(context),
+                          LocalizationService.instance.translate('driver_payment_stats'),
+                          style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white),
                         ),
-                        CustomStatCard(
-                          title: "Malipo ya Leo",
-                          value:
-                              "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
-                          icon: Icons.today,
-                          color: AppColors.success,
-                        ),
-                        ResponsiveRow(
-                          spacing:
-                              ResponsiveUtils.getResponsiveSpacing(context, 16),
-                          children: <Widget>[
-                            Expanded(
-                              child: CustomStatCard(
-                                title: "Wiki Hii",
-                                value:
-                                    "TSh ${(_dashboardData["payments_this_week"] ?? 0).toStringAsFixed(0)}",
-                                icon: Icons.date_range,
-                                color: AppColors.info,
-                              ),
+                        ThemeConstants.buildGlassCardStatic(
+                          child: Padding(
+                            padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
+                            child: ResponsiveRow(
+                              spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+                              children: <Widget>[
+                                Expanded(
+                                  child: _miniStat(
+                                    icon: Icons.today,
+                                    label: LocalizationService.instance.translate('today'),
+                                    value: "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _miniStat(
+                                    icon: Icons.calendar_view_week,
+                                    label: LocalizationService.instance.translate('week'),
+                                    value: "TSh ${_paidThisWeek.toStringAsFixed(0)}",
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _miniStat(
+                                    icon: Icons.calendar_month,
+                                    label: LocalizationService.instance.translate('month'),
+                                    value: "TSh ${_paidThisMonth.toStringAsFixed(0)}",
+                                  ),
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: CustomStatCard(
-                                title: "Mwezi Huu",
-                                value:
-                                    "TSh ${(_dashboardData["payments_this_month"] ?? 0).toStringAsFixed(0)}",
-                                icon: Icons.calendar_month,
-                                color: AppColors.warning,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
 
-                        // Performance Stats
-                        Text(
-                          "Utendaji Wako",
-                          style: AppStyles.heading3Responsive(context),
-                        ),
-                        ResponsiveRow(
-                          spacing:
-                              ResponsiveUtils.getResponsiveSpacing(context, 16),
-                          children: <Widget>[
-                            Expanded(
-                              child: CustomStatCard(
-                                title: "Jumla ya Safari",
-                                value: "${_dashboardData["total_trips"] ?? 0}",
-                                icon: Icons.route,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            Expanded(
-                              child: CustomStatCard(
-                                title: "Ukadiriaji",
-                                value: "${_dashboardData["rating"] ?? 0}/5",
-                                icon: Icons.star,
-                                color: AppColors.warning,
-                              ),
-                            ),
-                          ],
-                        ),
 
                         // Quick Actions
                         Text(
-                          "Vitendo vya Haraka",
-                          style: AppStyles.heading3Responsive(context),
+                          LocalizationService.instance.translate('quick_actions'),
+                          style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white),
                         ),
-                        ResponsiveGridView(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: ResponsiveUtils.getResponsiveValue(
-                            context,
-                            mobile: 2,
-                            tablet: 3,
-                            desktop: 4,
-                          ),
-                          childAspectRatio: ResponsiveUtils.getResponsiveValue(
-                            context,
-                            mobile: 1.2,
-                            tablet: 1.1,
-                            desktop: 1,
-                          ),
-                          spacing:
-                              ResponsiveUtils.getResponsiveSpacing(context, 16),
+                        ResponsiveRow(
+                          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
                           children: <Widget>[
-                            _QuickActionCard(
-                              title: "Omba Malipo",
-                              icon: Icons.request_quote,
-                              color: AppColors.success,
-                              onTap: _showPaymentRequestDialog,
+                            Expanded(
+                              child: _QuickActionCard(
+                                title: LocalizationService.instance.translate('payment_history'),
+                                icon: Icons.history,
+                                color: AppColors.primary,
+                                onTap: _navigateToPaymentHistory,
+                              ),
                             ),
-                            _QuickActionCard(
-                              title: "Historia ya Malipo",
-                              icon: Icons.history,
-                              color: AppColors.primary,
-                              onTap: _navigateToPaymentHistory,
+                            Expanded(
+                              child: _QuickActionCard(
+                                title: LocalizationService.instance.translate('receipts'),
+                                icon: Icons.receipt,
+                                color: AppColors.info,
+                                onTap: _navigateToReceipts,
+                              ),
                             ),
-                            _QuickActionCard(
-                              title: "Risiti",
-                              icon: Icons.receipt,
-                              color: AppColors.info,
-                              onTap: _navigateToReceipts,
-                            ),
-                            _QuickActionCard(
-                              title: "Vikumbusho",
-                              icon: Icons.notifications,
-                              color: AppColors.warning,
-                              onTap: _navigateToReminders,
+                            Expanded(
+                              child: _QuickActionCard(
+                                title: LocalizationService.instance.translate('reminders'),
+                                icon: Icons.notifications,
+                                color: AppColors.warning,
+                                onTap: _navigateToReminders,
+                              ),
                             ),
                           ],
                         ),
 
-                        // Total Earnings Card
-                        CustomCard(
-                          child: ResponsiveContainer(
+                        // Agreement / Total to Pay card
+                        ThemeConstants.buildGlassCardStatic(
+                          child: Padding(
+                            padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
                             child: ResponsiveColumn(
                               spacing: ResponsiveUtils.getResponsiveSpacing(
                                 context,
@@ -443,15 +414,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   color: AppColors.success,
                                 ),
                                 Text(
-                                  "Jumla ya Mapato",
-                                  style: AppStyles.bodyLargeResponsive(context),
+                                  _agreementTitle(),
+                                  style: AppStyles.bodyLargeResponsive(context).copyWith(color: Colors.white),
                                 ),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    "TSh ${(_dashboardData["total_earnings"] ?? 0).toStringAsFixed(0)}",
-                                    style: AppStyles.heading1Responsive(context)
-                                        .copyWith(
+                                    _agreementValueText(),
+                                    style: AppStyles.heading1Responsive(context).copyWith(
                                       color: AppColors.success,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -459,11 +429,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "Tangu uanze kufanya kazi",
-                                  style: AppStyles.bodySmallResponsive(context)
-                                      .copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  _agreementSubtitle(),
+                                  style: AppStyles.bodySmallResponsive(context).copyWith(color: Colors.white70),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -476,6 +443,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 ),
         ),
       );
+    }
 
   IconData _getVehicleIcon(final String type) {
     switch (type) {
@@ -510,6 +478,78 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     Navigator.pushNamed(context, "/driver/reminders");
   }
 
+  // Small stat tile used in glass cards
+  Widget _miniStat({
+    required IconData icon,
+    required String label,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(icon, color: Colors.white70, size: ResponsiveUtils.getResponsiveIconSize(context, 18)),
+            SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+            Expanded(
+              child: Text(
+                label,
+                style: AppStyles.bodySmallResponsive(context).copyWith(color: Colors.white70),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+    return onTap == null
+        ? content
+        : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: content);
+  }
+
+  String _agreementTitle() {
+    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    if (type.contains('dei')) return LocalizationService.instance.translate('agreement_daily_title');
+    return LocalizationService.instance.translate('agreement_total_title');
+  }
+
+  String _agreementValueText() {
+    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    if (type.contains('dei')) {
+      final double perDay = _toDouble(_driverAgreement?['amount_per_day'] ?? _driverAgreement?['kiasi_cha_makubaliano']);
+      final double perWeek = _toDouble(_driverAgreement?['amount_per_week'] ?? 0);
+      if (perWeek > 0) return 'TSh ${perWeek.toStringAsFixed(0)} / Wiki';
+      return 'TSh ${perDay.toStringAsFixed(0)} / Siku';
+    }
+    final double total = _toDouble(_driverAgreement?['kiasi_cha_makubaliano'] ?? _driverAgreement?['total_amount']);
+    return 'TSh ${total.toStringAsFixed(0)}';
+  }
+
+  String _agreementSubtitle() {
+    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    if (type.contains('dei')) return LocalizationService.instance.translate('agreement_daily_subtitle');
+    return LocalizationService.instance.translate('agreement_total_subtitle');
+  }
+
+  double _toDouble(Object? v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString().replaceAll(RegExp(r'[^0-9\.-]'), '')) ?? 0;
+  }
+
   Future<void> _handleLogout() async {
     final AuthProvider authProvider =
         Provider.of<AuthProvider>(context, listen: false);
@@ -531,38 +571,35 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double iconContainerSize =
-        ResponsiveUtils.getResponsiveIconSize(context, 48);
-
     return CustomCard(
       onTap: onTap,
-      child: ResponsiveContainer(
-        child: ResponsiveColumn(
-          mainAxisAlignment: MainAxisAlignment.center,
-          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
+      backgroundColor: ThemeConstants.cardColor,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getResponsiveBorderRadius(context, 12),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getResponsiveSpacing(context, 12),
+        vertical: ResponsiveUtils.getResponsiveSpacing(context, 16),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Container(
-              width: iconContainerSize,
-              height: iconContainerSize,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(
-                  ResponsiveUtils.getResponsiveBorderRadius(context, 12),
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: ResponsiveUtils.getResponsiveIconSize(context, 24),
-              ),
+            Icon(
+              icon,
+              color: color,
+              size: ResponsiveUtils.getResponsiveIconSize(context, 28),
             ),
+            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 8)),
             Text(
               title,
               style: AppStyles.bodyMediumResponsive(context).copyWith(
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],

@@ -47,6 +47,7 @@ class NavigationBuilder {
         items.add(_buildLogoutItem(
           localization: localization,
           onLogout: onLogout,
+          context: context,
         ));
       } else {
         items.add(_buildDrawerItem(
@@ -174,6 +175,7 @@ class NavigationBuilder {
   static Widget _buildLogoutItem({
     required LocalizationService localization,
     required VoidCallback onLogout,
+    required BuildContext context,
   }) {
     return ListTile(
       leading: const Icon(
@@ -189,7 +191,52 @@ class NavigationBuilder {
           fontWeight: FontWeight.w500,
         ),
       ),
-      onTap: onLogout,
+      onTap: () async {
+        // Confirm logout dialog (localized)
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: true,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: ThemeConstants.primaryBlue,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              localization.translate('logout'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            content: Text(
+              localization.translate('logout_confirm'),
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actions: [
+              // Cancel button (gray)
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(localization.translate('cancel')),
+              ),
+              // Yes button (red)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onLogout();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(localization.translate('yes')),
+              ),
+            ],
+          ),
+        );
+      },
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 20,
         vertical: 4,
@@ -287,7 +334,13 @@ class NavigationBuilder {
     required LocalizationService localization,
     required UserPermissions permissions,
   }) async {
-    final items = NavigationConfig.drawerItems
+    // Include both main drawer items and system items (e.g., Settings) in the grid
+    final items = <NavigationItem>[
+      ...NavigationConfig.drawerItems,
+      ...NavigationConfig.systemItems,
+    ]
+        // Exclude the logout action from the grid
+        .where((item) => item.key != 'logout')
         .where((item) => _hasPermission(item, permissions))
         .toList();
 

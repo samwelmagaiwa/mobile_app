@@ -90,6 +90,13 @@ class NavigationConfig {
       route: '/admin/reports',
       requiredPermissions: ['view_reports'],
     ),
+    // Add Receipts to the grid menu so it moves inside "Menyu"
+    NavigationItem(
+      key: 'receipts',
+      icon: Icons.receipt_long,
+      route: '/receipts',
+      requiredPermissions: ['generate_receipts'],
+    ),
     NavigationItem(
       key: 'reminders',
       icon: Icons.notifications,
@@ -124,34 +131,12 @@ class NavigationConfig {
 
   // Quick action items for dashboard
   static const List<QuickActionItem> quickActions = [
-    QuickActionItem(
-      key: 'analytics',
-      icon: Icons.bar_chart,
-      route: '/admin/analytics',
-      requiredPermissions: ['view_analytics'],
-    ),
+    // Keep only the "Menyu" button on the dashboard quick actions bar
     QuickActionItem(
       key: 'menu',
       icon: Icons.apps,
-      route: '/menu', // Special action to open drawer
+      route: '/menu', // Special action to open grid menu
       isHighlighted: true,
-    ),
-    QuickActionItem(
-      key: 'receipts',
-      icon: Icons.receipt_long,
-      route: '/receipts',
-      requiredPermissions: ['generate_receipts'],
-    ),
-    QuickActionItem(
-      key: 'reports',
-      icon: Icons.receipt,
-      route: '/admin/reports',
-      requiredPermissions: ['view_reports'],
-    ),
-    QuickActionItem(
-      key: 'settings',
-      icon: Icons.settings,
-      route: '/settings',
     ),
   ];
 

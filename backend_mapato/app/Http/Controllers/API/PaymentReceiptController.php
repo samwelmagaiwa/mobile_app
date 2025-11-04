@@ -202,6 +202,7 @@ class PaymentReceiptController extends Controller
             'receipt_id' => 'required|integer|exists:payment_receipts,id',
             'send_via' => 'required|in:whatsapp,email,system',
             'contact_info' => 'required|string',
+            'message' => 'nullable|string|max:2000',
         ]);
 
         if ($validator->fails()) {
@@ -214,7 +215,7 @@ class PaymentReceiptController extends Controller
 
         DB::beginTransaction();
         try {
-            $receipt = PaymentReceipt::with(['payment'])->findOrFail($request->receipt_id);
+            $receipt = PaymentReceipt::with(['payment','driver'])->findOrFail($request->receipt_id);
             $receipt->markAsSent($request->send_via);
 
             // Update related payment status to "receipt issued"
@@ -222,12 +223,34 @@ class PaymentReceiptController extends Controller
                 $receipt->payment->update(['receipt_status' => 'issued']);
             }
 
+            // Build the final message including remarks if available
+            $data = $receipt->getPreviewData();
+            $receiptData = $receipt->receipt_data ?? [];
+            $remarks = $receiptData['remarks'] ?? ($receipt->payment->remarks ?? '');
+            $tripsTotal = (int) PaymentReceipt::where('driver_id', $receipt->driver_id)->count();
+            $humanMessage = $request->get('message');
+            if (!$humanMessage || trim($humanMessage) === '') {
+                $humanMessage = sprintf(
+                    "Receipt %s\nAmount: %s\nPeriod: %s\nDays: %s\nTrips: %d%s",
+                    $data['receipt_number'] ?? '',
+                    number_format((float) ($receipt->amount ?? 0), 0),
+                    $receipt->formatted_period,
+                    implode(', ', $receipt->covered_days ?? []),
+                    $tripsTotal,
+                    $remarks ? ("\nRemarks: " . $remarks) : ''
+                );
+            }
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Receipt sent successfully',
-                'data' => $receipt->getPreviewData(),
+                'data' => array_merge($data, [
+                    'receipt_data' => $receiptData,
+                    'remarks' => $remarks,
+                    'message_sent' => $humanMessage,
+                ]),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -333,6 +356,7 @@ class PaymentReceiptController extends Controller
             'covered_days_list' => $payment->covers_days ?? [],
             'remarks' => $payment->remarks ?? '',
             'recorded_by' => $payment->recordedBy->name ?? '',
+            'trips_total' => (int) PaymentReceipt::where('driver_id', $driver->id)->count() + 1,
         ];
     }
 
