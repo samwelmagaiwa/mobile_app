@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 import 'constants/colors.dart';
 import 'constants/styles.dart';
@@ -24,7 +25,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
 import 'screens/demo_language_screen.dart';
 import 'screens/driver/driver_dashboard_screen.dart';
-// import 'screens/payments/payments_screen.dart';
+import 'screens/payments/payments_screen.dart';
 import 'screens/driver/driver_payment_history_screen.dart';
 import 'screens/receipts/receipts_screen.dart';
 import 'screens/driver/driver_receipts_screen.dart';
@@ -45,6 +46,18 @@ Future<void> main() async {
   // Initialize localization service
   await LocalizationService.instance.initialize();
 
+  // Debug: tag overflow issues with current page name in console
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Keep default behavior
+    FlutterError.presentError(details);
+    if (kDebugMode) {
+      final String msg = details.exceptionAsString();
+      if (msg.contains('RenderFlex overflowed') || msg.contains('A RenderFlex overflowed')) {
+        debugPrint('[OVERFLOW] page=${RouteTracker.currentRouteName} -> ${details.exceptionAsString()}');
+      }
+    }
+  };
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
     DeviceOrientation.portraitUp,
@@ -59,6 +72,38 @@ Future<void> main() async {
   // }
 
   runApp(const BodaMapatoApp());
+}
+
+// Global route tracker to know which page is active (for debug logs)
+class RouteTracker extends NavigatorObserver {
+  static final RouteTracker observer = RouteTracker();
+  static String _current = '(unknown)';
+  static String get currentRouteName => _current;
+
+  void _setCurrent(Route<dynamic>? route) {
+    final Route<dynamic>? r = route;
+    String name = r?.settings.name ?? r?.runtimeType.toString() ?? '(unknown)';
+    // Some MaterialPageRoutes might not have names; also try widget type if available
+    _current = name;
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _setCurrent(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _setCurrent(previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _setCurrent(newRoute);
+  }
 }
 
 class BodaMapatoApp extends StatelessWidget {
@@ -98,6 +143,7 @@ class BodaMapatoApp extends StatelessWidget {
               theme: _buildTheme(context),
               scaffoldMessengerKey: AppMessenger.key,
               locale: localizationService.currentLocale,
+              navigatorObservers: <NavigatorObserver>[RouteTracker.observer],
               supportedLocales: const [
                 Locale('en', 'US'),
                 Locale('sw', 'TZ'),
@@ -124,7 +170,7 @@ class BodaMapatoApp extends StatelessWidget {
                   const DriversManagementScreen(),
               "/admin/vehicles": (final BuildContext context) =>
                   const VehiclesManagementScreen(),
-// "/payments": (final BuildContext context) => const PaymentsScreen(),
+"/payments": (final BuildContext context) => const PaymentsScreen(),
               "/admin/analytics": (final BuildContext context) =>
                   const AnalyticsScreen(),
               "/admin/reports": (final BuildContext context) =>

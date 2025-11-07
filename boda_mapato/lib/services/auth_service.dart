@@ -1,6 +1,7 @@
 import "dart:convert";
 import "dart:developer" as developer;
 
+import "package:flutter/foundation.dart"; // for kDebugMode, debugPrint
 import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
 import "../config/api_config.dart";
@@ -42,6 +43,11 @@ mixin AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
     } else {
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP ERROR ${response.request?.url} status=${response.statusCode}');
+        final String b = response.body;
+        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+      }
       throw Exception(
         data["message"] ?? "Server error: ${response.statusCode}",
       );
@@ -55,9 +61,14 @@ mixin AuthService {
     required final String phoneNumber,
   }) async {
     try {
+      final String url = "$baseUrl/auth/login";
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP POST $url');
+        debugPrint('Request: {email: $email, phone_number: $phoneNumber, password: ***}');
+      }
       final http.Response response = await http
           .post(
-            Uri.parse("$baseUrl/auth/login"),
+            Uri.parse(url),
             headers: _headers,
             body: jsonEncode(<String, String>{
               "email": email,
@@ -66,6 +77,11 @@ mixin AuthService {
             }),
           )
           .timeout(timeoutDuration);
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP <- $url status=${response.statusCode}');
+        final String b = response.body;
+        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+      }
 
       final Map<String, dynamic> data = _handleResponse(response);
 
@@ -87,6 +103,9 @@ mixin AuthService {
 
       return data;
     } on Exception catch (e) {
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP EXCEPTION $baseUrl/auth/login -> $e');
+      }
       throw Exception("Login failed: $e");
     }
   }
@@ -153,18 +172,33 @@ mixin AuthService {
   static Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
       final Map<String, String> headers = await _authHeaders;
+      final String url = "$baseUrl/auth/user";
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP GET $url');
+      }
       final http.Response response = await http
           .get(
-            Uri.parse("$baseUrl/auth/user"),
+            Uri.parse(url),
             headers: headers,
           )
           .timeout(timeoutDuration);
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP <- $url status=${response.statusCode}');
+        final String b = response.body;
+        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+      }
 
-      final Map<String, dynamic> data = _handleResponse(response);
+      final Map<String, dynamic> raw = _handleResponse(response);
+      // Normalize ResponseHelper structure: { success, message, data: { user, ... } }
+      final Map<String, dynamic> payload =
+          raw['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(raw['data'] as Map)
+              : raw;
 
       // Update stored user data
-      final Map<String, dynamic>? user =
-          data['user'] is Map ? Map<String, dynamic>.from(data['user']) : null;
+      final Map<String, dynamic>? user = payload['user'] is Map
+          ? Map<String, dynamic>.from(payload['user'] as Map)
+          : null;
       if (user != null) {
         await saveUserData(user);
       }

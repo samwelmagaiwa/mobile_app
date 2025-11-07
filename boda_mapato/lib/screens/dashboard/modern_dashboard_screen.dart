@@ -677,10 +677,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       builder: (context, localizationService, child) => Scaffold(
         key: _scaffoldKey,
         drawer: _buildDrawer(localizationService), // Add drawer with localization
+        appBar: _buildAppBar(),
         body: DecoratedBox(
           decoration: const BoxDecoration(
-            color:
-                primaryBlue, // Solid blue background matching admin dashboard image
+            color: primaryBlue,
           ),
           child: SafeArea(
             child: _isLoading ? _buildLoadingScreen(localizationService) : _buildMainContent(localizationService),
@@ -725,12 +725,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   parent: BouncingScrollPhysics(),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _buildHeader(localizationService),
-                      ResponsiveHelper.verticalSpace(2),
                       _buildBalanceCard(),
                       ResponsiveHelper.verticalSpace(2),
                       _buildStatsCards(),
@@ -747,77 +745,61 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildHeader(LocalizationService localizationService) {
-    final AuthProvider authProvider = Provider.of<AuthProvider>(context);
+  PreferredSizeWidget _buildAppBar() {
+    final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final LocalizationService loc = Provider.of<LocalizationService>(context, listen: false);
     final UserData? user = authProvider.user;
+    final String name = (user?.name?.trim().isNotEmpty ?? false) ? user!.name.trim() : '—';
+    final String title = '${loc.translate('welcome')}, $name';
 
-    return Row(
-      children: <Widget>[
-        Builder(
-          builder: (BuildContext context) => IconButton(
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            icon: const Icon(
-              Icons.menu,
-              color: textPrimary,
-              size: 24,
-            ),
+    return AppBar(
+      backgroundColor: primaryBlue,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.menu, color: textPrimary),
+        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+      ),
+      centerTitle: true,
+      title: Text(
+        title,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: textPrimary, fontWeight: FontWeight.w600),
+      ),
+      actions: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: cardColor,
+            backgroundImage: _avatarImage(user),
+            child: _avatarImage(user) == null
+                ? ((user?.name?.isNotEmpty ?? false)
+                    ? Text(
+                        user!.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                      )
+                    : const Icon(Icons.person, color: textPrimary, size: 20))
+                : null,
           ),
-        ),
-        Expanded(
-          child: Text(
-            localizationService.translate('dashboard'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: cardColor,
-              backgroundImage: _avatarImage(user),
-              child: _avatarImage(user) == null
-                  ? (user?.name != null && user!.name.isNotEmpty)
-                      ? Text(
-                          user.name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                            color: textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.person,
-                          color: textPrimary,
-                          size: 20,
-                        )
-                  : null,
-            ),
-          ],
         ),
       ],
     );
   }
 
   Widget _buildBalanceCard() {
-    final AuthProvider authProvider = Provider.of<AuthProvider>(context);
-    final UserData? user = authProvider.user;
-
     // Use MediaQuery-driven sizing to avoid overflow on short devices
     final Size size = MediaQuery.of(context).size;
     final bool isShort = size.height < 700;
 
     // Compute a compact but readable card height
-    double cardHeight = size.height * (isShort ? 0.14 : 0.18);
-    cardHeight = cardHeight.clamp(110.0, 170.0);
+    double cardHeight = size.height * (isShort ? 0.11 : 0.14);
+    cardHeight = cardHeight.clamp(100.0, 130.0);
 
-    final double avatarSide = (size.width * 0.10).clamp(36.0, 46.0);
-    final double gapLarge = isShort ? 8.0 : 12.0; // replaces verticalSpace(1.2)
-    final double gapMid = isShort ? 6.0 : 8.0;   // replaces verticalSpace(0.6)
-    final double gapSmall = isShort ? 4.0 : 6.0; // replaces verticalSpace(0.3)
+    final double avatarSide = (size.width * 0.10).clamp(32.0, 42.0);
+    final double gapLarge = isShort ? 6.0 : 8.0; // tighter spacing
+    final double gapMid = isShort ? 4.0 : 6.0;
+    final double gapSmall = isShort ? 3.0 : 4.0;
 
     return SizedBox(
       height: cardHeight,
@@ -826,10 +808,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         children: <Widget>[
           _buildGlassCard(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              // Add a bit more bottom padding so the subtitle doesn't touch the card border
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
                   Row(
                     children: <Widget>[
@@ -846,6 +829,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                         ),
                       ),
                       const Spacer(),
+                      const SizedBox(width: 4),
                       const Icon(
                         Icons.more_horiz,
                         color: textSecondary,
@@ -853,30 +837,43 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                     ],
                   ),
                   SizedBox(height: gapLarge),
-                  Text(
-                    user?.name ?? "Dereva Mkuu",
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontSize: ResponsiveHelper.h4,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  // Removed user name from card; keep spacing compact
                   SizedBox(height: gapMid),
-                  Text(
-                    "TSH ${_formatCurrency(_dashboardData["total_revenue"] ?? _dashboardData["monthly_revenue"])}",
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontSize: ResponsiveHelper.h2,
-                      fontWeight: FontWeight.bold,
+                  // Make amount text scale down to fit to avoid overflow on short/tight layouts
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "TSH ${_formatCurrency(_dashboardData["total_revenue"] ?? _dashboardData["monthly_revenue"])}",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontSize: isShort ? (ResponsiveHelper.h2 * 0.9) : ResponsiveHelper.h2,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: gapSmall),
-                  Consumer<LocalizationService>(
-                    builder: (context, localizationService, child) => Text(
-                      localizationService.translate("total_revenue"),
-                      style: TextStyle(
-                        color: textSecondary,
-                        fontSize: ResponsiveHelper.bodyM,
+                  // Subtitle with safe spacing from the bottom border
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Consumer<LocalizationService>(
+                        builder: (context, localizationService, child) => Padding(
+                          padding: EdgeInsets.only(bottom: gapSmall),
+                          child: Text(
+                            localizationService.translate("total_revenue"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: textSecondary,
+                              fontSize: isShort ? (ResponsiveHelper.bodyL * 0.95) : ResponsiveHelper.bodyL,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1655,9 +1652,35 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       title: localizationService.translate('process_pending_receipts'),
       message: localizationService.translate('confirm_process_pending_receipts'),
       confirmText: localizationService.translate('process'),
-      onConfirm: () {
-        // Implement pending receipts processing
-        _showSuccessSnackBar(localizationService.translate('pending_receipts_processed'));
+      onConfirm: () async {
+        try {
+          // 1) Fetch pending receipts from the backend (real API, no mock data)
+          final Map<String, dynamic> resp = await _apiService.getPendingReceipts();
+          final Map<String, dynamic> data = (resp['data'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+          final List<dynamic> list = (data['pending_receipts'] as List<dynamic>?) ??
+              (data['data'] as List<dynamic>?) ?? <dynamic>[];
+          final List<String> paymentIds = list
+              .whereType<Map<String, dynamic>>()
+              .map((m) => m['payment_id']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toList();
+
+          if (paymentIds.isEmpty) {
+            _showSuccessSnackBar(localizationService.translate('no_pending_receipts'));
+            return;
+          }
+
+          // 2) Ask backend to generate receipts in bulk for these payments
+          await _apiService.generateBulkReceipts(paymentIds);
+
+          // 3) Notify other parts of the app to refresh live data
+          AppEvents.instance.emit(AppEventType.receiptsUpdated);
+          AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
+
+          _showSuccessSnackBar(localizationService.translate('pending_receipts_processed'));
+        } on Exception catch (e) {
+          _showErrorSnackBar('Failed to process receipts: $e');
+        }
       },
     );
   }

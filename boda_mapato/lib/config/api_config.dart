@@ -7,10 +7,10 @@ import "package:http/http.dart" as http;
 mixin ApiConfig {
   // Environment enum
   // Default to local for Flutter web/desktop running on the same machine as Laravel
-  static const String _environment = Environment.local;
+  static const String _environment = Environment.network;
 
   // Toggle verbose HTTP logging in debug builds only
-  static const bool enableHttpLogs = false;
+  static const bool enableHttpLogs = true; // TEMP: enable verbose HTTP logs for debugging login
 
   // Get base URL based on environment
   static String get baseUrl {
@@ -20,7 +20,7 @@ mixin ApiConfig {
         return "http://127.0.0.1:8000/api";
       case Environment.network:
         // LAN IP of the dev machine hosting Laravel (update if your IP changes)
-        return "http://192.168.1.10:8000/api";
+        return "http://192.168.1.124:8000/api";
       case Environment.emulator:
         // Android emulator loopback to host
         return "http://10.0.2.2:8000/api";
@@ -37,7 +37,7 @@ mixin ApiConfig {
       case Environment.local:
         return "http://127.0.0.1:8000";
       case Environment.network:
-        return "http://192.168.1.10:8000";
+        return "http://192.168.1.124:8000";
       case Environment.emulator:
         return "http://10.0.2.2:8000";
       case Environment.production:

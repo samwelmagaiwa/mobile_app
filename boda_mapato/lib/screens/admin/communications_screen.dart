@@ -413,9 +413,14 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
                 size: 24,
               ),
               ResponsiveHelper.horizontalSpace(2),
-              Text(
-                localizationService.translate("communications_summary_title"),
-                style: ThemeConstants.responsiveHeadingStyle(context),
+              Expanded(
+                child: Text(
+                  localizationService.translate("communications_summary_title"),
+                  style: ThemeConstants.responsiveHeadingStyle(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
               ),
             ],
           ),
@@ -424,7 +429,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: ResponsiveHelper.isMobile ? 2 : 4,
-            childAspectRatio: ResponsiveHelper.isMobile ? 1.5 : 1.2,
+            childAspectRatio: ResponsiveHelper.isMobile ? 1.3 : 1.2,
             mainAxisSpacing: ResponsiveHelper.spacingM,
             crossAxisSpacing: ResponsiveHelper.spacingM,
             children: <Widget>[
@@ -475,30 +480,41 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(icon, color: color, size: 28),
-          ResponsiveHelper.verticalSpace(1),
-          Text(
-            title,
-            style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
-              color: color,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(icon, color: color, size: 28),
+            ResponsiveHelper.verticalSpace(1),
+            SizedBox(
+              width: 140,
+              child: Text(
+                title,
+                style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                  color: color,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          ResponsiveHelper.verticalSpace(0.5),
-          Text(
-            "$value$suffix",
-            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
+            ResponsiveHelper.verticalSpace(0.5),
+            Text(
+              "$value$suffix",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

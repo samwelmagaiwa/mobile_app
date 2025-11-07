@@ -53,15 +53,93 @@ class Driver {
       return 0;
     }
 
+    // Fallback helpers for flexible API shapes
+    String pickString(List<Object?> options) {
+      for (final Object? v in options) {
+        if (v == null) continue;
+        final String s = v.toString().trim();
+        if (s.isNotEmpty) return s;
+      }
+      return '';
+    }
+
+    final dynamic userMap = json['user'] ?? json['owner'] ?? json['created_by_user'];
+    final dynamic driverMap = json['driver'];
+
+    // Compose name from possible first/last name pairs
+    String composeName(Map<String, dynamic>? m) {
+      if (m == null) return '';
+      String first = pickString([m['first_name'], m['firstName'], m['given_name']]);
+      String last = pickString([m['last_name'], m['lastName'], m['surname'], m['family_name']]);
+      final String combined = (first + ' ' + last).trim();
+      if (combined.isNotEmpty) return combined;
+      return pickString([m['name'], m['full_name'], m['driver_name']]);
+    }
+
+    final String name = pickString([
+      json['name'], json['full_name'], json['driver_name'],
+      composeName(json as Map<String, dynamic>?),
+      composeName(userMap is Map<String, dynamic> ? userMap : null),
+      composeName(driverMap is Map<String, dynamic> ? driverMap : null),
+      userMap is Map<String, dynamic> ? userMap['name'] : null,
+      driverMap is Map<String, dynamic> ? driverMap['name'] : null,
+    ]);
+    final String email = pickString([
+      json['email'],
+      userMap is Map<String, dynamic> ? userMap['email'] : null,
+      driverMap is Map<String, dynamic> ? driverMap['email'] : null,
+    ]);
+    final String phone = pickString([
+      json['phone'], json['phone_number'], json['phoneNumber'], ' ' + pickString([]),
+      userMap is Map<String, dynamic> ? userMap['phone_number'] : null,
+      driverMap is Map<String, dynamic> ? driverMap['phone_number'] : null,
+    ]);
+    final String license = pickString([
+      json['license_number'], json['license'], json['license_no'],
+      driverMap is Map<String, dynamic> ? driverMap['license_number'] : null,
+    ]);
+    final String? vehicleNo = pickString([
+      json['vehicle_number'], json['plate_number'], json['registration_no'],
+      driverMap is Map<String, dynamic> ? driverMap['vehicle_number'] : null,
+    ]).isNotEmpty
+        ? pickString([
+            json['vehicle_number'], json['plate_number'], json['registration_no'],
+            driverMap is Map<String, dynamic> ? driverMap['vehicle_number'] : null,
+          ])
+        : null;
+    final String? vehicleTy = pickString([
+      json['vehicle_type'], json['type'],
+      driverMap is Map<String, dynamic> ? driverMap['vehicle_type'] : null,
+    ]).isNotEmpty
+        ? pickString([
+            json['vehicle_type'], json['type'],
+            driverMap is Map<String, dynamic> ? driverMap['vehicle_type'] : null,
+          ])
+        : null;
+    final String status = pickString([
+      json['status'],
+      (json['is_active'] == true || json['is_active'] == 1) ? 'active' : '',
+      userMap is Map<String, dynamic>
+          ? ((userMap['is_active'] == true || userMap['is_active'] == 1)
+              ? 'active'
+              : '')
+          : '',
+      driverMap is Map<String, dynamic>
+          ? ((driverMap['is_active'] == true || driverMap['is_active'] == 1)
+              ? 'active'
+              : '')
+          : '',
+    ]);
+
     return Driver(
       id: (json["id"] ?? "").toString(),
-      name: (json["name"] ?? "").toString(),
-      email: (json["email"] ?? "").toString(),
-      phone: (json["phone"] ?? "").toString(),
-      licenseNumber: (json["license_number"] ?? "").toString(),
-      vehicleNumber: json["vehicle_number"]?.toString(),
-      vehicleType: json["vehicle_type"]?.toString(),
-      status: (json["status"] ?? "inactive").toString(),
+      name: name,
+      email: email,
+      phone: phone,
+      licenseNumber: license,
+      vehicleNumber: vehicleNo,
+      vehicleType: vehicleTy,
+      status: status.isNotEmpty ? status : 'inactive',
       totalPayments: parseDouble(json["total_payments"]),
       lastPayment: json["last_payment"] != null &&
               json["last_payment"].toString().isNotEmpty

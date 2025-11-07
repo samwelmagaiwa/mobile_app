@@ -49,10 +49,11 @@ class AuthProvider extends ChangeNotifier {
         if (userData != null) {
           _user = UserData.fromJson(userData);
         }
-        // Validate token
+        // Validate token (non-destructive: avoid forced logout on transient errors)
         final bool isValid = await AuthService.validateToken();
         if (!isValid) {
-          await logout();
+          // Keep local session; real 401s from API calls will trigger a global unauthorized event
+          // which clears auth safely via AuthEvents listener.
         }
       }
     } on Exception catch (e) {
@@ -72,39 +73,38 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // Preflight connectivity check to provide a clear error if backend is unreachable
+      final api = ApiService();
+      final bool serverUp = await api.testConnectivity();
+      if (!serverUp) {
+        final String url = ApiService.baseUrl;
+        final String msg = 'Seva haipatikani: ' + url + '/health. Hakikisha simu yako na kompyuta yako ziko kwenye mtandao mmoja na bandari 8000 inaruhusiwa.';
+        _setError(msg);
+        _errorMessage = msg;
+        return false;
+      }
+
       final Map<String, dynamic> response = await AuthService.login(
         email: email,
         password: password,
         phoneNumber: phoneNumber,
       );
 
-      // Extract user data from response
-      final Map<String, dynamic>? responseData =
-          response["data"] as Map<String, dynamic>?;
-      if (responseData != null) {
-        final Map<String, dynamic>? userData =
-            responseData["user"] as Map<String, dynamic>?;
-        final String? token = responseData["token"] as String?;
-
-        if (userData != null) {
-          _user = UserData.fromJson(userData);
-        }
-        if (token != null) {
-          await AuthService.saveToken(token);
-        }
-      } else {
-        // Handle different response structure
-        final Map<String, dynamic>? userData =
-            response["user"] as Map<String, dynamic>?;
-        final String? token = response["token"] as String?;
-
-        if (userData != null) {
-          _user = UserData.fromJson(userData);
-        }
-        if (token != null) {
-          await AuthService.saveToken(token);
-        }
+      // Extract token and optimistically save it
+      final Map<String, dynamic>? responseData = response["data"] as Map<String, dynamic>?;
+      final String? token = responseData != null
+          ? responseData["token"] as String?
+          : response["token"] as String?;
+      if (token != null && token.isNotEmpty) {
+        await AuthService.saveToken(token);
       }
+
+      // Fetch fresh user profile from backend using the token we just saved
+      final Map<String, dynamic>? freshUser = await AuthService.getCurrentUser();
+      if (freshUser == null) {
+        throw Exception("Imeshindikana kupata taarifa za mtumiaji baada ya kuingia.");
+      }
+      _user = UserData.fromJson(freshUser);
 
       _isAuthenticated = true;
       notifyListeners();

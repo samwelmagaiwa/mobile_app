@@ -339,27 +339,26 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
               ),
             ),
             const SizedBox(height: 16),
-            // Filter chips
-            Row(
-              children: <Widget>[
-                _buildFilterChip("all", "Wote", _drivers.length),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  "active",
-                  "Hai",
-                  _drivers
-                      .where((final Driver d) => d.status == "active")
-                      .length,
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  "inactive",
-                  "Hahai",
-                  _drivers
-                      .where((final Driver d) => d.status == "inactive")
-                      .length,
-                ),
-              ],
+            // Filter chips - preserve single-row design; allow horizontal scroll on small widths
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  _buildFilterChip("all", "Wote", _drivers.length),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    "active",
+                    "Hai",
+                    _drivers.where((final Driver d) => d.status == "active").length,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    "inactive",
+                    "Hahai",
+                    _drivers.where((final Driver d) => d.status == "inactive").length,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -411,6 +410,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
             _drivers.length
         : 0;
 
+    // Preserve original 3-column row design; values inside cards are already made overflow-safe
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -604,7 +604,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                         children: <Widget>[
                           Expanded(
                             child: Text(
-                              driver.name,
+                              (driver.name.trim().isNotEmpty
+                                  ? driver.name
+                                  : (driver.email.trim().isNotEmpty
+                                      ? driver.email.split('@').first
+                                      : (driver.phone.trim().isNotEmpty
+                                          ? driver.phone
+                                          : '—'))),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: false,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -680,6 +689,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                       const SizedBox(height: 4),
                       Text(
                         driver.phone,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 14,
                           color: ThemeConstants
@@ -695,12 +706,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                             color: Colors.white, // White icon for contrast
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: ThemeConstants
-                                  .textSecondary, // Light text on blue background
+                          Expanded(
+                            child: Text(
+                              "${driver.vehicleNumber ?? "N/A"} (${driver.vehicleType ?? "N/A"})",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: ThemeConstants
+                                    .textSecondary, // Light text on blue background
+                              ),
                             ),
                           ),
                         ],
@@ -875,6 +890,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
     final Color color,
   ) =>
       Column(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
             icon,
@@ -882,18 +898,26 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
             color: color,
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: color,
+          // Scale down value to fit in very small widths
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 10,
               color:

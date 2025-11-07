@@ -170,36 +170,23 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             driverId: widget.driver.id,
           );
 
-          // Process API data into chart format - only use real API data
-          if (debtTrends['status'] == 'success' && debtTrends['data'] != null) {
-            _debtChartData = _processApiChartData(debtTrends['data']['data']);
-          } else {
-            _debtChartData = []; // No fallback data
-          }
-
-          if (paymentTrends['status'] == 'success' &&
-              paymentTrends['data'] != null) {
-            _paymentChartData =
-                _processApiChartData(paymentTrends['data']['data']);
-          } else {
-            _paymentChartData = []; // No fallback data
-          }
+          // Process API data into chart format (robust shapes)
+          _debtChartData = _processTrendResponse(debtTrends);
+          _paymentChartData = _processTrendResponse(paymentTrends);
 
           debugPrint('Successfully loaded chart data from API');
         } on Exception catch (apiError) {
-          // API endpoints don't exist or failed, show empty charts
+          // API endpoints don't exist or failed, fall back to local generation
           debugPrint('Driver trend API endpoints failed: $apiError');
           setState(() {
             _apiEndpointsAvailable = false;
           });
-          _debtChartData = [];
-          _paymentChartData = [];
+          _generateFallbackChartsFromHistory();
         }
       } else {
-        // API endpoints not available, show empty charts
+        // API endpoints not available, generate from local history
         debugPrint('Driver API endpoints not available');
-        _debtChartData = [];
-        _paymentChartData = [];
+        _generateFallbackChartsFromHistory();
       }
     } on Exception catch (e) {
       // Show empty charts if any error occurs
@@ -215,14 +202,82 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   List<ChartData> _processApiChartData(apiData) {
     if (apiData is List) {
       return apiData.map<ChartData>((item) {
-        return ChartData(
-          label: item['period'] ?? item['label'] ?? '',
-          value: (item['value'] ?? item['amount'] ?? 0).toDouble(),
-        );
+        final Map<String, dynamic> m = Map<String, dynamic>.from(item as Map);
+        final String label =
+            (m['period'] ?? m['label'] ?? m['month'] ?? m['date'] ?? '').toString();
+        final double value = (() {
+          final v = m['value'] ?? m['amount'] ?? m['total'] ?? m['paid'];
+          if (v is num) return v.toDouble();
+          return double.tryParse(v?.toString() ?? '0') ?? 0.0;
+        })();
+        return ChartData(label: label, value: value);
       }).toList();
     }
     return [];
   }
+
+  List<ChartData> _processTrendResponse(Map<String, dynamic> res) {
+    final dynamic root = res['data'] ?? res;
+    final dynamic series =
+        (root is Map)
+            ? (root['data'] ?? root['series'] ?? root['trends'] ?? root['items'])
+            : null;
+    if (series is List) return _processApiChartData(series);
+    return [];
+  }
+
+  void _generateFallbackChartsFromHistory() {
+    // Payments: sum per month (last 12 months)
+    _paymentChartData = _aggregateMonthly(
+      _paymentHistory.map((p) => _Point(date: p.createdAt, amount: p.amount)).toList(),
+      months: 12,
+    );
+    // Debts: sum remaining per month (expected - paid)
+    _debtChartData = _aggregateMonthly(
+      _debtHistory.map((d) {
+        DateTime dt;
+        try {
+          dt = DateTime.parse(d.date);
+        } on FormatException {
+          dt = DateTime.now();
+        }
+        final double remaining = (d.expectedAmount - d.paidAmount);
+        return _Point(date: dt, amount: remaining < 0 ? 0 : remaining);
+      }).toList(),
+      months: 12,
+    );
+  }
+
+  List<ChartData> _aggregateMonthly(List<_Point> points, {int months = 12}) {
+    if (points.isEmpty) return [];
+    final DateTime now = DateTime.now();
+    final DateTime start = DateTime(now.year, now.month - (months - 1), 1);
+    final Map<String, double> bucket = <String, double>{};
+    for (final _Point p in points) {
+      if (p.date.isBefore(start)) continue;
+      final String key = "${p.date.year}-${p.date.month.toString().padLeft(2, '0')}";
+      bucket[key] = (bucket[key] ?? 0) + p.amount;
+    }
+    final List<String> orderedKeys = bucket.keys.toList()
+      ..sort((a, b) => a.compareTo(b));
+    return orderedKeys
+        .map((k) => ChartData(label: k.split('-')[1], value: bucket[k] ?? 0))
+        .toList();
+  }
+
+  String _paymentConsistencyDisplay() {
+    switch (_paymentConsistencyRating.toLowerCase()) {
+      case 'consistent':
+        return 'Thabiti';
+      case 'inconsistent':
+        return 'Si thabiti';
+      case 'late':
+        return 'Huchelewa';
+      default:
+        return _paymentConsistencyRating;
+    }
+  }
+
 
   Future<void> _loadFinancialSummary() async {
     try {
@@ -254,14 +309,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       final int unpaidDays =
           int.tryParse(data['unpaid_days']?.toString() ?? '0') ?? 0;
 
-      // Rating heuristic
-      String rating;
-      if (overdueDays > 10 || totalDebt > 0 && unpaidDays > 15) {
-        rating = "Late";
+      // Rating heuristic (store a short, language-agnostic key)
+      String ratingKey;
+      if (overdueDays > 10 || (totalDebt > 0 && unpaidDays > 15)) {
+        ratingKey = "late";
       } else if (overdueDays > 0 || totalDebt > 0) {
-        rating = "Inconsistent";
+        ratingKey = "inconsistent";
       } else {
-        rating = "Consistent";
+        ratingKey = "consistent";
       }
 
       // Average delay heuristic using records with days_overdue
@@ -281,7 +336,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         _totalOutstandingDebt = totalDebt;
         _totalDebtsRecorded = totalExpected;
         _totalPaid = totalPaid;
-        _paymentConsistencyRating = rating;
+        _paymentConsistencyRating = ratingKey; // store key: consistent|inconsistent|late
         _averagePaymentDelay = avgDelay;
       });
     } on Exception catch (e) {
@@ -810,7 +865,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         statCard('Wastani wa kuchelewa',
                             '$_averagePaymentDelay siku', PdfColors.deepOrange),
                         statCard('Kiwango cha ulipaji',
-                            _paymentConsistencyRating, PdfColors.teal800),
+                            _paymentConsistencyDisplay(), PdfColors.teal800),
                       ]),
                     ]),
               ),
@@ -1227,38 +1282,50 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(icon, color: color, size: 28),
-          ResponsiveHelper.verticalSpace(1),
-          Text(
-            title,
-            style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
-              color: color,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(icon, color: color, size: 28),
+            ResponsiveHelper.verticalSpace(1),
+            SizedBox(
+              width: 140, // cap width for long titles in narrow tiles
+              child: Text(
+                title,
+                style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
+                  color: color,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          ResponsiveHelper.verticalSpace(0.5),
-          Text(
-            "TSh ${NumberFormat('#,###').format(amount)}",
-            style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
+            ResponsiveHelper.verticalSpace(0.5),
+            Text(
+              "TSh ${NumberFormat('#,###').format(amount)}",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ThemeConstants.responsiveBodyStyle(context).copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPaymentConsistencyCard() {
-    final Color ratingColor = _paymentConsistencyRating == "Consistent"
+    final String key = _paymentConsistencyRating.toLowerCase();
+    final Color ratingColor = key == "consistent"
         ? ThemeConstants.successGreen
-        : _paymentConsistencyRating == "Late"
+        : key == "late"
             ? ThemeConstants.errorRed
             : ThemeConstants.warningAmber;
 
@@ -1271,49 +1338,76 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         border: Border.all(color: ratingColor.withOpacity(0.3)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    "Kiwango cha Ulipaji",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context)
-                        .copyWith(
-                      color: ratingColor,
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      "Kiwango cha Ulipaji",
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: ThemeConstants.responsiveSubHeadingStyle(context)
+                          .copyWith(
+                        color: ratingColor,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _paymentConsistencyRating,
-                    style:
-                        ThemeConstants.responsiveHeadingStyle(context).copyWith(
-                      color: ratingColor,
-                      fontWeight: FontWeight.bold,
+                    // Scale down long ratings like "SOME VERY LONG TEXT" without overflowing
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _paymentConsistencyDisplay(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                          color: ratingColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  Text(
-                    "Wastani wa Kuchelewa",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context)
-                        .copyWith(
-                      color: ratingColor,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Text(
+                      "Wastani wa Kuchelewa",
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: ThemeConstants.responsiveSubHeadingStyle(context)
+                          .copyWith(
+                        color: ratingColor,
+                      ),
                     ),
-                  ),
-                  Text(
-                    "$_averagePaymentDelay siku",
-                    style:
-                        ThemeConstants.responsiveHeadingStyle(context).copyWith(
-                      color: ratingColor,
-                      fontWeight: FontWeight.bold,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        "$_averagePaymentDelay siku",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                          color: ratingColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -2242,4 +2336,11 @@ class ChartData {
   });
   final String label;
   final double value;
+}
+
+// Local helper point for monthly aggregation (top-level, not nested)
+class _Point {
+  _Point({required this.date, required this.amount});
+  final DateTime date;
+  final double amount;
 }

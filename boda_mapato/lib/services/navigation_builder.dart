@@ -252,34 +252,59 @@ class NavigationBuilder {
   }) {
     return GestureDetector(
       onTap: () => _handleQuickAction(action, context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: action.isHighlighted
-                  ? const Color(0xFFFF6B9D)
-                  : Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              action.icon,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            localization.translate(action.key),
-            style: const TextStyle(
-              color: Color(0xB3FFFFFF),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double h = constraints.maxHeight.isFinite ? constraints.maxHeight : 72;
+          // Responsive sizing to avoid overflow in tight spaces
+          double side = h * 0.55; // icon button side
+          if (side < 32) side = 32;
+          if (side > 44) side = 44;
+          double iconSize = side * 0.55;
+          if (iconSize < 16) iconSize = 16;
+          if (iconSize > 24) iconSize = 24;
+          double spacing = (h - side) * 0.25;
+          if (spacing < 4) spacing = 4;
+          if (spacing > 8) spacing = 8;
+          double fontSize = (h - side) * 0.35 + 9.5; // ~10-12
+          if (fontSize < 10) fontSize = 10;
+          if (fontSize > 12) fontSize = 12;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: side,
+                height: side,
+                decoration: BoxDecoration(
+                  color: action.isHighlighted
+                      ? const Color(0xFFFF6B9D)
+                      : Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(side / 2),
+                ),
+                child: Icon(
+                  action.icon,
+                  color: Colors.white,
+                  size: iconSize,
+                ),
+              ),
+              SizedBox(height: spacing),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth - 2),
+                child: Text(
+                  localization.translate(action.key),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xB3FFFFFF),
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -381,7 +406,7 @@ class NavigationBuilder {
                   crossAxisCount: 3,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.9,
+                  childAspectRatio: 0.8,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
@@ -460,27 +485,56 @@ class _MenuGridTile extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double h = constraints.maxHeight.isFinite ? constraints.maxHeight : 90;
+            // Compute sizes responsively to avoid overflows on tight tiles
+            double side = h * 0.52; // avatar circle side
+            if (side < 36) side = 36;
+            if (side > 56) side = 56;
+            double iconSize = side * 0.5;
+            if (iconSize < 18) iconSize = 18;
+            if (iconSize > 28) iconSize = 28;
+            double spacing = h * 0.08;
+            if (spacing < 4) spacing = 4;
+            if (spacing > 8) spacing = 8;
+            double fontSize = h * 0.18;
+            if (fontSize < 10) fontSize = 10;
+            if (fontSize > 12) fontSize = 12;
+
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: side,
+                    height: side,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: iconSize),
+                  ),
+                  SizedBox(height: spacing),
+                  // Let the text shrink and ellipsize within the tile
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: constraints.maxWidth - 4),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: fontSize),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            );
+          },
         ),
       );
 }
