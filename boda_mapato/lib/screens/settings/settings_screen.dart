@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:file_picker/file_picker.dart";
-import "package:provider/provider.dart";
+import 'package:provider/provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../config/api_config.dart";
 import "../../constants/theme_constants.dart";
@@ -270,14 +272,20 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
         ),
         title: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.info_outline,
               color: ThemeConstants.primaryOrange,
+              size: 18.sp,
             ),
-            const SizedBox(width: 8),
-            Text(
-              _localizationService.translate('app_name'),
-              style: const TextStyle(color: ThemeConstants.textPrimary),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: AutoSizeText(
+                _localizationService.translate('app_name'),
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                maxLines: 1,
+                minFontSize: 12,
+                stepGranularity: 0.5,
+              ),
             ),
           ],
         ),
@@ -324,14 +332,20 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
         ),
         title: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.logout,
               color: Colors.redAccent,
+              size: 18.sp,
             ),
-            const SizedBox(width: 8),
-            Text(
-              _localizationService.translate('confirm'),
-              style: const TextStyle(color: ThemeConstants.textPrimary),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: AutoSizeText(
+                _localizationService.translate('confirm'),
+                style: const TextStyle(color: ThemeConstants.textPrimary),
+                maxLines: 1,
+                minFontSize: 12,
+                stepGranularity: 0.5,
+              ),
             ),
           ],
         ),

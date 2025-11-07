@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/driver.dart';
 import '../../models/payment.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/localization_service.dart';
 import '../../utils/responsive_helper.dart';
 import 'new_payment_screen.dart';
 
@@ -496,7 +499,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: ThemeConstants.successGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                     border: Border.all(
                       color: ThemeConstants.successGreen.withOpacity(0.3),
                     ),
@@ -622,16 +625,21 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.error, color: ThemeConstants.errorRed),
-            SizedBox(width: 8),
-            Text(
-              'Hitilafu',
-              style: TextStyle(
-                color: ThemeConstants.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Icon(Icons.error, color: ThemeConstants.errorRed, size: 18.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: AutoSizeText(
+                'Hitilafu',
+                style: const TextStyle(
+                  color: ThemeConstants.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                minFontSize: 12,
+                stepGranularity: 0.5,
               ),
             ),
           ],
@@ -677,11 +685,13 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
 
-    return ThemeConstants.buildScaffold(
-      title: 'Malipo',
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Stack(
+    return Consumer<LocalizationService>(
+      builder: (context, l10n, _) {
+        return ThemeConstants.buildScaffold(
+          title: l10n.translate('payments'),
+          body: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Stack(
           children: [
             if (_isDriverSelectionMode) _buildDriverSelectionView(),
             SlideTransition(
@@ -691,54 +701,56 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   : const SizedBox(),
             ),
           ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildDriverSelectionView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           ThemeConstants.buildGlassCardStatic(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.w),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
                       color: ThemeConstants.primaryOrange.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.payment,
                       color: ThemeConstants.primaryOrange,
-                      size: 24,
+                      size: 24.sp,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  SizedBox(width: 12.w),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Rekodi Malipo',
+                          LocalizationService.instance.translate('record_payment'),
                           style: TextStyle(
                             color: ThemeConstants.textPrimary,
-                            fontSize: 20,
+                            fontSize: 20.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         Text(
-                          'Chagua dereva kisha rekodi malipo yake',
+                          LocalizationService.instance.translate('record_payment_subtitle'),
                           style: TextStyle(
                             color: ThemeConstants.textSecondary,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
                       ],
@@ -749,40 +761,40 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           // Search Bar
           ThemeConstants.buildGlassCard(
             onTap: () {},
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.search,
                     color: ThemeConstants.textSecondary,
-                    size: 20,
+                    size: 20.sp,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: ThemeConstants.primaryBlue.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                         border:
                             Border.all(color: Colors.white.withOpacity(0.2)),
                       ),
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: ThemeConstants.textPrimary,
-                          fontSize: 16,
+                          fontSize: 16.sp,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'Tafuta dereva...',
+                        decoration: InputDecoration(
+                          hintText: LocalizationService.instance.translate('search_drivers'),
                           hintStyle: TextStyle(
                             color: ThemeConstants.textSecondary,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                           filled: true,
                           fillColor: Colors
@@ -790,7 +802,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                         ),
                       ),
                     ),
@@ -800,7 +812,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
           ),
 
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
 
           // Drivers List
           if (_isLoadingDrivers)
@@ -818,7 +830,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Widget _buildPaymentFormView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       child: Form(
         key: _formKey,
         child: Column(
@@ -826,12 +838,12 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           children: [
             // Driver Info Header
             _buildDriverInfoHeader(),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
 
             // Payment Summary if debts loaded
             if (_driverPaymentSummary != null) _buildDebtSummaryCard(),
 
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
 
             // Debt Records Selection
             if (_isLoadingDebts)
@@ -839,7 +851,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             else if (_driverPaymentSummary != null)
               _buildDebtRecordsList(),
 
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
 
             // Payment Form
             if (_driverPaymentSummary != null && !_isLoadingDebts)
@@ -853,7 +865,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   Widget _buildDriverInfoHeader() {
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10.w),
         child: Row(
           children: [
             IconButton(
@@ -863,7 +875,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 color: ThemeConstants.textPrimary,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.w),
             CircleAvatar(
               backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
               child: Text(
@@ -874,25 +886,25 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _selectedDriver?.name ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: ThemeConstants.textPrimary,
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     _selectedDriver?.phone ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: ThemeConstants.textSecondary,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                     ),
                   ),
                 ],
@@ -909,29 +921,29 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(
                   Icons.summarize,
                   color: ThemeConstants.primaryOrange,
-                  size: 20,
+                  size: 20.sp,
                 ),
-                SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Text(
                   'Muhtasari wa Deni',
                   style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Row(
               children: [
                 Expanded(
@@ -967,7 +979,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
   Widget _buildSummaryItem(String title, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
@@ -1007,28 +1019,28 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
     if (unpaidDebts.isEmpty) {
       return ThemeConstants.buildGlassCardStatic(
-        child: const Padding(
-          padding: EdgeInsets.all(40),
+        child: Padding(
+          padding: const EdgeInsets.all(40),
           child: Column(
             children: [
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: ThemeConstants.successGreen,
                 size: 48,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
-                'Hamna Deni!',
-                style: TextStyle(
+                LocalizationService.instance.translate('no_debt'),
+                style: const TextStyle(
                   color: ThemeConstants.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Dereva huyu haana deni lolote',
-                style: TextStyle(
+                LocalizationService.instance.translate('driver_has_no_debt'),
+                style: const TextStyle(
                   color: ThemeConstants.textSecondary,
                   fontSize: 14,
                 ),
@@ -1042,17 +1054,17 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(
+            const Icon(
               Icons.list_alt,
               color: ThemeConstants.textPrimary,
               size: 20,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
-              'Chagua Siku za Malipo',
-              style: TextStyle(
+              LocalizationService.instance.translate('select_payment_days'),
+              style: const TextStyle(
                 color: ThemeConstants.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -1088,7 +1100,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: isSelected
               ? Border.all(color: ThemeConstants.primaryOrange, width: 2)
               : Border.all(color: Colors.transparent, width: 2),
@@ -1106,8 +1118,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         child: Row(
           children: [
             Container(
-              width: 24,
-              height: 24,
+              width: 24.w,
+              height: 24.w,
               decoration: BoxDecoration(
                 color: isSelected
                     ? ThemeConstants.primaryOrange
@@ -1118,17 +1130,17 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       : ThemeConstants.textSecondary,
                   width: 2,
                 ),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(4.r),
               ),
               child: isSelected
-                  ? const Icon(
+                  ? Icon(
                       Icons.check,
                       color: Colors.white,
-                      size: 16,
+                      size: 16.sp,
                     )
                   : null,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,46 +1151,46 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       color: isSelected
                           ? ThemeConstants.primaryOrange
                           : ThemeConstants.textPrimary,
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     'TSh ${debt.remainingAmount.toStringAsFixed(0)}',
                     style: TextStyle(
                       color: isSelected
                           ? ThemeConstants.primaryOrange
                           : ThemeConstants.textSecondary,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 6.w,
+                    runSpacing: 6.h,
                     children: [
                       if ((debt.licenseNumber ?? '').isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 6.w, vertical: 2.h),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.badge,
-                                  size: 12,
+                              Icon(Icons.badge,
+                                  size: 12.sp,
                                   color: ThemeConstants.textSecondary),
-                              const SizedBox(width: 4),
+                              SizedBox(width: 4.w),
                               Flexible(
                                 child: Text(
                                   'Leseni: ${debt.licenseNumber}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: ThemeConstants.textSecondary,
-                                      fontSize: 10),
+                                      fontSize: 10.sp),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   softWrap: false,
@@ -1189,27 +1201,27 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         ),
                       if (debt.promisedToPay)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 6.w, vertical: 2.h),
                           decoration: BoxDecoration(
                             color:
                                 ThemeConstants.warningAmber.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.event_available,
-                                  size: 12, color: ThemeConstants.warningAmber),
-                              const SizedBox(width: 4),
+                              Icon(Icons.event_available,
+                                  size: 12.sp, color: ThemeConstants.warningAmber),
+                              SizedBox(width: 4.w),
                               Flexible(
                                 child: Text(
                                   debt.promiseToPayAt == null
                                       ? 'Ahadi ya kulipa'
                                       : 'Ahadi: ${_formatDate(debt.promiseToPayAt!)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: ThemeConstants.warningAmber,
-                                      fontSize: 10),
+                                      fontSize: 10.sp),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   softWrap: false,
@@ -1225,16 +1237,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
             ),
             if (debt.isOverdue)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
                 decoration: BoxDecoration(
                   color: ThemeConstants.errorRed.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Text(
                   '${debt.daysOverdue}d',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: ThemeConstants.errorRed,
-                    fontSize: 10,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1275,36 +1287,36 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Amount Field
-                const Text(
+                Text(
                   'Kiasi (TSh)',
                   style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6.h),
                 TextFormField(
                   controller: _amountController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                   ],
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Ingiza kiasi cha malipo',
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       color: ThemeConstants.textSecondary,
-                      fontSize: 14,
+                      fontSize: 14.sp,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.monetization_on,
                       color: ThemeConstants.primaryOrange,
-                      size: 20,
+                      size: 20.sp,
                     ),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.1),
@@ -1315,13 +1327,13 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       borderSide: BorderSide(
                         color: Colors.white.withOpacity(0.3),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       borderSide: const BorderSide(
                         color: ThemeConstants.primaryOrange,
                         width: 2,
@@ -1342,25 +1354,25 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   },
                 ),
 
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
 
                 // Payment Channel
-                const Text(
+                Text(
                   'Njia ya Malipo',
                   style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
 
                 Row(
                   children: PaymentChannel.values.map((channel) {
                     final isSelected = _selectedChannel == channel;
                     return Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 4.w),
                         child: GestureDetector(
                           onTap: () {
                             setState(() {
@@ -1368,15 +1380,15 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 8.h,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? ThemeConstants.primaryOrange
                                   : Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20.r),
                               border: Border.all(
                                 color: isSelected
                                     ? ThemeConstants.primaryOrange
@@ -1390,7 +1402,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                                   color: isSelected
                                       ? Colors.white
                                       : ThemeConstants.textPrimary,
-                                  fontSize: 11,
+                                  fontSize: 11.sp,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 textAlign: TextAlign.center,
@@ -1403,47 +1415,47 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   }).toList(),
                 ),
 
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
 
                 // Remarks Field
-                const Text(
+                Text(
                   'Maelezo (Hiari)',
                   style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6.h),
                 TextFormField(
                   controller: _remarksController,
                   maxLines: 3,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: ThemeConstants.textPrimary,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Andika maelezo yoyote ya ziada...',
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       color: ThemeConstants.textSecondary,
-                      fontSize: 14,
+                      fontSize: 14.sp,
                     ),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.1),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       borderSide: BorderSide(
                         color: Colors.white.withOpacity(0.3),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       borderSide: BorderSide(
                         color: Colors.white.withOpacity(0.3),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       borderSide: const BorderSide(
                         color: ThemeConstants.primaryOrange,
                         width: 2,
@@ -1452,7 +1464,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // Submit Button
                 Container(
@@ -1506,7 +1518,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           ),
                           const SizedBox(width: 12),
                         ] else ...[
-                          const Icon(Icons.save, size: 20),
+                          Icon(Icons.save, size: 20.sp),
                           const SizedBox(width: 12),
                         ],
                         Text(
@@ -1534,11 +1546,11 @@ class _PaymentsScreenState extends State<PaymentsScreen>
     return Column(
       children: _filteredDrivers.map((driver) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.only(bottom: 12.h),
           child: ThemeConstants.buildGlassCard(
             onTap: () => _showDriverActionPopup(driver),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -1552,25 +1564,25 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           driver.name,
-                          style: const TextStyle(
-                            color: ThemeConstants.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        style: TextStyle(
+                          color: ThemeConstants.textPrimary,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 2),
+                        ),
+                        SizedBox(height: 2.h),
                         Text(
                           driver.phone,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: ThemeConstants.textSecondary,
-                            fontSize: 12,
+                            fontSize: 12.sp,
                           ),
                         ),
                         if (driver.vehicleNumber?.isNotEmpty ?? false) ...[
@@ -1587,16 +1599,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
                       color: (driver.totalDebt > 0
                               ? ThemeConstants.errorRed
                               : ThemeConstants.successGreen)
                           .withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text(
                       driver.totalDebt > 0 ? 'Ana deni' : 'Hana deni',
@@ -1604,35 +1616,35 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         color: driver.totalDebt > 0
                             ? ThemeConstants.errorRed
                             : ThemeConstants.successGreen,
-                        fontSize: 10,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                   if (_newPaymentDriversThisMonth.contains(driver.id)) ...[
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6.w),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
                       decoration: BoxDecoration(
                         color: ThemeConstants.primaryOrange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10.r),
                         border: Border.all(color: ThemeConstants.primaryOrange.withOpacity(0.5)),
                       ),
-                      child: const Text(
+                      child: Text(
                         'MPYA',
                         style: TextStyle(
                           color: ThemeConstants.primaryOrange,
-                          fontSize: 9,
+                          fontSize: 9.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
-                  const SizedBox(width: 8),
-                  const Icon(
+                  SizedBox(width: 8.w),
+                  Icon(
                     Icons.arrow_forward_ios,
                     color: ThemeConstants.textSecondary,
-                    size: 16,
+                    size: 16.sp,
                   ),
                 ],
               ),

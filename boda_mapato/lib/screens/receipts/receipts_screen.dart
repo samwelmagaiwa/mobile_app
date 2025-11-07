@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
+import '../../services/localization_service.dart';
 import '../../models/receipt.dart';
 import '../../models/payment_receipt.dart';
 import '../../services/api_service.dart';
@@ -169,87 +172,21 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
     
-    return Scaffold(
-      backgroundColor: ThemeConstants.primaryBlue,
-      appBar: AppBar(
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) => Scaffold(
         backgroundColor: ThemeConstants.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Toa Risiti'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshReceipts,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Header with counter
-          _buildHeader(),
-          
-          // Search bar
-          _buildSearchBar(),
-          
-          const SizedBox(height: 16),
-          
-          // Content
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ThemeConstants.buildGlassCardStatic(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
+        appBar: AppBar(
+          backgroundColor: ThemeConstants.primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ThemeConstants.primaryOrange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.receipt_long,
-                  color: ThemeConstants.primaryOrange,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Uongozi wa Risiti',
-                      style: TextStyle(
-                        color: ThemeConstants.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Tengeneza na tuma risiti kwa madereva',
-                      style: TextStyle(
-                        color: ThemeConstants.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (!_isLoading)
+              Text(localizationService.translate('receipts')),
+              if (!_isLoading) ...[
+                const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: ThemeConstants.primaryOrange.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
@@ -261,19 +198,39 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     '$_totalReceipts',
                     style: const TextStyle(
                       color: ThemeConstants.primaryOrange,
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
+              ],
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _refreshReceipts,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Search bar
+            _buildSearchBar(localizationService),
+            
+            const SizedBox(height: 16),
+            
+            // Content
+            Expanded(
+              child: _buildContent(localizationService),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(LocalizationService localizationService) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -286,7 +243,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
             textInputAction: TextInputAction.search,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Tafuta kwa jina la dereva, namba ya risiti...',
+              hintText: '${localizationService.translate('search')}...',
               hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
               filled: true,
               fillColor: Colors.white.withOpacity(0.1),
@@ -321,7 +278,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   child: TextButton(
                     onPressed: () => _changeFilter('pending'),
                     child: Text(
-                      'Zinazosubiri',
+                      localizationService.translate('pending'),
                       style: TextStyle(
                         color: _selectedFilter == 'pending' 
                             ? Colors.white 
@@ -343,7 +300,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   child: TextButton(
                     onPressed: () => _changeFilter('all'),
                     child: Text(
-                      'Zote',
+                      localizationService.translate('all'),
                       style: TextStyle(
                         color: _selectedFilter == 'all' 
                             ? Colors.white 
@@ -360,7 +317,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(LocalizationService localizationService) {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
@@ -391,7 +348,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                 ),
-                child: const Text('Jaribu Tena'),
+                child: Text(localizationService.translate('try_again')),
               ),
             ],
           ),
@@ -419,8 +376,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               const SizedBox(height: 20),
               Text(
                 _selectedFilter == 'pending' 
-                    ? 'Hakuna malipo yanayosubiri risiti'
-                    : 'Hakuna risiti zilizozalishwa',
+                    ? localizationService.translate('no_pending_receipts')
+                    : localizationService.translate('no_receipts_generated'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -431,8 +388,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               const SizedBox(height: 8),
               Text(
                 _selectedFilter == 'pending'
-                    ? 'Malipo yote yamesha tengenezwa risiti'
-                    : 'Utaona orodha ya risiti zote hapa',
+                    ? localizationService.translate('all_payments_have_receipts')
+                    : localizationService.translate('receipts_list_empty'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
@@ -511,12 +468,14 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     color: Colors.orange.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Inasubiri',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                  child: Builder(
+                    builder: (context) => Text(
+                      Provider.of<LocalizationService>(context, listen: false).translate('pending'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -545,7 +504,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   ),
                 ),
                 Text(
-                  '${pendingReceipt.coveredDaysCount} siku',
+'${pendingReceipt.coveredDaysCount} ${Provider.of<LocalizationService>(context, listen: false).translate('days').toLowerCase()}',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 12,
@@ -554,19 +513,21 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.touch_app,
                   color: ThemeConstants.primaryOrange,
                   size: 16,
                 ),
-                SizedBox(width: 4),
-                Text(
-                  'Gonga kuona maelezo na kutengeneza risiti',
-                  style: TextStyle(
-                    color: ThemeConstants.primaryOrange,
-                    fontSize: 12,
+                const SizedBox(width: 4),
+                Builder(
+                  builder: (context) => Text(
+                    '${Provider.of<LocalizationService>(context, listen: false).translate('view_details')} • ${Provider.of<LocalizationService>(context, listen: false).translate('generate_receipt')}',
+                    style: const TextStyle(
+                      color: ThemeConstants.primaryOrange,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -590,11 +551,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: Colors.white.withOpacity(0.2),
           ),
@@ -616,43 +577,49 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8.w,
+                  vertical: 4.h,
                 ),
                 decoration: BoxDecoration(
                   color: _getStatusColor(receipt.status),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
-                child: Text(
-                  receipt.statusDisplayName,
-                  style: const TextStyle(
+                child: Builder(
+                  builder: (context) {
+                    final l10n = LocalizationService.instance;
+                    final key = 'receipt_status_${receipt.status.toLowerCase()}';
+                    return Text(
+                      l10n.translate(key),
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w600,
                   ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             receipt.driverName,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TSH ${_formatCurrency(receipt.amount)}',
-                style: const TextStyle(
+'TSH ${_formatCurrency(receipt.amount)}',
+                style: TextStyle(
                   color: ThemeConstants.primaryOrange,
-                  fontSize: 14,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -660,18 +627,18 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 _formatDate(receipt.generatedAt),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
+                  fontSize: 12.sp,
                 ),
               ),
             ],
           ),
           if (receipt.paymentChannel.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             Text(
               receipt.paymentChannelDisplayName,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.7),
-                fontSize: 12,
+                fontSize: 12.sp,
               ),
             ),
           ],

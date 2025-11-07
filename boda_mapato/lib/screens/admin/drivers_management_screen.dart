@@ -1455,7 +1455,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       builder: (final BuildContext context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           "Futa Dereva",
           style: ThemeConstants.headingStyle,
         ),

@@ -33,6 +33,9 @@ import 'screens/reminders/reminders_screen.dart';
 import 'screens/driver/driver_reminders_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/service_selection_screen.dart';
+import 'screens/coming_soon_screen.dart';
+import 'modules/inventory/screens/inventory_home.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
 import 'utils/web_keyboard_fix_stub.dart' if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
@@ -111,7 +114,7 @@ class BodaMapatoApp extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => ScreenUtilInit(
-        designSize: const Size(375, 812), // iPhone X design size as base
+        designSize: const Size(360, 690), // Base design size per requirements
         minTextAdapt: true,
         splitScreenMode: true,
         useInheritedMediaQuery: true,
@@ -170,7 +173,7 @@ class BodaMapatoApp extends StatelessWidget {
                   const DriversManagementScreen(),
               "/admin/vehicles": (final BuildContext context) =>
                   const VehiclesManagementScreen(),
-"/payments": (final BuildContext context) => const PaymentsScreen(),
+              "/payments": (final BuildContext context) => const PaymentsScreen(),
               "/admin/analytics": (final BuildContext context) =>
                   const AnalyticsScreen(),
               "/admin/reports": (final BuildContext context) =>
@@ -187,6 +190,12 @@ class BodaMapatoApp extends StatelessWidget {
                   const SettingsScreen(),
               "/demo": (final BuildContext context) =>
                   const DemoLanguageScreen(),
+              "/select-service": (final BuildContext context) =>
+                  const ServiceSelectionScreen(),
+              "/inventory": (final BuildContext context) =>
+                  const InventoryHome(),
+              "/coming-soon": (final BuildContext context) =>
+                  const ComingSoonScreen(),
             },
             ),
           ),
@@ -379,13 +388,30 @@ class _AuthWrapperState extends State<AuthWrapper> {
             if (!_languageChosenThisSession) {
               return _LanguageSelectionPage(onSelected: _onLanguageChosen);
             }
-            // After choosing language, show dashboard based on role
-            if (authProvider.user!.role == "admin" ||
-                authProvider.user!.role == "super_admin") {
-              return const ModernDashboardScreen();
-            } else {
-              return const DriverDashboardScreen();
-            }
+            // After choosing language, route by last selected service (persisted)
+            return FutureBuilder<SharedPreferences>(
+              future: SharedPreferences.getInstance(),
+              builder: (context, snap) {
+                if (!snap.hasData) return const _LanguageGateLoading();
+                final prefs = snap.data!;
+                final service = prefs.getString('selected_service');
+                // No service yet: ask user to choose
+                if (service == null) {
+                  return const ServiceSelectionScreen();
+                }
+                if (service == 'inventory') {
+                  return const InventoryHome();
+                }
+                if (service == 'rental' || service == 'transport') {
+                  return ComingSoonScreen(service: service);
+                }
+                // Fallback to existing role-based dashboards
+                if (authProvider.user!.role == "admin" || authProvider.user!.role == "super_admin") {
+                  return const ModernDashboardScreen();
+                }
+                return const DriverDashboardScreen();
+              },
+            );
           } else {
             // User is not authenticated, show login screen
             return const LoginScreen();

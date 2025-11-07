@@ -6,7 +6,9 @@ import "dart:ui";
 
 import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
-import "package:provider/provider.dart";
+import 'package:provider/provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../models/login_response.dart";
 import "../../models/user_permissions.dart";
@@ -1506,15 +1508,20 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               Icon(
                 _getCardIcon(title),
                 color: textPrimary,
-                size: 24,
+                size: 20.sp,
               ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+              SizedBox(width: 12.w),
+              Expanded(
+                child: AutoSizeText(
+                  title,
+                  style: const TextStyle(
+                    color: textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  minFontSize: 12,
+                  stepGranularity: 0.5,
                 ),
               ),
             ],
@@ -1775,7 +1782,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               color: Colors.white.withOpacity(0.2),
             ),
           ),
-          title: Text(
+          title: AutoSizeText(
             title,
             style: const TextStyle(
               color: textPrimary,

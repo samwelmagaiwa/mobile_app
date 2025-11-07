@@ -1,6 +1,8 @@
 // ignore_for_file: avoid_dynamic_calls
 import "dart:async";
 import "package:flutter/material.dart";
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
@@ -163,9 +165,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     padding: const EdgeInsets.all(AppStyles.spacingM),
                     child: Row(
                       children: <Widget>[
-                        const Icon(
+                        Icon(
                           Icons.receipt_long,
-                          size: 32,
+                          size: 32.sp,
                           color: AppColors.primary,
                         ),
                         const SizedBox(width: AppStyles.spacingM),
@@ -313,9 +315,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       padding: const EdgeInsets.all(AppStyles.spacingL),
                       child: Column(
                         children: <Widget>[
-                          const Icon(
+                          Icon(
                             Icons.receipt,
-                            size: 48,
+                            size: 48.sp,
                             color: AppColors.textHint,
                           ),
                           const SizedBox(height: AppStyles.spacingM),
@@ -423,14 +425,19 @@ class _ReceiptPreviewDialog extends StatelessWidget {
             // Header
             Row(
               children: <Widget>[
-                const Text(
-                  "Muhtasari wa Risiti",
-                  style: AppStyles.heading3,
+                Expanded(
+                  child: AutoSizeText(
+                    "Muhtasari wa Risiti",
+                    style: AppStyles.heading3,
+                    maxLines: 1,
+                    minFontSize: 12,
+                    stepGranularity: 0.5,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, size: 18.sp),
                 ),
               ],
             ),

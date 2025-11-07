@@ -5,6 +5,8 @@ import '../services/localization_service.dart';
 import '../screens/receipts/receipts_screen.dart';
 import '../constants/theme_constants.dart';
 import 'package:provider/provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../providers/auth_provider.dart';
 
 // ignore_for_file: directives_ordering
@@ -384,16 +386,21 @@ class NavigationBuilder {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    localization.translate('menu') ?? 'Menu',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: AutoSizeText(
+                      localization.translate('menu') ?? 'Menu',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      minFontSize: 12,
+                      stepGranularity: 0.5,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
+                    icon: Icon(Icons.close, color: Colors.white70, size: 18.sp),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],

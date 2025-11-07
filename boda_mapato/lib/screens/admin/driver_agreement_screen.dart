@@ -318,33 +318,38 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
 
     // Validate payment frequency selection
     if (!_dailyPayment && !_weeklyPayment && !_monthlyPayment) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Chagua angalau mzunguko mmoja wa malipo"),
-          backgroundColor: Colors.orange,
-        ),
+      ThemeConstants.showWarningSnackBar(
+        context,
+        "Chagua angalau mzunguko mmoja wa malipo",
       );
       _submitLock = false;
       return;
     }
 
-    // Preflight: avoid creating when an active agreement already exists
+    // Preflight: avoid creating when an active/ongoing agreement already exists
     try {
       await _apiService.initialize();
       final Map<String, dynamic> existing =
           await _apiService.getDriverAgreementByDriverId(widget.driverId);
-      final bool hasData = existing['data'] != null;
-      if (hasData) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Dereva tayari anayo makubaliano hai."),
-              backgroundColor: Colors.orange,
-            ),
+
+      final dynamic data = existing['data'];
+      if (data is Map<String, dynamic>) {
+        final String status = (data['status']?.toString() ?? '').toLowerCase();
+        // Only block if truly active/ongoing; allow if old/completed/terminated
+        final bool block = status == 'active' ||
+            status == 'ongoing' ||
+            status == 'in_progress' ||
+            status == 'pending';
+        if (block) {
+          if (mounted) {
+          ThemeConstants.showWarningSnackBar(
+            context,
+            "Dereva tayari anayo makubaliano hai.",
           );
+          }
+          _submitLock = false;
+          return;
         }
-        _submitLock = false;
-        return;
       }
     } on Exception {
       // If 404 or other error, proceed; server will enforce final check
@@ -354,11 +359,9 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     if (_selectedAgreementType == "Kwa Mkataba") {
       if (_selectedStartDate == null || _selectedEndDate == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Chagua tarehe za kuanza na kumaliza kwa mkataba"),
-              backgroundColor: Colors.orange,
-            ),
+          ThemeConstants.showWarningSnackBar(
+            context,
+            "Chagua tarehe za kuanza na kumaliza kwa mkataba",
           );
         }
         _submitLock = false;
@@ -366,12 +369,9 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       }
       if (_selectedEndDate!.isBefore(_selectedStartDate!)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text("Tarehe ya kumaliza lazima iwe baada ya tarehe ya kuanza"),
-              backgroundColor: Colors.orange,
-            ),
+          ThemeConstants.showWarningSnackBar(
+            context,
+            "Tarehe ya kumaliza lazima iwe baada ya tarehe ya kuanza",
           );
         }
         _submitLock = false;
@@ -384,26 +384,39 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     });
 
     try {
-      // Prepare payment frequencies array
+      // Prepare payment frequencies array (backend expects kila_siku/kila_wiki/kila_mwezi)
       final List<String> paymentFrequencies = [];
-      if (_dailyPayment) paymentFrequencies.add("daily");
-      if (_weeklyPayment) paymentFrequencies.add("weekly");
-      if (_monthlyPayment) paymentFrequencies.add("monthly");
+      if (_dailyPayment) paymentFrequencies.add("kila_siku");
+      if (_weeklyPayment) paymentFrequencies.add("kila_wiki");
+      if (_monthlyPayment) paymentFrequencies.add("kila_mwezi");
+
+      String _ymd(DateTime d) {
+        String two(int n) => n < 10 ? '0$n' : '$n';
+        return '${d.year}-${two(d.month)}-${two(d.day)}';
+      }
+
+      // Backend agreement_type values: kwa_mkataba | dei_waka
+      final String mappedType =
+          _selectedAgreementType == 'Kwa Mkataba' ? 'kwa_mkataba' : 'dei_waka';
 
       final Map<String, dynamic> agreementData = <String, dynamic>{
         "driver_id": widget.driverId,
-        "agreement_type":
-            _selectedAgreementType.toLowerCase().replaceAll(' ', '_'),
-        "start_date": _selectedStartDate!.toIso8601String(),
-        "weekends_countable": _weekendsCountable,
-        "saturday_included": _saturdayIncluded,
-        "sunday_included": _sundayIncluded,
+        "agreement_type": mappedType,
+        // Send date-only (Y-m-d)
+        "start_date": _ymd(_selectedStartDate!),
+        // Boolean flags as expected by backend keys
+        "wikendi_zinahesabika": _weekendsCountable,
+        "jumamosi": _saturdayIncluded,
+        "jumapili": _sundayIncluded,
+        // Frequencies in expected enum values
         "payment_frequencies": paymentFrequencies,
-        "agreed_amount": double.tryParse(_agreedAmountController.text) ?? 0,
+        // Amount field name used by model/backend
+        "kiasi_cha_makubaliano": double.tryParse(_agreedAmountController.text) ?? 0,
         if (_selectedAgreementType == "Kwa Mkataba") ...<String, dynamic>{
-          "end_date": _selectedEndDate!.toIso8601String(),
-          "total_profit": _totalProfit,
-          if (_contractMonths != null) "contract_period_months": _contractMonths,
+          "end_date": _ymd(_selectedEndDate!),
+          // Optional derived fields the backend might accept
+          "faida_jumla": _totalProfit,
+          // Many backends don’t need contract months; omit unless required
         },
       };
 
@@ -415,11 +428,9 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
 
       if (ok) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Makubaliano yamehifadhiwa kwa mafanikio"),
-              backgroundColor: Colors.green,
-            ),
+          ThemeConstants.showSuccessSnackBar(
+            context,
+            "Makubaliano yamehifadhiwa kwa mafanikio",
           );
 
           // Call the callback if provided
@@ -437,11 +448,9 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kuhifadhi: $e"),
-            backgroundColor: Colors.red,
-          ),
+        ThemeConstants.showErrorSnackBar(
+          context,
+          "Hitilafu katika kuhifadhi: $e",
         );
       }
     } finally {

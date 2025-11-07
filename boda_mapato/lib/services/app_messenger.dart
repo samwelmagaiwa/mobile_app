@@ -7,32 +7,47 @@ class AppMessenger {
       GlobalKey<ScaffoldMessengerState>();
 
   static void show(String message, {Color? color, bool isSuccess = true}) {
-    final state = key.currentState;
-    if (state == null) return;
-    state
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            message,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+    final BuildContext? ctx = key.currentContext;
+    if (ctx == null) return;
+    final OverlayState? overlay = Overlay.of(ctx, rootOverlay: true);
+    if (overlay == null) return;
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: color ?? (isSuccess ? Colors.green.shade600 : Colors.red.shade400),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
           ),
-          backgroundColor: color ?? (isSuccess ? Colors.green.shade600 : Colors.red.shade400),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.only(
-            top: 50, // Position at top
-            left: 16,
-            right: 16,
-            bottom: 16,
-          ),
-          duration: const Duration(seconds: 3),
         ),
-      );
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 3), () => entry.remove());
   }
 
   static void showSuccess(String message) {

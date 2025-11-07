@@ -321,7 +321,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               color: ThemeConstants.textSecondary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               "Hakuna Vikumbusho",
               style: ThemeConstants.headingStyle,
               textAlign: TextAlign.center,
@@ -360,14 +360,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
       children: <Widget>[
         // Overdue Reminders Section
         if (overdueReminders.isNotEmpty) ...<Widget>[
-          const Row(
+          Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.warning,
                 color: ThemeConstants.errorRed,
                 size: 20,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 "Vikumbusho Vilivyochelewa",
                 style: ThemeConstants.headingStyle,
@@ -382,7 +382,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
         // Active Reminders Section
         if (upcomingReminders.isNotEmpty) ...<Widget>[
-          const Text(
+          Text(
             "Vikumbusho vya Baadaye",
             style: ThemeConstants.headingStyle,
           ),
@@ -523,7 +523,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         backgroundColor: ThemeConstants.cardColor,
-        title: const Text(
+        title: Text(
           "Futa Kikumbusho",
           style: ThemeConstants.headingStyle,
         ),
@@ -700,7 +700,7 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
             // Header
             Row(
               children: <Widget>[
-                const Text(
+                Text(
                   "Kikumbusho Kipya",
                   style: ThemeConstants.headingStyle,
                 ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
@@ -144,8 +146,8 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: <Widget>[
                                         IconButton(
-                                          icon: const Icon(Icons.edit,
-                                              color: Colors.white70, size: 20),
+                                          icon: Icon(Icons.edit,
+                                              color: Colors.white70, size: 18.sp),
                                           onPressed: isPaid
                                               ? null
                                               : () async {
@@ -178,8 +180,8 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                                                 },
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.delete,
-                                              color: Colors.white70, size: 20),
+                                          icon: Icon(Icons.delete,
+                                              color: Colors.white70, size: 18.sp),
                                           onPressed: isPaid
                                               ? null
                                               : () => _confirmDelete(
@@ -206,9 +208,9 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
             color: Colors.white.withOpacity(0.08),
             borderRadius: BorderRadius.circular(10)),
         child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Icon(icon, color: color, size: 14),
+          Icon(icon, color: color, size: 14.sp),
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: color, fontSize: 12)),
+          Text(text, style: TextStyle(color: color, fontSize: 12.sp)),
         ]),
       );
 
@@ -218,7 +220,7 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
       builder: (BuildContext context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Futa Deni', style: TextStyle(color: Colors.white)),
+        title: const AutoSizeText('Futa Deni', style: TextStyle(color: Colors.white), maxLines: 1, minFontSize: 12, stepGranularity: 0.5),
         content: const Text('Je, una uhakika unataka kufuta deni hili?',
             style: TextStyle(color: Colors.white70)),
         actions: <Widget>[

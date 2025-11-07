@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
 
@@ -37,13 +38,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
                           color: ThemeConstants.primaryOrange.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.language,
                           color: ThemeConstants.primaryOrange,
-                          size: 24,
+                          size: 20.sp,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16.w),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,12 +104,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         color: ThemeConstants.primaryOrange,
-                        size: 20,
+                        size: 18.sp,
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.w),
                       Expanded(
                         child: Text(
                           _localizationService.isSwahili 
@@ -141,7 +142,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Text(
         flag,
-        style: const TextStyle(fontSize: 24),
+        style: TextStyle(fontSize: 24.sp),
       ),
       title: Text(
         languageName,
@@ -152,15 +153,15 @@ class _LanguageScreenState extends State<LanguageScreen> {
         ),
       ),
       trailing: isSelected 
-        ? const Icon(
+        ? Icon(
             Icons.check_circle,
             color: ThemeConstants.primaryOrange,
-            size: 20,
+            size: 18.sp,
           )
-        : const Icon(
+        : Icon(
             Icons.radio_button_unchecked,
             color: ThemeConstants.textSecondary,
-            size: 20,
+            size: 18.sp,
           ),
       onTap: () => _changeLanguage(languageCode),
     );

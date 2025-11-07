@@ -1,8 +1,9 @@
-import "package:flutter/material.dart";
-import "../constants/colors.dart";
-import "../constants/styles.dart";
-import "../models/reminder.dart";
-import "../utils/date_utils.dart";
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../constants/colors.dart';
+import '../constants/strings.dart';
+import '../constants/styles.dart';
+import '../models/reminder.dart';
 
 class ReminderTile extends StatelessWidget {
   const ReminderTile({
@@ -158,7 +159,7 @@ class ReminderTile extends StatelessWidget {
                               value: "complete",
                               child: Row(
                                 children: <Widget>[
-                                  Icon(Icons.check, size: 16),
+                                  Icon(Icons.check, size: 16.sp),
                                   SizedBox(width: 8),
                                   Text("Kamilisha"),
                                 ],
@@ -168,7 +169,7 @@ class ReminderTile extends StatelessWidget {
                             value: "edit",
                             child: Row(
                               children: <Widget>[
-                                Icon(Icons.edit, size: 16),
+                                Icon(Icons.edit, size: 16.sp),
                                 SizedBox(width: 8),
                                 Text("Hariri"),
                               ],
@@ -180,7 +181,7 @@ class ReminderTile extends StatelessWidget {
                               children: <Widget>[
                                 Icon(
                                   Icons.delete,
-                                  size: 16,
+                                  size: 16.sp,
                                   color: AppColors.error,
                                 ),
                                 SizedBox(width: 8),
@@ -211,7 +212,7 @@ class ReminderTile extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: onComplete,
-                        icon: const Icon(Icons.check, size: 16),
+                        icon: Icon(Icons.check, size: 16.sp),
                         label: const Text("Kamilisha"),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.success,
@@ -231,7 +232,7 @@ class ReminderTile extends StatelessWidget {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.snooze, size: 16),
+                        icon: Icon(Icons.snooze, size: 16.sp),
                         label: const Text("Songeza"),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.warning,

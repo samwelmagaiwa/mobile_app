@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../utils/responsive_helper.dart';
 
 class ThemeConstants {
@@ -19,7 +20,7 @@ class ThemeConstants {
   // Glass card decoration
   static BoxDecoration glassCardDecoration = BoxDecoration(
     color: cardColor,
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(20.r),
     border: Border.all(color: Colors.white.withOpacity(0.2)),
     boxShadow: <BoxShadow>[],
   );
@@ -28,9 +29,9 @@ class ThemeConstants {
   static AppBar buildAppBar(String title, {List<Widget>? actions}) => AppBar(
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: textPrimary,
-            fontSize: 20,
+            fontSize: 20.sp,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -54,7 +55,7 @@ class ThemeConstants {
           child: DecoratedBox(
             decoration: glassCardDecoration,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: child,
@@ -68,7 +69,7 @@ class ThemeConstants {
   static Widget buildGlassCardStatic({required Widget child}) => DecoratedBox(
         decoration: glassCardDecoration,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: child,
@@ -96,19 +97,19 @@ class ThemeConstants {
       );
 
   // Loading widget
-  static Widget buildLoadingWidget() => const Center(
+  static Widget buildLoadingWidget() => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-            SizedBox(height: 24),
+            SizedBox(height: 24.h),
             Text(
               "Inapakia...",
               style: TextStyle(
                 color: textSecondary,
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -117,27 +118,27 @@ class ThemeConstants {
       );
 
   // Text styles
-  static const TextStyle headingStyle = TextStyle(
+  static TextStyle get headingStyle => TextStyle(
     color: textPrimary,
-    fontSize: 18,
+    fontSize: 18.sp,
     fontWeight: FontWeight.bold,
   );
 
-  static const TextStyle subHeadingStyle = TextStyle(
+  static TextStyle get subHeadingStyle => TextStyle(
     color: textSecondary,
-    fontSize: 16,
+    fontSize: 16.sp,
     fontWeight: FontWeight.w600,
   );
 
-  static const TextStyle bodyStyle = TextStyle(
+  static TextStyle get bodyStyle => TextStyle(
     color: textPrimary,
-    fontSize: 14,
+    fontSize: 14.sp,
     fontWeight: FontWeight.normal,
   );
 
-  static const TextStyle captionStyle = TextStyle(
+  static TextStyle get captionStyle => TextStyle(
     color: textSecondary,
-    fontSize: 12,
+    fontSize: 12.sp,
     fontWeight: FontWeight.normal,
   );
 

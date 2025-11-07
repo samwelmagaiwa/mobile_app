@@ -48,6 +48,7 @@ dependencies:
   
   # Responsive design
   flutter_screenutil: ^5.9.3
+  auto_size_text: ^3.0.0
   
   # HTTP requests
   http: ^1.1.0

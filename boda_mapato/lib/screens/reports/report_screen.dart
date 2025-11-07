@@ -1,6 +1,8 @@
 import 'dart:async';
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
@@ -359,10 +361,10 @@ class _ReportScreenState extends State<ReportScreen> {
                       color: ThemeConstants.primaryOrange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.analytics_outlined,
                       color: ThemeConstants.primaryOrange,
-                      size: 24,
+                      size: 24.sp,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -399,14 +401,14 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _buildQuickStatsSection() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Row(
+          Row(
             children: <Widget>[
               Icon(
                 Icons.dashboard_outlined,
                 color: ThemeConstants.textPrimary,
-                size: 20,
+                size: 20.sp,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 "Muhtasari wa Haraka",
                 style: ThemeConstants.headingStyle,
@@ -496,10 +498,10 @@ child: _buildEnhancedStatCard(
                       color: ThemeConstants.successGreen.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.account_balance_wallet,
                       color: ThemeConstants.successGreen,
-                      size: 20,
+                      size: 20.sp,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -589,14 +591,14 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
   Widget _buildReportTypesSection() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Row(
+          Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.category_outlined,
                 color: ThemeConstants.textPrimary,
                 size: 20,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 "Aina za Ripoti",
                 style: ThemeConstants.headingStyle,
@@ -670,14 +672,14 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
   Widget _buildDateRangeSection() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Row(
+          Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.event_outlined,
                 color: ThemeConstants.textPrimary,
                 size: 20,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 "Chagua Kipindi",
                 style: ThemeConstants.headingStyle,
@@ -697,10 +699,10 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                       color: ThemeConstants.primaryOrange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.date_range,
                       color: ThemeConstants.primaryOrange,
-                      size: 20,
+                      size: 20.sp,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -733,9 +735,9 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                       color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_forward_ios,
-                      size: 16,
+                      size: 16.sp,
                       color: ThemeConstants.textSecondary,
                     ),
                   ),
@@ -791,9 +793,9 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                 ),
                 const SizedBox(width: 12),
               ] else ...[
-                const Icon(
+                Icon(
                   Icons.analytics,
-                  size: 20,
+                  size: 20.sp,
                 ),
                 const SizedBox(width: 12),
               ],

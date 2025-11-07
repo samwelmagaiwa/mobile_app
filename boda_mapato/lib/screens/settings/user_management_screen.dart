@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
@@ -86,9 +87,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
+        title: AutoSizeText(
           _loc.translate('create_user'),
           style: const TextStyle(color: ThemeConstants.textPrimary),
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
         ),
         content: Form(
           key: formKey,
@@ -344,7 +348,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(_loc.translate('reset_password'), style: const TextStyle(color: ThemeConstants.textPrimary)),
+        title: AutoSizeText(_loc.translate('reset_password'), style: const TextStyle(color: ThemeConstants.textPrimary), maxLines: 1, minFontSize: 12, stepGranularity: 0.5),
         content: Text(
           _loc.isSwahili
               ? 'Utarejesha nywila ya ${user['name']} kuwa "$defaultPassword"?'
@@ -391,7 +395,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(_loc.isSwahili ? 'Thibitisha' : 'Confirm', style: const TextStyle(color: ThemeConstants.textPrimary)),
+        title: AutoSizeText(_loc.isSwahili ? 'Thibitisha' : 'Confirm', style: const TextStyle(color: ThemeConstants.textPrimary), maxLines: 1, minFontSize: 12, stepGranularity: 0.5),
         content: Text(
           _loc.isSwahili ? 'Una uhakika unataka kufuta mtumiaji huyu?' : 'Are you sure you want to delete this user?',
           style: const TextStyle(color: ThemeConstants.textSecondary),

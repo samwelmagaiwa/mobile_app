@@ -6,9 +6,11 @@ import "package:provider/provider.dart";
 import "../../constants/theme_constants.dart";
 import "../../models/communication.dart";
 import "../../models/driver.dart";
-import "../../services/api_service.dart";
 import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
+import '../../services/api_service.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
@@ -526,10 +528,10 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.filter_list,
                 color: ThemeConstants.primaryOrange,
-                size: 24,
+                size: 20.sp,
               ),
               ResponsiveHelper.horizontalSpace(2),
               Text(
@@ -545,7 +547,7 @@ onPressed: _showAddCommunicationDialog,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
-                icon: const Icon(Icons.add, size: 16),
+                icon: Icon(Icons.add, size: 16.sp),
                 label: Text(
                   ResponsiveHelper.isMobile ? localizationService.translate("add") : localizationService.translate("add_communication"),
                   style: const TextStyle(fontSize: 12),
@@ -720,7 +722,7 @@ onPressed: _showAddCommunicationDialog,
           style: TextStyle(
             color: isSelected ? Colors.white : ThemeConstants.textPrimary,
             fontWeight: FontWeight.w500,
-            fontSize: 12,
+            fontSize: 12.sp,
           ),
         ),
       ),
@@ -786,9 +788,9 @@ onPressed: _showAddCommunicationDialog,
                   child: Center(
                     child: Column(
                       children: <Widget>[
-                        const Icon(
+                        Icon(
                           Icons.chat_bubble_outline,
-                          size: 48,
+                          size: 48.sp,
                           color: ThemeConstants.textSecondary,
                         ),
                         ResponsiveHelper.verticalSpace(1),
@@ -949,13 +951,16 @@ onTap: () => _showCommunicationDetails(communication),
             children: <Widget>[
               Text(
                 communication.mode.icon,
-                style: const TextStyle(fontSize: 24),
+                style: TextStyle(fontSize: 20.sp),
               ),
               ResponsiveHelper.horizontalSpace(1),
               Expanded(
-                child: Text(
+                child: AutoSizeText(
                   "Maelezo ya Mawasiliano",
                   style: ThemeConstants.responsiveHeadingStyle(context),
+                  maxLines: 1,
+                  minFontSize: 12,
+                  stepGranularity: 0.5,
                 ),
               ),
             ],
@@ -1081,15 +1086,20 @@ onTap: () => _showCommunicationDetails(communication),
               backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
               title: Row(
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.add_comment,
                     color: ThemeConstants.primaryOrange,
-                    size: 24,
+                    size: 20.sp,
                   ),
                   ResponsiveHelper.horizontalSpace(1),
-                  Text(
-                    "Ongeza Mawasiliano",
-                    style: ThemeConstants.responsiveHeadingStyle(context),
+                  Expanded(
+                    child: AutoSizeText(
+                      "Ongeza Mawasiliano",
+                      style: ThemeConstants.responsiveHeadingStyle(context),
+                      maxLines: 1,
+                      minFontSize: 12,
+                      stepGranularity: 0.5,
+                    ),
                   ),
                 ],
               ),

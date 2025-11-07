@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/payment_receipt.dart';
 import '../../services/api_service.dart';
 import '../../services/app_events.dart';
+import '../../services/localization_service.dart';
 import '../../utils/responsive_helper.dart';
 
 class ReceiptDetailScreen extends StatefulWidget {
@@ -115,7 +118,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
   Future<void> _generateReceipt() async {
     // Check if receipt already exists
     if (_existingReceipt != null) {
-      _showSnack('Risiti tayari imetengenezwa kwa malipo haya!', isError: true);
+      _showSnack(LocalizationService.instance.translate('receipt_already_generated_for_payment'), isError: true);
       return;
     }
 
@@ -128,17 +131,17 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
           _generatedReceipt = res['data'] as Map<String, dynamic>;
           _existingReceipt = res['data'] as Map<String, dynamic>; // Mark as existing
         });
-        _showSnack('Risiti imetengenezwa!');
+        _showSnack(LocalizationService.instance.translate('receipt_generated'));
         await _refreshPage();
         AppEvents.instance.emit(AppEventType.receiptsUpdated);
         AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
       } else {
         // Check if the error is about duplicate receipt
-        final errorMessage = res['message']?.toString() ?? 'Imeshindikana kutengeneza risiti';
+        final errorMessage = res['message']?.toString() ?? LocalizationService.instance.translate('failed_to_generate_receipt');
         if (errorMessage.toLowerCase().contains('already exists') || 
             errorMessage.toLowerCase().contains('duplicate') ||
             errorMessage.toLowerCase().contains('tayari')) {
-          _showSnack('Risiti tayari imetengenezwa kwa malipo haya!', isError: true);
+          _showSnack(LocalizationService.instance.translate('receipt_already_generated_for_payment'), isError: true);
           // Try to find the existing receipt
           await _checkExistingReceipt();
         } else {
@@ -146,7 +149,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         }
       }
     } on Exception catch (e) {
-      _showSnack('Hitilafu: ${e.toString().replaceFirst('Exception: ', '')}', isError: true);
+      _showSnack('${LocalizationService.instance.translate('error')}: ${e.toString().replaceFirst('Exception: ', '')}', isError: true);
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }
@@ -167,12 +170,12 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         _generatedReceipt!['receipt_id']?.toString() ??
         '';
     if (receiptId.isEmpty) {
-      _showSnack('Hakuna kitambulisho cha risiti', isError: true);
+      _showSnack(LocalizationService.instance.translate('missing_receipt_id'), isError: true);
       return;
     }
 
     if (_contactController.text.trim().isEmpty) {
-      _showSnack('Weka mawasiliano (namba au barua pepe)', isError: true);
+      _showSnack(LocalizationService.instance.translate('enter_contact_info'), isError: true);
       return;
     }
 
@@ -192,16 +195,16 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             _existingReceipt = _generatedReceipt;
           });
         }
-        _showSnack('Risiti imetumwa!');
+        _showSnack(LocalizationService.instance.translate('receipt_sent'));
         await _refreshPage();
         AppEvents.instance.emit(AppEventType.receiptsUpdated);
         AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
         // Optionally keep user on this screen to see refreshed state.
       } else {
-        throw Exception(res['message'] ?? 'Imeshindikana kutuma risiti');
+        throw Exception(res['message'] ?? LocalizationService.instance.translate('failed_to_send_receipt'));
       }
     } on Exception catch (e) {
-      _showSnack('Hitilafu: $e', isError: true);
+      _showSnack('${LocalizationService.instance.translate('error')}: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -219,32 +222,36 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
 
-    return ThemeConstants.buildScaffold(
-      title: 'Maelezo ya Risiti',
-      body: FadeTransition(
-        opacity: _fade,
-        child: RefreshIndicator(
-          onRefresh: _refreshPage,
-          color: ThemeConstants.primaryBlue,
-          backgroundColor: Colors.white,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 16),
-              _buildPaymentInfoCard(),
-              const SizedBox(height: 16),
-              _buildGenerateSection(),
-              const SizedBox(height: 16),
-              _buildSendSection(),
-            ],
+    return Consumer<LocalizationService>(
+      builder: (context, l10n, _) {
+        return ThemeConstants.buildScaffold(
+          title: l10n.translate('receipt_details'),
+          body: FadeTransition(
+            opacity: _fade,
+            child: RefreshIndicator(
+              onRefresh: _refreshPage,
+              color: ThemeConstants.primaryBlue,
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 16),
+                    _buildPaymentInfoCard(),
+                    const SizedBox(height: 16),
+                    _buildGenerateSection(),
+                    const SizedBox(height: 16),
+                    _buildSendSection(),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
-    ),
+        );
+      },
     );
   }
 
@@ -256,10 +263,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: ThemeConstants.primaryOrange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
               ),
               child:
                   const Icon(Icons.person, color: ThemeConstants.primaryOrange),
@@ -299,9 +306,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
               ),
               child: Text(
                 r.formattedAmount,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  fontSize: 12.sp,
                 ),
               ),
             )
@@ -313,21 +321,22 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
 
   Widget _buildPaymentInfoCard() {
     final r = widget.pendingReceipt;
+    final l10n = LocalizationService.instance;
     return ThemeConstants.buildGlassCardStatic(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _row('Tarehe ya Malipo', r.formattedDate),
+            _row(l10n.translate('payment_date'), r.formattedDate),
+            SizedBox(height: 8.h),
+            _row(l10n.translate('payment_method'), r.formattedPaymentChannel),
             const SizedBox(height: 8),
-            _row('Njia ya Malipo', r.formattedPaymentChannel),
+            _row(l10n.translate('payment_period'), r.paymentPeriod),
             const SizedBox(height: 8),
-            _row('Muda Uliolipwa', r.paymentPeriod),
+            _row(l10n.translate('covered_days'), r.coveredDaysCount.toString()),
             const SizedBox(height: 8),
-            _row('Siku Zilizofunikwa', r.coveredDaysCount.toString()),
-            const SizedBox(height: 8),
-            _row('Deni la Tarehe', _formatCoveredDays(r.coveredDays)),
+            _row(l10n.translate('debt_on_dates'), _formatCoveredDays(r.coveredDays)),
             if (r.hasRemainingDebt) ...[
               const SizedBox(height: 8),
               _debtNotice(
@@ -335,7 +344,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             ],
             if ((r.remarks ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
-              _row('Maelezo', r.remarks!),
+              _row(l10n.translate('remarks'), r.remarks!),
             ],
           ],
         ),
@@ -354,9 +363,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Hatua ya 1: Tengeneza Risiti',
-              style: TextStyle(
+            Text(
+              LocalizationService.instance.translate('step_1_generate_receipt'),
+              style: const TextStyle(
                 color: ThemeConstants.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -365,10 +374,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
             const SizedBox(height: 8),
             Text(
               _existingReceipt != null
-                  ? 'Risiti tayari imetengenezwa kwa malipo haya.'
+                  ? LocalizationService.instance.translate('receipt_already_generated_for_payment')
                   : (_generatedReceipt == null
-                      ? 'Bonyeza hapa chini kutengeneza risiti ya malipo haya.'
-                      : 'Risiti imetengenezwa. Unaweza kuituma sasa.'),
+                      ? LocalizationService.instance.translate('press_below_to_generate_receipt')
+                      : LocalizationService.instance.translate('receipt_generated_you_can_send')),
               style: TextStyle(
                 color: _existingReceipt != null 
                     ? ThemeConstants.primaryOrange 
@@ -399,9 +408,12 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                       )
                     : const Icon(Icons.receipt),
                 label: Text(
-                    _isAlreadyGenerated
-                        ? 'Tayari Imetengenezwa'
-                        : (_isGenerating ? 'Inatengeneza...' : 'Tengeneza Risiti')),
+                  _isAlreadyGenerated
+                      ? LocalizationService.instance.translate('already_generated')
+                      : (_isGenerating
+                          ? LocalizationService.instance.translate('generating')
+                          : LocalizationService.instance.translate('generate_receipt')),
+                ),
               ),
             ),
             // Preview moved to main layout when generated
@@ -551,9 +563,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Hatua ya 2: Tuma Risiti',
-              style: TextStyle(
+            Text(
+              LocalizationService.instance.translate('step_2_send_receipt'),
+              style: const TextStyle(
                 color: ThemeConstants.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -575,8 +587,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: _sendMethod == ReceiptSendMethod.email
-                    ? 'Barua Pepe ya Mpokeaji'
-                    : 'Namba ya Simu ya WhatsApp/SMS',
+                    ? LocalizationService.instance.translate('recipient_email')
+                    : LocalizationService.instance.translate('recipient_phone'),
                 labelStyle:
                     const TextStyle(color: ThemeConstants.textSecondary),
                 filled: true,
@@ -612,14 +624,19 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.send),
-                label: Text(_isSending ? 'Inatuma...' : (alreadySent ? 'Imetumwa' : 'Tuma Risiti')),
+                label: Text(
+                  _isSending
+                      ? LocalizationService.instance.translate('sending')
+                      : (alreadySent
+                          ? LocalizationService.instance.translate('sent')
+                          : LocalizationService.instance.translate('send_receipt')),
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Baada ya kutuma, hali ya muamala itabadilika kuwa “risiti imetolewa.”',
-              style:
-                  TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
+            Text(
+              LocalizationService.instance.translate('after_sending_status_will_change'),
+              style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -632,7 +649,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
     if (days.length == 1) return _formatDate(days.first);
     final String first = _formatDate(days.first);
     final String last = _formatDate(days.last);
-    return '$first - $last (siku ${days.length})';
+    final String daysLabel = LocalizationService.instance.translate('days').toLowerCase();
+    return '$first - $last ($daysLabel ${days.length})';
   }
 
   String _formatDate(String isoOrYmd) {
@@ -715,8 +733,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-                color: ThemeConstants.textSecondary, fontSize: 13),
+            style: TextStyle(
+              color: ThemeConstants.textSecondary,
+              fontSize: 13.sp,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -724,9 +744,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: ThemeConstants.textPrimary,
-              fontSize: 14,
+              fontSize: 13.sp,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.right,

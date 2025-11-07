@@ -565,14 +565,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 backgroundColor: ThemeConstants.primaryBlue,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
-                title: const Row(
+                title: Row(
                   children: <Widget>[
-                    Icon(
+                    const Icon(
                       Icons.check_circle,
                       color: ThemeConstants.successGreen,
                       size: 28,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text(
                       "Ripoti Imeundwa!",
                       style: ThemeConstants.headingStyle,
@@ -1026,14 +1026,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               backgroundColor: ThemeConstants.primaryBlue,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
-              title: const Row(
+              title: Row(
                 children: <Widget>[
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: ThemeConstants.successGreen,
                     size: 28,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
                     "Ripoti Imeundwa!",
                     style: ThemeConstants.headingStyle,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../services/api_service.dart';
@@ -308,7 +310,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
           return AlertDialog(
             backgroundColor: ThemeConstants.primaryBlue,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Rekodi Malipo', style: TextStyle(color: Colors.white)),
+            title: const AutoSizeText('Rekodi Malipo',
+                style: TextStyle(color: Colors.white),
+                maxLines: 1,
+                minFontSize: 12,
+                stepGranularity: 0.5),
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -945,7 +951,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Maelezo ya Malipo - $driverName"),
+        title: AutoSizeText(
+          "Maelezo ya Malipo - $driverName",
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
+        ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1026,7 +1037,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Weka Kuwa Yaliyolipwa"),
+        title: const AutoSizeText(
+          "Weka Kuwa Yaliyolipwa",
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
+        ),
         content: Text(
           "Je, una uhakika malipo ya ${payment["driver_name"]} ya TSH ${_formatCurrency(_toDouble(payment["amount"]))} yamelipwa?",
         ),
@@ -1219,7 +1235,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
         builder: (context, setStateDialog) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text("Hariri Malipo - ${payment["driver_name"]}"),
+            title: AutoSizeText(
+              "Hariri Malipo - ${payment["driver_name"]}",
+              maxLines: 1,
+              minFontSize: 12,
+              stepGranularity: 0.5,
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1319,7 +1340,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Futa Malipo"),
+        title: const AutoSizeText(
+          "Futa Malipo",
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
+        ),
         content: Text(
           "Je, una uhakika unataka kufuta malipo ya ${payment["driver_name"]} ya TSH ${_formatCurrency(_toDouble(payment["amount"]))}? Kitendo hiki hakiwezi kurudishwa.",
         ),
@@ -1501,7 +1527,7 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                   borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 2),
                 ),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.lock_open, color: ThemeConstants.primaryOrange),
+                    icon: Icon(Icons.lock_open, color: ThemeConstants.primaryOrange, size: 18.sp),
                   tooltip: 'Badilisha dereva',
                   onPressed: () async {
                     setStateDialog(() {
@@ -1528,7 +1554,8 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                   value: selectedDriverId,
                   dropdownColor: ThemeConstants.primaryBlue,
 style: const TextStyle(color: Colors.white, fontSize: 16),
-                  iconEnabledColor: Colors.white70,
+                    iconEnabledColor: Colors.white70,
+                    icon: Icon(Icons.arrow_drop_down, size: 18.sp, color: Colors.white70),
                   decoration: InputDecoration(
                     labelText: 'Chagua Dereva',
 labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
@@ -1580,7 +1607,7 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                     onPressed: selectedDriverId == null
                         ? null
                         : () => setStateDialog(() => lockDriver = true),
-                    icon: const Icon(Icons.lock, size: 16),
+                    icon: Icon(Icons.lock, size: 16.sp),
                     label: const Text('Funga chaguo'),
                   ),
                 ),
@@ -1609,6 +1636,7 @@ style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)
                       dropdownColor: ThemeConstants.primaryBlue,
 style: const TextStyle(color: Colors.white, fontSize: 16),
                       iconEnabledColor: Colors.white70,
+                      icon: Icon(Icons.arrow_drop_down, size: 18.sp, color: Colors.white70),
                       items: const <DropdownMenuItem<String>>[
                         DropdownMenuItem(value: 'daily', child: Text('Kila siku')),
                         DropdownMenuItem(value: 'weekly', child: Text('Kila wiki')),
@@ -1736,7 +1764,7 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                             )
                             .toList(),
                         ActionChip(
-                          avatar: const Icon(Icons.add, size: 16, color: Colors.white),
+                          avatar: Icon(Icons.add, size: 16.sp, color: Colors.white),
                           label: const Text('Ongeza Siku', style: TextStyle(color: Colors.white)),
                           backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.8),
                           onPressed: () async {
@@ -1760,7 +1788,7 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                           },
                         ),
                         ActionChip(
-                          avatar: const Icon(Icons.date_range, size: 16, color: Colors.white),
+                          avatar: Icon(Icons.date_range, size: 16.sp, color: Colors.white),
                           label: const Text('Chagua Kipindi', style: TextStyle(color: Colors.white)),
                           backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.8),
                           onPressed: () async {
@@ -2114,7 +2142,12 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
       context: context,
       builder: (final BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Vitendo vya Wingi"),
+        title: const AutoSizeText(
+          "Vitendo vya Wingi",
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
+        ),
         content: const Text("Kipengele hiki kinatengenezwa. Subiri kidogo!"),
         actions: <Widget>[
           TextButton(

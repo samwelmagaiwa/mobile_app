@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/receipt.dart';
 import '../../services/api_service.dart';
+import '../../services/localization_service.dart';
 import '../../utils/responsive_helper.dart';
 
 // ignore_for_file: avoid_catches_without_on_clauses
@@ -23,6 +26,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
   bool _isLoading = true;
   bool _isSending = false;
   String? _errorMessage;
+
+  // Detailed payload fetched from API (used for missing fields like payment_id, trips_total)
+  Map<String, dynamic>? _detail;
 
   // Send options
   final TextEditingController _contactController = TextEditingController();
@@ -61,11 +67,12 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       final response = await _api.getReceipt(widget.receipt.id);
       
       if (response['success'] == true) {
-        // Prefill contact with driver's phone (fallback to email) if empty
+        // Prefill contact with driver's phone (fallback to email) if empty and store detail payload
         final dynamic data = response['data'];
         String? phone;
         String? email;
         if (data is Map<String, dynamic>) {
+          _detail = data;
           phone = data['driver_phone']?.toString();
           email = data['driver_email']?.toString();
           final dynamic rd = data['receipt_data'];
@@ -97,7 +104,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
 
   Future<void> _resendReceipt() async {
     if (_contactController.text.trim().isEmpty) {
-      ThemeConstants.showErrorSnackBar(context, 'Weka namba ya simu au barua pepe');
+      ThemeConstants.showErrorSnackBar(context, LocalizationService.instance.translate('phone_or_email_required'));
       return;
     }
 
@@ -115,13 +122,13 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       
       if (response['success'] == true) {
         if (!mounted) return;
-        ThemeConstants.showSuccessSnackBar(context, 'Risiti imetumwa tena!');
+        ThemeConstants.showSuccessSnackBar(context, LocalizationService.instance.translate('receipt_resent'));
       } else {
-        throw Exception(response['message'] ?? 'Imeshindikana kutuma risiti');
+        throw Exception(response['message'] ?? LocalizationService.instance.translate('failed_to_send_receipt'));
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      ThemeConstants.showErrorSnackBar(context, 'Hitilafu: ${e.toString().replaceFirst('Exception: ', '')}');
+      ThemeConstants.showErrorSnackBar(context, '${LocalizationService.instance.translate('error')}: ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -129,21 +136,26 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
 
   String _composeMessage() {
     final r = widget.receipt;
-    final String days = r.paidDates.isNotEmpty ? '\n' + 'Siku: ' + r.paidDates.join(', ') : '';
-    final String remarks = (r.remarks != null && r.remarks!.isNotEmpty) ? '\n' + 'Maelezo: ' + r.remarks! : '';
-    return 'Risiti ${r.receiptNumber}\nKiasi: TSH ${r.amount.toStringAsFixed(0)}$days$remarks';
+    final l10n = LocalizationService.instance;
+    final String days = r.paidDates.isNotEmpty ? '\\n' + l10n.translate('days') + ': ' + r.paidDates.join(', ') : '';
+    final String remarks = (r.remarks != null && r.remarks!.isNotEmpty) ? '\\n' + l10n.translate('remarks') + ': ' + r.remarks! : '';
+    return '${l10n.translate('receipt')} ${r.receiptNumber}\\n${l10n.translate('amount')}: TSH ${r.amount.toStringAsFixed(0)}$days$remarks';
   }
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
 
-    return ThemeConstants.buildScaffold(
-      title: 'Maelezo ya Risiti',
-      body: FadeTransition(
-        opacity: _fade,
-        child: _buildContent(),
-      ),
+    return Consumer<LocalizationService>(
+      builder: (context, l10n, _) {
+        return ThemeConstants.buildScaffold(
+          title: l10n.translate('receipt_details'),
+          body: FadeTransition(
+            opacity: _fade,
+            child: _buildContent(),
+          ),
+        );
+      },
     );
   }
 
@@ -178,7 +190,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                 ),
-                child: const Text('Jaribu Tena'),
+                child: Text(LocalizationService.instance.translate('try_again')),
               ),
             ],
           ),
@@ -257,16 +269,16 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: _getStatusColor(widget.receipt.status),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    widget.receipt.statusDisplayName,
-                    style: const TextStyle(
+                    LocalizationService.instance.translate('receipt_status_${widget.receipt.status.toLowerCase()}'),
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -276,7 +288,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -284,21 +296,21 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'Jumla ya Malipo',
-                    style: TextStyle(
+                  Text(
+                    LocalizationService.instance.translate('total_payment'),
+                    style: const TextStyle(
                       color: ThemeConstants.textSecondary,
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'TSH ${_formatCurrency(widget.receipt.amount)}',
-                    style: const TextStyle(
-                      color: ThemeConstants.primaryOrange,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+'TSH ${_formatCurrency(widget.receipt.amount)}',
+            style: TextStyle(
+              color: ThemeConstants.textPrimary,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+            ),
                   ),
                 ],
               ),
@@ -316,23 +328,23 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Maelezo ya Risiti',
+            Text(
+              LocalizationService.instance.translate('receipt_details'),
               style: TextStyle(
                 color: ThemeConstants.textPrimary,
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow('Namba ya Risiti', widget.receipt.receiptNumber),
-            _buildDetailRow('ID ya Malipo', widget.receipt.paymentId),
-            _buildDetailRow('Mdereva', widget.receipt.driverName),
+            _buildDetailRow(LocalizationService.instance.translate('receipt_number'), widget.receipt.receiptNumber),
+            _buildDetailRow(LocalizationService.instance.translate('payment_id'), _extractPaymentId()),
+            _buildDetailRow(LocalizationService.instance.translate('driver'), widget.receipt.driverName),
             if (widget.receipt.vehicleNumber != null && widget.receipt.vehicleNumber!.isNotEmpty)
-              _buildDetailRow('Namba ya Gari', widget.receipt.vehicleNumber!),
-            _buildDetailRow('Tarehe ya Kutengeneza', _formatDate(widget.receipt.generatedAt)),
+              _buildDetailRow(LocalizationService.instance.translate('vehicle_plate'), widget.receipt.vehicleNumber!),
+            _buildDetailRow(LocalizationService.instance.translate('generated_date'), _formatDate(widget.receipt.generatedAt)),
             if (widget.receipt.remarks != null && widget.receipt.remarks!.isNotEmpty)
-              _buildDetailRow('Maelezo', widget.receipt.remarks!),
+              _buildDetailRow(LocalizationService.instance.translate('remarks'), widget.receipt.remarks!),
           ],
         ),
       ),
@@ -346,19 +358,19 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Maelezo ya Malipo',
-              style: TextStyle(
+            Text(
+              LocalizationService.instance.translate('payment_details'),
+              style: const TextStyle(
                 color: ThemeConstants.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow('Kiasi', 'TSH ${_formatCurrency(widget.receipt.amount)}'),
-            _buildDetailRow('Njia ya Malipo', widget.receipt.paymentChannelDisplayName),
+            _buildDetailRow(LocalizationService.instance.translate('amount'), 'TSH ${_formatCurrency(widget.receipt.amount)}'),
+            _buildDetailRow(LocalizationService.instance.translate('payment_method'), widget.receipt.paymentChannelDisplayName),
             if (widget.receipt.paidDates.isNotEmpty)
-              _buildDetailRow('Siku Zilizolipwa', _formatPaidDates(widget.receipt.paidDates)),
+              _buildDetailRow(LocalizationService.instance.translate('covered_days'), _formatPaidDates(widget.receipt.paidDates)),
           ],
         ),
       ),
@@ -372,11 +384,11 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.route, color: ThemeConstants.primaryOrange, size: 20),
+            Icon(Icons.route, color: ThemeConstants.primaryOrange, size: 20.sp),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Safari (Trips): $trips',
+                '${LocalizationService.instance.translate('trips')}: $trips',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
             ),
@@ -386,11 +398,47 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
     );
   }
 
+  String _extractPaymentId() {
+    // Try multiple possible locations
+    final d = _detail;
+    String? s;
+    String? _as(dynamic v) => v == null ? null : v.toString();
+    if (d != null) {
+      s = _as(d['payment_id']) ?? _as(d['paymentId']);
+      if ((s == null || s.isEmpty) && d['payment'] is Map<String, dynamic>) {
+        final p = d['payment'] as Map<String, dynamic>;
+        s = _as(p['id']) ?? _as(p['payment_id']);
+      }
+      if ((s == null || s.isEmpty) && d['receipt_data'] is Map<String, dynamic>) {
+        final rd = d['receipt_data'] as Map<String, dynamic>;
+        s = _as(rd['payment_id']) ?? _as(rd['paymentId']);
+      }
+    }
+    return (s != null && s.isNotEmpty) ? s : widget.receipt.paymentId;
+  }
+
   int _extractTripsTotal() {
-    // Try read from API preview payload if loaded; else from receipt
-    // This screen holds only widget.receipt minimal fields; try to derive from paidDates count as fallback
-    // But backend now returns trips_total in preview; _loadReceiptDetails fills no state, so we can’t access
-    // Use amount of paidDates length as weak fallback when not provided
+    // Prefer API detail payload fields
+    final d = _detail;
+    if (d != null) {
+      // common keys: trips_total, trips, total_trips; also nested under receipt_data
+      final dynamic direct = d['trips_total'] ?? d['trips'] ?? d['total_trips'];
+      if (direct is num) return direct.toInt();
+      if (direct is String) {
+        final int? v = int.tryParse(direct);
+        if (v != null) return v;
+      }
+      final dynamic rd = d['receipt_data'];
+      if (rd is Map<String, dynamic>) {
+        final dynamic nested = rd['trips_total'] ?? rd['trips'] ?? rd['total_trips'];
+        if (nested is num) return nested.toInt();
+        if (nested is String) {
+          final int? v = int.tryParse(nested);
+          if (v != null) return v;
+        }
+      }
+    }
+    // Fallback: count paid dates from list item
     final List<String> days = widget.receipt.paidDates;
     return days.isNotEmpty ? days.length : 0;
   }
@@ -402,12 +450,12 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
-          children: const [
-            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
-            SizedBox(width: 8),
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Outstanding debt details will be included in the sent receipt message.',
+                LocalizationService.instance.translate('outstanding_info_message'),
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -424,17 +472,17 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.check_circle,
                   color: ThemeConstants.successGreen,
                   size: 20,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Maelezo ya Kutuma',
-                  style: TextStyle(
+                  LocalizationService.instance.translate('send_info'),
+                  style: const TextStyle(
                     color: ThemeConstants.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -444,9 +492,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
             ),
             const SizedBox(height: 12),
             if (widget.receipt.sentAt != null)
-              _buildDetailRow('Tarehe ya Kutuma', _formatDate(widget.receipt.sentAt!)),
+              _buildDetailRow(LocalizationService.instance.translate('sent_date'), _formatDate(widget.receipt.sentAt!)),
             if (widget.receipt.sentTo != null && widget.receipt.sentTo!.isNotEmpty)
-              _buildDetailRow('Imetumwa kwa', widget.receipt.sentTo!),
+              _buildDetailRow(LocalizationService.instance.translate('sent_to'), widget.receipt.sentTo!),
           ],
         ),
       ),
@@ -460,9 +508,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Tuma Tena Risiti',
-              style: TextStyle(
+            Text(
+              LocalizationService.instance.translate('resend_receipt'),
+              style: const TextStyle(
                 color: ThemeConstants.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -474,7 +522,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
               style: const TextStyle(color: Colors.white),
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: 'Namba ya Simu au Barua Pepe',
+                labelText: LocalizationService.instance.translate('phone_or_email'),
                 hintText: _contactController.text.isEmpty ? 'Mf. +2557XXXXXXX' : null,
                 hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
                 labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
@@ -513,7 +561,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                         ),
                       )
                     : const Icon(Icons.send),
-                label: Text(_isSending ? 'Inatuma...' : 'Tuma Tena'),
+                label: Text(_isSending ? LocalizationService.instance.translate('sending') : LocalizationService.instance.translate('send_again')),
               ),
             ),
           ],

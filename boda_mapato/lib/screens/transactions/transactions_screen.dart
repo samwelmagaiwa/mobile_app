@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
+import 'package:auto_size_text/auto_size_text.dart';
 
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
@@ -179,7 +180,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
-        title: const Text("Chuja Miamala"),
+        title: const AutoSizeText(
+          "Chuja Miamala",
+          maxLines: 1,
+          minFontSize: 12,
+          stepGranularity: 0.5,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[

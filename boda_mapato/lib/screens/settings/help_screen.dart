@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
 
@@ -295,11 +297,17 @@ class HelpScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info, color: ThemeConstants.primaryOrange),
-            SizedBox(width: 8),
-            Text('Info', style: TextStyle(color: ThemeConstants.textPrimary)),
+            Icon(Icons.info, color: ThemeConstants.primaryOrange, size: 18.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: AutoSizeText('Info',
+                  style: const TextStyle(color: ThemeConstants.textPrimary),
+                  maxLines: 1,
+                  minFontSize: 12,
+                  stepGranularity: 0.5),
+            ),
           ],
         ),
         content: Text(

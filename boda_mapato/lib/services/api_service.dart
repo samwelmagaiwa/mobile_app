@@ -251,6 +251,7 @@ class ApiService {
       final String fullUrl = "$baseUrl$endpoint";
       if (kDebugMode && ApiConfig.enableHttpLogs) {
         debugPrint('HTTP POST -> $fullUrl');
+        debugPrint('Body: ${json.encode(data)}');
       }
       final http.Response response = await http
           .post(
