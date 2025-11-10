@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_dynamic_calls
+// ignore_for_file: avoid_dynamic_calls, unused_field
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
@@ -32,7 +32,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   Map<String, dynamic>? _driverAgreement; // raw agreement map
   double _paidThisWeek = 0;
   double _paidThisMonth = 0;
-  List<Map<String, dynamic>> _driverDebtRecords = <Map<String, dynamic>>[];
+  final List<Map<String, dynamic>> _driverDebtRecords =
+      <Map<String, dynamic>>[];
 
   @override
   void initState() {
@@ -49,20 +50,30 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       final ApiService api = ApiService();
       // Driver dashboard (authorized for driver role)
       final Map<String, dynamic> response = await api.getDriverDashboard();
-      final Map<String, dynamic> data = response['data'] as Map<String, dynamic>? ?? response;
+      final Map<String, dynamic> data =
+          response['data'] as Map<String, dynamic>? ?? response;
 
       // Load driver-focused data in parallel using driver endpoints
-      final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
+      final List<dynamic> results =
+          await Future.wait<dynamic>(<Future<dynamic>>[
         api.getDriverReceipts(limit: 50),
-        api.getDriverPaymentHistory(limit: 1000, startDate: DateTime.now().subtract(const Duration(days: 31)), endDate: DateTime.now()),
+        api.getDriverPaymentHistory(
+            limit: 1000,
+            startDate: DateTime.now().subtract(const Duration(days: 31)),
+            endDate: DateTime.now()),
         api.getDriverPaymentsSummary(),
       ]);
 
       // Parse receipts counts
       final Map<String, dynamic> rec = results[0] as Map<String, dynamic>;
-      final Map<String, dynamic> recData = rec['data'] as Map<String, dynamic>? ?? rec;
-      final List<dynamic> receiptsList = (recData['data'] as List<dynamic>?) ?? (recData['receipts'] as List<dynamic>?) ?? const <dynamic>[];
-      _driverReceiptsCount = recData['total'] as int? ?? recData['count'] as int? ?? receiptsList.length;
+      final Map<String, dynamic> recData =
+          rec['data'] as Map<String, dynamic>? ?? rec;
+      final List<dynamic> receiptsList = (recData['data'] as List<dynamic>?) ??
+          (recData['receipts'] as List<dynamic>?) ??
+          const <dynamic>[];
+      _driverReceiptsCount = recData['total'] as int? ??
+          recData['count'] as int? ??
+          receiptsList.length;
 
       // Pending receipts (not available on driver route); set 0
       _driverPendingReceipts = 0;
@@ -76,15 +87,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       // Prefer backend aggregation via driver controller (includes debt clearances + new payments)
       try {
         final Map<String, dynamic> sumResp = results[2] as Map<String, dynamic>;
-        final Map<String, dynamic> sumData = (sumResp['data'] as Map<String, dynamic>? ?? sumResp).cast<String, dynamic>();
-        final Map<String, dynamic> totals = (sumData['totals'] as Map<String, dynamic>? ?? <String, dynamic>{}).cast<String, dynamic>();
+        final Map<String, dynamic> sumData =
+            (sumResp['data'] as Map<String, dynamic>? ?? sumResp)
+                .cast<String, dynamic>();
+        final Map<String, dynamic> totals =
+            (sumData['totals'] as Map<String, dynamic>? ?? <String, dynamic>{})
+                .cast<String, dynamic>();
         final double today = _toDouble(totals['today']);
         final double week = _toDouble(totals['week']);
         final double month = _toDouble(totals['month']);
         _dashboardData['payments_today'] = today;
         _paidThisWeek = week;
         _paidThisMonth = month;
-      } catch (_) {
+      } on Exception catch (_) {
         // Fallback: derive from driver payment history if summary not available
         final Map<String, dynamic> pay = results[1] as Map<String, dynamic>;
         final dynamic root = pay['data'] ?? pay;
@@ -95,18 +110,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 : root is List
                     ? root.cast<dynamic>()
                     : const <dynamic>[];
-        double day = 0, week = 0, month = 0;
+        double day = 0;
+        double week = 0;
+        double month = 0;
         final DateTime now = DateTime.now();
         final DateTime todayStart = DateTime(now.year, now.month, now.day);
-        final DateTime monthStart = DateTime(now.year, now.month, 1);
+        final DateTime monthStart = DateTime(now.year, now.month);
         final DateTime weekStart = now.subtract(const Duration(days: 6));
         for (final dynamic p in payments) {
           if (p is Map) {
             final Map<String, dynamic> m = p.cast<String, dynamic>();
-            final String? d = (m['paid_at'] ?? m['date'] ?? m['created_at'])?.toString();
+            final String? d =
+                (m['paid_at'] ?? m['date'] ?? m['created_at'])?.toString();
             final DateTime? dt = d != null ? DateTime.tryParse(d) : null;
             final double amt = () {
-              final dynamic raw = m['amount'] ?? m['paid_amount'] ?? m['total'] ?? m['total_amount'];
+              final dynamic raw = m['amount'] ??
+                  m['paid_amount'] ??
+                  m['total'] ??
+                  m['total_amount'];
               if (raw is num) return raw.toDouble();
               return double.tryParse(raw?.toString() ?? '') ?? 0.0;
             }();
@@ -121,7 +142,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         _paidThisMonth = month;
         _dashboardData['payments_today'] = day;
       }
-      
 
       setState(() {
         _dashboardData = data;
@@ -146,304 +166,330 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   @override
   Widget build(final BuildContext context) {
-        final String _welcomeTitle = LocalizationService.instance.translate('welcome') + ', ' +
-            ((Provider.of<AuthProvider>(context).user?.name.isNotEmpty == true)
-                ? Provider.of<AuthProvider>(context).user!.name
-                : 'Driver') +
-            '!';
-        return Scaffold(
-        backgroundColor: ThemeConstants.primaryBlue,
-        appBar: ThemeConstants.buildAppBar(
-          _welcomeTitle,
-          actions: <Widget>[
-            IconButton(
-              onPressed: _loadDashboardData,
-              icon: Icon(
-                Icons.refresh,
-                size: ResponsiveUtils.getResponsiveIconSize(context, 24),
-              ),
+    final String? name = Provider.of<AuthProvider>(context).user?.name;
+    final String welcomeTitle =
+        '${LocalizationService.instance.translate('welcome')}, ${(name?.isNotEmpty ?? false) ? name! : 'Driver'}!';
+    return Scaffold(
+      backgroundColor: ThemeConstants.primaryBlue,
+      appBar: ThemeConstants.buildAppBar(
+        welcomeTitle,
+        actions: <Widget>[
+          IconButton(
+            onPressed: _loadDashboardData,
+            icon: Icon(
+              Icons.refresh,
+              size: ResponsiveUtils.getResponsiveIconSize(context, 24),
             ),
-            PopupMenuButton<String>(
-              color: ThemeConstants.primaryBlue,
-              onSelected: (final String value) {
-                if (value == "logout") {
-                  _handleLogout();
-                }
-              },
-              itemBuilder: (final BuildContext context) => <PopupMenuEntry<String>>[
-                PopupMenuItem(
-                  value: "logout",
-                  child: ResponsiveRow(
-                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                    children: <Widget>[
-                      const Icon(
-                        Icons.logout,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const Text(
-                        "Toka",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
+          ),
+          PopupMenuButton<String>(
+            color: ThemeConstants.primaryBlue,
+            onSelected: (final String value) {
+              if (value == "logout") {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (final BuildContext context) =>
+                <PopupMenuEntry<String>>[
+              PopupMenuItem(
+                value: "logout",
+                child: ResponsiveRow(
+                  spacing: ResponsiveUtils.getResponsiveSpacing(context, 8),
+                  children: const <Widget>[
+                    Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    Text(
+                      "Toka",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
-        ),
-        body: DecoratedBox(
-          decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
-          child: _isLoading
-              ? ThemeConstants.buildLoadingWidget()
-              : RefreshIndicator(
-                  onRefresh: _loadDashboardData,
-                  backgroundColor: Colors.white,
-                  color: ThemeConstants.primaryBlue,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    padding: ResponsiveUtils.getResponsivePadding(context),
-                    child: ResponsiveColumn(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: ResponsiveUtils.getResponsiveSpacing(context, 24),
-                      children: <Widget>[
-                        // Assigned Vehicle
-                        if (_dashboardData["assigned_vehicle"] !=
-                            null) ...<Widget>[
-                          Text(
-                            LocalizationService.instance.translate('your_vehicle'),
-                            style: AppStyles.heading3Responsive(context),
-                          ),
-                          ThemeConstants.buildGlassCardStatic(
-                            child: Padding(
-                              padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
-                              child: ResponsiveRow(
-                                spacing: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  16,
-                                ),
-                                children: <Widget>[
-                                  Container(
-                                    width:
-                                        ResponsiveUtils.getResponsiveIconSize(
-                                      context,
-                                      60,
-                                    ),
-                                    height:
-                                        ResponsiveUtils.getResponsiveIconSize(
-                                      context,
-                                      60,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          AppColors.secondary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveUtils
-                                            .getResponsiveBorderRadius(
-                                          context,
-                                          12,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      _getVehicleIcon(
-                                        _dashboardData["assigned_vehicle"]
-                                            ["type"],
-                                      ),
-                                      color: AppColors.secondary,
-                                      size:
-                                          ResponsiveUtils.getResponsiveIconSize(
-                                        context,
-                                        32,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: ResponsiveColumn(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      spacing:
-                                          ResponsiveUtils.getResponsiveSpacing(
-                                        context,
-                                        4,
-                                      ),
-                                      children: <Widget>[
-                                        Text(
-                                          _dashboardData["assigned_vehicle"]
-                                              ["name"],
-                                          style: AppStyles.bodyLargeResponsive(context)
-                                              .copyWith(fontWeight: FontWeight.w600, color: Colors.white),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                        Text(
-                                          "${LocalizationService.instance.translate('plate_number')}: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
-                                          style: AppStyles.bodyMediumResponsive(context)
-                                              .copyWith(color: Colors.white70),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: ResponsiveUtils
-                                                .getResponsiveSpacing(
-                                              context,
-                                              8,
-                                            ),
-                                            vertical: ResponsiveUtils
-                                                .getResponsiveSpacing(
-                                              context,
-                                              4,
-                                            ),
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.success
-                                                .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              ResponsiveUtils
-                                                  .getResponsiveBorderRadius(
-                                                context,
-                                                4,
-                                              ),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            LocalizationService.instance.translate('status_active'),
-                                            style: AppStyles.bodySmallResponsive(context)
-                                                .copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        // Payment Statistics
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
+        child: _isLoading
+            ? ThemeConstants.buildLoadingWidget()
+            : RefreshIndicator(
+                onRefresh: _loadDashboardData,
+                backgroundColor: Colors.white,
+                color: ThemeConstants.primaryBlue,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics()),
+                  padding: ResponsiveUtils.getResponsivePadding(context),
+                  child: ResponsiveColumn(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: ResponsiveUtils.getResponsiveSpacing(context, 24),
+                    children: <Widget>[
+                      // Assigned Vehicle
+                      if (_dashboardData["assigned_vehicle"] !=
+                          null) ...<Widget>[
                         Text(
-                          LocalizationService.instance.translate('driver_payment_stats'),
-                          style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white),
+                          LocalizationService.instance
+                              .translate('your_vehicle'),
+                          style: AppStyles.heading3Responsive(context),
                         ),
                         ThemeConstants.buildGlassCardStatic(
                           child: Padding(
-                            padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
+                            padding: EdgeInsets.all(
+                                ResponsiveUtils.getResponsiveSpacing(
+                                    context, 16)),
                             child: ResponsiveRow(
-                              spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                              children: <Widget>[
-                                Expanded(
-                                  child: _miniStat(
-                                    icon: Icons.today,
-                                    label: LocalizationService.instance.translate('today'),
-                                    value: "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _miniStat(
-                                    icon: Icons.calendar_view_week,
-                                    label: LocalizationService.instance.translate('week'),
-                                    value: "TSh ${_paidThisWeek.toStringAsFixed(0)}",
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _miniStat(
-                                    icon: Icons.calendar_month,
-                                    label: LocalizationService.instance.translate('month'),
-                                    value: "TSh ${_paidThisMonth.toStringAsFixed(0)}",
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-
-                        // Quick Actions
-                        Text(
-                          LocalizationService.instance.translate('quick_actions'),
-                          style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white),
-                        ),
-                        ResponsiveRow(
-                          spacing: ResponsiveUtils.getResponsiveSpacing(context, 16),
-                          children: <Widget>[
-                            Expanded(
-                              child: _QuickActionCard(
-                                title: LocalizationService.instance.translate('payment_history'),
-                                icon: Icons.history,
-                                color: AppColors.primary,
-                                onTap: _navigateToPaymentHistory,
-                              ),
-                            ),
-                            Expanded(
-                              child: _QuickActionCard(
-                                title: LocalizationService.instance.translate('receipts'),
-                                icon: Icons.receipt,
-                                color: AppColors.info,
-                                onTap: _navigateToReceipts,
-                              ),
-                            ),
-                            Expanded(
-                              child: _QuickActionCard(
-                                title: LocalizationService.instance.translate('reminders'),
-                                icon: Icons.notifications,
-                                color: AppColors.warning,
-                                onTap: _navigateToReminders,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Agreement / Total to Pay card
-                        ThemeConstants.buildGlassCardStatic(
-                          child: Padding(
-                            padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(context, 16)),
-                            child: ResponsiveColumn(
                               spacing: ResponsiveUtils.getResponsiveSpacing(
                                 context,
                                 16,
                               ),
                               children: <Widget>[
-                                Icon(
-                                  Icons.account_balance_wallet,
-                                  size: ResponsiveUtils.getResponsiveIconSize(
+                                Container(
+                                  width: ResponsiveUtils.getResponsiveIconSize(
                                     context,
-                                    48,
+                                    60,
                                   ),
-                                  color: AppColors.success,
-                                ),
-                                Text(
-                                  _agreementTitle(),
-                                  style: AppStyles.bodyLargeResponsive(context).copyWith(color: Colors.white),
-                                ),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    _agreementValueText(),
-                                    style: AppStyles.heading1Responsive(context).copyWith(
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.bold,
+                                  height: ResponsiveUtils.getResponsiveIconSize(
+                                    context,
+                                    60,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(
+                                      ResponsiveUtils.getResponsiveBorderRadius(
+                                        context,
+                                        12,
+                                      ),
                                     ),
-                                    textAlign: TextAlign.center,
+                                  ),
+                                  child: Icon(
+                                    _getVehicleIcon(
+                                      _dashboardData["assigned_vehicle"]
+                                          ["type"],
+                                    ),
+                                    color: AppColors.secondary,
+                                    size: ResponsiveUtils.getResponsiveIconSize(
+                                      context,
+                                      32,
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  _agreementSubtitle(),
-                                  style: AppStyles.bodySmallResponsive(context).copyWith(color: Colors.white70),
-                                  textAlign: TextAlign.center,
+                                Expanded(
+                                  child: ResponsiveColumn(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    spacing:
+                                        ResponsiveUtils.getResponsiveSpacing(
+                                      context,
+                                      4,
+                                    ),
+                                    children: <Widget>[
+                                      Text(
+                                        _dashboardData["assigned_vehicle"]
+                                            ["name"],
+                                        style: AppStyles.bodyLargeResponsive(
+                                                context)
+                                            .copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      Text(
+                                        "${LocalizationService.instance.translate('plate_number')}: ${_dashboardData["assigned_vehicle"]["plate_number"]}",
+                                        style: AppStyles.bodyMediumResponsive(
+                                                context)
+                                            .copyWith(color: Colors.white70),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: ResponsiveUtils
+                                              .getResponsiveSpacing(
+                                            context,
+                                            8,
+                                          ),
+                                          vertical: ResponsiveUtils
+                                              .getResponsiveSpacing(
+                                            context,
+                                            4,
+                                          ),
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.success
+                                              .withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            ResponsiveUtils
+                                                .getResponsiveBorderRadius(
+                                              context,
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          LocalizationService.instance
+                                              .translate('status_active'),
+                                          style: AppStyles.bodySmallResponsive(
+                                                  context)
+                                              .copyWith(
+                                                  color: AppColors.success,
+                                                  fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       ],
-                    ),
+
+                      // Payment Statistics
+                      Text(
+                        LocalizationService.instance
+                            .translate('driver_payment_stats'),
+                        style: AppStyles.heading3Responsive(context)
+                            .copyWith(color: Colors.white),
+                      ),
+                      ThemeConstants.buildGlassCardStatic(
+                        child: Padding(
+                          padding: EdgeInsets.all(
+                              ResponsiveUtils.getResponsiveSpacing(
+                                  context, 16)),
+                          child: ResponsiveRow(
+                            spacing: ResponsiveUtils.getResponsiveSpacing(
+                                context, 16),
+                            children: <Widget>[
+                              Expanded(
+                                child: _miniStat(
+                                  icon: Icons.today,
+                                  label: LocalizationService.instance
+                                      .translate('today'),
+                                  value:
+                                      "TSh ${(_dashboardData["payments_today"] ?? 0).toStringAsFixed(0)}",
+                                ),
+                              ),
+                              Expanded(
+                                child: _miniStat(
+                                  icon: Icons.calendar_view_week,
+                                  label: LocalizationService.instance
+                                      .translate('week'),
+                                  value:
+                                      "TSh ${_paidThisWeek.toStringAsFixed(0)}",
+                                ),
+                              ),
+                              Expanded(
+                                child: _miniStat(
+                                  icon: Icons.calendar_month,
+                                  label: LocalizationService.instance
+                                      .translate('month'),
+                                  value:
+                                      "TSh ${_paidThisMonth.toStringAsFixed(0)}",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Quick Actions
+                      Text(
+                        LocalizationService.instance.translate('quick_actions'),
+                        style: AppStyles.heading3Responsive(context)
+                            .copyWith(color: Colors.white),
+                      ),
+                      ResponsiveRow(
+                        spacing:
+                            ResponsiveUtils.getResponsiveSpacing(context, 16),
+                        children: <Widget>[
+                          Expanded(
+                            child: _QuickActionCard(
+                              title: LocalizationService.instance
+                                  .translate('payment_history'),
+                              icon: Icons.history,
+                              color: AppColors.primary,
+                              onTap: _navigateToPaymentHistory,
+                            ),
+                          ),
+                          Expanded(
+                            child: _QuickActionCard(
+                              title: LocalizationService.instance
+                                  .translate('receipts'),
+                              icon: Icons.receipt,
+                              color: AppColors.info,
+                              onTap: _navigateToReceipts,
+                            ),
+                          ),
+                          Expanded(
+                            child: _QuickActionCard(
+                              title: LocalizationService.instance
+                                  .translate('reminders'),
+                              icon: Icons.notifications,
+                              color: AppColors.warning,
+                              onTap: _navigateToReminders,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Agreement / Total to Pay card
+                      ThemeConstants.buildGlassCardStatic(
+                        child: Padding(
+                          padding: EdgeInsets.all(
+                              ResponsiveUtils.getResponsiveSpacing(
+                                  context, 16)),
+                          child: ResponsiveColumn(
+                            spacing: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              16,
+                            ),
+                            children: <Widget>[
+                              Icon(
+                                Icons.account_balance_wallet,
+                                size: ResponsiveUtils.getResponsiveIconSize(
+                                  context,
+                                  48,
+                                ),
+                                color: AppColors.success,
+                              ),
+                              Text(
+                                _agreementTitle(),
+                                style: AppStyles.bodyLargeResponsive(context)
+                                    .copyWith(color: Colors.white),
+                              ),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _agreementValueText(),
+                                  style: AppStyles.heading1Responsive(context)
+                                      .copyWith(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Text(
+                                _agreementSubtitle(),
+                                style: AppStyles.bodySmallResponsive(context)
+                                    .copyWith(color: Colors.white70),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-        ),
-      );
-    }
+              ),
+      ),
+    );
+  }
 
   IconData _getVehicleIcon(final String type) {
     switch (type) {
@@ -459,6 +505,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     }
   }
 
+  // ignore: unused_element
   void _showPaymentRequestDialog() {
     showDialog(
       context: context,
@@ -491,12 +538,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       children: <Widget>[
         Row(
           children: <Widget>[
-            Icon(icon, color: Colors.white70, size: ResponsiveUtils.getResponsiveIconSize(context, 18)),
+            Icon(icon,
+                color: Colors.white70,
+                size: ResponsiveUtils.getResponsiveIconSize(context, 18)),
             SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
             Expanded(
               child: Text(
                 label,
-                style: AppStyles.bodySmallResponsive(context).copyWith(color: Colors.white70),
+                style: AppStyles.bodySmallResponsive(context)
+                    .copyWith(color: Colors.white70),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 softWrap: false,
@@ -510,44 +560,59 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           alignment: Alignment.centerLeft,
           child: Text(
             value,
-            style: AppStyles.heading3Responsive(context).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+            style: AppStyles.heading3Responsive(context)
+                .copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       ],
     );
     return onTap == null
         ? content
-        : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: content);
+        : InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: content);
   }
 
   String _agreementTitle() {
-    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
-    if (type.contains('dei')) return LocalizationService.instance.translate('agreement_daily_title');
+    final String type =
+        (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    if (type.contains('dei')) {
+      return LocalizationService.instance.translate('agreement_daily_title');
+    }
     return LocalizationService.instance.translate('agreement_total_title');
   }
 
   String _agreementValueText() {
-    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    final String type =
+        (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
     if (type.contains('dei')) {
-      final double perDay = _toDouble(_driverAgreement?['amount_per_day'] ?? _driverAgreement?['kiasi_cha_makubaliano']);
-      final double perWeek = _toDouble(_driverAgreement?['amount_per_week'] ?? 0);
+      final double perDay = _toDouble(_driverAgreement?['amount_per_day'] ??
+          _driverAgreement?['kiasi_cha_makubaliano']);
+      final double perWeek =
+          _toDouble(_driverAgreement?['amount_per_week'] ?? 0);
       if (perWeek > 0) return 'TSh ${perWeek.toStringAsFixed(0)} / Wiki';
       return 'TSh ${perDay.toStringAsFixed(0)} / Siku';
     }
-    final double remaining = _toDouble(_driverAgreement?['remaining_total'] ?? _driverAgreement?['total_expected']);
+    final double remaining = _toDouble(_driverAgreement?['remaining_total'] ??
+        _driverAgreement?['total_expected']);
     return 'TSh ${remaining.toStringAsFixed(0)}';
   }
 
   String _agreementSubtitle() {
-    final String type = (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
-    if (type.contains('dei')) return LocalizationService.instance.translate('agreement_daily_subtitle');
+    final String type =
+        (_driverAgreement?['agreement_type']?.toString() ?? '').toLowerCase();
+    if (type.contains('dei')) {
+      return LocalizationService.instance.translate('agreement_daily_subtitle');
+    }
     return LocalizationService.instance.translate('agreement_total_subtitle');
   }
 
   double _toDouble(Object? v) {
     if (v == null) return 0;
     if (v is num) return v.toDouble();
-    return double.tryParse(v.toString().replaceAll(RegExp(r'[^0-9\.-]'), '')) ?? 0;
+    return double.tryParse(v.toString().replaceAll(RegExp(r'[^0-9\.-]'), '')) ??
+        0;
   }
 
   Future<void> _handleLogout() async {

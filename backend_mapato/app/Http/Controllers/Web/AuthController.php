@@ -34,11 +34,17 @@ class AuthController extends Controller
         ]);
 
         try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required|string',
-                'phone_number' => 'required|string',
-            ]);
+            $request->validate(
+                [
+                    'email' => 'required|email',
+                    'password' => 'required|string',
+                    'phone_number' => ['required', 'regex:/^(0\d{9}|\+\d{9,15})$/'],
+                ],
+                [
+                    'phone_number.required' => 'Namba ya simu inahitajika',
+                    'phone_number.regex' => 'Namba ya simu si sahihi. Tumia namba ya ndani (mfano: 0743519100) au ya kimataifa (mfano: +255743519100).',
+                ]
+            );
 
             // Find user by email
             $user = User::where('email', $request->email)->first();

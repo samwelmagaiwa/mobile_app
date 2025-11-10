@@ -1,8 +1,8 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:auto_size_text/auto_size_text.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/driver.dart';
@@ -141,13 +141,15 @@ class _PaymentsScreenState extends State<PaymentsScreen>
 
       if (success) {
         final Map<String, dynamic> data =
-            (response['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+            (response['data'] as Map?)?.cast<String, dynamic>() ??
+                <String, dynamic>{};
         final List<dynamic> driversData =
             (data['drivers'] as List?)?.cast<dynamic>() ?? <dynamic>[];
         if (mounted) {
           setState(() {
             _drivers = driversData
-                .map((driver) => Driver.fromJson(driver as Map<String, dynamic>))
+                .map(
+                    (driver) => Driver.fromJson(driver as Map<String, dynamic>))
                 .toList();
             _filteredDrivers = List<Driver>.from(_drivers);
             _isLoadingDrivers = false;
@@ -156,7 +158,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         // After loading drivers, fetch new-payment map for this month
         await _loadNewPaymentsMapForThisMonth();
       } else {
-        final String msg = response['message'] as String? ?? 'Failed to load drivers';
+        final String msg =
+            response['message'] as String? ?? 'Failed to load drivers';
         throw Exception(msg);
       }
     } on Exception catch (e) {
@@ -172,15 +175,20 @@ class _PaymentsScreenState extends State<PaymentsScreen>
   Future<void> _loadNewPaymentsMapForThisMonth() async {
     try {
       final DateTime now = DateTime.now();
-      final String month = '${now.year.toString().padLeft(4,'0')}-${now.month.toString().padLeft(2,'0')}';
-      final Map<String, dynamic> res = await _apiService.getNewPaymentsMap(month: month);
+      final String month =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+      final Map<String, dynamic> res =
+          await _apiService.getNewPaymentsMap(month: month);
       final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
-      final List<dynamic> drivers = (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+      final List<dynamic> drivers =
+          (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
       if (mounted) {
         setState(() {
           _newPaymentDriversThisMonth
             ..clear()
-            ..addAll(drivers.map((e) => (e as Map)['driver_id']?.toString() ?? '').where((s) => s.isNotEmpty));
+            ..addAll(drivers
+                .map((e) => (e as Map)['driver_id']?.toString() ?? '')
+                .where((s) => s.isNotEmpty));
         });
       }
     } on Exception catch (_) {
@@ -629,16 +637,15 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           children: [
             Icon(Icons.error, color: ThemeConstants.errorRed, size: 18.sp),
             SizedBox(width: 8.w),
-            Expanded(
+            const Expanded(
               child: AutoSizeText(
                 'Hitilafu',
-                style: const TextStyle(
+                style: TextStyle(
                   color: ThemeConstants.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
-                minFontSize: 12,
                 stepGranularity: 0.5,
               ),
             ),
@@ -692,15 +699,15 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           body: FadeTransition(
             opacity: _fadeAnimation,
             child: Stack(
-          children: [
-            if (_isDriverSelectionMode) _buildDriverSelectionView(),
-            SlideTransition(
-              position: _slideAnimation,
-              child: !_isDriverSelectionMode
-                  ? _buildPaymentFormView()
-                  : const SizedBox(),
-            ),
-          ],
+              children: [
+                if (_isDriverSelectionMode) _buildDriverSelectionView(),
+                SlideTransition(
+                  position: _slideAnimation,
+                  child: !_isDriverSelectionMode
+                      ? _buildPaymentFormView()
+                      : const SizedBox(),
+                ),
+              ],
             ),
           ),
         );
@@ -738,7 +745,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          LocalizationService.instance.translate('record_payment'),
+                          LocalizationService.instance
+                              .translate('record_payment'),
                           style: TextStyle(
                             color: ThemeConstants.textPrimary,
                             fontSize: 20.sp,
@@ -747,7 +755,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          LocalizationService.instance.translate('record_payment_subtitle'),
+                          LocalizationService.instance
+                              .translate('record_payment_subtitle'),
                           style: TextStyle(
                             color: ThemeConstants.textSecondary,
                             fontSize: 14.sp,
@@ -791,7 +800,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           fontSize: 16.sp,
                         ),
                         decoration: InputDecoration(
-                          hintText: LocalizationService.instance.translate('search_drivers'),
+                          hintText: LocalizationService.instance
+                              .translate('search_drivers'),
                           hintStyle: TextStyle(
                             color: ThemeConstants.textSecondary,
                             fontSize: 14.sp,
@@ -801,8 +811,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                               .transparent, // background handled by Container above
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 8.h),
                         ),
                       ),
                     ),
@@ -1212,7 +1222,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.event_available,
-                                  size: 12.sp, color: ThemeConstants.warningAmber),
+                                  size: 12.sp,
+                                  color: ThemeConstants.warningAmber),
                               SizedBox(width: 4.w),
                               Flexible(
                                 child: Text(
@@ -1550,7 +1561,7 @@ class _PaymentsScreenState extends State<PaymentsScreen>
           child: ThemeConstants.buildGlassCard(
             onTap: () => _showDriverActionPopup(driver),
             child: Padding(
-            padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(16.w),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -1571,11 +1582,11 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       children: [
                         Text(
                           driver.name,
-                        style: TextStyle(
-                          color: ThemeConstants.textPrimary,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                          style: TextStyle(
+                            color: ThemeConstants.textPrimary,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         SizedBox(height: 2.h),
                         Text(
@@ -1624,11 +1635,14 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                   if (_newPaymentDriversThisMonth.contains(driver.id)) ...[
                     SizedBox(width: 6.w),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
                       decoration: BoxDecoration(
                         color: ThemeConstants.primaryOrange.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(color: ThemeConstants.primaryOrange.withOpacity(0.5)),
+                        border: Border.all(
+                            color:
+                                ThemeConstants.primaryOrange.withOpacity(0.5)),
                       ),
                       child: Text(
                         'MPYA',
@@ -1662,7 +1676,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
         final bool hasDebt = (driver.totalDebt) > 0;
         return AlertDialog(
           backgroundColor: ThemeConstants.primaryBlue,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1670,10 +1685,13 @@ class _PaymentsScreenState extends State<PaymentsScreen>
               Row(
                 children: <Widget>[
                   CircleAvatar(
-                    backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                    backgroundColor:
+                        ThemeConstants.primaryOrange.withOpacity(0.2),
                     child: Text(
-                      (driver.name.isNotEmpty ? driver.name[0] : '?').toUpperCase(),
-                      style: const TextStyle(color: ThemeConstants.primaryOrange),
+                      (driver.name.isNotEmpty ? driver.name[0] : '?')
+                          .toUpperCase(),
+                      style:
+                          const TextStyle(color: ThemeConstants.primaryOrange),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1691,7 +1709,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         ),
                         if ((driver.vehicleNumber ?? '').isNotEmpty)
                           Text(driver.vehicleNumber!,
-                              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -1726,7 +1745,8 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white24),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text('Madeni'),
                       ),
@@ -1738,14 +1758,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                           Navigator.pop(ctx);
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => NewPaymentScreen(initialDriver: driver),
+                              builder: (_) =>
+                                  NewPaymentScreen(initialDriver: driver),
                             ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ThemeConstants.primaryOrange,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text('Malipo Mapya'),
                       ),
@@ -1760,14 +1782,16 @@ class _PaymentsScreenState extends State<PaymentsScreen>
                       Navigator.pop(ctx);
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => NewPaymentScreen(initialDriver: driver),
+                          builder: (_) =>
+                              NewPaymentScreen(initialDriver: driver),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ThemeConstants.primaryOrange,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Rekodi Malipo Mapya'),
                   ),

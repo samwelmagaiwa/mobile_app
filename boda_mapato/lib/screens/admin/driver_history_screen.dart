@@ -204,7 +204,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       return apiData.map<ChartData>((item) {
         final Map<String, dynamic> m = Map<String, dynamic>.from(item as Map);
         final String label =
-            (m['period'] ?? m['label'] ?? m['month'] ?? m['date'] ?? '').toString();
+            (m['period'] ?? m['label'] ?? m['month'] ?? m['date'] ?? '')
+                .toString();
         final double value = (() {
           final v = m['value'] ?? m['amount'] ?? m['total'] ?? m['paid'];
           if (v is num) return v.toDouble();
@@ -218,10 +219,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   List<ChartData> _processTrendResponse(Map<String, dynamic> res) {
     final dynamic root = res['data'] ?? res;
-    final dynamic series =
-        (root is Map)
-            ? (root['data'] ?? root['series'] ?? root['trends'] ?? root['items'])
-            : null;
+    final dynamic series = (root is Map)
+        ? (root['data'] ?? root['series'] ?? root['trends'] ?? root['items'])
+        : null;
     if (series is List) return _processApiChartData(series);
     return [];
   }
@@ -229,8 +229,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   void _generateFallbackChartsFromHistory() {
     // Payments: sum per month (last 12 months)
     _paymentChartData = _aggregateMonthly(
-      _paymentHistory.map((p) => _Point(date: p.createdAt, amount: p.amount)).toList(),
-      months: 12,
+      _paymentHistory
+          .map((p) => _Point(date: p.createdAt, amount: p.amount))
+          .toList(),
     );
     // Debts: sum remaining per month (expected - paid)
     _debtChartData = _aggregateMonthly(
@@ -241,21 +242,21 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         } on FormatException {
           dt = DateTime.now();
         }
-        final double remaining = (d.expectedAmount - d.paidAmount);
+        final double remaining = d.expectedAmount - d.paidAmount;
         return _Point(date: dt, amount: remaining < 0 ? 0 : remaining);
       }).toList(),
-      months: 12,
     );
   }
 
   List<ChartData> _aggregateMonthly(List<_Point> points, {int months = 12}) {
     if (points.isEmpty) return [];
     final DateTime now = DateTime.now();
-    final DateTime start = DateTime(now.year, now.month - (months - 1), 1);
+    final DateTime start = DateTime(now.year, now.month - (months - 1));
     final Map<String, double> bucket = <String, double>{};
     for (final _Point p in points) {
       if (p.date.isBefore(start)) continue;
-      final String key = "${p.date.year}-${p.date.month.toString().padLeft(2, '0')}";
+      final String key =
+          "${p.date.year}-${p.date.month.toString().padLeft(2, '0')}";
       bucket[key] = (bucket[key] ?? 0) + p.amount;
     }
     final List<String> orderedKeys = bucket.keys.toList()
@@ -277,7 +278,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         return _paymentConsistencyRating;
     }
   }
-
 
   Future<void> _loadFinancialSummary() async {
     try {
@@ -336,7 +336,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         _totalOutstandingDebt = totalDebt;
         _totalDebtsRecorded = totalExpected;
         _totalPaid = totalPaid;
-        _paymentConsistencyRating = ratingKey; // store key: consistent|inconsistent|late
+        _paymentConsistencyRating =
+            ratingKey; // store key: consistent|inconsistent|late
         _averagePaymentDelay = avgDelay;
       });
     } on Exception catch (e) {
@@ -543,8 +544,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       Uint8List? backendPdf;
       if (!kIsWeb) {
         try {
-          backendPdf = await _apiService.getPdf(
-              '/admin/drivers/${widget.driver.id}/history-pdf');
+          backendPdf = await _apiService
+              .getPdf('/admin/drivers/${widget.driver.id}/history-pdf');
         } on Exception catch (_) {
           backendPdf = null; // fall back to client generation
         }
@@ -1284,7 +1285,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1366,8 +1366,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         _paymentConsistencyDisplay(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                        style: ThemeConstants.responsiveHeadingStyle(context)
+                            .copyWith(
                           color: ratingColor,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1399,8 +1399,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                         "$_averagePaymentDelay siku",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            ThemeConstants.responsiveHeadingStyle(context).copyWith(
+                        style: ThemeConstants.responsiveHeadingStyle(context)
+                            .copyWith(
                           color: ratingColor,
                           fontWeight: FontWeight.bold,
                         ),

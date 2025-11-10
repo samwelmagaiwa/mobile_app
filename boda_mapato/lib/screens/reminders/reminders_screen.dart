@@ -62,8 +62,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
             ..clear()
             ..addAll(
               remindersList
-                  .map((json) =>
-                      Reminder.fromJson(json as Map<String, dynamic>))
+                  .map(
+                      (json) => Reminder.fromJson(json as Map<String, dynamic>))
                   .toList(),
             );
           _filterReminders();
@@ -75,7 +75,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
         setState(() {
           _isLoading = false;
         });
-        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kupakia mikumbusho: $e");
+        ThemeConstants.showErrorSnackBar(
+            context, "Hitilafu katika kupakia mikumbusho: $e");
       }
     }
   }
@@ -120,7 +121,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       builder: (BuildContext context) => _AddReminderDialog(
         apiService: _apiService,
       ),
-).then((bool? result) {
+    ).then((bool? result) {
       if (result ?? false) {
         unawaited(_loadReminders()); // Refresh reminders if one was added
       }
@@ -137,7 +138,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kufuta kikumbusho: $e");
+        ThemeConstants.showErrorSnackBar(
+            context, "Hitilafu katika kufuta kikumbusho: $e");
       }
     }
   }
@@ -152,7 +154,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kubadilisha hali ya kikumbusho: $e");
+        ThemeConstants.showErrorSnackBar(
+            context, "Hitilafu katika kubadilisha hali ya kikumbusho: $e");
       }
     }
   }
@@ -169,63 +172,65 @@ class _RemindersScreenState extends State<RemindersScreen> {
         _filteredReminders.where((r) => r.isUpcoming).toList();
 
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+      builder: (context, localizationService, child) =>
+          ThemeConstants.buildResponsiveScaffold(
         context,
         title: localizationService.translate('reminders'),
-      body: _isLoading
-          ? ThemeConstants.buildResponsiveLoadingWidget(context)
-          : RefreshIndicator(
-              onRefresh: _loadReminders,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Summary Cards
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: _SummaryCard(
-                            title: "Vikumbusho vya Sasa",
-                            count: activeReminders.length,
-                            icon: Icons.notifications_active,
-                            color: ThemeConstants.primaryBlue,
+        body: _isLoading
+            ? ThemeConstants.buildResponsiveLoadingWidget(context)
+            : RefreshIndicator(
+                onRefresh: _loadReminders,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // Summary Cards
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: _SummaryCard(
+                              title: "Vikumbusho vya Sasa",
+                              count: activeReminders.length,
+                              icon: Icons.notifications_active,
+                              color: ThemeConstants.primaryBlue,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _SummaryCard(
-                            title: "Vilivyochelewa",
-                            count: overdueReminders.length,
-                            icon: Icons.warning,
-                            color: ThemeConstants.errorRed,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _SummaryCard(
+                              title: "Vilivyochelewa",
+                              count: overdueReminders.length,
+                              icon: Icons.warning,
+                              color: ThemeConstants.errorRed,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Search and Filter Section
-                    _buildSearchAndFilter(),
+                      // Search and Filter Section
+                      _buildSearchAndFilter(),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Reminders List
-                    if (_filteredReminders.isEmpty)
-                      _buildEmptyState()
-                    else
-                      _buildRemindersList(overdueReminders, upcomingReminders),
-                  ],
+                      // Reminders List
+                      if (_filteredReminders.isEmpty)
+                        _buildEmptyState()
+                      else
+                        _buildRemindersList(
+                            overdueReminders, upcomingReminders),
+                    ],
+                  ),
                 ),
               ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddReminderDialog,
-        backgroundColor: ThemeConstants.primaryBlue,
-        child: const Icon(Icons.add, color: Colors.white),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddReminderDialog,
+          backgroundColor: ThemeConstants.primaryBlue,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
-    ),
     );
   }
 
@@ -665,7 +670,8 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuongeza kikumbusho: $e");
+        ThemeConstants.showErrorSnackBar(
+            context, "Hitilafu katika kuongeza kikumbusho: $e");
       }
     } finally {
       if (mounted) {

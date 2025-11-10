@@ -173,9 +173,10 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
     ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) => Scaffold(
-        backgroundColor:
-            ThemeConstants.primaryBlue, // Solid blue background like drivers page
-        appBar: ThemeConstants.buildResponsiveAppBar(context, localizationService.translate('manage_vehicles'),
+        backgroundColor: ThemeConstants
+            .primaryBlue, // Solid blue background like drivers page
+        appBar: ThemeConstants.buildResponsiveAppBar(
+            context, localizationService.translate('manage_vehicles'),
             actions: <Widget>[
               IconButton(
                 onPressed: () => _loadVehicles(refresh: true),
@@ -185,9 +186,9 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
                 onSelected: (final String value) {
                   switch (value) {
                     case "export":
-_exportVehicles();
+                      _exportVehicles();
                     case "import":
-_importVehicles();
+                      _importVehicles();
                   }
                 },
                 itemBuilder: (final BuildContext context) =>
@@ -196,7 +197,8 @@ _importVehicles();
                     value: "export",
                     child: Row(
                       children: <Widget>[
-                        const Icon(Icons.download, color: ThemeConstants.primaryBlue),
+                        const Icon(Icons.download,
+                            color: ThemeConstants.primaryBlue),
                         const SizedBox(width: 8),
                         Text(localizationService.translate('export_data')),
                       ],
@@ -223,7 +225,7 @@ _importVehicles();
                 : _buildMainContent(),
           ),
         ),
-floatingActionButton: _buildFloatingActionButton(),
+        floatingActionButton: _buildFloatingActionButton(),
       ),
     );
   }
@@ -1553,10 +1555,10 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
     "gari": "Gari",
   };
 
-  // Colors
-  static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color successGreen = Color(0xFF10B981);
-  static const Color errorRed = Color(0xFFEF4444);
+  // Colors (aligned with ThemeConstants)
+  static const Color primaryBlue = ThemeConstants.primaryBlue;
+  static const Color successGreen = ThemeConstants.successGreen;
+  static const Color errorRed = ThemeConstants.errorRed;
 
   InputDecoration _inputDecoration(String label,
       {IconData? icon, String? hint}) {

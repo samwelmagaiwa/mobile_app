@@ -20,6 +20,11 @@ class RoleMiddleware
 
         $user = $request->user();
 
+        // Super Admin bypass: can access any route guarded by this middleware
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return $next($request);
+        }
+
         // Check if user is active
         if (!$user->is_active) {
             return ResponseHelper::error('Account is inactive', 403);

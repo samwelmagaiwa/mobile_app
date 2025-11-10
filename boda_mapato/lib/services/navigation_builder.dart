@@ -5,14 +5,12 @@ import '../services/localization_service.dart';
 import '../screens/receipts/receipts_screen.dart';
 import '../constants/theme_constants.dart';
 import 'package:provider/provider.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../providers/auth_provider.dart';
 
 // ignore_for_file: directives_ordering
 /// Service for building navigation UI components dynamically
 class NavigationBuilder {
-  
   /// Build drawer navigation items
   static List<Widget> buildDrawerItems({
     required LocalizationService localization,
@@ -22,11 +20,13 @@ class NavigationBuilder {
     required VoidCallback onLogout,
   }) {
     final List<Widget> items = [];
-    
+
     // Get available navigation items based on permissions
-    final availableItems = NavigationConfig.drawerItems.where(
-      (item) => _hasPermission(item, permissions),
-    ).toList();
+    final availableItems = NavigationConfig.drawerItems
+        .where(
+          (item) => _hasPermission(item, permissions),
+        )
+        .toList();
 
     // Add main navigation items
     for (final item in availableItems) {
@@ -70,15 +70,19 @@ class NavigationBuilder {
     required UserPermissions permissions,
     required BuildContext context,
   }) {
-    final availableActions = NavigationConfig.quickActions.where(
-      (action) => _hasPermissionForAction(action, permissions),
-    ).toList();
+    final availableActions = NavigationConfig.quickActions
+        .where(
+          (action) => _hasPermissionForAction(action, permissions),
+        )
+        .toList();
 
-    return availableActions.map((action) => _buildActionButton(
-      action: action,
-      localization: localization,
-      context: context,
-    )).toList();
+    return availableActions
+        .map((action) => _buildActionButton(
+              action: action,
+              localization: localization,
+              context: context,
+            ))
+        .toList();
   }
 
   /// Build individual drawer item
@@ -88,8 +92,9 @@ class NavigationBuilder {
     required Map<String, dynamic> badges,
     required BuildContext context,
   }) {
-    final badgeCount = item.badgeKey != null ? badges[item.badgeKey] as int? ?? 0 : null;
-    
+    final badgeCount =
+        item.badgeKey != null ? badges[item.badgeKey] as int? ?? 0 : null;
+
     return ListTile(
       leading: Stack(
         clipBehavior: Clip.none,
@@ -145,10 +150,12 @@ class NavigationBuilder {
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: (item.badgeColor ?? const Color(0xFFFF6B9D)).withOpacity(0.2),
+                color: (item.badgeColor ?? const Color(0xFFFF6B9D))
+                    .withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: (item.badgeColor ?? const Color(0xFFFF6B9D)).withOpacity(0.5),
+                  color: (item.badgeColor ?? const Color(0xFFFF6B9D))
+                      .withOpacity(0.5),
                 ),
               ),
               child: Text(
@@ -197,19 +204,21 @@ class NavigationBuilder {
         // Confirm logout dialog (localized)
         await showDialog<void>(
           context: context,
-          barrierDismissible: true,
           builder: (ctx) => AlertDialog(
             backgroundColor: ThemeConstants.primaryBlue,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               localization.translate('logout'),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600),
             ),
             content: Text(
               localization.translate('logout_confirm'),
               style: const TextStyle(color: Colors.white70),
             ),
-            actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            actionsPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             actionsAlignment: MainAxisAlignment.spaceBetween,
             actions: [
               // Cancel button (gray)
@@ -218,7 +227,8 @@ class NavigationBuilder {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey.shade600,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(localization.translate('cancel')),
               ),
@@ -231,7 +241,8 @@ class NavigationBuilder {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(localization.translate('yes')),
               ),
@@ -256,7 +267,8 @@ class NavigationBuilder {
       onTap: () => _handleQuickAction(action, context),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double h = constraints.maxHeight.isFinite ? constraints.maxHeight : 72;
+          final double h =
+              constraints.maxHeight.isFinite ? constraints.maxHeight : 72;
           // Responsive sizing to avoid overflow in tight spaces
           double side = h * 0.55; // icon button side
           if (side < 32) side = 32;
@@ -326,7 +338,7 @@ class NavigationBuilder {
       action.customAction!();
       return;
     }
-    
+
     switch (action.route) {
       case '/menu':
         // Show drawer items as a 3-column grid menu on top of the main screen
@@ -373,7 +385,6 @@ class NavigationBuilder {
 
     await showDialog<void>(
       context: context,
-      barrierDismissible: true,
       builder: (ctx) => Dialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -387,16 +398,15 @@ class NavigationBuilder {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: AutoSizeText(
-                      localization.translate('menu') ?? 'Menu',
+                    child: Text(
+                      localization.translate('menu'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+                      overflow: TextOverflow.ellipsis,
                       maxLines: 1,
-                      minFontSize: 12,
-                      stepGranularity: 0.5,
                     ),
                   ),
                   IconButton(
@@ -435,6 +445,18 @@ class NavigationBuilder {
     );
   }
 
+  /// Public helper to show the same grid menu used by quick action '/menu'
+  static Future<void> showGridMenu(BuildContext context) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final String role = auth.user?.role ?? 'viewer';
+    final perms = UserPermissions.fromRole(role);
+    await _showGridMenu(
+      context: context,
+      localization: LocalizationService.instance,
+      permissions: perms,
+    );
+  }
+
   /// Check if user has permission for navigation item
   static bool _hasPermission(NavigationItem item, UserPermissions permissions) {
     if (item.isSystemItem) return true;
@@ -445,37 +467,51 @@ class NavigationBuilder {
   }
 
   /// Check if user has permission for quick action
-  static bool _hasPermissionForAction(QuickActionItem action, UserPermissions permissions) {
-    if (action.requiredPermissions == null || action.requiredPermissions!.isEmpty) {
+  static bool _hasPermissionForAction(
+      QuickActionItem action, UserPermissions permissions) {
+    if (action.requiredPermissions == null ||
+        action.requiredPermissions!.isEmpty) {
       return true;
     }
     return permissions.hasAll(action.requiredPermissions!);
   }
 
   /// Get navigation items for current user
-  static List<NavigationItem> getAvailableNavigationItems(UserPermissions permissions) {
-    return NavigationConfig.allNavigationItems.where(
-      (item) => _hasPermission(item, permissions),
-    ).toList();
+  static List<NavigationItem> getAvailableNavigationItems(
+      UserPermissions permissions) {
+    return NavigationConfig.allNavigationItems
+        .where(
+          (item) => _hasPermission(item, permissions),
+        )
+        .toList();
   }
 
   /// Get quick actions for current user
-  static List<QuickActionItem> getAvailableQuickActions(UserPermissions permissions) {
-    return NavigationConfig.quickActions.where(
-      (action) => _hasPermissionForAction(action, permissions),
-    ).toList();
+  static List<QuickActionItem> getAvailableQuickActions(
+      UserPermissions permissions) {
+    return NavigationConfig.quickActions
+        .where(
+          (action) => _hasPermissionForAction(action, permissions),
+        )
+        .toList();
   }
 
   /// Get badge counts map from dashboard data
-  static Map<String, dynamic> getBadgesFromDashboardData(Map<String, dynamic> dashboardData) {
+  static Map<String, dynamic> getBadgesFromDashboardData(
+      Map<String, dynamic> dashboardData) {
     return {
-      'drivers': _toInt(dashboardData['drivers_count'] ?? dashboardData['total_drivers'] ?? 0),
-      'vehicles': _toInt(dashboardData['devices_count'] ?? dashboardData['total_vehicles'] ?? 0),
-      'payments': _toInt(dashboardData['unpaid_debts_count'] ?? dashboardData['pending_payments'] ?? 0),
+      'drivers': _toInt(dashboardData['drivers_count'] ??
+          dashboardData['total_drivers'] ??
+          0),
+      'vehicles': _toInt(dashboardData['devices_count'] ??
+          dashboardData['total_vehicles'] ??
+          0),
+      'payments': _toInt(dashboardData['unpaid_debts_count'] ??
+          dashboardData['pending_payments'] ??
+          0),
       'reminders': _toInt(dashboardData['reminders_count'] ?? 0),
     };
   }
-
 }
 
 class _MenuGridTile extends StatelessWidget {
@@ -494,7 +530,8 @@ class _MenuGridTile extends StatelessWidget {
         onTap: onTap,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final double h = constraints.maxHeight.isFinite ? constraints.maxHeight : 90;
+            final double h =
+                constraints.maxHeight.isFinite ? constraints.maxHeight : 90;
             // Compute sizes responsively to avoid overflows on tight tiles
             double side = h * 0.52; // avatar circle side
             if (side < 36) side = 36;
@@ -511,7 +548,6 @@ class _MenuGridTile extends StatelessWidget {
 
             return FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -528,7 +564,8 @@ class _MenuGridTile extends StatelessWidget {
                   SizedBox(height: spacing),
                   // Let the text shrink and ellipsize within the tile
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: constraints.maxWidth - 4),
+                    constraints:
+                        BoxConstraints(maxWidth: constraints.maxWidth - 4),
                     child: Text(
                       label,
                       textAlign: TextAlign.center,
@@ -547,7 +584,7 @@ class _MenuGridTile extends StatelessWidget {
 }
 
 /// Helper method to safely convert dynamic values to int
-int _toInt(dynamic value) {
+int _toInt(value) {
   if (value == null) return 0;
   if (value is int) return value;
   if (value is double) return value.round();

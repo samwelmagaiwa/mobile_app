@@ -9,8 +9,7 @@ class AppMessenger {
   static void show(String message, {Color? color, bool isSuccess = true}) {
     final BuildContext? ctx = key.currentContext;
     if (ctx == null) return;
-    final OverlayState? overlay = Overlay.of(ctx, rootOverlay: true);
-    if (overlay == null) return;
+    final OverlayState overlay = Overlay.of(ctx, rootOverlay: true);
 
     late OverlayEntry entry;
     entry = OverlayEntry(
@@ -23,7 +22,8 @@ class AppMessenger {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: color ?? (isSuccess ? Colors.green.shade600 : Colors.red.shade400),
+              color: color ??
+                  (isSuccess ? Colors.green.shade600 : Colors.red.shade400),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(

@@ -23,7 +23,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _isChangingPassword = false;
   bool _twoFactorEnabled = false;
   bool _loadingSettings = true;
@@ -95,7 +95,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _localizationService.translate('security_subtitle'),
+                              _localizationService
+                                  .translate('security_subtitle'),
                               style: const TextStyle(
                                 color: ThemeConstants.textSecondary,
                                 fontSize: 14,
@@ -129,151 +130,184 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Current Password
                         TextFormField(
                           controller: _currentPasswordController,
                           obscureText: _obscureCurrentPassword,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: InputDecoration(
-                            labelText: _localizationService.translate('current_password'),
-                            labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
-                            prefixIcon: const Icon(Icons.lock_outline, color: ThemeConstants.textSecondary),
+                            labelText: _localizationService
+                                .translate('current_password'),
+                            labelStyle: const TextStyle(
+                                color: ThemeConstants.textSecondary),
+                            prefixIcon: const Icon(Icons.lock_outline,
+                                color: ThemeConstants.textSecondary),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                                _obscureCurrentPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: ThemeConstants.textSecondary,
                               ),
-                              onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
+                              onPressed: () => setState(() =>
+                                  _obscureCurrentPassword =
+                                      !_obscureCurrentPassword),
                             ),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.1),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
+                              borderSide: const BorderSide(
+                                  color: ThemeConstants.primaryOrange),
                             ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return _localizationService.isSwahili 
-                                ? 'Ingiza neno la siri la sasa'
-                                : 'Enter current password';
+                              return _localizationService.isSwahili
+                                  ? 'Ingiza neno la siri la sasa'
+                                  : 'Enter current password';
                             }
                             return null;
                           },
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // New Password
                         TextFormField(
                           controller: _newPasswordController,
                           obscureText: _obscureNewPassword,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: InputDecoration(
-                            labelText: _localizationService.translate('new_password'),
-                            labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
-                            prefixIcon: const Icon(Icons.lock, color: ThemeConstants.textSecondary),
+                            labelText:
+                                _localizationService.translate('new_password'),
+                            labelStyle: const TextStyle(
+                                color: ThemeConstants.textSecondary),
+                            prefixIcon: const Icon(Icons.lock,
+                                color: ThemeConstants.textSecondary),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                                _obscureNewPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: ThemeConstants.textSecondary,
                               ),
-                              onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                              onPressed: () => setState(() =>
+                                  _obscureNewPassword = !_obscureNewPassword),
                             ),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.1),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
+                              borderSide: const BorderSide(
+                                  color: ThemeConstants.primaryOrange),
                             ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return _localizationService.isSwahili 
-                                ? 'Ingiza neno la siri jipya'
-                                : 'Enter new password';
+                              return _localizationService.isSwahili
+                                  ? 'Ingiza neno la siri jipya'
+                                  : 'Enter new password';
                             }
                             if (value.length < 6) {
-                              return _localizationService.isSwahili 
-                                ? 'Neno la siri lazima liwe na angalau herufi 6'
-                                : 'Password must be at least 6 characters';
+                              return _localizationService.isSwahili
+                                  ? 'Neno la siri lazima liwe na angalau herufi 6'
+                                  : 'Password must be at least 6 characters';
                             }
                             return null;
                           },
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Confirm Password
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
-                          style: const TextStyle(color: ThemeConstants.textPrimary),
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
                           decoration: InputDecoration(
-                            labelText: _localizationService.translate('confirm_password'),
-                            labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
-                            prefixIcon: const Icon(Icons.lock_clock, color: ThemeConstants.textSecondary),
+                            labelText: _localizationService
+                                .translate('confirm_password'),
+                            labelStyle: const TextStyle(
+                                color: ThemeConstants.textSecondary),
+                            prefixIcon: const Icon(Icons.lock_clock,
+                                color: ThemeConstants.textSecondary),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                                _obscureConfirmPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: ThemeConstants.textSecondary,
                               ),
-                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                              onPressed: () => setState(() =>
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword),
                             ),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.1),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
+                              borderSide: const BorderSide(
+                                  color: ThemeConstants.primaryOrange),
                             ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return _localizationService.isSwahili 
-                                ? 'Thibitisha neno la siri'
-                                : 'Confirm password';
+                              return _localizationService.isSwahili
+                                  ? 'Thibitisha neno la siri'
+                                  : 'Confirm password';
                             }
                             if (value != _newPasswordController.text) {
-                              return _localizationService.isSwahili 
-                                ? 'Maneno ya siri hayalingani'
-                                : 'Passwords do not match';
+                              return _localizationService.isSwahili
+                                  ? 'Maneno ya siri hayalingani'
+                                  : 'Passwords do not match';
                             }
                             return null;
                           },
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Change Password Button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _isChangingPassword ? null : _changePassword,
+                            onPressed:
+                                _isChangingPassword ? null : _changePassword,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: ThemeConstants.primaryOrange,
                               foregroundColor: Colors.white,
@@ -283,15 +317,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
                               ),
                             ),
                             child: _isChangingPassword
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(_localizationService.translate('change_password')),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(_localizationService
+                                    .translate('change_password')),
                           ),
                         ),
                       ],
@@ -307,17 +342,22 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: const Icon(Icons.security, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      leading: const Icon(Icons.security,
+                          color: ThemeConstants.textSecondary),
                       title: Text(
                         _localizationService.translate('two_factor_auth'),
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
                       ),
                       trailing: _loadingSettings
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: ThemeConstants.primaryOrange),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: ThemeConstants.primaryOrange),
                             )
                           : Switch.adaptive(
                               value: _twoFactorEnabled,
@@ -327,13 +367,17 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: const Icon(Icons.history, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      leading: const Icon(Icons.history,
+                          color: ThemeConstants.textSecondary),
                       title: Text(
                         _localizationService.translate('login_history'),
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: _viewLoginHistory,
                     ),
                   ],
@@ -363,7 +407,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
         _currentPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
-        
+
         // Show success message
         if (mounted) {
           ThemeConstants.showSuccessSnackBar(
@@ -376,7 +420,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
         try {
           await AuthService.logout();
         } catch (_) {
-          try { await AuthService.clearAuthData(); } catch (_) {}
+          try {
+            await AuthService.clearAuthData();
+          } catch (_) {}
         }
         if (mounted) {
           AuthEvents.instance.emit(AuthEvent.unauthorized);
@@ -393,9 +439,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
       if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
-        _localizationService.isSwahili 
-          ? 'Imeshindikana kubadilisha neno la siri: ${e}'
-          : 'Failed to change password: ${e}',
+        _localizationService.isSwahili
+            ? 'Imeshindikana kubadilisha neno la siri: ${e}'
+            : 'Failed to change password: ${e}',
       );
     } finally {
       if (!mounted) return;
@@ -429,7 +475,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
               child: all.isEmpty
                   ? Text(
                       _localizationService.translate('no_login_history'),
-                      style: const TextStyle(color: ThemeConstants.textSecondary),
+                      style:
+                          const TextStyle(color: ThemeConstants.textSecondary),
                     )
                   : Column(
                       mainAxisSize: MainAxisSize.min,
@@ -438,23 +485,37 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           height: 320,
                           child: ListView.separated(
                             itemCount: all.length,
-                            separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 12),
+                            separatorBuilder: (_, __) => const Divider(
+                                color: Colors.white24, height: 12),
                             itemBuilder: (context, index) {
-                              final m = Map<String, dynamic>.from(all[index] as Map);
-                              final String when = (m['login_at'] ?? '').toString().replaceFirst('T', ' ');
-                              final String ip = (m['ip_address'] ?? '').toString();
-                              final String ua = (m['user_agent'] ?? '').toString();
+                              final m =
+                                  Map<String, dynamic>.from(all[index] as Map);
+                              final String when = (m['login_at'] ?? '')
+                                  .toString()
+                                  .replaceFirst('T', ' ');
+                              final String ip =
+                                  (m['ip_address'] ?? '').toString();
+                              final String ua =
+                                  (m['user_agent'] ?? '').toString();
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(when, style: const TextStyle(color: ThemeConstants.textPrimary, fontWeight: FontWeight.w600)),
+                                  Text(when,
+                                      style: const TextStyle(
+                                          color: ThemeConstants.textPrimary,
+                                          fontWeight: FontWeight.w600)),
                                   const SizedBox(height: 2),
-                                  Text(ip.isNotEmpty ? 'IP: $ip' : 'IP: -', style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 12)),
+                                  Text(ip.isNotEmpty ? 'IP: $ip' : 'IP: -',
+                                      style: const TextStyle(
+                                          color: ThemeConstants.textSecondary,
+                                          fontSize: 12)),
                                   if (ua.isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       ua,
-                                      style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
+                                      style: const TextStyle(
+                                          color: ThemeConstants.textSecondary,
+                                          fontSize: 12),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -472,30 +533,45 @@ class _SecurityScreenState extends State<SecurityScreen> {
                               onPressed: loadingMore
                                   ? null
                                   : () async {
+                                      final messenger = ScaffoldMessenger.of(context);
                                       setStateDialog(() => loadingMore = true);
                                       try {
-                                        final next = await _apiService.getLoginHistory(page: ++page, limit: 50);
-                                        final List<dynamic> nextItems = next['data'] as List<dynamic>? ?? <dynamic>[];
-                                        final nmeta = next['pagination'] as Map<String, dynamic>?;
+                                        final next =
+                                            await _apiService.getLoginHistory(
+                                                page: ++page, limit: 50);
+                                        final List<dynamic> nextItems =
+                                            next['data'] as List<dynamic>? ??
+                                                <dynamic>[];
+                                        final nmeta = next['pagination']
+                                            as Map<String, dynamic>?;
                                         setStateDialog(() {
                                           all.addAll(nextItems);
-                                          hasMore = nmeta?['has_more_pages'] == true;
+                                          hasMore =
+                                              nmeta?['has_more_pages'] == true;
                                           loadingMore = false;
                                         });
                                       } catch (e) {
-                                        setStateDialog(() => loadingMore = false);
+                                        setStateDialog(
+                                            () => loadingMore = false);
                                         if (mounted) {
-                                          // ignore: use_build_context_synchronously
-                                          ThemeConstants.showErrorSnackBar(context, e.toString());
+                                          messenger.showSnackBar(
+                                            SnackBar(content: Text(e.toString())),
+                                          );
                                         }
                                       }
                                     },
                               icon: loadingMore
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.expand_more, color: ThemeConstants.primaryOrange),
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
+                                  : const Icon(Icons.expand_more,
+                                      color: ThemeConstants.primaryOrange),
                               label: Text(
                                 _localizationService.translate('view_all'),
-                                style: const TextStyle(color: ThemeConstants.primaryOrange),
+                                style: const TextStyle(
+                                    color: ThemeConstants.primaryOrange),
                               ),
                             ),
                           ),

@@ -1,16 +1,16 @@
 import "dart:ui";
 
+import 'package:auto_size_text/auto_size_text.dart';
 import "package:flutter/material.dart";
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../models/communication.dart";
 import "../../models/driver.dart";
+import '../../services/api_service.dart';
 import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
-import '../../services/api_service.dart';
-import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
@@ -201,9 +201,10 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
         try {
           final response = await _apiService.get('/admin/communications');
           if (response['status'] == 'success' && response['data'] != null) {
-final List<dynamic> commData = response['data'] as List<dynamic>;
+            final List<dynamic> commData = response['data'] as List<dynamic>;
             _communications = commData
-                .map((json) => Communication.fromJson(json as Map<String, dynamic>))
+                .map((json) =>
+                    Communication.fromJson(json as Map<String, dynamic>))
                 .toList();
           } else {
             _communications = [];
@@ -484,7 +485,6 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -540,7 +540,7 @@ final List<dynamic> commData = response['data'] as List<dynamic>;
               ),
               const Spacer(),
               ElevatedButton.icon(
-onPressed: _showAddCommunicationDialog,
+                onPressed: _showAddCommunicationDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   foregroundColor: Colors.white,
@@ -549,7 +549,9 @@ onPressed: _showAddCommunicationDialog,
                 ),
                 icon: Icon(Icons.add, size: 16.sp),
                 label: Text(
-                  ResponsiveHelper.isMobile ? localizationService.translate("add") : localizationService.translate("add_communication"),
+                  ResponsiveHelper.isMobile
+                      ? localizationService.translate("add")
+                      : localizationService.translate("add_communication"),
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
@@ -587,9 +589,11 @@ onPressed: _showAddCommunicationDialog,
           if (ResponsiveHelper.isMobile)
             Column(
               children: <Widget>[
-                _buildMobileFilterRow(localizationService.translate("type"), _buildModeFilters(localizationService)),
+                _buildMobileFilterRow(localizationService.translate("type"),
+                    _buildModeFilters(localizationService)),
                 ResponsiveHelper.verticalSpace(0.5),
-                _buildMobileFilterRow(localizationService.translate("status"), _buildStatusFilters(localizationService)),
+                _buildMobileFilterRow(localizationService.translate("status"),
+                    _buildStatusFilters(localizationService)),
               ],
             )
           else
@@ -634,7 +638,9 @@ onPressed: _showAddCommunicationDialog,
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _buildFilterChip(localizationService.translate("all"), "all", _selectedFilterMode, (value) {
+          _buildFilterChip(
+              localizationService.translate("all"), "all", _selectedFilterMode,
+              (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -646,7 +652,8 @@ onPressed: _showAddCommunicationDialog,
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("call"), "call", _selectedFilterMode, (value) {
+          _buildFilterChip(localizationService.translate("call"), "call",
+              _selectedFilterMode, (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -659,8 +666,8 @@ onPressed: _showAddCommunicationDialog,
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("note"), "system_note", _selectedFilterMode,
-              (value) {
+          _buildFilterChip(localizationService.translate("note"), "system_note",
+              _selectedFilterMode, (value) {
             setState(() {
               _selectedFilterMode = value;
             });
@@ -675,21 +682,22 @@ onPressed: _showAddCommunicationDialog,
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _buildFilterChip(localizationService.translate("all"), "all", _selectedFilterStatus, (value) {
+          _buildFilterChip(localizationService.translate("all"), "all",
+              _selectedFilterStatus, (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("answered"), "answered", _selectedFilterStatus,
-              (value) {
+          _buildFilterChip(localizationService.translate("answered"),
+              "answered", _selectedFilterStatus, (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
           }),
           ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("unanswered"), "unanswered", _selectedFilterStatus,
-              (value) {
+          _buildFilterChip(localizationService.translate("unanswered"),
+              "unanswered", _selectedFilterStatus, (value) {
             setState(() {
               _selectedFilterStatus = value;
             });
@@ -813,7 +821,8 @@ onPressed: _showAddCommunicationDialog,
                   ),
                   itemBuilder: (context, index) {
                     final communication = filteredCommunications[index];
-                    return _buildCommunicationRow(communication, localizationService);
+                    return _buildCommunicationRow(
+                        communication, localizationService);
                   },
                 ),
             ],
@@ -823,9 +832,10 @@ onPressed: _showAddCommunicationDialog,
     );
   }
 
-  Widget _buildCommunicationRow(Communication communication, LocalizationService localizationService) {
+  Widget _buildCommunicationRow(
+      Communication communication, LocalizationService localizationService) {
     return GestureDetector(
-onTap: () => _showCommunicationDetails(communication),
+      onTap: () => _showCommunicationDetails(communication),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         child: Row(
@@ -959,7 +969,6 @@ onTap: () => _showCommunicationDetails(communication),
                   "Maelezo ya Mawasiliano",
                   style: ThemeConstants.responsiveHeadingStyle(context),
                   maxLines: 1,
-                  minFontSize: 12,
                   stepGranularity: 0.5,
                 ),
               ),
@@ -1097,7 +1106,6 @@ onTap: () => _showCommunicationDetails(communication),
                       "Ongeza Mawasiliano",
                       style: ThemeConstants.responsiveHeadingStyle(context),
                       maxLines: 1,
-                      minFontSize: 12,
                       stepGranularity: 0.5,
                     ),
                   ),
@@ -1533,5 +1541,4 @@ onTap: () => _showCommunicationDetails(communication),
       _showErrorSnackBar("Hitilafu katika kuhifadhi jibu: $e");
     }
   }
-
 }

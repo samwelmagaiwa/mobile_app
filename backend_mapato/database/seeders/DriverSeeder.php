@@ -52,45 +52,53 @@ class DriverSeeder extends Seeder
         ];
 
         foreach ($drivers as $driverData) {
-            // Create user
-            $user = User::create([
-                'name' => $driverData['name'],
-                'email' => $driverData['email'],
-                'phone_number' => $driverData['phone'],
-                'password' => Hash::make('password123'),
-                'role' => 'driver',
-                'is_active' => true,
-                'email_verified' => false,
-                'phone_verified' => false,
-            ]);
-
-            // Create driver profile
-            $driver = Driver::create([
-                'user_id' => $user->id,
-                'license_number' => $driverData['license_number'],
-                'license_expiry' => now()->addYears(5),
-                'is_active' => true,
-                'rating' => 4.5,
-                'total_trips' => 0,
-                'total_earnings' => 0,
-            ]);
-
-            // Create vehicle if provided
-            if ($driverData['vehicle_number'] && $driverData['vehicle_type']) {
-                $device = Device::create([
-                    'driver_id' => $driver->id,
-                    'name' => $driverData['vehicle_type'] . ' - ' . $driverData['vehicle_number'],
-                    'type' => $driverData['vehicle_type'],
-                    'plate_number' => $driverData['vehicle_number'],
-                    'description' => 'Vehicle assigned to ' . $driverData['name'],
+            // Create or update user by email
+            $user = User::updateOrCreate(
+                ['email' => $driverData['email']],
+                [
+                    'name' => $driverData['name'],
+                    'phone_number' => $driverData['phone'],
+                    'password' => Hash::make('password123'),
+                    'role' => 'driver',
                     'is_active' => true,
-                ]);
+                    'email_verified' => false,
+                    'phone_verified' => false,
+                ]
+            );
+
+            // Create or update driver profile by user_id
+            $driver = Driver::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'license_number' => $driverData['license_number'],
+                    'license_expiry' => now()->addYears(5),
+                    'is_active' => true,
+                    'rating' => 4.5,
+                    'total_trips' => 0,
+                    'total_earnings' => 0,
+                ]
+            );
+
+            // Create or update vehicle if provided, keyed by plate_number
+            if ($driverData['vehicle_number'] && $driverData['vehicle_type']) {
+                $device = Device::updateOrCreate(
+                    ['plate_number' => $driverData['vehicle_number']],
+                    [
+                        'driver_id' => $driver->id,
+                        'name' => $driverData['vehicle_type'] . ' - ' . $driverData['vehicle_number'],
+                        'type' => $driverData['vehicle_type'],
+                        'description' => 'Vehicle assigned to ' . $driverData['name'],
+                        'is_active' => true,
+                    ]
+                );
 
                 // Update user's assigned device
-                $user->update(['device_id' => $device->id]);
+                if ($user->device_id !== $device->id) {
+                    $user->update(['device_id' => $device->id]);
+                }
             }
         }
 
-        $this->command->info('Sample drivers created successfully!');
+        $this->command->info('Sample drivers ensured successfully!');
     }
 }

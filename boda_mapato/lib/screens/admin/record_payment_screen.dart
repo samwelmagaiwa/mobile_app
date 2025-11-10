@@ -37,10 +37,10 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   String _selectedCategory = "daily_payment";
   String _selectedPaymentMethod = "cash";
 
-  // Enhanced color scheme
-  static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color successGreen = Color(0xFF10B981);
-  static const Color errorRed = Color(0xFFEF4444);
+  // Enhanced color scheme (aligned with ThemeConstants)
+  static const Color primaryBlue = ThemeConstants.primaryBlue;
+  static const Color successGreen = ThemeConstants.successGreen;
+  static const Color errorRed = ThemeConstants.errorRed;
   static const Color grayBackground = Color(0xFFF8FAFC);
 
   // Payment categories
@@ -235,7 +235,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
       if (mounted) {
         _showSuccessSnackBar("Malipo yamerekodiwa kikamilifu!");
         _clearForm();
-        
+
         // Emit events to notify other screens about payment updates
         AppEvents.instance.emit(AppEventType.paymentsUpdated);
         AppEvents.instance.emit(AppEventType.receiptsUpdated);

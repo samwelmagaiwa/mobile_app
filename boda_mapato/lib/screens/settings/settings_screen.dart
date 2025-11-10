@@ -63,9 +63,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             backgroundColor: ThemeConstants.primaryOrange,
                             backgroundImage: _buildAvatarImage(authProvider),
                             child: _buildAvatarImage(authProvider) == null
-                                ? (authProvider.user?.name != null && authProvider.user!.name.isNotEmpty)
+                                ? (authProvider.user?.name != null &&
+                                        authProvider.user!.name.isNotEmpty)
                                     ? Text(
-                                        authProvider.user!.name.substring(0, 1).toUpperCase(),
+                                        authProvider.user!.name
+                                            .substring(0, 1)
+                                            .toUpperCase(),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 24,
@@ -90,7 +93,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: Colors.black.withOpacity(0.6),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                                child: const Icon(Icons.camera_alt,
+                                    color: Colors.white, size: 18),
                               ),
                             ),
                           ),
@@ -144,7 +148,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       () => _navigateToScreen(const SecurityScreen()),
                     ),
                     // Users management (admins only)
-if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ?? false)) ...[
+                    if ((authProvider.user?.isAdmin ?? false) ||
+                        (authProvider.user?.isSuperAdmin ?? false)) ...[
                       const Divider(color: Colors.white24, height: 1),
                       _buildSettingsTile(
                         Icons.people,
@@ -192,7 +197,8 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
               // Logout Button
               ThemeConstants.buildGlassCard(
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   leading: const Icon(
                     Icons.logout,
                     color: Colors.redAccent,
@@ -209,7 +215,7 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
                   onTap: () => _showLogoutDialog(authProvider),
                 ),
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),
@@ -283,7 +289,6 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
                 _localizationService.translate('app_name'),
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 maxLines: 1,
-                minFontSize: 12,
                 stepGranularity: 0.5,
               ),
             ),
@@ -343,7 +348,6 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
                 _localizationService.translate('confirm'),
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 maxLines: 1,
-                minFontSize: 12,
                 stepGranularity: 0.5,
               ),
             ),
@@ -409,7 +413,9 @@ if ((authProvider.user?.isAdmin ?? false) || (authProvider.user?.isSuperAdmin ??
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? 'Image uploaded successfully' : 'Failed to upload image')),
+        SnackBar(
+            content: Text(
+                ok ? 'Image uploaded successfully' : 'Failed to upload image')),
       );
       if (ok && mounted) setState(() {});
     } on Exception catch (e) {

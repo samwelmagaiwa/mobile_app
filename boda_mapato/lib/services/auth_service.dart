@@ -44,9 +44,11 @@ mixin AuthService {
       return data;
     } else {
       if (kDebugMode && ApiConfig.enableHttpLogs) {
-        debugPrint('HTTP ERROR ${response.request?.url} status=${response.statusCode}');
+        debugPrint(
+            'HTTP ERROR ${response.request?.url} status=${response.statusCode}');
         final String b = response.body;
-        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+        debugPrint(
+            'Body (first 1000): ${b.length > 1000 ? '${b.substring(0, 1000)}...' : b}');
       }
       throw Exception(
         data["message"] ?? "Server error: ${response.statusCode}",
@@ -64,7 +66,8 @@ mixin AuthService {
       final String url = "$baseUrl/auth/login";
       if (kDebugMode && ApiConfig.enableHttpLogs) {
         debugPrint('HTTP POST $url');
-        debugPrint('Request: {email: $email, phone_number: $phoneNumber, password: ***}');
+        debugPrint(
+            'Request: {email: $email, phone_number: $phoneNumber, password: ***}');
       }
       final http.Response response = await http
           .post(
@@ -80,7 +83,8 @@ mixin AuthService {
       if (kDebugMode && ApiConfig.enableHttpLogs) {
         debugPrint('HTTP <- $url status=${response.statusCode}');
         final String b = response.body;
-        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+        debugPrint(
+            'Body (first 1000): ${b.length > 1000 ? '${b.substring(0, 1000)}...' : b}');
       }
 
       final Map<String, dynamic> data = _handleResponse(response);
@@ -185,15 +189,15 @@ mixin AuthService {
       if (kDebugMode && ApiConfig.enableHttpLogs) {
         debugPrint('HTTP <- $url status=${response.statusCode}');
         final String b = response.body;
-        debugPrint('Body (first 1000): ${b.length > 1000 ? b.substring(0, 1000) + '...' : b}');
+        debugPrint(
+            'Body (first 1000): ${b.length > 1000 ? '${b.substring(0, 1000)}...' : b}');
       }
 
       final Map<String, dynamic> raw = _handleResponse(response);
       // Normalize ResponseHelper structure: { success, message, data: { user, ... } }
-      final Map<String, dynamic> payload =
-          raw['data'] is Map<String, dynamic>
-              ? Map<String, dynamic>.from(raw['data'] as Map)
-              : raw;
+      final Map<String, dynamic> payload = raw['data'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(raw['data'] as Map)
+          : raw;
 
       // Update stored user data
       final Map<String, dynamic>? user = payload['user'] is Map

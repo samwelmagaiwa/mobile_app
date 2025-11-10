@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,11 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
-
 import 'constants/colors.dart';
 import 'constants/styles.dart';
 import 'constants/theme_constants.dart';
+import 'modules/inventory/providers/inventory_provider.dart';
+import 'modules/inventory/screens/inventory_home.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/debts_provider.dart';
@@ -22,23 +23,23 @@ import 'screens/admin/drivers_management_screen.dart';
 import 'screens/admin/vehicles_management_screen.dart';
 import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/coming_soon_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
 import 'screens/demo_language_screen.dart';
 import 'screens/driver/driver_dashboard_screen.dart';
-import 'screens/payments/payments_screen.dart';
 import 'screens/driver/driver_payment_history_screen.dart';
-import 'screens/receipts/receipts_screen.dart';
 import 'screens/driver/driver_receipts_screen.dart';
-import 'screens/reminders/reminders_screen.dart';
 import 'screens/driver/driver_reminders_screen.dart';
+import 'screens/payments/payments_screen.dart';
+import 'screens/receipts/receipts_screen.dart';
+import 'screens/reminders/reminders_screen.dart';
 import 'screens/reports/report_screen.dart';
-import 'screens/settings/settings_screen.dart';
 import 'screens/service_selection_screen.dart';
-import 'screens/coming_soon_screen.dart';
-import 'modules/inventory/screens/inventory_home.dart';
+import 'screens/settings/settings_screen.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
-import 'utils/web_keyboard_fix_stub.dart' if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
+import 'utils/web_keyboard_fix_stub.dart'
+    if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,8 +56,10 @@ Future<void> main() async {
     FlutterError.presentError(details);
     if (kDebugMode) {
       final String msg = details.exceptionAsString();
-      if (msg.contains('RenderFlex overflowed') || msg.contains('A RenderFlex overflowed')) {
-        debugPrint('[OVERFLOW] page=${RouteTracker.currentRouteName} -> ${details.exceptionAsString()}');
+      if (msg.contains('RenderFlex overflowed') ||
+          msg.contains('A RenderFlex overflowed')) {
+        debugPrint(
+            '[OVERFLOW] page=${RouteTracker.currentRouteName} -> ${details.exceptionAsString()}');
       }
     }
   };
@@ -85,7 +88,8 @@ class RouteTracker extends NavigatorObserver {
 
   void _setCurrent(Route<dynamic>? route) {
     final Route<dynamic>? r = route;
-    String name = r?.settings.name ?? r?.runtimeType.toString() ?? '(unknown)';
+    final String name =
+        r?.settings.name ?? r?.runtimeType.toString() ?? '(unknown)';
     // Some MaterialPageRoutes might not have names; also try widget type if available
     _current = name;
   }
@@ -114,7 +118,6 @@ class BodaMapatoApp extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => ScreenUtilInit(
-        designSize: const Size(360, 690), // Base design size per requirements
         minTextAdapt: true,
         splitScreenMode: true,
         useInheritedMediaQuery: true,
@@ -139,6 +142,9 @@ class BodaMapatoApp extends StatelessWidget {
             ChangeNotifierProvider<DashboardProvider>(
               create: (final BuildContext _) => DashboardProvider()..loadAll(),
             ),
+            ChangeNotifierProvider<InventoryProvider>(
+              create: (final BuildContext _) => InventoryProvider()..bootstrap(),
+            ),
           ],
           child: Consumer<LocalizationService>(
             builder: (context, localizationService, child) => MaterialApp(
@@ -158,45 +164,46 @@ class BodaMapatoApp extends StatelessWidget {
               ],
               home: const AuthWrapper(),
               debugShowCheckedModeBanner: false,
-            routes: <String, WidgetBuilder>{
-              "/receipts": (final BuildContext context) =>
-                  const ReceiptsScreen(),
-              "/driver/receipts": (final BuildContext context) =>
-                  const DriverReceiptsScreen(),
-              "/driver/payment-history": (final BuildContext context) =>
-                  const DriverPaymentHistoryScreen(),
-              "/admin/dashboard": (final BuildContext context) =>
-                  const AdminDashboardScreen(),
-              "/modern-dashboard": (final BuildContext context) =>
-                  const ModernDashboardScreen(),
-              "/admin/drivers": (final BuildContext context) =>
-                  const DriversManagementScreen(),
-              "/admin/vehicles": (final BuildContext context) =>
-                  const VehiclesManagementScreen(),
-              "/payments": (final BuildContext context) => const PaymentsScreen(),
-              "/admin/analytics": (final BuildContext context) =>
-                  const AnalyticsScreen(),
-              "/admin/reports": (final BuildContext context) =>
-                  const ReportScreen(),
-              "/admin/reminders": (final BuildContext context) =>
-                  const RemindersScreen(),
-              "/driver/reminders": (final BuildContext context) =>
-                  const DriverRemindersScreen(),
-              "/admin/debts": (final BuildContext context) =>
-                  const DebtsManagementScreen(),
-              "/admin/communications": (final BuildContext context) =>
-                  const CommunicationsScreen(),
-              "/settings": (final BuildContext context) =>
-                  const SettingsScreen(),
-              "/demo": (final BuildContext context) =>
-                  const DemoLanguageScreen(),
-              "/select-service": (final BuildContext context) =>
-                  const ServiceSelectionScreen(),
-              "/inventory": (final BuildContext context) =>
-                  const InventoryHome(),
-              "/coming-soon": (final BuildContext context) =>
-                  const ComingSoonScreen(),
-            },
+              routes: <String, WidgetBuilder>{
+                "/receipts": (final BuildContext context) =>
+                    const ReceiptsScreen(),
+                "/driver/receipts": (final BuildContext context) =>
+                    const DriverReceiptsScreen(),
+                "/driver/payment-history": (final BuildContext context) =>
+                    const DriverPaymentHistoryScreen(),
+                "/admin/dashboard": (final BuildContext context) =>
+                    const AdminDashboardScreen(),
+                "/modern-dashboard": (final BuildContext context) =>
+                    const ModernDashboardScreen(),
+                "/admin/drivers": (final BuildContext context) =>
+                    const DriversManagementScreen(),
+                "/admin/vehicles": (final BuildContext context) =>
+                    const VehiclesManagementScreen(),
+                "/payments": (final BuildContext context) =>
+                    const PaymentsScreen(),
+                "/admin/analytics": (final BuildContext context) =>
+                    const AnalyticsScreen(),
+                "/admin/reports": (final BuildContext context) =>
+                    const ReportScreen(),
+                "/admin/reminders": (final BuildContext context) =>
+                    const RemindersScreen(),
+                "/driver/reminders": (final BuildContext context) =>
+                    const DriverRemindersScreen(),
+                "/admin/debts": (final BuildContext context) =>
+                    const DebtsManagementScreen(),
+                "/admin/communications": (final BuildContext context) =>
+                    const CommunicationsScreen(),
+                "/settings": (final BuildContext context) =>
+                    const SettingsScreen(),
+                "/demo": (final BuildContext context) =>
+                    const DemoLanguageScreen(),
+                "/select-service": (final BuildContext context) =>
+                    const ServiceSelectionScreen(),
+                "/inventory": (final BuildContext context) =>
+                    const InventoryHome(),
+                "/coming-soon": (final BuildContext context) =>
+                    const ComingSoonScreen(),
+              },
             ),
           ),
         ),
@@ -221,9 +228,11 @@ class BodaMapatoApp extends StatelessWidget {
           headerForegroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           dayForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
-          yearForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+          yearForegroundColor:
+              const WidgetStatePropertyAll<Color>(Colors.white),
           weekdayStyle: const TextStyle(color: Colors.white70),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         dialogTheme: const DialogTheme(
           backgroundColor: ThemeConstants.primaryBlue,
@@ -289,7 +298,10 @@ class _LanguageSelectionPage extends StatelessWidget {
             children: [
               Text(
                 loc.translate('select_language'),
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Row(
@@ -300,7 +312,8 @@ class _LanguageSelectionPage extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade600,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text(loc.translate('swahili')),
                     ),
@@ -312,7 +325,8 @@ class _LanguageSelectionPage extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey.shade700,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text(loc.translate('english')),
                     ),
@@ -352,7 +366,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   @override
-  Widget build(final BuildContext context) => Consumer2<AuthProvider, LocalizationService>(
+  Widget build(final BuildContext context) =>
+      Consumer2<AuthProvider, LocalizationService>(
         builder: (
           final BuildContext context,
           final AuthProvider authProvider,
@@ -402,11 +417,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 if (service == 'inventory') {
                   return const InventoryHome();
                 }
-                if (service == 'rental' || service == 'transport') {
+                if (service == 'transport') {
+                  return const ModernDashboardScreen();
+                }
+                if (service == 'rental') {
                   return ComingSoonScreen(service: service);
                 }
                 // Fallback to existing role-based dashboards
-                if (authProvider.user!.role == "admin" || authProvider.user!.role == "super_admin") {
+                if (authProvider.user!.role == "admin" ||
+                    authProvider.user!.role == "super_admin") {
                   return const ModernDashboardScreen();
                 }
                 return const DriverDashboardScreen();

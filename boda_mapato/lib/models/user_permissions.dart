@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes, avoid_dynamic_calls
 /// User permissions model for role-based access control
 class UserPermissions {
-
   const UserPermissions({
     List<String>? permissions,
     this.role,
@@ -11,14 +10,14 @@ class UserPermissions {
   const UserPermissions.empty() : this();
 
   /// Create permissions from role
-  UserPermissions.fromRole(String userRole) 
-    : role = userRole,
-      _permissions = _getPermissionsForRole(userRole);
+  UserPermissions.fromRole(String userRole)
+      : role = userRole,
+        _permissions = _getPermissionsForRole(userRole);
 
   /// Create permissions from explicit list
   const UserPermissions.fromList(List<String> permissions)
-    : _permissions = permissions,
-      role = null;
+      : _permissions = permissions,
+        role = null;
   final List<String> _permissions;
   final String? role;
 
@@ -41,7 +40,8 @@ class UserPermissions {
   List<String> get all => List.unmodifiable(_permissions);
 
   /// Check if user is an admin
-  bool get isAdmin => role?.toLowerCase() == 'admin' || role?.toLowerCase() == 'administrator';
+  bool get isAdmin =>
+      role?.toLowerCase() == 'admin' || role?.toLowerCase() == 'administrator';
 
   /// Check if user is a manager
   bool get isManager => role?.toLowerCase() == 'manager';
@@ -97,6 +97,13 @@ class UserPermissions {
           'manage_communications',
           'generate_receipts',
           'manage_settings',
+          // Inventory
+          'inv_view_products',
+          'inv_manage_products',
+          'inv_manage_stock',
+          'inv_create_sales',
+          'inv_manage_sales',
+          'inv_view_reminders',
         ];
       case 'manager':
         return const [
@@ -111,6 +118,13 @@ class UserPermissions {
           'view_reminders',
           'view_communications',
           'generate_receipts',
+          // Inventory
+          'inv_view_products',
+          'inv_manage_products',
+          'inv_manage_stock',
+          'inv_create_sales',
+          'inv_manage_sales',
+          'inv_view_reminders',
         ];
       case 'operator':
         return const [
@@ -119,6 +133,11 @@ class UserPermissions {
           'view_payments',
           'view_debts',
           'generate_receipts',
+          // Inventory (Sales Officer)
+          'inv_view_products',
+          'inv_manage_products', // allow create/edit, no delete enforced at UI level
+          'inv_create_sales',
+          'inv_view_reminders',
         ];
       case 'viewer':
         return const [
@@ -126,6 +145,14 @@ class UserPermissions {
           'view_vehicles',
           'view_payments',
           'view_reports',
+          // Inventory
+          'inv_view_products',
+        ];
+      case 'customer':
+        return const [
+          // Inventory customer-facing
+          'inv_view_products',
+          'inv_view_reminders',
         ];
       default:
         return const []; // No permissions for unknown roles
@@ -152,14 +179,16 @@ extension UserDataPermissions on dynamic {
     if (this is Map && this['role'] != null) {
       return UserPermissions.fromRole(this['role'].toString());
     }
-    
+
     // Try to get explicit permissions from user data
-    if (this is Map && this['permissions'] != null && this['permissions'] is List) {
+    if (this is Map &&
+        this['permissions'] != null &&
+        this['permissions'] is List) {
       return UserPermissions.fromList(
         List<String>.from(this['permissions']),
       );
     }
-    
+
     // Default to admin for now (you can change this based on your needs)
     return UserPermissions.fromRole('admin');
   }

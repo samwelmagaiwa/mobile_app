@@ -181,8 +181,10 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
               backgroundColor: ThemeConstants.primaryBlue,
               headerBackgroundColor: ThemeConstants.primaryBlue,
               headerForegroundColor: Colors.white,
-              dayForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
-              yearForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              dayForegroundColor:
+                  const WidgetStatePropertyAll<Color>(Colors.white),
+              yearForegroundColor:
+                  const WidgetStatePropertyAll<Color>(Colors.white),
               weekdayStyle: const TextStyle(color: Colors.white70),
             ),
           ),
@@ -223,8 +225,10 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
               backgroundColor: ThemeConstants.primaryBlue,
               headerBackgroundColor: ThemeConstants.primaryBlue,
               headerForegroundColor: Colors.white,
-              dayForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
-              yearForegroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
+              dayForegroundColor:
+                  const WidgetStatePropertyAll<Color>(Colors.white),
+              yearForegroundColor:
+                  const WidgetStatePropertyAll<Color>(Colors.white),
               weekdayStyle: const TextStyle(color: Colors.white70),
             ),
           ),
@@ -284,7 +288,8 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
   // Calculate months between start and end dates (ceil: any extra days -> +1 month)
   int _calculateContractPeriodMonths(DateTime start, DateTime end) {
     int months = (end.year - start.year) * 12 + (end.month - start.month);
-    final DateTime candidate = DateTime(start.year, start.month + months, start.day);
+    final DateTime candidate =
+        DateTime(start.year, start.month + months, start.day);
     if (candidate.isBefore(end)) {
       months++;
     }
@@ -299,8 +304,8 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
     if (_selectedAgreementType == "Kwa Mkataba" &&
         _selectedStartDate != null &&
         _selectedEndDate != null) {
-      _contractMonths =
-          _calculateContractPeriodMonths(_selectedStartDate!, _selectedEndDate!);
+      _contractMonths = _calculateContractPeriodMonths(
+          _selectedStartDate!, _selectedEndDate!);
     } else {
       _contractMonths = null;
     }
@@ -342,10 +347,10 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
             status == 'pending';
         if (block) {
           if (mounted) {
-          ThemeConstants.showWarningSnackBar(
-            context,
-            "Dereva tayari anayo makubaliano hai.",
-          );
+            ThemeConstants.showWarningSnackBar(
+              context,
+              "Dereva tayari anayo makubaliano hai.",
+            );
           }
           _submitLock = false;
           return;
@@ -390,7 +395,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       if (_weeklyPayment) paymentFrequencies.add("kila_wiki");
       if (_monthlyPayment) paymentFrequencies.add("kila_mwezi");
 
-      String _ymd(DateTime d) {
+      String ymd(DateTime d) {
         String two(int n) => n < 10 ? '0$n' : '$n';
         return '${d.year}-${two(d.month)}-${two(d.day)}';
       }
@@ -403,7 +408,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         "driver_id": widget.driverId,
         "agreement_type": mappedType,
         // Send date-only (Y-m-d)
-        "start_date": _ymd(_selectedStartDate!),
+        "start_date": ymd(_selectedStartDate!),
         // Boolean flags as expected by backend keys
         "wikendi_zinahesabika": _weekendsCountable,
         "jumamosi": _saturdayIncluded,
@@ -411,9 +416,10 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         // Frequencies in expected enum values
         "payment_frequencies": paymentFrequencies,
         // Amount field name used by model/backend
-        "kiasi_cha_makubaliano": double.tryParse(_agreedAmountController.text) ?? 0,
+        "kiasi_cha_makubaliano":
+            double.tryParse(_agreedAmountController.text) ?? 0,
         if (_selectedAgreementType == "Kwa Mkataba") ...<String, dynamic>{
-          "end_date": _ymd(_selectedEndDate!),
+          "end_date": ymd(_selectedEndDate!),
           // Optional derived fields the backend might accept
           "faida_jumla": _totalProfit,
           // Many backends don’t need contract months; omit unless required
@@ -470,21 +476,21 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
       body: Theme(
         data: Theme.of(context).copyWith(
           checkboxTheme: CheckboxThemeData(
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+            fillColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+              if (states.contains(WidgetState.selected)) {
                 return ThemeConstants.primaryOrange;
               }
               return Colors.transparent;
             }),
-checkColor: WidgetStateProperty.all<Color?>(Colors.white),
+            checkColor: WidgetStateProperty.all<Color?>(Colors.white),
             side: const BorderSide(
                 color: ThemeConstants.textSecondary, width: 1.5),
           ),
           radioTheme: RadioThemeData(
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+            fillColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+              if (states.contains(WidgetState.selected)) {
                 return ThemeConstants.primaryOrange;
               }
               return Colors.white.withOpacity(0.7);
@@ -550,9 +556,9 @@ if (states.contains(WidgetState.selected)) {
                             },
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -583,9 +589,9 @@ if (states.contains(WidgetState.selected)) {
                             },
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -663,10 +669,12 @@ if (states.contains(WidgetState.selected)) {
                             vertical: ResponsiveHelper.wp(1.5),
                           ),
                           decoration: BoxDecoration(
-                            color: ThemeConstants.primaryOrange.withOpacity(0.1),
+                            color:
+                                ThemeConstants.primaryOrange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: ThemeConstants.primaryOrange.withOpacity(0.3),
+                              color:
+                                  ThemeConstants.primaryOrange.withOpacity(0.3),
                             ),
                           ),
                           child: Row(
@@ -684,7 +692,8 @@ if (states.contains(WidgetState.selected)) {
                                     Text(
                                       "Miezi ya Mkataba",
                                       style: ThemeConstants
-                                              .responsiveSubHeadingStyle(context)
+                                              .responsiveSubHeadingStyle(
+                                                  context)
                                           .copyWith(
                                         color: ThemeConstants.primaryOrange,
                                       ),
@@ -692,9 +701,10 @@ if (states.contains(WidgetState.selected)) {
                                     ResponsiveHelper.verticalSpace(0.5),
                                     Text(
                                       "$_contractMonths",
-                                      style: ThemeConstants
-                                              .responsiveHeadingStyle(context)
-                                          .copyWith(
+                                      style:
+                                          ThemeConstants.responsiveHeadingStyle(
+                                                  context)
+                                              .copyWith(
                                         color: ThemeConstants.primaryOrange,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -731,9 +741,9 @@ if (states.contains(WidgetState.selected)) {
                       controlAffinity: ListTileControlAffinity.leading,
                       activeColor: ThemeConstants.primaryOrange,
                       checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                      fillColor: WidgetStateProperty.resolveWith<Color?>(
                           (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                        if (states.contains(WidgetState.selected)) {
                           return ThemeConstants.primaryOrange;
                         }
                         return Colors.white.withOpacity(0.7);
@@ -766,9 +776,9 @@ if (states.contains(WidgetState.selected)) {
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
                             checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -794,9 +804,9 @@ if (states.contains(WidgetState.selected)) {
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
                             checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -931,9 +941,9 @@ if (states.contains(WidgetState.selected)) {
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
                             checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -961,9 +971,9 @@ if (states.contains(WidgetState.selected)) {
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
                             checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);
@@ -991,9 +1001,9 @@ if (states.contains(WidgetState.selected)) {
                             dense: true,
                             activeColor: ThemeConstants.primaryOrange,
                             checkColor: Colors.white,
-fillColor: WidgetStateProperty.resolveWith<Color?>(
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) {
-if (states.contains(WidgetState.selected)) {
+                              if (states.contains(WidgetState.selected)) {
                                 return ThemeConstants.primaryOrange;
                               }
                               return Colors.white.withOpacity(0.7);

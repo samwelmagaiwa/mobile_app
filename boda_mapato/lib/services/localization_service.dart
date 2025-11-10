@@ -3,43 +3,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ignore_for_file: prefer_constructors_over_static_methods
 class LocalizationService extends ChangeNotifier {
-  
   LocalizationService._internal();
   static const String _languageKey = 'selected_language';
-  
+
   Locale _currentLocale = const Locale('sw', 'TZ'); // Default to Swahili
-  
+
   Locale get currentLocale => _currentLocale;
   String get currentLanguage => _currentLocale.languageCode;
   bool get isSwahili => _currentLocale.languageCode == 'sw';
   bool get isEnglish => _currentLocale.languageCode == 'en';
-  
+
   static LocalizationService? _instance;
-  
+
   static LocalizationService get instance {
     _instance ??= LocalizationService._internal();
     return _instance!;
   }
-  
+
   Future<void> initialize() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? savedLanguage = prefs.getString(_languageKey);
-    
+
     if (savedLanguage != null) {
       _currentLocale = _getLocaleFromLanguageCode(savedLanguage);
     }
-    
+
     notifyListeners();
   }
-  
+
   Future<void> changeLanguage(String languageCode) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, languageCode);
-    
+
     _currentLocale = _getLocaleFromLanguageCode(languageCode);
     notifyListeners();
   }
-  
+
   Locale _getLocaleFromLanguageCode(String languageCode) {
     switch (languageCode) {
       case 'en':
@@ -49,21 +48,20 @@ class LocalizationService extends ChangeNotifier {
         return const Locale('sw', 'TZ');
     }
   }
-  
+
   String translate(String key) {
     return AppLocalizations.instance.translate(key);
   }
 }
 
 class AppLocalizations {
-  
   AppLocalizations._internal();
   static AppLocalizations? _instance;
   static AppLocalizations get instance {
     _instance ??= AppLocalizations._internal();
     return _instance!;
   }
-  
+
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
       // General
@@ -85,7 +83,7 @@ class AppLocalizations {
       'error': 'Error',
       'success': 'Success',
       'refresh': 'Refresh',
-      
+
       // Settings Screen
       'user_profile': 'User Profile',
       'notifications': 'Notifications',
@@ -99,7 +97,7 @@ class AppLocalizations {
       'about_app': 'About App',
       'about_app_subtitle': 'App information',
       'help': 'Help',
-'help_subtitle': 'Get help using the app',
+      'help_subtitle': 'Get help using the app',
       'logout_confirm': 'Are you sure you want to logout?',
       'version': 'Version',
       'app_description': 'Motorcycle business management app',
@@ -116,21 +114,22 @@ class AppLocalizations {
       'reset_password': 'Reset Password',
       'user_created_successfully': 'User created successfully',
       'password_reset_successfully': 'Password reset successfully',
-      'default_password_note': 'Default password will be the LAST surname in CAPITAL letters (e.g., Samwel Mahenye Magaiwa => "MAGAIWA").',
-      
+      'default_password_note':
+          'Default password will be the LAST surname in CAPITAL letters (e.g., Samwel Mahenye Magaiwa => "MAGAIWA").',
+
       // Language Selection
       'select_language': 'Select Language',
       'english': 'English',
       'swahili': 'Kiswahili',
       'language_changed': 'Language changed successfully',
-      
+
       // Notifications Settings
       'push_notifications': 'Push Notifications',
       'email_notifications': 'Email Notifications',
       'payment_alerts': 'Payment Alerts',
       'debt_reminders': 'Debt Reminders',
       'system_updates': 'System Updates',
-      
+
       // Security Settings
       'change_password': 'Change Password',
       'two_factor_auth': 'Two Factor Authentication',
@@ -138,12 +137,12 @@ class AppLocalizations {
       'current_password': 'Current Password',
       'new_password': 'New Password',
       'confirm_password': 'Confirm Password',
-'password_changed': 'Password changed successfully',
+      'password_changed': 'Password changed successfully',
       'two_factor_enabled_msg': 'Two-factor enabled',
       'two_factor_disabled_msg': 'Two-factor disabled',
       'no_login_history': 'No login history found.',
       'failed_to_update': 'Failed to update',
-      
+
       // Backup Settings
       'auto_backup': 'Auto Backup',
       'backup_now': 'Backup Now',
@@ -151,17 +150,17 @@ class AppLocalizations {
       'last_backup': 'Last Backup',
       'backup_successful': 'Backup completed successfully',
       'restore_successful': 'Data restored successfully',
-      
+
       // Dashboard
       'daily_revenue': 'Daily Revenue',
       'weekly_revenue': 'Weekly Revenue',
-'monthly_revenue': 'Monthly Revenue',
+      'monthly_revenue': 'Monthly Revenue',
       'total_revenue': 'Total Revenue',
       'drivers': 'Drivers',
-      
+
       // Receipts details/viewer additions
       'receipt_details': 'Receipt Details',
-'receipt': 'Receipt',
+      'receipt': 'Receipt',
       'receipt_number': 'Receipt Number',
       'payment_id': 'Payment ID',
       // Receipt status labels
@@ -173,12 +172,15 @@ class AppLocalizations {
       'payment_period': 'Payment Period',
       'debt_on_dates': 'Debt on dates',
       'step_1_generate_receipt': 'Step 1: Generate Receipt',
-      'press_below_to_generate_receipt': 'Press below to generate the receipt for this payment.',
-      'receipt_generated_you_can_send': 'Receipt generated. You can send it now.',
+      'press_below_to_generate_receipt':
+          'Press below to generate the receipt for this payment.',
+      'receipt_generated_you_can_send':
+          'Receipt generated. You can send it now.',
       'already_generated': 'Already Generated',
       'generating': 'Generating...',
       'receipt_generated': 'Receipt generated!',
-      'receipt_already_generated_for_payment': 'Receipt already generated for this payment!',
+      'receipt_already_generated_for_payment':
+          'Receipt already generated for this payment!',
       'failed_to_generate_receipt': 'Failed to generate receipt',
       'step_2_send_receipt': 'Step 2: Send Receipt',
       'recipient_email': 'Recipient Email',
@@ -186,14 +188,16 @@ class AppLocalizations {
       'sending': 'Sending...',
       'sent': 'Sent',
       'send_receipt': 'Send Receipt',
-      'after_sending_status_will_change': 'After sending, the transaction status will change to “receipt issued.”',
+      'after_sending_status_will_change':
+          'After sending, the transaction status will change to “receipt issued.”',
       'missing_receipt_id': 'Missing receipt identifier',
       'enter_contact_info': 'Enter contact info (phone or email)',
       'receipt_sent': 'Receipt sent!',
-'failed_to_send_receipt': 'Failed to send receipt',
+      'failed_to_send_receipt': 'Failed to send receipt',
       'total_payment': 'Total Payment',
       'trips': 'Trips',
-      'outstanding_info_message': 'Outstanding debt details will be included in the sent receipt message.',
+      'outstanding_info_message':
+          'Outstanding debt details will be included in the sent receipt message.',
       'send_info': 'Send Info',
       'sent_date': 'Sent Date',
       'sent_to': 'Sent To',
@@ -202,7 +206,7 @@ class AppLocalizations {
       'phone_or_email_required': 'Enter phone number or email',
       'send_again': 'Send Again',
       'receipt_resent': 'Receipt resent!',
-      
+
       // Payments (record payment flow)
       'record_payment': 'Record Payment',
       'record_payment_subtitle': 'Select a driver then record their payment',
@@ -212,7 +216,7 @@ class AppLocalizations {
       'receipts_generated': 'Receipts Generated',
       'pending_receipts': 'Pending Receipts',
       'unpaid_debts': 'Unpaid Debts',
-      
+
       // Receipts
       'receipts': 'Receipts',
       'generate_receipt': 'Generate Receipt',
@@ -223,8 +227,18 @@ class AppLocalizations {
       'no_pending_receipts': 'No pending receipts',
       'no_receipts_generated': 'No receipts generated',
       'receipts_list_empty': 'You will see all receipts here',
-      'all_payments_have_receipts': 'All payments already have receipts generated',
-      
+      'all_payments_have_receipts':
+          'All payments already have receipts generated',
+
+      // Debts records filters and summary (transport)
+      'filter_unpaid_only': 'Unpaid only',
+      'filter_paid_only': 'Paid only',
+      'summary_total_debt': 'Total Debt',
+      'summary_unpaid_days': 'Unpaid days',
+      'last_payment': 'Last payment',
+      'paid_total': 'Paid total',
+      'unpaid_total': 'Unpaid total',
+
       // Common Buttons/Actions
       'view_details': 'View Details',
       'view_all': 'View All',
@@ -234,8 +248,8 @@ class AppLocalizations {
       'export': 'Export',
       'import': 'Import',
       'print': 'Print',
-'share': 'Share',
-'send': 'Send',
+      'share': 'Share',
+      'send': 'Send',
 
       // Dashboard card menu items and actions
       'drivers_who_paid': 'Drivers Who Paid',
@@ -245,7 +259,8 @@ class AppLocalizations {
       'current_value': 'Current Value',
       'close': 'Close',
       'process_pending_receipts': 'Process Pending Receipts',
-      'confirm_process_pending_receipts': 'Are you sure you want to process all pending receipts?',
+      'confirm_process_pending_receipts':
+          'Are you sure you want to process all pending receipts?',
       'process': 'Process',
       'pending_receipts_processed': 'Pending receipts processed',
       'send_payment_reminders': 'Send Payment Reminders',
@@ -254,7 +269,7 @@ class AppLocalizations {
       'payment_reminders_sent': 'Payment reminders sent',
       'confirm_export_data': 'Export data for',
       'data_exported_successfully': 'Data exported successfully',
-'menu': 'Menu',
+      'menu': 'Menu',
       'active_drivers_only': 'Active Drivers Only',
       'all_vehicles': 'All Vehicles',
       'active_vehicles_only': 'Active Vehicles Only',
@@ -263,9 +278,11 @@ class AppLocalizations {
 
       // Extra dashboard titles/descriptions used by cards
       'payments_with_receipts': 'Payments with Receipts',
-      'payments_with_receipts_desc': 'Number of payments that already have receipts.',
+      'payments_with_receipts_desc':
+          'Number of payments that already have receipts.',
       'paid_awaiting_receipts': 'Paid Awaiting Receipts',
-      'paid_awaiting_receipts_desc': 'Payments that are paid and waiting for receipt generation.',
+      'paid_awaiting_receipts_desc':
+          'Payments that are paid and waiting for receipt generation.',
       'unpaid_payments': 'Unpaid Payments',
       'unpaid_payments_desc': 'Payments that are still unpaid.',
       'daily_revenue_desc': 'Revenue collected today.',
@@ -274,58 +291,58 @@ class AppLocalizations {
       'drivers_desc': 'Total number of registered drivers.',
       'vehicles_desc': 'Total number of registered vehicles.',
       'additional_card_info': 'Additional information.',
-      
+
       // Navigation Drawer (additional entries)
       'payments': 'Payments',
       'debt_records': 'Debt Records',
       'analytics': 'Analytics',
-'reports': 'Reports',
- 'reminders': 'Reminders',
- 'communications': 'Communications',
- 'loading_dashboard': 'Loading Dashboard...',
- // Driver dashboard common labels
- 'driver_payment_stats': 'Payment Statistics',
- 'quick_actions': 'Quick Actions',
- 'payment_history': 'Payment History',
- 'today': 'Today',
- 'week': 'Week',
- 'month': 'Month',
- 'your_vehicle': 'Your Vehicle',
- 'plate_number': 'Plate',
-'status_active': 'Active',
- 'status_completed': 'Completed',
- 'status_cancelled': 'Cancelled',
- 'status_expired': 'Expired',
- // Welcome and reminders
- 'welcome': 'Welcome',
- // Agreement labels
- 'agreement_total_title': 'Contract Total to Complete',
- 'agreement_total_subtitle': 'Amount required to complete the contract',
- 'agreement_daily_title': 'Daily Rental Amount',
- 'agreement_daily_subtitle': 'Amount to pay per Dei Waka agreement',
- // Driver pages
- 'my_receipts': 'My Receipts',
- 'no_receipts': 'No receipts',
- 'no_reminders': 'No reminders',
- 'try_again': 'Try Again',
- 'amount': 'Amount',
- 'driver': 'Driver',
- 'vehicle': 'Vehicle',
- 'date': 'Date',
- 'covered_days': 'Covered Days',
- 'remarks': 'Remarks',
- 'payment': 'Payment',
- 'debt_clearance': 'Debt Clearance',
- 'days': 'Days',
- 'no_debt': 'No debt',
- 'has_debt': 'You still have debt',
-'total_debt_label': 'Total debt',
- // Reminders/Debts (driver)
- 'outstanding_debts': 'Outstanding Debts',
- 'total_outstanding': 'Total Outstanding',
- 'due_date': 'Due Date',
- 'days_overdue': 'Days Overdue',
- 
+      'reports': 'Reports',
+      'reminders': 'Reminders',
+      'communications': 'Communications',
+      'loading_dashboard': 'Loading Dashboard...',
+      // Driver dashboard common labels
+      'driver_payment_stats': 'Payment Statistics',
+      'quick_actions': 'Quick Actions',
+      'payment_history': 'Payment History',
+      'today': 'Today',
+      'week': 'Week',
+      'month': 'Month',
+      'your_vehicle': 'Your Vehicle',
+      'plate_number': 'Plate',
+      'status_active': 'Active',
+      'status_completed': 'Completed',
+      'status_cancelled': 'Cancelled',
+      'status_expired': 'Expired',
+      // Welcome and reminders
+      'welcome': 'Welcome',
+      // Agreement labels
+      'agreement_total_title': 'Contract Total to Complete',
+      'agreement_total_subtitle': 'Amount required to complete the contract',
+      'agreement_daily_title': 'Daily Rental Amount',
+      'agreement_daily_subtitle': 'Amount to pay per Dei Waka agreement',
+      // Driver pages
+      'my_receipts': 'My Receipts',
+      'no_receipts': 'No receipts',
+      'no_reminders': 'No reminders',
+      'try_again': 'Try Again',
+      'amount': 'Amount',
+      'driver': 'Driver',
+      'vehicle': 'Vehicle',
+      'date': 'Date',
+      'covered_days': 'Covered Days',
+      'remarks': 'Remarks',
+      'payment': 'Payment',
+      'debt_clearance': 'Debt Clearance',
+      'days': 'Days',
+      'no_debt': 'No debt',
+      'has_debt': 'You still have debt',
+      'total_debt_label': 'Total debt',
+      // Reminders/Debts (driver)
+      'outstanding_debts': 'Outstanding Debts',
+      'total_outstanding': 'Total Outstanding',
+      'due_date': 'Due Date',
+      'days_overdue': 'Days Overdue',
+
       // Drivers Management Screen
       'drivers_management': 'Drivers Management',
       'add_driver': 'Add Driver',
@@ -347,7 +364,7 @@ class AppLocalizations {
       'confirm_delete_driver': 'Are you sure you want to delete this driver?',
       'no_drivers_found': 'No drivers found',
       'search_drivers': 'Search drivers...',
-      
+
       // Vehicles Management Screen
       'vehicles_management': 'Vehicles Management',
       'add_vehicle': 'Add Vehicle',
@@ -369,7 +386,7 @@ class AppLocalizations {
       'confirm_delete_vehicle': 'Are you sure you want to delete this vehicle?',
       'no_vehicles_found': 'No vehicles found',
       'search_vehicles': 'Search vehicles...',
-      
+
       // Payments Screen
       'payments_management': 'Payments Management',
       'payment_amount': 'Amount',
@@ -396,8 +413,8 @@ class AppLocalizations {
       'mobile_money': 'Mobile Money',
       'bank_transfer': 'Bank Transfer',
       'paid': 'Paid',
-'overdue': 'Overdue',
-      
+      'overdue': 'Overdue',
+
       // Debts Management Screen
       'debts_management': 'Debts Management',
       'debt_amount': 'Debt Amount',
@@ -410,7 +427,7 @@ class AppLocalizations {
       'edit_debt': 'Edit Debt',
       'delete_debt': 'Delete Debt',
       'debt_details': 'Debt Details',
-'total_debts': 'Total Debts',
+      'total_debts': 'Total Debts',
       'paid_debts': 'Paid Debts',
       'debt_added_successfully': 'Debt added successfully',
       'debt_updated_successfully': 'Debt updated successfully',
@@ -420,7 +437,7 @@ class AppLocalizations {
       'search_debts': 'Search debts...',
       'mark_as_paid': 'Mark as Paid',
       'mark_as_unpaid': 'Mark as Unpaid',
-      
+
       // Analytics Screen
       'analytics_dashboard': 'Analytics Dashboard',
       'revenue_analytics': 'Revenue Analytics',
@@ -439,7 +456,7 @@ class AppLocalizations {
       'to_date': 'To Date',
       'apply_filter': 'Apply Filter',
       'clear_filter': 'Clear Filter',
-      
+
       // Reports Screen
       'reports_dashboard': 'Reports Dashboard',
       'generate_report': 'Generate Report',
@@ -461,7 +478,7 @@ class AppLocalizations {
       'email_report': 'Email Report',
       'report_generated_successfully': 'Report generated successfully',
       'report_generation_failed': 'Report generation failed',
-      
+
       // Reminders Screen
       'reminders_management': 'Reminders Management',
       'add_reminder': 'Add Reminder',
@@ -485,12 +502,13 @@ class AppLocalizations {
       'reminder_added_successfully': 'Reminder added successfully',
       'reminder_updated_successfully': 'Reminder updated successfully',
       'reminder_deleted_successfully': 'Reminder deleted successfully',
-      'confirm_delete_reminder': 'Are you sure you want to delete this reminder?',
+      'confirm_delete_reminder':
+          'Are you sure you want to delete this reminder?',
       'no_reminders_found': 'No reminders found',
       'search_reminders': 'Search reminders...',
       'mark_as_completed': 'Mark as Completed',
       'send_reminder': 'Send Reminder',
-      
+
       // Communications Screen
       'communications_management': 'Communications',
       'send_message': 'Send Message',
@@ -521,7 +539,7 @@ class AppLocalizations {
       'no_messages_found': 'No messages found',
       'search_messages': 'Search messages...',
       'select_recipients': 'Select Recipients',
-      
+
       // Login Screen
       'login_successful': 'Login successful!',
       'login_failed': 'Login failed',
@@ -529,61 +547,85 @@ class AppLocalizations {
       'demo_credentials_filled': 'Demo credentials filled',
       'database_credentials_filled': 'Database credentials filled',
       'forgot_password': 'Forgot Password?',
-      'forgot_password_message': 'Password reset feature is under development. For now, use demo credentials or contact the administrator.',
+      'forgot_password_message':
+          'Password reset feature is under development. For now, use demo credentials or contact the administrator.',
       'use_database': 'Use Database',
-        'email': 'Email',
-        'password': 'Password',
-        'phone_number': 'Phone Number',
-        'signin': 'Sign In',
-        'welcome_back': 'Welcome Back',
-        'signin_subtitle': 'Sign in to continue to your account',
+      'email': 'Email',
+      'password': 'Password',
+      'phone_number': 'Phone Number',
+      'signin': 'Sign In',
+      'welcome_back': 'Welcome Back',
+      'signin_subtitle': 'Sign in to continue to your account',
 
-        // Service selection
-        'select_service': 'Select Service',
-        'select_service_subtitle': 'Choose what you want to manage today',
-        'inventory_service': 'Inventory',
-        'rental_service': 'Rental',
-        'transport_service': 'Transport',
-        'coming_soon': 'Coming soon…',
+      // Service selection
+      'select_service': 'Select Service',
+      'select_service_subtitle': 'Choose what you want to manage today',
+      'inventory_service': 'Inventory',
+      'rental_service': 'Rental',
+      'transport_service': 'Transport',
+      'coming_soon': 'Coming soon…',
 
-        // Inventory module
-        'inventory_dashboard': 'Inventory Dashboard',
-        'products': 'Products',
-        'stock_levels': 'Stock Levels',
-        'stock_in_out_transfer': 'Stock In/Out/Transfer',
-        'stock_in': 'Stock In',
-        'stock_out': 'Stock Out',
-        'stock_transfer': 'Transfer',
-        'sales': 'Sales',
-        'total_sales_today': 'Total Sales Today',
-        'profit_today': 'Profit (Today)',
-        'profit_week': 'Profit (Week)',
-        'profit_month': 'Profit (Month)',
-        'sales_trend': 'Sales Trend',
-        'low_stock': 'Low Stock',
-        'quantity': 'Quantity',
-        'min_stock': 'Min Stock',
-        'warehouse': 'Warehouse',
-        'sku': 'SKU',
-        'product': 'Product',
-        'reference': 'Reference',
-        'from_warehouse': 'From Warehouse',
-        'to_warehouse': 'To Warehouse',
-        'saved': 'Saved',
-        'add_product': 'Add Product',
-        'search_products': 'Search products…',
-        'create_sale_pos': 'Create Sale (POS)',
-        'create_sale_hint': 'Add products, set quantities, choose payment mode.',
-        'add_products': 'Add Products',
-        'checkout': 'Checkout',
-        'recent_sales': 'Recent Sales',
-        'items': 'items',
-        'payment_due': 'Payment Due',
-        'payment_due_desc': 'A payment is due soon.',
-        'low_stock_desc': 'Stock level is below the minimum.',
-        'mark_done': 'Mark Done',
-        'snooze': 'Snooze',
-      },
+      // Inventory module
+      'inventory_dashboard': 'Inventory Dashboard',
+      'products': 'Products',
+      'stock_levels': 'Stock Levels',
+      'stock_in_out_transfer': 'Stock In/Out/Transfer',
+      'stock_in': 'Stock In',
+      'stock_out': 'Stock Out',
+      'stock_transfer': 'Transfer',
+      'sales': 'Sales',
+      'total_sales_today': 'Total Sales Today',
+      'profit_today': 'Profit (Today)',
+      'profit_week': 'Profit (Week)',
+      'profit_month': 'Profit (Month)',
+      'sales_trend': 'Sales Trend',
+      'low_stock': 'Low Stock',
+      'quantity': 'Quantity',
+      'min_stock': 'Min Stock',
+      'warehouse': 'Warehouse',
+      'sku': 'SKU',
+      'product': 'Product',
+      'reference': 'Reference',
+      'from_warehouse': 'From Warehouse',
+      'to_warehouse': 'To Warehouse',
+      'saved': 'Saved',
+      'add_product': 'Add Product',
+      'search_products': 'Search products…',
+      'create_sale_pos': 'Create Sale (POS)',
+      'create_sale_hint': 'Add products, set quantities, choose payment mode.',
+      'add_products': 'Add Products',
+      'checkout': 'Checkout',
+      'recent_sales': 'Recent Sales',
+      'items': 'items',
+      'payment_due': 'Payment Due',
+      'payment_due_desc': 'A payment is due soon.',
+      'low_stock_desc': 'Stock level is below the minimum.',
+      'mark_done': 'Mark Done',
+      'snooze': 'Snooze',
+      'open': 'Open',
+      'snoozed': 'Snoozed',
+      'done': 'Done',
+
+      // POS / Sales
+      'payment_mode': 'Payment Mode',
+      'debt': 'Debt',
+      'partial': 'Partial',
+      'customer': 'Customer',
+      'customer_required': 'Customer is required for Debt/Partial',
+      'add_to_cart': 'Add to Cart',
+      'qty': 'Qty',
+      'unit_price': 'Unit Price',
+      'subtotal': 'Subtotal',
+      'total': 'Total',
+      'profit': 'Profit',
+      'paid_amount': 'Paid Amount',
+      'select_customer': 'Select customer',
+      'cannot_negative_stock': 'Operation would make stock negative',
+      'balance': 'Balance',
+      'add_customer': 'Add Customer',
+      'customer_name': 'Customer Name',
+      'address': 'Address',
+    },
     'sw': {
       // General
       'app_name': 'Boda Mapato',
@@ -604,7 +646,7 @@ class AppLocalizations {
       'error': 'Hitilafu',
       'success': 'Imefanikiwa',
       'refresh': 'Onyesha upya',
-      
+
       // Settings Screen
       'user_profile': 'Wasifu wa Mtumiaji',
       'notifications': 'Arifa',
@@ -618,11 +660,13 @@ class AppLocalizations {
       'about_app': 'Kuhusu Programu',
       'about_app_subtitle': 'Maelezo ya programu',
       'help': 'Msaada',
-'help_subtitle': 'Pata msaada wa kutumia programu',
+      'help_subtitle': 'Pata msaada wa kutumia programu',
       'logout_confirm': 'Je, una uhakika unataka kutoka?',
       'version': 'Toleo',
       'app_description': 'Programu ya kusimamia biashara za pikipiki',
-      'copyright': '© 2024 Boda Mapato',
+'copyright': '© 2024 Boda Mapato',
+
+      // Debts/Payments common (fallback via translate() will prettify missing keys)
 
       // Users management
       'users': 'Watumiaji',
@@ -635,21 +679,22 @@ class AppLocalizations {
       'reset_password': 'Rejesha Nywila',
       'user_created_successfully': 'Mtumiaji ameundwa kikamilifu',
       'password_reset_successfully': 'Nywila imerejeshwa kikamilifu',
-      'default_password_note': 'Nywila chaguomsingi itakuwa jina la mwisho (surname) kwa HERUFI KUBWA. Mfano: Samwel Mahenye Magaiwa => "MAGAIWA".',
-      
+      'default_password_note':
+          'Nywila chaguomsingi itakuwa jina la mwisho (surname) kwa HERUFI KUBWA. Mfano: Samwel Mahenye Magaiwa => "MAGAIWA".',
+
       // Language Selection
       'select_language': 'Chagua Lugha',
       'english': 'Kiingereza',
       'swahili': 'Kiswahili',
       'language_changed': 'Lugha imebadilishwa kikamilifu',
-      
+
       // Notifications Settings
       'push_notifications': 'Arifa za Kusukuma',
       'email_notifications': 'Arifa za Barua pepe',
       'payment_alerts': 'Arifa za Malipo',
       'debt_reminders': 'Mikumbuzo ya Madeni',
       'system_updates': 'Masasisho ya Mfumo',
-      
+
       // Security Settings
       'change_password': 'Badilisha Neno la Siri',
       'two_factor_auth': 'Uthibitisho wa Hatua Mbili',
@@ -657,12 +702,12 @@ class AppLocalizations {
       'current_password': 'Neno la Siri la Sasa',
       'new_password': 'Neno la Siri Jipya',
       'confirm_password': 'Thibitisha Neno la Siri',
-'password_changed': 'Neno la siri limebadilishwa kikamilifu',
+      'password_changed': 'Neno la siri limebadilishwa kikamilifu',
       'two_factor_enabled_msg': 'Uthibitisho wa hatua mbili umewezeshwa',
       'two_factor_disabled_msg': 'Uthibitisho wa hatua mbili umelemazwa',
       'no_login_history': 'Hakuna historia ya kuingia kupatikana.',
       'failed_to_update': 'Imeshindikana kusasisha',
-      
+
       // Backup Settings
       'auto_backup': 'Hifadhi Otomatiki',
       'backup_now': 'Hifadhi Sasa',
@@ -670,17 +715,17 @@ class AppLocalizations {
       'last_backup': 'Hifadhi ya Mwisho',
       'backup_successful': 'Hifadhi imekamilika kikamilifu',
       'restore_successful': 'Data imerejeshwa kikamilifu',
-      
+
       // Dashboard
       'daily_revenue': 'Mapato ya Siku',
       'weekly_revenue': 'Mapato ya Wiki',
-'monthly_revenue': 'Mapato ya Mwezi',
+      'monthly_revenue': 'Mapato ya Mwezi',
       'total_revenue': 'Jumla ya Mapato',
       'drivers': 'Madereva',
-      
+
       // Receipts details/viewer additions
       'receipt_details': 'Maelezo ya Risiti',
-'receipt': 'Risiti',
+      'receipt': 'Risiti',
       'receipt_number': 'Namba ya Risiti',
       'payment_id': 'ID ya Malipo',
       // Receipt status labels
@@ -692,12 +737,15 @@ class AppLocalizations {
       'payment_period': 'Muda Uliolipwa',
       'debt_on_dates': 'Deni la Tarehe',
       'step_1_generate_receipt': 'Hatua ya 1: Tengeneza Risiti',
-      'press_below_to_generate_receipt': 'Bonyeza hapa chini kutengeneza risiti ya malipo haya.',
-      'receipt_generated_you_can_send': 'Risiti imetengenezwa. Unaweza kuituma sasa.',
+      'press_below_to_generate_receipt':
+          'Bonyeza hapa chini kutengeneza risiti ya malipo haya.',
+      'receipt_generated_you_can_send':
+          'Risiti imetengenezwa. Unaweza kuituma sasa.',
       'already_generated': 'Tayari Imetengenezwa',
       'generating': 'Inatengeneza...',
       'receipt_generated': 'Risiti imetengenezwa!',
-      'receipt_already_generated_for_payment': 'Risiti tayari imetengenezwa kwa malipo haya!',
+      'receipt_already_generated_for_payment':
+          'Risiti tayari imetengenezwa kwa malipo haya!',
       'failed_to_generate_receipt': 'Imeshindikana kutengeneza risiti',
       'step_2_send_receipt': 'Hatua ya 2: Tuma Risiti',
       'recipient_email': 'Barua Pepe ya Mpokeaji',
@@ -705,14 +753,16 @@ class AppLocalizations {
       'sending': 'Inatuma...',
       'sent': 'Imetumwa',
       'send_receipt': 'Tuma Risiti',
-      'after_sending_status_will_change': 'Baada ya kutuma, hali ya muamala itabadilika kuwa “risiti imetolewa.”',
+      'after_sending_status_will_change':
+          'Baada ya kutuma, hali ya muamala itabadilika kuwa “risiti imetolewa.”',
       'missing_receipt_id': 'Hakuna kitambulisho cha risiti',
       'enter_contact_info': 'Weka mawasiliano (namba au barua pepe)',
       'receipt_sent': 'Risiti imetumwa!',
-'failed_to_send_receipt': 'Imeshindikana kutuma risiti',
+      'failed_to_send_receipt': 'Imeshindikana kutuma risiti',
       'total_payment': 'Jumla ya Malipo',
       'trips': 'Safari (Trips)',
-      'outstanding_info_message': 'Maelezo ya deni yaliyosalia yatajumlishwa kwenye ujumbe wa risiti utakapotumwa.',
+      'outstanding_info_message':
+          'Maelezo ya deni yaliyosalia yatajumlishwa kwenye ujumbe wa risiti utakapotumwa.',
       'send_info': 'Maelezo ya Kutuma',
       'sent_date': 'Tarehe ya Kutuma',
       'sent_to': 'Imetumwa kwa',
@@ -721,7 +771,7 @@ class AppLocalizations {
       'phone_or_email_required': 'Weka namba ya simu au barua pepe',
       'send_again': 'Tuma Tena',
       'receipt_resent': 'Risiti imetumwa tena!',
-      
+
       // Payments (record payment flow)
       'record_payment': 'Rekodi Malipo',
       'record_payment_subtitle': 'Chagua dereva kisha rekodi malipo yake',
@@ -731,7 +781,7 @@ class AppLocalizations {
       'receipts_generated': 'Malipo Yenye Risiti',
       'pending_receipts': 'Yamelipwa Bado Risiti',
       'unpaid_debts': 'Malipo Yasiyolipwa',
-      
+
       // Receipts
       'receipts': 'Risiti',
       'generate_receipt': 'Tengeneza Risiti',
@@ -743,7 +793,16 @@ class AppLocalizations {
       'no_receipts_generated': 'Hakuna risiti zilizozalishwa',
       'receipts_list_empty': 'Utaona orodha ya risiti zote hapa',
       'all_payments_have_receipts': 'Malipo yote yamesha tengenezwa risiti',
-      
+
+      // Vichujio na muhtasari wa madeni (transport)
+      'filter_unpaid_only': 'Bila Kulipwa',
+      'filter_paid_only': 'Yaliyolipwa',
+      'summary_total_debt': 'Jumla ya Deni',
+      'summary_unpaid_days': 'Siku zisizolipwa',
+      'last_payment': 'Malipo ya mwisho',
+      'paid_total': 'Jumla iliyolipwa',
+      'unpaid_total': 'Jumla isiyolipwa',
+
       // Common Buttons/Actions
       'view_details': 'Ona Maelezo',
       'view_all': 'Ona Zote',
@@ -753,8 +812,8 @@ class AppLocalizations {
       'export': 'Hamisha',
       'import': 'Ingiza',
       'print': 'Chapisha',
-'share': 'Shiriki',
-'send': 'Tuma',
+      'share': 'Shiriki',
+      'send': 'Tuma',
 
       // Dashboard card menu items and actions (Swahili)
       'drivers_who_paid': 'Madereva Waliolipa',
@@ -764,7 +823,8 @@ class AppLocalizations {
       'current_value': 'Thamani ya sasa',
       'close': 'Funga',
       'process_pending_receipts': 'Chakata Risiti Zinazosubiri',
-      'confirm_process_pending_receipts': 'Je, unataka kuchakata risiti zote zinazosubiri?',
+      'confirm_process_pending_receipts':
+          'Je, unataka kuchakata risiti zote zinazosubiri?',
       'process': 'Chakata',
       'pending_receipts_processed': 'Risiti zilizosubiri zimechakata',
       'send_payment_reminders': 'Tuma Vikumbusho vya Malipo',
@@ -773,7 +833,7 @@ class AppLocalizations {
       'payment_reminders_sent': 'Vikumbusho vimetumwa',
       'confirm_export_data': 'Thibitisha uhamishaji wa data kwa',
       'data_exported_successfully': 'Data imehamishwa kikamilifu',
-'menu': 'Menyu',
+      'menu': 'Menyu',
       'active_drivers_only': 'Madereva Hai Pekee',
       'all_vehicles': 'Magari Yote',
       'active_vehicles_only': 'Magari Yanayotumika Pekee',
@@ -782,9 +842,11 @@ class AppLocalizations {
 
       // Extra dashboard titles/descriptions used by cards
       'payments_with_receipts': 'Malipo yenye Risiti',
-      'payments_with_receipts_desc': 'Idadi ya malipo ambayo tayari yana risiti.',
+      'payments_with_receipts_desc':
+          'Idadi ya malipo ambayo tayari yana risiti.',
       'paid_awaiting_receipts': 'Yamelipwa Bado Risiti',
-      'paid_awaiting_receipts_desc': 'Malipo yaliyolipwa yakisubiri risiti kutengenezwa.',
+      'paid_awaiting_receipts_desc':
+          'Malipo yaliyolipwa yakisubiri risiti kutengenezwa.',
       'unpaid_payments': 'Malipo Yasiyolipwa',
       'unpaid_payments_desc': 'Malipo ambayo bado hayajalipwa.',
       'daily_revenue_desc': 'Mapato yaliyokusanywa leo.',
@@ -793,14 +855,14 @@ class AppLocalizations {
       'drivers_desc': 'Idadi ya madereva waliosajiliwa.',
       'vehicles_desc': 'Idadi ya magari yaliyosajiliwa.',
       'additional_card_info': 'Maelezo ya ziada.',
-      
+
       // Navigation Drawer (additional entries)
       'payments': 'Malipo',
       'debt_records': 'Rekodi Madeni',
       'analytics': 'Takwimu',
-'reports': 'Ripoti',
- 'reminders': 'Mikumbuzo',
-'communications': 'Mawasiliano',
+      'reports': 'Ripoti',
+      'reminders': 'Mikumbuzo',
+      'communications': 'Mawasiliano',
       // Communications
       'communications_title': 'Mawasiliano',
       'communications_summary_title': 'Muhtasari wa Mawasiliano',
@@ -817,50 +879,52 @@ class AppLocalizations {
       'total_communications': 'Mawasiliano Yote',
       'recent_7_days': 'Siku 7 Zilizopita',
       'response_rate': 'Kiwango cha Majibu',
- 'loading_dashboard': 'Inapakia Dashboard...',
- // Driver dashboard common labels (Swahili)
- 'driver_payment_stats': 'Takwimu za Malipo',
- 'quick_actions': 'Vitendo vya Haraka',
- 'payment_history': 'Historia ya Malipo',
- 'today': 'Leo',
- 'week': 'Wiki',
- 'month': 'Mwezi',
- 'your_vehicle': 'Gari Lako',
- 'plate_number': 'Nambari',
-'status_active': 'Inatumika',
- 'status_completed': 'Imekamilika',
- 'status_cancelled': 'Imeghairiwa',
- 'status_expired': 'Imeisha',
- // Welcome and reminders
- 'welcome': 'Karibu',
- // Agreement labels
- 'agreement_total_title': 'Jumla ya Kukamilisha Mkataba',
- 'agreement_total_subtitle': 'Kiasi kinachotakiwa kulipwa kulingana na mkataba',
- 'agreement_daily_title': 'Kiasi cha Dei Waka',
- 'agreement_daily_subtitle': 'Kiasi cha kulipa kwa makubaliano ya Dei Waka',
- // Driver pages
- 'my_receipts': 'Risiti Zangu',
- 'no_receipts': 'Hakuna risiti',
- 'no_reminders': 'Hakuna vikumbusho',
- 'try_again': 'Jaribu Tena',
- 'amount': 'Kiasi',
- 'driver': 'Dereva',
- 'vehicle': 'Gari',
- 'date': 'Tarehe',
- 'covered_days': 'Siku Zilizolipwa',
- 'remarks': 'Maelezo',
- 'payment': 'Malipo',
- 'debt_clearance': 'Kulipa Deni',
- 'days': 'Siku',
- 'no_debt': 'Hakuna deni',
- 'has_debt': 'Bado una deni',
-'total_debt_label': 'Jumla ya deni',
- // Reminders/Debts (driver)
- 'outstanding_debts': 'Madeni Yaliyosalia',
- 'total_outstanding': 'Jumla ya Deni',
- 'due_date': 'Tarehe ya Kulipa',
- 'days_overdue': 'Siku za Kudaiwa',
- 
+      'loading_dashboard': 'Inapakia Dashboard...',
+      // Driver dashboard common labels (Swahili)
+      'driver_payment_stats': 'Takwimu za Malipo',
+      'quick_actions': 'Vitendo vya Haraka',
+      'payment_history': 'Historia ya Malipo',
+      'today': 'Leo',
+      'week': 'Wiki',
+      'month': 'Mwezi',
+      'your_vehicle': 'Gari Lako',
+      'plate_number': 'Nambari',
+      'status_active': 'Inatumika',
+      'status_completed': 'Imekamilika',
+      'status_cancelled': 'Imeghairiwa',
+      'status_expired': 'Imeisha',
+      // Welcome and reminders
+      'welcome': 'Karibu',
+      // Agreement labels
+      'agreement_total_title': 'Jumla ya Kukamilisha Mkataba',
+      'agreement_total_subtitle':
+          'Kiasi kinachotakiwa kulipwa kulingana na mkataba',
+      'agreement_daily_title': 'Kiasi cha Dei Waka',
+      'agreement_daily_subtitle':
+          'Kiasi cha kulipa kwa makubaliano ya Dei Waka',
+      // Driver pages
+      'my_receipts': 'Risiti Zangu',
+      'no_receipts': 'Hakuna risiti',
+      'no_reminders': 'Hakuna vikumbusho',
+      'try_again': 'Jaribu Tena',
+      'amount': 'Kiasi',
+      'driver': 'Dereva',
+      'vehicle': 'Gari',
+      'date': 'Tarehe',
+      'covered_days': 'Siku Zilizolipwa',
+      'remarks': 'Maelezo',
+      'payment': 'Malipo',
+      'debt_clearance': 'Kulipa Deni',
+      'days': 'Siku',
+      'no_debt': 'Hakuna deni',
+      'has_debt': 'Bado una deni',
+      'total_debt_label': 'Jumla ya deni',
+      // Reminders/Debts (driver)
+      'outstanding_debts': 'Madeni Yaliyosalia',
+      'total_outstanding': 'Jumla ya Deni',
+      'due_date': 'Tarehe ya Kulipa',
+      'days_overdue': 'Siku za Kudaiwa',
+
       // Drivers Management Screen
       'drivers_management': 'Usimamizi wa Madereva',
       'add_driver': 'Ongeza Dereva',
@@ -882,7 +946,7 @@ class AppLocalizations {
       'confirm_delete_driver': 'Je, una uhakika unataka kumfuta dereva huyu?',
       'no_drivers_found': 'Hakuna madereva waliopatikana',
       'search_drivers': 'Tafuta madereva...',
-      
+
       // Vehicles Management Screen
       'vehicles_management': 'Usimamizi wa Vyombo vya Usafiri',
       'add_vehicle': 'Ongeza Gari',
@@ -904,7 +968,7 @@ class AppLocalizations {
       'confirm_delete_vehicle': 'Je, una uhakika unataka kufuta gari hili?',
       'no_vehicles_found': 'Hakuna magari yaliyopatikana',
       'search_vehicles': 'Tafuta magari...',
-      
+
       // Payments Screen
       'payments_management': 'Usimamizi wa Malipo',
       'payment_amount': 'Kiasi',
@@ -931,8 +995,8 @@ class AppLocalizations {
       'mobile_money': 'Pesa za Simu',
       'bank_transfer': 'Uhamisho wa Benki',
       'paid': 'Yamelipwa',
-'overdue': 'Yamechelewa',
-      
+      'overdue': 'Yamechelewa',
+
       // Debts Management Screen
       'debts_management': 'Usimamizi wa Madeni',
       'debt_amount': 'Kiasi cha Deni',
@@ -945,7 +1009,7 @@ class AppLocalizations {
       'edit_debt': 'Hariri Deni',
       'delete_debt': 'Futa Deni',
       'debt_details': 'Maelezo ya Deni',
-'total_debts': 'Madeni Yote',
+      'total_debts': 'Madeni Yote',
       'paid_debts': 'Madeni Yaliyolipwa',
       'debt_added_successfully': 'Deni limeongezwa kikamilifu',
       'debt_updated_successfully': 'Deni limebadilishwa kikamilifu',
@@ -955,7 +1019,7 @@ class AppLocalizations {
       'search_debts': 'Tafuta madeni...',
       'mark_as_paid': 'Weka kama Yamelipwa',
       'mark_as_unpaid': 'Weka kama Hayajalipwa',
-      
+
       // Analytics Screen
       'analytics_dashboard': 'Dashibodi ya Takwimu',
       'revenue_analytics': 'Takwimu za Mapato',
@@ -974,7 +1038,7 @@ class AppLocalizations {
       'to_date': 'Hadi Tarehe',
       'apply_filter': 'Tumia Kichuja',
       'clear_filter': 'Futa Kichuja',
-      
+
       // Reports Screen
       'reports_dashboard': 'Dashibodi ya Ripoti',
       'generate_report': 'Tengeneza Ripoti',
@@ -996,7 +1060,7 @@ class AppLocalizations {
       'email_report': 'Tuma Ripoti kwa Barua Pepe',
       'report_generated_successfully': 'Ripoti imetengenezwa kikamilifu',
       'report_generation_failed': 'Kutengeneza ripoti kumeshindikana',
-      
+
       // Reminders Screen
       'reminders_management': 'Usimamizi wa Mikumbuzo',
       'add_reminder': 'Ongeza Ukumbusho',
@@ -1020,12 +1084,13 @@ class AppLocalizations {
       'reminder_added_successfully': 'Ukumbusho umeongezwa kikamilifu',
       'reminder_updated_successfully': 'Ukumbusho umebadilishwa kikamilifu',
       'reminder_deleted_successfully': 'Ukumbusho umefutwa kikamilifu',
-      'confirm_delete_reminder': 'Je, una uhakika unataka kufuta ukumbusho huu?',
+      'confirm_delete_reminder':
+          'Je, una uhakika unataka kufuta ukumbusho huu?',
       'no_reminders_found': 'Hakuna mikumbuzo iliyopatikana',
       'search_reminders': 'Tafuta mikumbuzo...',
       'mark_as_completed': 'Weka kama Umekamilika',
       'send_reminder': 'Tuma Ukumbusho',
-      
+
       // Communications Screen
       'communications_management': 'Mawasiliano',
       'send_message': 'Tuma Ujumbe',
@@ -1056,7 +1121,7 @@ class AppLocalizations {
       'no_messages_found': 'Hakuna ujumbe uliopatikana',
       'search_messages': 'Tafuta ujumbe...',
       'select_recipients': 'Chagua Wapokeaji',
-      
+
       // Login Screen
       'login_successful': 'Umeingia kikamilifu!',
       'login_failed': 'Kuingia kumeshindikana',
@@ -1064,65 +1129,100 @@ class AppLocalizations {
       'demo_credentials_filled': 'Taarifa za demo zimejazwa',
       'database_credentials_filled': 'Taarifa za database zimejazwa',
       'forgot_password': 'Umesahau Nywila?',
-      'forgot_password_message': 'Kipengele cha kurudisha nywila kinatengenezwa. Kwa sasa, tumia taarifa za demo au wasiliana na msimamizi.',
+      'forgot_password_message':
+          'Kipengele cha kurudisha nywila kinatengenezwa. Kwa sasa, tumia taarifa za demo au wasiliana na msimamizi.',
       'use_database': 'Tumia Database',
-        'email': 'Barua pepe',
-        'password': 'Neno la siri',
-        'phone_number': 'Nambari ya simu',
-        'signin': 'Ingia',
-        'welcome_back': 'Karibu Tena',
-        'signin_subtitle': 'Ingia ili kuendelea kwenye akaunti yako',
+      'email': 'Barua pepe',
+      'password': 'Neno la siri',
+      'phone_number': 'Nambari ya simu',
+      'signin': 'Ingia',
+      'welcome_back': 'Karibu Tena',
+      'signin_subtitle': 'Ingia ili kuendelea kwenye akaunti yako',
 
-        // Uchaguzi wa huduma
-        'select_service': 'Chagua Huduma',
-        'select_service_subtitle': 'Chagua unachotaka kusimamia leo',
-        'inventory_service': 'Hesabu (Inventory)',
-        'rental_service': 'Uajiri (Rental)',
-        'transport_service': 'Usafirishaji (Transport)',
-        'coming_soon': 'Inakuja hivi karibuni…',
+      // Uchaguzi wa huduma
+      'select_service': 'Chagua Huduma',
+      'select_service_subtitle': 'Chagua unachotaka kusimamia leo',
+      'inventory_service': 'Hesabu (Inventory)',
+      'rental_service': 'Uajiri (Rental)',
+      'transport_service': 'Usafirishaji (Transport)',
+      'coming_soon': 'Inakuja hivi karibuni…',
 
-        // Moduli ya Hesabu
-        'inventory_dashboard': 'Dashibodi ya Hesabu',
-        'products': 'Bidhaa',
-        'stock_levels': 'Viwango vya Stoo',
-        'stock_in_out_transfer': 'Ingizo/Mauzo/Uhamisho',
-        'stock_in': 'Ingiza Stoo',
-        'stock_out': 'Toa Stoo',
-        'stock_transfer': 'Hamisha',
-        'sales': 'Mauzo',
-        'total_sales_today': 'Mauzo ya Leo',
-        'profit_today': 'Faida (Leo)',
-        'profit_week': 'Faida (Wiki)',
-        'profit_month': 'Faida (Mwezi)',
-        'sales_trend': 'Mwelekeo wa Mauzo',
-        'low_stock': 'Stoo Chache',
-        'quantity': 'Kiasi',
-        'min_stock': 'Kiwango cha Chini',
-        'warehouse': 'Ghala',
-        'sku': 'SKU',
-        'product': 'Bidhaa',
-        'reference': 'Marejeo',
-        'from_warehouse': 'Kutoka Ghala',
-        'to_warehouse': 'Kwenda Ghala',
-        'saved': 'Imehifadhiwa',
-        'add_product': 'Ongeza Bidhaa',
-        'search_products': 'Tafuta bidhaa…',
-        'create_sale_pos': 'Tengeneza Mauzo (POS)',
-        'create_sale_hint': 'Ongeza bidhaa, weka kiasi, chagua aina ya malipo.',
-        'add_products': 'Ongeza Bidhaa',
-        'checkout': 'Kamilisha Malipo',
-        'recent_sales': 'Mauzo ya Hivi Karibuni',
-        'items': 'vipengee',
-        'payment_due': 'Malipo Yanatakiwa',
-        'payment_due_desc': 'Malipo yanakaribia kuhitajika.',
-        'low_stock_desc': 'Kiwango cha stoo kimezidi kuwa chini ya kiwango.',
-        'mark_done': 'Weka Kamilika',
-        'snooze': 'Sogeza Muda',
-      },
+      // Moduli ya Hesabu
+      'inventory_dashboard': 'Dashibodi ya Hesabu',
+      'products': 'Bidhaa',
+      'stock_levels': 'Viwango vya Stoo',
+      'stock_in_out_transfer': 'Ingizo/Mauzo/Uhamisho',
+      'stock_in': 'Ingiza Stoo',
+      'stock_out': 'Toa Stoo',
+      'stock_transfer': 'Hamisha',
+      'sales': 'Mauzo',
+      'total_sales_today': 'Mauzo ya Leo',
+      'profit_today': 'Faida (Leo)',
+      'profit_week': 'Faida (Wiki)',
+      'profit_month': 'Faida (Mwezi)',
+      'sales_trend': 'Mwelekeo wa Mauzo',
+      'low_stock': 'Stoo Chache',
+      'quantity': 'Kiasi',
+      'min_stock': 'Kiwango cha Chini',
+      'warehouse': 'Ghala',
+      'sku': 'SKU',
+      'product': 'Bidhaa',
+      'reference': 'Marejeo',
+      'from_warehouse': 'Kutoka Ghala',
+      'to_warehouse': 'Kwenda Ghala',
+      'saved': 'Imehifadhiwa',
+      'add_product': 'Ongeza Bidhaa',
+      'search_products': 'Tafuta bidhaa…',
+      'create_sale_pos': 'Tengeneza Mauzo (POS)',
+      'create_sale_hint': 'Ongeza bidhaa, weka kiasi, chagua aina ya malipo.',
+      'add_products': 'Ongeza Bidhaa',
+      'checkout': 'Kamilisha Malipo',
+      'recent_sales': 'Mauzo ya Hivi Karibuni',
+      'items': 'vipengee',
+      'payment_due': 'Malipo Yanatakiwa',
+      'payment_due_desc': 'Malipo yanakaribia kuhitajika.',
+      'low_stock_desc': 'Kiwango cha stoo kimezidi kuwa chini ya kiwango.',
+      'mark_done': 'Weka Kamilika',
+      'snooze': 'Sogeza Muda',
+      'open': 'Wazi',
+      'snoozed': 'Imeahirishwa',
+      'done': 'Imekamilika',
+
+      // POS / Mauzo
+      'payment_mode': 'Aina ya Malipo',
+      'debt': 'Deni',
+      'partial': 'Sehemu (Partial)',
+      'customer': 'Mteja',
+      'customer_required': 'Mteja anahitajika kwa Deni/Partial',
+      'add_to_cart': 'Ongeza Kwenye Kikapu',
+      'qty': 'Idadi',
+      'unit_price': 'Bei kwa Kimoja',
+      'subtotal': 'Jumla Ndogo',
+      'total': 'Jumla',
+      'profit': 'Faida',
+      'paid_amount': 'Kiasi Kilicholipwa',
+      'select_customer': 'Chagua mteja',
+      'cannot_negative_stock': 'Shughuli itasababisha stoo hasi',
+      'balance': 'Baki',
+      'add_customer': 'Ongeza Mteja',
+      'customer_name': 'Jina la Mteja',
+'address': 'Anwani',
+
+      // Madeni/Malipo (Debts/Payments)
+    },
   };
-  
+
   String translate(String key) {
     final String languageCode = LocalizationService.instance.currentLanguage;
-    return _localizedValues[languageCode]?[key] ?? key;
+    String v = _localizedValues[languageCode]?[key] ?? '';
+    if (v.isEmpty) v = key;
+    // Prettify keys that look like snake_case or fallback keys
+    if (v.contains('_')) {
+      v = v.replaceAll('_', ' ');
+      if (v.isNotEmpty) {
+        v = v[0].toUpperCase() + v.substring(1);
+      }
+    }
+    return v;
   }
 }

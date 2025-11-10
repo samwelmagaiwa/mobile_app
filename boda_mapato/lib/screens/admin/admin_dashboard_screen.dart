@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../constants/theme_constants.dart';
 import '../../models/login_response.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
@@ -32,16 +33,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   bool _isLoading = true;
   final PageController _cardController = PageController();
 
-  // Modern theme colors
-  static const Color primaryGradientStart = Color(0xFF667eea);
-  static const Color cardColor = Color(0x1AFFFFFF);
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xB3FFFFFF);
-  static const Color primaryBlue = Color(0xFF1E40AF);
-  static const Color primaryOrange = Color(0xFFF97316);
-  static const Color successGreen = Color(0xFF10B981);
-  static const Color warningAmber = Color(0xFFF59E0B);
-  static const Color errorRed = Color(0xFFEF4444);
+  // Modern theme colors - use shared ThemeConstants
+  static const Color primaryGradientStart = ThemeConstants.primaryGradientStart;
+  static const Color cardColor = ThemeConstants.cardColor;
+  static const Color textPrimary = ThemeConstants.textPrimary;
+  static const Color textSecondary = ThemeConstants.textSecondary;
+  static const Color primaryBlue = ThemeConstants.primaryBlue;
+  static const Color primaryOrange = ThemeConstants.primaryOrange;
+  static const Color successGreen = ThemeConstants.successGreen;
+  static const Color warningAmber = ThemeConstants.warningAmber;
+  static const Color errorRed = ThemeConstants.errorRed;
 
   @override
   void initState() {
@@ -69,7 +70,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     _slideAnimation = Tween<double>(begin: 50, end: 0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
-
   }
 
   @override
@@ -82,7 +82,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   // Chart state
   List<double> _chartPoints = <double>[];
-  List<String> _chartLabels = <String>[]; // dates for weekly or months for monthly
+  List<String> _chartLabels =
+      <String>[]; // dates for weekly or months for monthly
   String _chartPeriod = 'weekly'; // 'weekly' or 'monthly'
   bool _chartLoading = false;
 
@@ -122,7 +123,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         final List<double> monthly = _aggregateMonthly(raw);
         setState(() {
           _chartPoints = monthly;
-          _chartLabels = const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          _chartLabels = const <String>[
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec'
+          ];
         });
       }
       if (mounted) {
@@ -168,12 +182,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   List<double> _aggregateMonthly(List<dynamic> raw) {
     // Try to detect {date, amount|revenue} maps
-    if (raw.isNotEmpty && raw.first is Map && (raw.first as Map).containsKey('date')) {
+    if (raw.isNotEmpty &&
+        raw.first is Map &&
+        (raw.first as Map).containsKey('date')) {
       final Map<int, double> sums = <int, double>{}; // month(1-12) -> sum
       for (final e in raw) {
         try {
           final m = e as Map;
-          final String dateStr = m['date']?.toString() ?? m['created_at']?.toString() ?? '';
+          final String dateStr =
+              m['date']?.toString() ?? m['created_at']?.toString() ?? '';
           final DateTime? dt = DateTime.tryParse(dateStr);
           final dynamic rawVal = m['amount'] ?? m['revenue'] ?? m['value'];
           final double amt = rawVal is num
@@ -190,7 +207,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     // Fallback: assume daily numeric series length ~365, split into 12 buckets
     final List<double> amounts = _extractAmounts(raw);
     if (amounts.isEmpty) return List<double>.filled(12, 0);
-    final int bucketSize = (amounts.length / 12).floor().clamp(1, amounts.length);
+    final int bucketSize =
+        (amounts.length / 12).floor().clamp(1, amounts.length);
     final List<double> monthly = <double>[];
     for (int i = 0; i < 12; i++) {
       final int start = i * bucketSize;
@@ -240,7 +258,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         setState(() {
           _isLoading = false;
         });
-        _showErrorSnackBar("Backend haipatikani. Tafadhali jaribu tena baadaye.");
+        _showErrorSnackBar(
+            "Backend haipatikani. Tafadhali jaribu tena baadaye.");
       }
     }
   }
@@ -272,21 +291,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) {
         return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildNavigationDrawer(localizationService),
-      backgroundColor: primaryBlue,
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: const BoxDecoration(
-          color: primaryBlue,
-        ),
-        child: SafeArea(
-          bottom: false, // Allow content to extend to bottom
-          child: _isLoading ? _buildLoadingScreen(localizationService) : _buildMainContent(),
-        ),
-      ),
-      );
+          key: _scaffoldKey,
+          drawer: _buildNavigationDrawer(localizationService),
+          backgroundColor: primaryBlue,
+          body: Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
+            decoration: const BoxDecoration(
+              color: primaryBlue,
+            ),
+            child: SafeArea(
+              bottom: false, // Allow content to extend to bottom
+              child: _isLoading
+                  ? _buildLoadingScreen(localizationService)
+                  : _buildMainContent(),
+            ),
+          ),
+        );
       },
     );
   }
@@ -682,7 +703,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: [
                   const Text(
                     'Mapato',
-                    style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
                   ChoiceChip(
@@ -732,7 +756,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             // Prevent zero intervals when data points are all zero
                             gridData: FlGridData(
                               drawVerticalLine: false,
-                              horizontalInterval: (maxY <= 0 ? 1 : (maxY / 5).clamp(1, double.infinity)),
+                              horizontalInterval: (maxY <= 0
+                                  ? 1
+                                  : (maxY / 5).clamp(1, double.infinity)),
                               getDrawingHorizontalLine: (value) => FlLine(
                                 color: Colors.white.withOpacity(0.15),
                                 strokeWidth: 1,
@@ -743,40 +769,67 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   reservedSize: 40,
-                                  interval: (maxY <= 0 ? 1 : (maxY / 4).clamp(1, double.infinity)),
+                                  interval: (maxY <= 0
+                                      ? 1
+                                      : (maxY / 4).clamp(1, double.infinity)),
                                   getTitlesWidget: (value, meta) => Text(
                                     _formatShort(value),
-                                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 10),
                                   ),
                                 ),
                               ),
-                            bottomTitles: AxisTitles(
+                              bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   getTitlesWidget: (value, meta) {
                                     final int i = value.toInt();
                                     if (_chartPeriod == 'weekly') {
                                       final String text =
-                                          (i >= 0 && i < _chartLabels.length) ? _chartLabels[i] : '';
+                                          (i >= 0 && i < _chartLabels.length)
+                                              ? _chartLabels[i]
+                                              : '';
                                       return Transform.rotate(
                                         angle: -math.pi / 6,
                                         alignment: Alignment.topRight,
                                         child: Padding(
-                                          padding: const EdgeInsets.only(top: 8),
+                                          padding:
+                                              const EdgeInsets.only(top: 8),
                                           child: Text(
                                             text,
-                                            style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                            style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 10),
                                           ),
                                         ),
                                       );
                                     } else {
-                                      final List<String> months = _chartLabels.isNotEmpty
-                                          ? _chartLabels
-                                          : const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                                      final String text = (i >= 0 && i < months.length) ? months[i] : '';
+                                      final List<String> months =
+                                          _chartLabels.isNotEmpty
+                                              ? _chartLabels
+                                              : const <String>[
+                                                  'Jan',
+                                                  'Feb',
+                                                  'Mar',
+                                                  'Apr',
+                                                  'May',
+                                                  'Jun',
+                                                  'Jul',
+                                                  'Aug',
+                                                  'Sep',
+                                                  'Oct',
+                                                  'Nov',
+                                                  'Dec'
+                                                ];
+                                      final String text =
+                                          (i >= 0 && i < months.length)
+                                              ? months[i]
+                                              : '';
                                       return Text(
                                         text,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10),
                                       );
                                     }
                                   },
@@ -792,17 +845,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                     final i = barSpot.x.toInt();
                                     String label = '';
                                     if (_chartPeriod == 'weekly') {
-                                      label = (i >= 0 && i < _chartLabels.length) ? _chartLabels[i] : '';
+                                      label =
+                                          (i >= 0 && i < _chartLabels.length)
+                                              ? _chartLabels[i]
+                                              : '';
                                     } else {
-                                      final List<String> months = _chartLabels.isNotEmpty
-                                          ? _chartLabels
-                                          : const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                                      label = (i >= 0 && i < months.length) ? months[i] : '';
+                                      final List<String> months =
+                                          _chartLabels.isNotEmpty
+                                              ? _chartLabels
+                                              : const <String>[
+                                                  'Jan',
+                                                  'Feb',
+                                                  'Mar',
+                                                  'Apr',
+                                                  'May',
+                                                  'Jun',
+                                                  'Jul',
+                                                  'Aug',
+                                                  'Sep',
+                                                  'Oct',
+                                                  'Nov',
+                                                  'Dec'
+                                                ];
+                                      label = (i >= 0 && i < months.length)
+                                          ? months[i]
+                                          : '';
                                     }
-                                    final valueText = 'TSH ${_formatCurrency(barSpot.y)}';
+                                    final valueText =
+                                        'TSH ${_formatCurrency(barSpot.y)}';
                                     return LineTooltipItem(
                                       '$label\n$valueText',
-                                      const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                      const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600),
                                     );
                                   }).toList();
                                 },
@@ -814,13 +889,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                 spots: points
                                     .asMap()
                                     .entries
-                                    .map((e) => FlSpot(e.key.toDouble(), e.value))
+                                    .map((e) =>
+                                        FlSpot(e.key.toDouble(), e.value))
                                     .toList(),
                                 isCurved: true,
                                 color: Colors.white,
                                 barWidth: 3,
                                 dotData: FlDotData(
-                                  getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                                  getDotPainter: (spot, percent, bar, index) =>
+                                      FlDotCirclePainter(
                                     radius: 3,
                                     color: Colors.white,
                                     strokeColor: Colors.white,
@@ -918,14 +995,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
       );
 
-  Widget _buildNavigationDrawer(LocalizationService localizationService) => Drawer(
+  Widget _buildNavigationDrawer(LocalizationService localizationService) =>
+      Drawer(
         backgroundColor: primaryBlue,
         child: Column(
           children: <Widget>[
             UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: primaryBlue),
               accountName: Text(
-                Provider.of<AuthProvider>(context).user?.name ?? localizationService.translate("admin"),
+                Provider.of<AuthProvider>(context).user?.name ??
+                    localizationService.translate("admin"),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -970,14 +1049,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       title: localizationService.translate("debts_records"),
                       page: "debts"),
                   _buildNavItem(
-                      icon: Icons.receipt, title: localizationService.translate("receipts"), page: "receipts"),
+                      icon: Icons.receipt,
+                      title: localizationService.translate("receipts"),
+                      page: "receipts"),
                   _buildNavItem(
                       icon: Icons.swap_horiz,
                       title: localizationService.translate("transactions"),
                       page: "transactions"),
                   const Divider(color: Colors.white24, height: 16),
                   _buildNavItem(
-                      icon: Icons.analytics, title: localizationService.translate("reports"), page: "reports"),
+                      icon: Icons.analytics,
+                      title: localizationService.translate("reports"),
+                      page: "reports"),
                   _buildNavItem(
                       icon: Icons.trending_up,
                       title: localizationService.translate("analytics"),
@@ -1111,7 +1194,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               Navigator.pop(context);
               await authProvider.logout();
             },
-            child: Text(localizationService.translate("yes"), style: const TextStyle(color: errorRed)),
+            child: Text(localizationService.translate("yes"),
+                style: const TextStyle(color: errorRed)),
           ),
         ],
       ),
@@ -1159,5 +1243,4 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         return "0";
     }
   }
-
 }

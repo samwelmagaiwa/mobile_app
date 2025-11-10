@@ -12,7 +12,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final LocalizationService _localizationService = LocalizationService.instance;
-  
+
   bool _pushNotifications = true;
   bool _emailNotifications = true;
   bool _paymentAlerts = true;
@@ -70,7 +70,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: ThemeConstants.primaryOrange.withOpacity(0.2),
+                                color: ThemeConstants.primaryOrange
+                                    .withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -85,7 +86,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _localizationService.translate('notifications'),
+                                    _localizationService
+                                        .translate('notifications'),
                                     style: const TextStyle(
                                       color: ThemeConstants.textPrimary,
                                       fontSize: 18,
@@ -94,7 +96,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _localizationService.translate('notifications_subtitle'),
+                                    _localizationService
+                                        .translate('notifications_subtitle'),
                                     style: const TextStyle(
                                       color: ThemeConstants.textSecondary,
                                       fontSize: 14,
@@ -107,27 +110,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Notification Settings
                     ThemeConstants.buildGlassCard(
                       child: Column(
                         children: [
                           _buildNotificationSwitch(
                             Icons.notifications_active,
-                            _localizationService.translate('push_notifications'),
+                            _localizationService
+                                .translate('push_notifications'),
                             'push_notifications',
                             _pushNotifications,
-                            (value) => setState(() => _pushNotifications = value),
+                            (value) =>
+                                setState(() => _pushNotifications = value),
                           ),
                           const Divider(color: Colors.white24, height: 1),
                           _buildNotificationSwitch(
                             Icons.email,
-                            _localizationService.translate('email_notifications'),
+                            _localizationService
+                                .translate('email_notifications'),
                             'email_notifications',
                             _emailNotifications,
-                            (value) => setState(() => _emailNotifications = value),
+                            (value) =>
+                                setState(() => _emailNotifications = value),
                           ),
                           const Divider(color: Colors.white24, height: 1),
                           _buildNotificationSwitch(
@@ -156,9 +163,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Info Card
                     ThemeConstants.buildGlassCard(
                       child: Padding(

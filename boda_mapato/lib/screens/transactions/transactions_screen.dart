@@ -1,6 +1,6 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
-import 'package:auto_size_text/auto_size_text.dart';
 
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
@@ -183,7 +183,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title: const AutoSizeText(
           "Chuja Miamala",
           maxLines: 1,
-          minFontSize: 12,
           stepGranularity: 0.5,
         ),
         content: Column(
@@ -299,7 +298,8 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
 
       if (mounted) {
         Navigator.pop(context);
-        ThemeConstants.showSuccessSnackBar(context, AppStrings.transactionSaved);
+        ThemeConstants.showSuccessSnackBar(
+            context, AppStrings.transactionSaved);
       }
     } on Exception catch (e) {
       if (mounted) {

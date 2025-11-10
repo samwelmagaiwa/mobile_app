@@ -89,12 +89,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     // If there is daily/monthly series, estimate simple MoM/period change when possible
     try {
       final List<dynamic> series = (revenueData['daily_data'] ??
-              revenueData['series'] ??
-              (revenueData['data'] is Map
-                  ? (revenueData['data']['daily_data'] ??
-                      revenueData['data']['series'])
-                  : null))
-          ?.cast<dynamic>() ??
+                  revenueData['series'] ??
+                  (revenueData['data'] is Map
+                      ? (revenueData['data']['daily_data'] ??
+                          revenueData['data']['series'])
+                      : null))
+              ?.cast<dynamic>() ??
           <dynamic>[];
       if (series.length >= 2) {
         final double last = _toNumLike(series.last).toDouble();
@@ -129,7 +129,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+      builder: (context, localizationService, child) =>
+          ThemeConstants.buildResponsiveScaffold(
         context,
         title: localizationService.translate('analytics_dashboard'),
         body: _isLoading
@@ -235,8 +236,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _MetricCard(
                   title: localizationService.translate('total_revenue'),
                   value:
-                      "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const ['total_revenue','revenue_total','total']))}",
-                  change: "+${(_analyticsData?['growth_rate'] as num? ?? 0).toStringAsFixed(1)}%",
+                      "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const [
+                        'total_revenue',
+                        'revenue_total',
+                        'total'
+                      ]))}",
+                  change:
+                      "+${(_analyticsData?['growth_rate'] as num? ?? 0).toStringAsFixed(1)}%",
                   isPositive: true,
                   icon: Icons.trending_up,
                 ),
@@ -245,8 +251,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Expanded(
                 child: _MetricCard(
                   title: localizationService.translate('net_profit'),
-                  value:
-                      "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
+                  value: "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
                   change: "+${_computeProfitChange(_analyticsData)}%",
                   isPositive: true,
                   icon: Icons.account_balance_wallet,
@@ -271,8 +276,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Expanded(
                 child: _MetricCard(
                   title: localizationService.translate('new_customers'),
-                  value:
-                      "${_extractFirstInt(_analyticsData?['revenue'], const ['new_customers','customers_new','customers'])}",
+                  value: "${_extractFirstInt(_analyticsData?['revenue'], const [
+                        'new_customers',
+                        'customers_new',
+                        'customers'
+                      ])}",
                   change: "",
                   isPositive: true,
                   icon: Icons.person_add,
@@ -283,7 +291,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       );
 
-  Widget _buildPerformanceCharts(LocalizationService localizationService) => CustomCard(
+  Widget _buildPerformanceCharts(LocalizationService localizationService) =>
+      CustomCard(
         child: Container(
           padding: const EdgeInsets.all(AppStyles.spacingM),
           height: 200,
@@ -312,7 +321,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
       );
 
-  Widget _buildTrendsAnalysis(LocalizationService localizationService) => Column(
+  Widget _buildTrendsAnalysis(LocalizationService localizationService) =>
+      Column(
         children: <Widget>[
           _buildTrendItem(
               localizationService.translate('revenue_growth'),
@@ -493,10 +503,10 @@ String _formatMoney(double value) {
 }
 
 double _computeProfit(Map<String, dynamic>? data) {
-  final double rev =
-      _extractFirstNumber(data?['revenue'], const <String>['total_revenue', 'revenue_total', 'total']);
-  final double exp =
-      _extractFirstNumber(data?['expenses'], const <String>['total_expenses', 'expenses_total', 'total']);
+  final double rev = _extractFirstNumber(data?['revenue'],
+      const <String>['total_revenue', 'revenue_total', 'total']);
+  final double exp = _extractFirstNumber(data?['expenses'],
+      const <String>['total_expenses', 'expenses_total', 'total']);
   return (rev - exp).clamp(0, double.infinity);
 }
 

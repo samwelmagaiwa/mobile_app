@@ -89,15 +89,64 @@ class ApiService {
     return _get(endpoint, requireAuth: requireAuth);
   }
 
+  // Safe GET that returns null instead of throwing on API errors (e.g., 404)
+  Future<Map<String, dynamic>?> getOrNull(
+    final String endpoint, {
+    final bool requireAuth = true,
+  }) async {
+    try {
+      return await _get(endpoint, requireAuth: requireAuth);
+    } on ApiException catch (e) {
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP GET getOrNull failed -> $endpoint :: ${e.message}');
+      }
+      return null;
+    } on Exception catch (e) {
+      if (kDebugMode && ApiConfig.enableHttpLogs) {
+        debugPrint('HTTP GET getOrNull failed -> $endpoint :: $e');
+      }
+      return null;
+    }
+  }
+
+  // Tolerant GET: returns null on 404 without throwing (prevents debugger breaks).
+  Future<Map<String, dynamic>?> getMaybe(
+    final String endpoint, {
+    final bool requireAuth = true,
+  }) async {
+    try {
+      final Map<String, String> headers =
+          requireAuth ? await _authHeaders : _headers;
+      if (requireAuth && !headers.containsKey('Authorization')) {
+        return null;
+      }
+      final http.Response response = await http
+          .get(
+            Uri.parse("$baseUrl$endpoint"),
+            headers: headers,
+          )
+          .timeout(timeoutDuration);
+      if (response.statusCode == 404) {
+        return null;
+      }
+      return _handleResponse(response);
+    } on Exception {
+      return null;
+    }
+  }
+
   // Helper: try multiple endpoints sequentially (useful when backend routes differ)
-  Future<Map<String, dynamic>> _getFirst(List<String> endpoints, {bool requireAuth = true}) async {
+  Future<Map<String, dynamic>> _getFirst(List<String> endpoints,
+      {bool requireAuth = true}) async {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
         return await _get(e, requireAuth: requireAuth);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
-        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+        if (m.contains('404') ||
+            m.contains('haipatikani') ||
+            m.contains('not found')) {
           last404 = err;
           continue;
         }
@@ -107,7 +156,9 @@ class ApiService {
     throw last404 ?? ApiException('Rasilimali haipatikani');
   }
 
-  Future<Map<String, dynamic>> _postFirst(List<String> endpoints, Map<String, dynamic> data, {bool requireAuth = true}) async {
+  Future<Map<String, dynamic>> _postFirst(
+      List<String> endpoints, Map<String, dynamic> data,
+      {bool requireAuth = true}) async {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
@@ -117,7 +168,9 @@ class ApiService {
         return await _post(e, data, requireAuth: requireAuth);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
-        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+        if (m.contains('404') ||
+            m.contains('haipatikani') ||
+            m.contains('not found')) {
           last404 = err;
           continue;
         }
@@ -127,14 +180,17 @@ class ApiService {
     throw last404 ?? ApiException('Rasilimali haipatikani');
   }
 
-  Future<Map<String, dynamic>> _putFirst(List<String> endpoints, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> _putFirst(
+      List<String> endpoints, Map<String, dynamic> data) async {
     ApiException? last404;
     for (final String e in endpoints) {
       try {
         return await _put(e, data);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
-        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+        if (m.contains('404') ||
+            m.contains('haipatikani') ||
+            m.contains('not found')) {
           last404 = err;
           continue;
         }
@@ -151,7 +207,9 @@ class ApiService {
         return await _delete(e);
       } on ApiException catch (err) {
         final String m = err.message.toLowerCase();
-        if (m.contains('404') || m.contains('haipatikani') || m.contains('not found')) {
+        if (m.contains('404') ||
+            m.contains('haipatikani') ||
+            m.contains('not found')) {
           last404 = err;
           continue;
         }
@@ -212,7 +270,7 @@ class ApiService {
     try {
       final Map<String, String> headers =
           requireAuth ? await _authHeaders : _headers;
-      
+
       // If auth is required but no token present, avoid hitting the server at all
       if (requireAuth && !headers.containsKey("Authorization")) {
         throw ApiException("Hauruhusiwi - tafadhali ingia tena");
@@ -332,9 +390,6 @@ class ApiService {
     await _post("/admin/payments/$paymentId/mark-paid", <String, dynamic>{});
   }
 
-
-
-
   // Drivers APIs for import/create
 
   // Vehicles APIs for import/create
@@ -352,6 +407,18 @@ class ApiService {
     } on Exception {
       throw ApiException("Jibu la seva halieleweki");
     }
+
+    // Debug logging in debug mode only
+    assert(() {
+      if (ApiConfig.enableHttpLogs) {
+        debugPrint(
+            '[API] ${response.request?.method} ${response.request?.url} -> ${response.statusCode}');
+        if (response.statusCode >= 400) {
+          debugPrint('[API] body: ${response.body}');
+        }
+      }
+      return true;
+    }(), 'API debug logging');
 
     switch (response.statusCode) {
       case 200:
@@ -410,10 +477,10 @@ class ApiService {
 
     // Try multiple possible auth endpoints (admin and driver guards)
     final List<String> endpoints = <String>[
-      "/auth/login",                  // default (admin/user)
-      "/driver/login",               // driver guard variant A
-      "/driver/auth/login",          // driver guard variant B
-      "/auth/driver/login",          // driver under auth namespace
+      "/auth/login", // default (admin/user)
+      "/driver/login", // driver guard variant A
+      "/driver/auth/login", // driver guard variant B
+      "/auth/driver/login", // driver under auth namespace
     ];
 
     final Map<String, dynamic> response =
@@ -476,7 +543,8 @@ class ApiService {
   Future<Map<String, dynamic>> setTwoFactor(bool enabled) async =>
       _post("/auth/two-factor", <String, dynamic>{"enabled": enabled});
 
-  Future<Map<String, dynamic>> getLoginHistory({int page = 1, int limit = 20}) async =>
+  Future<Map<String, dynamic>> getLoginHistory(
+          {int page = 1, int limit = 20}) async =>
       _get("/auth/login-history?page=$page&limit=$limit");
 
   // Dashboard endpoints
@@ -486,34 +554,61 @@ class ApiService {
   // Detailed dashboard data (DashboardController::index)
   Future<Map<String, dynamic>> getDashboardDataDetailed() async =>
       _get("/admin/dashboard-data");
-  
+
   // Driver dashboard (read-only for driver role)
   Future<Map<String, dynamic>> getDriverDashboard() async =>
       _get("/driver/dashboard");
-  
+
   // Driver self resources
-  Future<Map<String, dynamic>> getDriverReceipts({int page = 1, int limit = 20}) async =>
+  Future<Map<String, dynamic>> getDriverReceipts(
+          {int page = 1, int limit = 20}) async =>
       _get("/driver/receipts?per_page=$limit&page=$page");
-  
-  Future<Map<String, dynamic>> getDriverPayments({int page = 1, int limit = 50, DateTime? startDate, DateTime? endDate}) async {
+
+  Future<Map<String, dynamic>> getDriverPayments(
+      {int page = 1,
+      int limit = 50,
+      DateTime? startDate,
+      DateTime? endDate}) async {
     final List<String> params = <String>["per_page=$limit", "page=$page"];
-    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
     final String qs = params.join("&");
     return _get("/driver/payments?$qs");
   }
 
-  Future<Map<String, dynamic>> getDriverDebtRecordsSelf({int page = 1, int limit = 50, bool onlyPaid = false, bool onlyUnpaid = false, DateTime? startDate, DateTime? endDate}) async {
+  Future<Map<String, dynamic>> getDriverDebtRecordsSelf(
+      {int page = 1,
+      int limit = 50,
+      bool onlyPaid = false,
+      bool onlyUnpaid = false,
+      DateTime? startDate,
+      DateTime? endDate}) async {
     final List<String> params = <String>["per_page=$limit", "page=$page"];
-    if (onlyPaid) params.add("only_paid=true");
-    if (onlyUnpaid) params.add("only_unpaid=true");
-    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    if (onlyPaid) {
+      params.add("only_paid=true");
+    }
+    if (onlyUnpaid) {
+      params.add("only_unpaid=true");
+    }
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
     final String qs = params.join("&");
     return _get("/driver/debts/records?$qs");
   }
-  
-  Future<Map<String, dynamic>> getDriverPaymentHistory({int page = 1, int limit = 200, DateTime? startDate, DateTime? endDate}) async {
+
+  Future<Map<String, dynamic>> getDriverPaymentHistory(
+      {int page = 1,
+      int limit = 200,
+      DateTime? startDate,
+      DateTime? endDate}) async {
     final List<String> params = <String>["per_page=$limit", "page=$page"];
     if (startDate != null) {
       params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
@@ -525,13 +620,19 @@ class ApiService {
     return _get("/driver/payment-history?$qs");
   }
 
-  Future<Map<String, dynamic>> getDriverPaymentsSummary({DateTime? startDate, DateTime? endDate}) async {
+  Future<Map<String, dynamic>> getDriverPaymentsSummary(
+      {DateTime? startDate, DateTime? endDate}) async {
     final List<String> params = <String>[];
-    if (startDate != null) params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
-    if (endDate != null) params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    if (startDate != null) {
+      params.add("start_date=${startDate.toIso8601String().split('T')[0]}");
+    }
+    if (endDate != null) {
+      params.add("end_date=${endDate.toIso8601String().split('T')[0]}");
+    }
     final String qs = params.isEmpty ? '' : '?${params.join('&')}';
     return _get("/driver/payments/summary$qs");
   }
+
   // Aggregated stats (DashboardController::getStats)
   Future<Map<String, dynamic>> getDashboardStats() async =>
       _get("/admin/dashboard-stats");
@@ -547,7 +648,7 @@ class ApiService {
   }
 
   // Specific dashboard counts from database tables with exact column filtering
-  
+
   /// Get unpaid debts count from debt_records table WHERE is_paid = 0
   Future<Map<String, dynamic>> getUnpaidDebtsCount() async =>
       _get("/admin/dashboard/unpaid-debts-count");
@@ -584,7 +685,8 @@ class ApiService {
   Future<Map<String, dynamic>> getComprehensiveDashboardData() async =>
       _get("/admin/dashboard/comprehensive");
 
-  Future<List<dynamic>> getRevenueChart({final int days = 30, DateTime? startDate, DateTime? endDate}) async {
+  Future<List<dynamic>> getRevenueChart(
+      {final int days = 30, DateTime? startDate, DateTime? endDate}) async {
     // Build date window (defaults to last N days)
     final DateTime end = endDate ?? DateTime.now();
     final DateTime start = startDate ?? end.subtract(Duration(days: days - 1));
@@ -602,7 +704,8 @@ class ApiService {
     // Expected shape: { data: { daily_data: [ {date, amount|total|total_amount|paid}, ... ] } }
     final dynamic data = response["data"];
     if (data is Map<String, dynamic>) {
-      final dynamic daily = data["daily_data"] ?? data["daily"] ?? data["series"];
+      final dynamic daily =
+          data["daily_data"] ?? data["daily"] ?? data["series"];
       if (daily is List) return daily.cast<dynamic>();
     }
 
@@ -630,7 +733,8 @@ class ApiService {
       // Let MultipartRequest set the correct boundary header
       h.remove('Content-Type');
       request.headers.addAll(h);
-      request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
+      request.files.add(
+          http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
       final streamed = await request.send().timeout(timeoutDuration);
       final response = await http.Response.fromStream(streamed);
       return _handleResponse(response);
@@ -649,8 +753,11 @@ class ApiService {
   }
 
   // Users management endpoints
-  Future<Map<String, dynamic>> getUsers({int page = 1, int limit = 50, String? query}) async {
-    final String q = (query != null && query.isNotEmpty) ? "&q=${Uri.encodeComponent(query)}" : "";
+  Future<Map<String, dynamic>> getUsers(
+      {int page = 1, int limit = 50, String? query}) async {
+    final String q = (query != null && query.isNotEmpty)
+        ? "&q=${Uri.encodeComponent(query)}"
+        : "";
     final List<String> endpoints = <String>[
       "/admin/users?page=$page&limit=$limit$q",
       "/users?page=$page&limit=$limit$q",
@@ -660,8 +767,11 @@ class ApiService {
   }
 
   /// Get users created by the currently authenticated admin
-  Future<Map<String, dynamic>> getMyUsers({int page = 1, int limit = 50, String? query}) async {
-    final String q = (query != null && query.isNotEmpty) ? "&q=${Uri.encodeComponent(query)}" : "";
+  Future<Map<String, dynamic>> getMyUsers(
+      {int page = 1, int limit = 50, String? query}) async {
+    final String q = (query != null && query.isNotEmpty)
+        ? "&q=${Uri.encodeComponent(query)}"
+        : "";
     final List<String> endpoints = <String>[
       "/admin/users?created_by=me&page=$page&limit=$limit$q",
       "/admin/users/mine?page=$page&limit=$limit$q",
@@ -673,21 +783,34 @@ class ApiService {
 
   Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async {
     if (kDebugMode) {
-      debugPrint('DEBUG ApiService.createUser: Trying endpoints for user creation');
+      debugPrint(
+          'DEBUG ApiService.createUser: Trying endpoints for user creation');
     }
-    return _postFirst(<String>["/admin/users", "/users", "/admin/user-management/users"], userData);
+    return _postFirst(
+        <String>["/admin/users", "/users", "/admin/user-management/users"],
+        userData);
   }
 
-  Future<Map<String, dynamic>> updateUser(String userId, Map<String, dynamic> userData) async =>
-      _putFirst(<String>["/admin/users/$userId", "/users/$userId", "/admin/user-management/users/$userId"], userData);
+  Future<Map<String, dynamic>> updateUser(
+          String userId, Map<String, dynamic> userData) async =>
+      _putFirst(<String>[
+        "/admin/users/$userId",
+        "/users/$userId",
+        "/admin/user-management/users/$userId"
+      ], userData);
 
   Future<Map<String, dynamic>> deleteUser(String userId) async =>
-      _deleteFirst(<String>["/admin/users/$userId", "/users/$userId", "/admin/user-management/users/$userId"]);
+      _deleteFirst(<String>[
+        "/admin/users/$userId",
+        "/users/$userId",
+        "/admin/user-management/users/$userId"
+      ]);
 
   Future<Map<String, dynamic>> resetUserPassword({
     required String userId,
     required String newPassword,
-  }) async => _postFirst(<String>[
+  }) async =>
+      _postFirst(<String>[
         "/admin/users/$userId/reset-password",
         "/admin/users/$userId/password/reset",
         "/users/$userId/reset-password",
@@ -811,7 +934,8 @@ class ApiService {
           "/admin/drivers/$driverId/payment-trends?period=$period&months=$months");
 
   // Driver prediction analytics (server-side)
-  Future<Map<String, dynamic>> getDriverPrediction(final String driverId) async =>
+  Future<Map<String, dynamic>> getDriverPrediction(
+          final String driverId) async =>
       _get("/admin/drivers/$driverId/prediction");
 
   Future<Map<String, dynamic>> getDriverDebtTrends({
@@ -952,15 +1076,17 @@ class ApiService {
     String endpoint = "/admin/reports/revenue";
     final List<String> params = <String>[];
 
-    String _d(DateTime d) {
+    String d(DateTime d) {
       String two(int n) => n < 10 ? '0$n' : '$n';
       return "${d.year}-${two(d.month)}-${two(d.day)}"; // send date-only to avoid TZ issues
     }
 
     if (startDate != null) {
-      params.add("start_date=${_d(startDate)}");
+      params.add("start_date=${d(startDate)}");
     }
-    if (endDate != null) params.add("end_date=${_d(endDate)}");
+    if (endDate != null) {
+      params.add("end_date=${d(endDate)}");
+    }
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -999,15 +1125,17 @@ class ApiService {
     String endpoint = "/admin/reports/expenses";
     final List<String> params = <String>[];
 
-    String _d(DateTime d) {
+    String d(DateTime d) {
       String two(int n) => n < 10 ? '0$n' : '$n';
       return "${d.year}-${two(d.month)}-${two(d.day)}";
     }
 
     if (startDate != null) {
-      params.add("start_date=${_d(startDate)}");
+      params.add("start_date=${d(startDate)}");
     }
-    if (endDate != null) params.add("end_date=${_d(endDate)}");
+    if (endDate != null) {
+      params.add("end_date=${d(endDate)}");
+    }
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -1023,15 +1151,17 @@ class ApiService {
     String endpoint = "/admin/reports/profit-loss";
     final List<String> params = <String>[];
 
-    String _d(DateTime d) {
+    String d(DateTime d) {
       String two(int n) => n < 10 ? '0$n' : '$n';
       return "${d.year}-${two(d.month)}-${two(d.day)}";
     }
 
     if (startDate != null) {
-      params.add("start_date=${_d(startDate)}");
+      params.add("start_date=${d(startDate)}");
     }
-    if (endDate != null) params.add("end_date=${_d(endDate)}");
+    if (endDate != null) {
+      params.add("end_date=${d(endDate)}");
+    }
 
     if (params.isNotEmpty) {
       endpoint += "?${params.join("&")}";
@@ -1061,7 +1191,8 @@ class ApiService {
       _get("/admin/reminders?page=$page&limit=$limit");
 
   // Driver reminders (read-only)
-  Future<Map<String, dynamic>> getDriverReminders({int page = 1, int limit = 50}) async =>
+  Future<Map<String, dynamic>> getDriverReminders(
+          {int page = 1, int limit = 50}) async =>
       _get("/driver/reminders?page=$page&limit=$limit");
 
   Future<Map<String, dynamic>> updateReminder(
@@ -1105,12 +1236,18 @@ class ApiService {
   }) async {
     String endpoint = "/admin/transactions?page=$page&limit=$limit";
 
-    if (status != null) endpoint += "&status=$status";
-    if (type != null) endpoint += "&type=$type";
+    if (status != null) {
+      endpoint += "&status=$status";
+    }
+    if (type != null) {
+      endpoint += "&type=$type";
+    }
     if (startDate != null) {
       endpoint += "&start_date=${startDate.toIso8601String()}";
     }
-    if (endDate != null) endpoint += "&end_date=${endDate.toIso8601String()}";
+    if (endDate != null) {
+      endpoint += "&end_date=${endDate.toIso8601String()}";
+    }
 
     return _get(endpoint);
   }
@@ -1298,7 +1435,7 @@ class ApiService {
   }) async {
     String endpoint = "/admin/payments/history?page=$page&limit=$limit";
 
-    String _d(DateTime d) {
+    String d(DateTime d) {
       String two(int n) => n < 10 ? '0$n' : '$n';
       return "${d.year}-${two(d.month)}-${two(d.day)}";
     }
@@ -1307,10 +1444,10 @@ class ApiService {
       endpoint += "&driver_id=$driverId";
     }
     if (startDate != null) {
-      endpoint += "&start_date=${_d(startDate)}";
+      endpoint += "&start_date=${d(startDate)}";
     }
     if (endDate != null) {
-      endpoint += "&end_date=${_d(endDate)}";
+      endpoint += "&end_date=${d(endDate)}";
     }
 
     return _get(endpoint);
@@ -1423,7 +1560,8 @@ class ApiService {
     int page = 1,
     int limit = 20,
   }) async =>
-      _get("/admin/receipts/search?q=${Uri.encodeComponent(query)}&page=$page&limit=$limit");
+      _get(
+          "/admin/receipts/search?q=${Uri.encodeComponent(query)}&page=$page&limit=$limit");
 
   /// Get payment receipt preview by receipt ID
   Future<Map<String, dynamic>> getPaymentReceiptPreview(
@@ -1434,7 +1572,8 @@ class ApiService {
   Future<Map<String, dynamic>> sendPaymentReceipt({
     required String receiptId,
     required String sendVia, // 'whatsapp', 'email', 'sms'
-    required String contactInfo, // phone number for WhatsApp/SMS, email for email
+    required String
+        contactInfo, // phone number for WhatsApp/SMS, email for email
     String? message,
   }) async =>
       _post("/admin/receipts/send", {

@@ -7,7 +7,6 @@ import "dart:ui";
 import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../models/login_response.dart";
@@ -19,7 +18,12 @@ import "../../services/localization_service.dart";
 import "../../services/navigation_builder.dart";
 import "../../utils/responsive_helper.dart";
 import "../../config/api_config.dart";
+import "../../constants/theme_constants.dart";
 import "../receipts/receipts_screen.dart";
+import "../payments/payments_screen.dart";
+import "../admin/debts_management_screen.dart";
+import "../admin/drivers_management_screen.dart";
+import "../../main.dart";
 
 class ModernDashboardScreen extends StatefulWidget {
   const ModernDashboardScreen({super.key});
@@ -49,16 +53,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   // Badge counters for drawer notifications (only reminders kept)
   int _remindersCount = 0;
-  
+
   // Event subscription for automatic refresh
   late StreamSubscription<AppEvent> _eventSubscription;
 
-  // Colors for the modern theme - matching admin dashboard image
-  static const Color primaryBlue = Color(0xFF1E40AF); // Deep blue from image
-  static const Color cardColor = Color(0x1AFFFFFF);
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xB3FFFFFF);
-  static const Color accentColor = Color(0xFFFF6B9D);
+  // Colors for the modern theme - use shared ThemeConstants
+  static const Color primaryBlue = ThemeConstants.primaryBlue;
+  static const Color cardColor = ThemeConstants.cardColor;
+  static const Color textPrimary = ThemeConstants.textPrimary;
+  static const Color textSecondary = ThemeConstants.textSecondary;
+  static const Color accentColor = ThemeConstants.primaryOrange;
 
   final List<String> months = <String>[
     "Jan",
@@ -81,7 +85,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     _initializeAnimations();
     _loadDashboardData();
     _startAutoRefresh();
-    
+
     // Listen to app events for automatic refresh
     _eventSubscription = AppEvents.instance.stream.listen((event) {
       switch (event.type) {
@@ -157,6 +161,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       if (!auth.isAuthenticated) {
         if (!mounted) return;
         setState(() => _isLoading = false);
+        // Ensure content becomes visible even if we don't load data
+        try {
+          unawaited(_animationController.forward());
+        } on Exception catch (_) {}
         return;
       }
 
@@ -168,7 +176,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       await _loadComprehensiveRealTimeData();
 
       // Load revenue chart data for visualization
-      await _loadRevenueChartData(year: DateTime.now().year, month: _selectedMonth);
+      await _loadRevenueChartData(
+          year: DateTime.now().year, month: _selectedMonth);
 
       // Load additional badge counts (reminders)
       if (!mounted) return;
@@ -192,7 +201,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         setState(() {
           _isLoading = false;
         });
-        _showErrorSnackBar("Backend haipatikani. Tafadhali jaribu tena baadaye.");
+        // Make sure main content is shown (animation opacity > 0)
+        try {
+          unawaited(_animationController.forward());
+        } on Exception catch (_) {}
+        _showErrorSnackBar(
+            "Backend haipatikani. Tafadhali jaribu tena baadaye.");
       }
     }
   }
@@ -208,8 +222,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   Future<void> _pollForUpdates() async {
     if (!mounted || _isLoading) return;
     try {
-      final Map<String, dynamic> dashboardResponse = await _apiService.getDashboardData();
-      final Map<String, dynamic> main = _extractDataFromResponse(dashboardResponse);
+      final Map<String, dynamic> dashboardResponse =
+          await _apiService.getDashboardData();
+      final Map<String, dynamic> main =
+          _extractDataFromResponse(dashboardResponse);
       final String sig = _buildSignatureFromMain(main);
       if (sig != _lastSnapshotSig) {
         await _loadDashboardData();
@@ -221,9 +237,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   String _buildSignatureFromMain(Map<String, dynamic> m) {
     final List<dynamic> parts = [
-      m['payments_today'], m['payments_this_week'], m['payments_this_month'],
-      m['total_drivers'], m['total_vehicles'], m['active_drivers'], m['active_vehicles'],
-      m['pending_receipts'] ?? 0, m['recent_transactions'] is List ? (m['recent_transactions'] as List).length : 0,
+      m['payments_today'],
+      m['payments_this_week'],
+      m['payments_this_month'],
+      m['total_drivers'],
+      m['total_vehicles'],
+      m['active_drivers'],
+      m['active_vehicles'],
+      m['pending_receipts'] ?? 0,
+      if (m['recent_transactions'] is List)
+        (m['recent_transactions'] as List).length
+      else
+        0,
     ];
     return parts.map((e) => (e ?? 0).toString()).join('|');
   }
@@ -231,21 +256,23 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   Future<void> _loadComprehensiveRealTimeData() async {
     try {
       // Use main dashboard endpoint which returns complete and accurate data
-      final Map<String, dynamic> dashboardResponse = await _apiService.getDashboardData();
+      final Map<String, dynamic> dashboardResponse =
+          await _apiService.getDashboardData();
 
       // Extract data from the main dashboard response
-      final Map<String, dynamic> mainData = _extractDataFromResponse(dashboardResponse);
-      
+      final Map<String, dynamic> mainData =
+          _extractDataFromResponse(dashboardResponse);
+
       // Initialize dashboard data and populate with main response data
       _dashboardData = _getEmptyDashboardData();
-      
+
       // Map the dashboard response to our expected data structure
       _dashboardData.addAll({
         // Revenue data from main endpoint
         'daily_revenue': _toDouble(mainData['payments_today'] ?? 0),
         'weekly_revenue': _toDouble(mainData['payments_this_week'] ?? 0),
         'monthly_revenue': _toDouble(mainData['payments_this_month'] ?? 0),
-        
+
         // Driver and vehicle counts
         'drivers_count': _toInt(mainData['total_drivers'] ?? 0),
         'total_drivers': _toInt(mainData['total_drivers'] ?? 0),
@@ -253,14 +280,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         'devices_count': _toInt(mainData['total_vehicles'] ?? 0),
         'total_vehicles': _toInt(mainData['total_vehicles'] ?? 0),
         'active_vehicles': _toInt(mainData['active_vehicles'] ?? 0),
-        
+
         // Recent transactions
         'recent_transactions': mainData['recent_transactions'] ?? [],
       });
 
       // Fetch additional counts (unpaid debts, generated receipts, pending receipts)
       try {
-        final List<Map<String, dynamic>> extras = await Future.wait<Map<String, dynamic>>([
+        final List<Map<String, dynamic>> extras =
+            await Future.wait<Map<String, dynamic>>([
           _loadUnpaidDebtsCountFromExisting(),
           _loadPaymentReceiptsCountFromExisting(),
           _loadPendingReceiptsCountFromExisting(),
@@ -274,21 +302,25 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
       // Fetch all-time revenue to display on the balance card
       try {
-        final Map<String, dynamic> revResp = await _apiService.getRevenueReport();
+        final Map<String, dynamic> revResp =
+            await _apiService.getRevenueReport();
         final Map<String, dynamic> revData = _extractDataFromResponse(revResp);
         _dashboardData['total_revenue'] = _toDouble(
-          revData['total_revenue'] ?? revData['revenue'] ?? revData['total_amount'] ?? 0,
+          revData['total_revenue'] ??
+              revData['revenue'] ??
+              revData['total_amount'] ??
+              0,
         );
       } on Exception catch (_) {
         // If unavailable, fall back to monthly revenue already set
-        _dashboardData['total_revenue'] = _dashboardData['monthly_revenue'] ?? 0;
+        _dashboardData['total_revenue'] =
+            _dashboardData['monthly_revenue'] ?? 0;
       }
-      
+
       // Update snapshot signature for polling comparison
       _lastSnapshotSig = _buildSignatureFromMain(mainData);
-      
+
       // Badge counts derived directly in _buildDrawer from _dashboardData
-      
     } on Exception catch (e) {
       // Initialize with empty data if all fails
       _dashboardData = _getEmptyDashboardData();
@@ -308,7 +340,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       try {
         final response = await _apiService.getUnpaidDebtsCount();
         final data = _extractDataFromResponse(response);
-        endpointCount = _toInt(data['count'] ?? data['unpaid_debts_count'] ?? 0);
+        endpointCount =
+            _toInt(data['count'] ?? data['unpaid_debts_count'] ?? 0);
       } on Exception {
         // 2) Fallback to a generic summary if endpoint not available
         try {
@@ -316,9 +349,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           final data = _extractDataFromResponse(response);
           endpointCount = _toInt(
             data['unpaid_debts'] ??
-            data['outstanding_debts'] ??
-            data['total_debts'] ??
-            data['pending_payments'] ?? 0,
+                data['outstanding_debts'] ??
+                data['total_debts'] ??
+                data['pending_payments'] ??
+                0,
           );
         } catch (_) {
           endpointCount = 0;
@@ -328,9 +362,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       // 3) Compute unique debtor drivers via /admin/debts/drivers to match DebtsManagementScreen UI
       int uniqueDebtorDrivers = endpointCount; // default
       try {
-        final Map<String, dynamic> resp = await _apiService.getDebtDrivers(limit: 500);
-        final Map<String, dynamic>? data = resp['data'] as Map<String, dynamic>?;
-        final List<dynamic> list = (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
+        final Map<String, dynamic> resp =
+            await _apiService.getDebtDrivers(limit: 500);
+        final Map<String, dynamic>? data =
+            resp['data'] as Map<String, dynamic>?;
+        final List<dynamic> list =
+            (data?['drivers'] as List<dynamic>?) ?? <dynamic>[];
         uniqueDebtorDrivers = list.where((e) {
           if (e is Map<String, dynamic>) {
             final m = e;
@@ -360,7 +397,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       try {
         final response = await _apiService.getGeneratedReceiptsCount();
         final data = _extractDataFromResponse(response);
-        final int cnt = _toInt(data['count'] ?? data['generated_receipts_count'] ?? 0);
+        final int cnt =
+            _toInt(data['count'] ?? data['generated_receipts_count'] ?? 0);
         return {
           'payment_receipts_count': cnt,
           'receipts_count': cnt,
@@ -369,15 +407,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         // Fallback to existing receipts endpoint and filter generated receipts
         final response = await _apiService.getPaymentReceipts();
         final data = _extractDataFromResponse(response);
-        
+
         // Try to extract generated receipts count from response
         int generatedCount = 0;
         if (data['receipts'] is List) {
           final List<dynamic> receipts = data['receipts'] as List<dynamic>;
           generatedCount = receipts.where((receipt) {
             if (receipt is Map<String, dynamic>) {
-              return receipt['receipt_status'] == 'generated' || 
-                     receipt['status'] == 'generated';
+              return receipt['receipt_status'] == 'generated' ||
+                  receipt['status'] == 'generated';
             }
             return false;
           }).length;
@@ -385,7 +423,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           // If no filtering possible, use total count as fallback
           generatedCount = _extractTotalCountFromResponse(response);
         }
-        
+
         return {
           'payment_receipts_count': generatedCount,
           'receipts_count': generatedCount,
@@ -406,7 +444,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       try {
         final response = await _apiService.getPendingReceiptsCount();
         final data = _extractDataFromResponse(response);
-        endpointCount = _toInt(data['count'] ?? data['pending_receipts_count'] ?? 0);
+        endpointCount =
+            _toInt(data['count'] ?? data['pending_receipts_count'] ?? 0);
       } on Exception {
         // ignore and keep endpointCount = 0
       }
@@ -423,9 +462,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         // - Legacy: { payments: [ { driver_id, receipt_status, ... } ] } -> filter pending
         final List<dynamic> list =
             (data['pending_receipts'] as List<dynamic>?) ??
-            (data['data'] as List<dynamic>?) ??
-            (data['payments'] as List<dynamic>?) ??
-            const <dynamic>[];
+                (data['data'] as List<dynamic>?) ??
+                (data['payments'] as List<dynamic>?) ??
+                const <dynamic>[];
 
         // Count total pending receipt items (same logic as ReceiptsScreen)
         int validItemsCount = 0;
@@ -435,7 +474,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             // Driver nested - always count as valid pending receipt
             if (item['driver'] is Map) {
               validItemsCount++;
-              final Map<String, dynamic> d = (item['driver'] as Map).cast<String, dynamic>();
+              final Map<String, dynamic> d =
+                  (item['driver'] as Map).cast<String, dynamic>();
               final String id = d['id']?.toString() ?? '';
               if (id.isNotEmpty) uniqueDriverIds.add(id);
               continue;
@@ -443,7 +483,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
             // Flat driver_id (legacy payments shape), ensure it's pending
             final String driverId = item['driver_id']?.toString() ?? '';
             final String status = item['receipt_status']?.toString() ?? '';
-            if (driverId.isNotEmpty && (status.isEmpty || status == 'pending')) {
+            if (driverId.isNotEmpty &&
+                (status.isEmpty || status == 'pending')) {
               validItemsCount++;
               uniqueDriverIds.add(driverId);
             }
@@ -453,7 +494,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           totalItemsCount = validItemsCount;
         } else {
           // As a last resort, fall back to total count extraction
-          totalItemsCount = list.isNotEmpty ? list.length : _extractTotalCountFromResponse(response);
+          totalItemsCount = list.isNotEmpty
+              ? list.length
+              : _extractTotalCountFromResponse(response);
         }
       } catch (_) {
         // ignore; keep endpointCount
@@ -461,9 +504,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
       // Return total items count to match ReceiptsScreen (pending filter) UI exactly
       final int finalCount = totalItemsCount;
-      return { 'pending_receipts_count': finalCount };
+      return {'pending_receipts_count': finalCount};
     } on Exception {
-      return { 'pending_receipts_count': 0 };
+      return {'pending_receipts_count': 0};
     }
   }
 
@@ -473,7 +516,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       DateTime? start;
       DateTime? end;
       if (year != null && month != null) {
-        start = DateTime(year, month, 1);
+        start = DateTime(year, month);
         end = DateTime(year, month + 1, 0);
       }
       final List<dynamic> chart = await _apiService.getRevenueChart(
@@ -485,16 +528,25 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       List<String> dates = <String>[];
       for (final e in chart) {
         if (e is Map) {
-          final dynamic rawVal = e['amount'] ?? e['total'] ?? e['total_amount'] ?? e['revenue'] ?? e['paid'] ?? e['paid_amount'] ?? e['value'];
+          final dynamic rawVal = e['amount'] ??
+              e['total'] ??
+              e['total_amount'] ??
+              e['revenue'] ??
+              e['paid'] ??
+              e['paid_amount'] ??
+              e['value'];
           double val = 0;
           if (rawVal is num) {
             val = rawVal.toDouble();
           } else if (rawVal != null) {
-            final String cleaned = rawVal.toString().replaceAll(RegExp(r'[^0-9\\.-]'), '');
+            final String cleaned =
+                rawVal.toString().replaceAll(RegExp(r'[^0-9\\.-]'), '');
             val = double.tryParse(cleaned) ?? 0.0;
           }
           values.add(val);
-          final String? dateStr = (e['date'] ?? e['day'] ?? e['label'] ?? e['created_at'])?.toString();
+          final String? dateStr =
+              (e['date'] ?? e['day'] ?? e['label'] ?? e['created_at'])
+                  ?.toString();
           dates.add(_formatDateLabel(dateStr));
         } else if (e is num) {
           values.add(e.toDouble());
@@ -507,11 +559,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       if (allZero) {
         try {
           // Build per-day map for the selected range
-          final DateTime rangeStart = start ?? DateTime(end!.year, end.month, 1);
+          final DateTime rangeStart = start ?? DateTime(end!.year, end.month);
           final DateTime rangeEnd = end ?? DateTime.now();
           final Map<String, double> perDay = <String, double>{};
 
-          final Map<String, dynamic> payments = await _apiService.getPaymentHistory(
+          final Map<String, dynamic> payments =
+              await _apiService.getPaymentHistory(
             startDate: rangeStart,
             endDate: rangeEnd,
             limit: 2000,
@@ -527,17 +580,27 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           }
 
           double readAmount(Map<String, dynamic> m) {
-            final dynamic raw = m['amount'] ?? m['paid_amount'] ?? m['amount_received'] ?? m['total'] ?? m['total_amount'] ?? m['revenue'] ?? m['value'];
+            final dynamic raw = m['amount'] ??
+                m['paid_amount'] ??
+                m['amount_received'] ??
+                m['total'] ??
+                m['total_amount'] ??
+                m['revenue'] ??
+                m['value'];
             if (raw is num) return raw.toDouble();
             if (raw is String) {
               final String cleaned = raw.replaceAll(RegExp(r'[^0-9\\.-]'), '');
               return double.tryParse(cleaned) ?? 0.0;
             }
-            return 0.0;
+            return 0;
           }
 
           String? readDate(Map<String, dynamic> m) {
-            final String? s = (m['paid_at'] ?? m['date'] ?? m['created_at'] ?? m['updated_at'])?.toString();
+            final String? s = (m['paid_at'] ??
+                    m['date'] ??
+                    m['created_at'] ??
+                    m['updated_at'])
+                ?.toString();
             return s;
           }
 
@@ -548,7 +611,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               if (ds == null) continue;
               final DateTime? dt = DateTime.tryParse(ds);
               if (dt == null) continue;
-              if (dt.isBefore(DateTime(rangeStart.year, rangeStart.month, rangeStart.day)) || dt.isAfter(DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) continue;
+              if (dt.isBefore(DateTime(
+                      rangeStart.year, rangeStart.month, rangeStart.day)) ||
+                  dt.isAfter(
+                      DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) {
+                continue;
+              }
               final String key = _formatDateLabel(dt.toIso8601String());
               perDay[key] = (perDay[key] ?? 0) + readAmount(m);
             }
@@ -557,8 +625,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           // Rebuild ordered series for the entire month range
           final List<String> rebuiltDates = <String>[];
           final List<double> rebuiltValues = <double>[];
-          DateTime cursor = DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
-          while (!cursor.isAfter(DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) {
+          DateTime cursor =
+              DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
+          while (!cursor
+              .isAfter(DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day))) {
             final String key = _formatDateLabel(cursor.toIso8601String());
             rebuiltDates.add(key);
             rebuiltValues.add(perDay[key] ?? 0.0);
@@ -574,14 +644,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
       // Ensure today's value is aligned with the Daily Revenue card when viewing the current month
       if (year != null && month != null) {
-        final String todayLabel = _formatDateLabel(DateTime.now().toIso8601String());
+        final String todayLabel =
+            _formatDateLabel(DateTime.now().toIso8601String());
         final int idx = dates.indexOf(todayLabel);
         final double todayCard = _toDouble(_dashboardData['daily_revenue']);
         if (idx >= 0) {
           if (todayCard > 0 && (idx < values.length && values[idx] <= 0)) {
             values[idx] = todayCard;
           }
-        } else if (month == DateTime.now().month && DateTime.now().year == (year)) {
+        } else if (month == DateTime.now().month &&
+            DateTime.now().year == year) {
           dates.add(todayLabel);
           values.add(todayCard);
         }
@@ -589,7 +661,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       if (values.isNotEmpty) {
         // Use the full range for the selected month; if no range specified, fallback to last 30 days
         _dashboardData['weekly_earnings'] = values;
-        _dashboardData['weekly_dates'] = dates.length == values.length ? dates : List<String>.filled(values.length, '');
+        _dashboardData['weekly_dates'] = dates.length == values.length
+            ? dates
+            : List<String>.filled(values.length, '');
         // Keep monthly card in sync when we loaded a specific month
         if (year != null && month != null) {
           final double sum = values.fold<double>(0, (a, b) => a + b);
@@ -612,7 +686,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     // - {status: 'success', data: {...}}
     // - {success: true, data: {...}}
     // - Or already a data map with expected keys
-    if (response.containsKey('data') && response['data'] is Map<String, dynamic>) {
+    if (response.containsKey('data') &&
+        response['data'] is Map<String, dynamic>) {
       return response['data'] as Map<String, dynamic>;
     }
     if ((response['success'] == true) || (response['status'] == 'success')) {
@@ -621,7 +696,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     }
     return response;
   }
-
 
   /// Get empty dashboard data structure with defaults
   Map<String, dynamic> _getEmptyDashboardData() {
@@ -633,14 +707,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       'net_profit': 0,
       'total_saved': 0,
       'saving_rate': 0,
-      
+
       // Database table counts
       'drivers_count': 0,
       'devices_count': 0,
       'unpaid_debts_count': 0,
       'payment_receipts_count': 0,
       'pending_receipts_count': 0,
-      
+
       // Legacy compatibility
       'total_drivers': 0,
       'total_vehicles': 0,
@@ -648,13 +722,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       'active_vehicles': 0,
       'pending_payments': 0,
       'receipts_count': 0,
-      
+
       // Chart data
       'weekly_earnings': <double>[],
       'weekly_dates': <String>[],
       'monthly_data': <dynamic>[],
       'recent_transactions': <dynamic>[],
-      
+
       // Costs
       'fuel_costs': 0,
       'maintenance_costs': 0,
@@ -678,14 +752,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) => Scaffold(
         key: _scaffoldKey,
-        drawer: _buildDrawer(localizationService), // Add drawer with localization
+        drawer:
+            _buildDrawer(localizationService), // Add drawer with localization
         appBar: _buildAppBar(),
+        bottomNavigationBar: _buildFooter(),
         body: DecoratedBox(
           decoration: const BoxDecoration(
             color: primaryBlue,
           ),
           child: SafeArea(
-            child: _isLoading ? _buildLoadingScreen(localizationService) : _buildMainContent(localizationService),
+            child: _isLoading
+                ? _buildLoadingScreen(localizationService)
+                : _buildMainContent(localizationService),
           ),
         ),
       ),
@@ -712,7 +790,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildMainContent(LocalizationService localizationService) => FadeTransition(
+  Widget _buildMainContent(LocalizationService localizationService) =>
+      FadeTransition(
         opacity: _fadeAnimation,
         child: AnimatedBuilder(
           animation: _slideAnimation,
@@ -748,10 +827,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       );
 
   PreferredSizeWidget _buildAppBar() {
-    final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final LocalizationService loc = Provider.of<LocalizationService>(context, listen: false);
+    final AuthProvider authProvider =
+        Provider.of<AuthProvider>(context, listen: false);
+    final LocalizationService loc =
+        Provider.of<LocalizationService>(context, listen: false);
     final UserData? user = authProvider.user;
-    final String name = (user?.name?.trim().isNotEmpty ?? false) ? user!.name.trim() : '—';
+    final String trimmedName = (user?.name ?? '').trim();
+    final String name = trimmedName.isNotEmpty ? trimmedName : '—';
     final String title = '${loc.translate('welcome')}, $name';
 
     return AppBar(
@@ -774,15 +856,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           child: CircleAvatar(
             radius: 20,
             backgroundColor: cardColor,
-            backgroundImage: _avatarImage(user),
-            child: _avatarImage(user) == null
-                ? ((user?.name?.isNotEmpty ?? false)
-                    ? Text(
-                        user!.name.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                      )
-                    : const Icon(Icons.person, color: textPrimary, size: 20))
-                : null,
+            child: _avatarWidget(user, radius: 20),
           ),
         ),
       ],
@@ -814,7 +888,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
                   Row(
                     children: <Widget>[
@@ -852,7 +925,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: textPrimary,
-                          fontSize: isShort ? (ResponsiveHelper.h2 * 0.9) : ResponsiveHelper.h2,
+                          fontSize: isShort
+                              ? (ResponsiveHelper.h2 * 0.9)
+                              : ResponsiveHelper.h2,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -864,7 +939,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Consumer<LocalizationService>(
-                        builder: (context, localizationService, child) => Padding(
+                        builder: (context, localizationService, child) =>
+                            Padding(
                           padding: EdgeInsets.only(bottom: gapSmall),
                           child: Text(
                             localizationService.translate("total_revenue"),
@@ -872,7 +948,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: textSecondary,
-                              fontSize: isShort ? (ResponsiveHelper.bodyL * 0.95) : ResponsiveHelper.bodyL,
+                              fontSize: isShort
+                                  ? (ResponsiveHelper.bodyL * 0.95)
+                                  : ResponsiveHelper.bodyL,
                             ),
                           ),
                         ),
@@ -889,122 +967,127 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   Widget _buildStatsCards() {
-        return Consumer<LocalizationService>(
-          builder: (context, localizationService, child) {
-            // Active vs total for drivers and vehicles (exact backend values)
-            final int activeDrivers = _toInt(_dashboardData['active_drivers'] ?? 0);
-            final int totalDrivers = _toInt(
-              _dashboardData['total_drivers'] ?? _dashboardData['drivers_count'] ?? 0,
-            );
-            final int activeVehicles = _toInt(_dashboardData['active_vehicles'] ?? 0);
-            final int totalVehicles = _toInt(
-              _dashboardData['total_vehicles'] ?? _dashboardData['devices_count'] ?? 0,
-            );
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) {
+        // Active vs total for drivers and vehicles (exact backend values)
+        final int activeDrivers = _toInt(_dashboardData['active_drivers'] ?? 0);
+        final int totalDrivers = _toInt(
+          _dashboardData['total_drivers'] ??
+              _dashboardData['drivers_count'] ??
+              0,
+        );
+        final int activeVehicles =
+            _toInt(_dashboardData['active_vehicles'] ?? 0);
+        final int totalVehicles = _toInt(
+          _dashboardData['total_vehicles'] ??
+              _dashboardData['devices_count'] ??
+              0,
+        );
 
-            return Column(
-            children: <Widget>[
-              // First row: Revenue cards (Daily, Weekly, Monthly)
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("daily_revenue"),
-                      "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
-                      "",
-                      Icons.today,
-                      true,
-                    ),
+        return Column(
+          children: <Widget>[
+            // First row: Revenue cards (Daily, Weekly, Monthly)
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("daily_revenue"),
+                    "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
+                    "",
+                    Icons.today,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("weekly_revenue"),
-                      "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
-                      "",
-                      Icons.calendar_view_week,
-                      true,
-                    ),
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("weekly_revenue"),
+                    "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
+                    "",
+                    Icons.calendar_view_week,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("monthly_revenue"),
-                      "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
-                      "",
-                      Icons.trending_up,
-                      true,
-                    ),
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("monthly_revenue"),
+                    "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
+                    "",
+                    Icons.trending_up,
+                    true,
                   ),
-                ],
-              ),
-              ResponsiveHelper.verticalSpace(2),
-              // Second row: Payment/Receipt cards
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("payments_with_receipts"),
-                      "${_dashboardData["payment_receipts_count"] ?? 0}",
-                      "",
-                      Icons.receipt,
-                      true,
-                    ),
+                ),
+              ],
+            ),
+            ResponsiveHelper.verticalSpace(2),
+            // Second row: Payment/Receipt cards
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("payments_with_receipts"),
+                    "${_dashboardData["payment_receipts_count"] ?? 0}",
+                    "",
+                    Icons.receipt,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("paid_awaiting_receipts"),
-                      "${_dashboardData["pending_receipts_count"] ?? 0}",
-                      "",
-                      Icons.receipt_long,
-                      true,
-                    ),
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("paid_awaiting_receipts"),
+                    "${_dashboardData["pending_receipts_count"] ?? 0}",
+                    "",
+                    Icons.receipt_long,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("unpaid_payments"),
-                      "${_dashboardData["unpaid_debts_count"] ?? 0}",
-                      "",
-                      Icons.pending_actions,
-                      false,
-                    ),
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("unpaid_payments"),
+                    "${_dashboardData["unpaid_debts_count"] ?? 0}",
+                    "",
+                    Icons.pending_actions,
+                    false,
                   ),
-                ],
-              ),
-              ResponsiveHelper.verticalSpace(2),
-              // Third row: Resources (Drivers, Vehicles)
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("drivers"),
-                      "$activeDrivers",
-                      "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
-                      Icons.person,
-                      true,
-                    ),
+                ),
+              ],
+            ),
+            ResponsiveHelper.verticalSpace(2),
+            // Third row: Resources (Drivers, Vehicles)
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("drivers"),
+                    "$activeDrivers",
+                    "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
+                    Icons.person,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  Expanded(
-                    child: _buildStatCard(
-                      localizationService.translate("vehicles"),
-                      "$activeVehicles",
-                      "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
-                      Icons.directions_car,
-                      true,
-                    ),
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                Expanded(
+                  child: _buildStatCard(
+                    localizationService.translate("vehicles"),
+                    "$activeVehicles",
+                    "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
+                    Icons.directions_car,
+                    true,
                   ),
-                  ResponsiveHelper.horizontalSpace(4),
-                  // Empty space to maintain 3-column layout
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
-            ],
-          );
-        },
-      );
-    }
+                ),
+                ResponsiveHelper.horizontalSpace(4),
+                // Empty space to maintain 3-column layout
+                const Expanded(child: SizedBox()),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildStatCard(
     String title,
@@ -1086,7 +1169,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                             <double>[];
                     if (points.isEmpty) {
                       return Consumer<LocalizationService>(
-                        builder: (context, localizationService, child) => Center(
+                        builder: (context, localizationService, child) =>
+                            Center(
                           child: Text(
                             localizationService.translate('no_chart_data'),
                             style: const TextStyle(color: Colors.white70),
@@ -1095,10 +1179,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                       );
                     }
                     final double dataMax = points.reduce(math.max);
-                    final double displayMax = _niceCeilValue(((dataMax <= 0 ? 1 : dataMax) * 1.1));
-                    final double interval = math.max(1, _niceStep(displayMax / 5));
+                    final double displayMax =
+                        _niceCeilValue((dataMax <= 0 ? 1 : dataMax) * 1.1);
+                    final double interval =
+                        math.max(1, _niceStep(displayMax / 5));
                     final String maxLabel = _formatShort(displayMax);
-                    final double reserved = (maxLabel.length * 8 + 12).clamp(44, 72).toDouble();
+                    final double reserved =
+                        (maxLabel.length * 8 + 12).clamp(44, 72).toDouble();
                     return LineChart(
                       LineChartData(
                         minX: 0,
@@ -1122,7 +1209,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                               interval: interval,
                               getTitlesWidget: (value, meta) => Text(
                                 _formatShort(value),
-                                style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 10),
                               ),
                             ),
                           ),
@@ -1133,17 +1221,28 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                               reservedSize: 40,
                               getTitlesWidget: (value, meta) {
                                 final List<String> labels =
-                                    (_dashboardData['weekly_dates'] as List?)?.cast<String>() ?? <String>[];
+                                    (_dashboardData['weekly_dates'] as List?)
+                                            ?.cast<String>() ??
+                                        <String>[];
                                 final int i = value.toInt();
-                                if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                                if (i < 0 || i >= labels.length) {
+                                  return const SizedBox.shrink();
+                                }
                                 final String text = labels[i];
                                 // Compute an adaptive step so labels don't overlap, keep ~30° tilt
-                                final double width = MediaQuery.of(context).size.width - 40; // padding approx
-                                const double approxLabelWidth = 22; // rotated width estimate
+                                final double width =
+                                    MediaQuery.of(context).size.width -
+                                        40; // padding approx
+                                const double approxLabelWidth =
+                                    22; // rotated width estimate
                                 final int step = (labels.isEmpty)
                                     ? 1
-                                    : (labels.length * approxLabelWidth / width).ceil().clamp(1, 6);
-                                if (i % step != 0) return const SizedBox.shrink();
+                                    : (labels.length * approxLabelWidth / width)
+                                        .ceil()
+                                        .clamp(1, 6);
+                                if (i % step != 0) {
+                                  return const SizedBox.shrink();
+                                }
 
                                 return Transform.rotate(
                                   angle: -math.pi / 6, // -30 degrees
@@ -1152,7 +1251,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Text(
                                       text,
-                                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 10),
                                     ),
                                   ),
                                 );
@@ -1166,14 +1266,21 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                           touchTooltipData: LineTouchTooltipData(
                             getTooltipItems: (touchedSpots) {
                               final labels =
-                                  (_dashboardData['weekly_dates'] as List?)?.cast<String>() ?? <String>[];
+                                  (_dashboardData['weekly_dates'] as List?)
+                                          ?.cast<String>() ??
+                                      <String>[];
                               return touchedSpots.map((barSpot) {
                                 final i = barSpot.x.toInt();
-                                final label = (i >= 0 && i < labels.length) ? labels[i] : '';
-                                final valueText = 'TSH ${_formatCurrency(barSpot.y)}';
+                                final label = (i >= 0 && i < labels.length)
+                                    ? labels[i]
+                                    : '';
+                                final valueText =
+                                    'TSH ${_formatCurrency(barSpot.y)}';
                                 return LineTooltipItem(
                                   '$label\n$valueText',
-                                  const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                  const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600),
                                 );
                               }).toList();
                             },
@@ -1182,15 +1289,20 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                         borderData: FlBorderData(show: false),
                         lineBarsData: [
                           LineChartBarData(
-                            spots: points.asMap().entries.map((e) => FlSpot(
-                                  e.key.toDouble(),
-                                  e.value * _chartAnimation.value,
-                                )).toList(),
+                            spots: points
+                                .asMap()
+                                .entries
+                                .map((e) => FlSpot(
+                                      e.key.toDouble(),
+                                      e.value * _chartAnimation.value,
+                                    ))
+                                .toList(),
                             isCurved: true,
                             color: Colors.white,
                             barWidth: 3,
                             dotData: FlDotData(
-                              getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                              getDotPainter: (spot, percent, bar, index) =>
+                                  FlDotCirclePainter(
                                 radius: 3,
                                 color: Colors.white,
                                 strokeColor: Colors.white,
@@ -1232,7 +1344,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 setState(() {
                   _selectedMonth = index + 1;
                 });
-                unawaited(_loadRevenueChartData(year: DateTime.now().year, month: _selectedMonth));
+                unawaited(_loadRevenueChartData(
+                    year: DateTime.now().year, month: _selectedMonth));
                 _chartAnimationController.reset();
                 _chartAnimationController.forward();
               },
@@ -1260,25 +1373,84 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildQuickActions(LocalizationService localizationService) => Builder(
-        builder: (context) {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          final String role = auth.user?.role ?? 'viewer';
-          final actions = NavigationBuilder.buildQuickActions(
-            localization: localizationService,
-            permissions: UserPermissions.fromRole(role),
-            context: context,
-          );
-          if (actions.isEmpty) return const SizedBox.shrink();
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: actions.first,
+  // Not used anymore; kept for reference. Footer now handles the quick menu.
+  Widget _buildQuickActions(LocalizationService localizationService) => const SizedBox.shrink();
+
+  /// Footer styled like Inventory footer bar, with a centered Menu action
+  Widget _buildFooter() {
+    return ColoredBox(
+      color: ThemeConstants.footerBarColor,
+      child: SafeArea(
+        top: false,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28.r),
+          child: Container(
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(vertical: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: ThemeConstants.footerBarColor,
+              borderRadius: BorderRadius.circular(28.r),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          );
-        },
-      );
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                // Left side: Payments, Debts
+                Row(
+                  children: <Widget>[
+                    _FooterIcon(
+                      icon: Icons.payments_outlined,
+                      onTap: () => Navigator.push(
+                        context,
+MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.pending_actions,
+                      onTap: () => Navigator.push(
+                        context,
+MaterialPageRoute(builder: (_) => const DebtsManagementScreen()),
+                      ),
+                    ),
+                  ],
+                ),
+                // Center: Menu
+                _FooterIcon(
+                  icon: Icons.apps,
+                  onTap: () => NavigationBuilder.showGridMenu(context),
+                ),
+                // Right side: Drivers, Receipts
+                Row(
+                  children: <Widget>[
+                    _FooterIcon(
+                      icon: Icons.people_alt_outlined,
+                      onTap: () => Navigator.push(
+                        context,
+MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.receipt_long_outlined,
+                      onTap: () => _navigateToReceiptsList(filter: 'generated'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// Build dropdown menu for each dashboard card
   Widget _buildCardDropdownMenu(String title, String value, IconData icon) {
@@ -1304,115 +1476,120 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   /// Get menu items based on card type
   List<PopupMenuEntry<String>> _getMenuItems(String title, IconData icon) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     final List<PopupMenuEntry<String>> items = [];
-    
+
     // Common actions for all cards
     items.add(_buildMenuItem(
-      'view_details', 
-      localizationService.translate('view_details'), 
+      'view_details',
+      localizationService.translate('view_details'),
       Icons.visibility,
     ));
-    
+
     // Card-specific actions
     if (_isRevenueCard(title)) {
       items.add(_buildMenuItem(
-        'view_revenue_drivers', 
-        localizationService.translate('drivers_who_paid'), 
+        'view_revenue_drivers',
+        localizationService.translate('drivers_who_paid'),
         Icons.people,
       ));
       items.add(_buildMenuItem(
-        'revenue_breakdown', 
-        localizationService.translate('revenue_breakdown'), 
+        'revenue_breakdown',
+        localizationService.translate('revenue_breakdown'),
         Icons.pie_chart,
       ));
     } else if (title == localizationService.translate('drivers')) {
       items.add(_buildMenuItem(
-        'view_all_drivers', 
-        localizationService.translate('all_drivers'), 
+        'view_all_drivers',
+        localizationService.translate('all_drivers'),
         Icons.people,
       ));
       items.add(_buildMenuItem(
-        'active_drivers', 
-        localizationService.translate('active_drivers_only'), 
+        'active_drivers',
+        localizationService.translate('active_drivers_only'),
         Icons.check_circle,
       ));
       items.add(_buildMenuItem(
-        'add_driver', 
-        localizationService.translate('add_driver'), 
+        'add_driver',
+        localizationService.translate('add_driver'),
         Icons.person_add,
       ));
     } else if (title == localizationService.translate('vehicles')) {
       items.add(_buildMenuItem(
-        'view_all_vehicles', 
-        localizationService.translate('all_vehicles'), 
+        'view_all_vehicles',
+        localizationService.translate('all_vehicles'),
         Icons.directions_car,
       ));
       items.add(_buildMenuItem(
-        'active_vehicles', 
-        localizationService.translate('active_vehicles_only'), 
+        'active_vehicles',
+        localizationService.translate('active_vehicles_only'),
         Icons.check_circle,
       ));
       items.add(_buildMenuItem(
-        'add_vehicle', 
-        localizationService.translate('add_vehicle'), 
+        'add_vehicle',
+        localizationService.translate('add_vehicle'),
         Icons.add_circle,
       ));
-    } else if (title == localizationService.translate('payments_with_receipts')) {
+    } else if (title ==
+        localizationService.translate('payments_with_receipts')) {
       items.add(_buildMenuItem(
-        'view_receipts', 
-        localizationService.translate('all_receipts'), 
+        'view_receipts',
+        localizationService.translate('all_receipts'),
         Icons.receipt,
       ));
       items.add(_buildMenuItem(
-        'generate_receipt', 
-        localizationService.translate('generate_receipt'), 
+        'generate_receipt',
+        localizationService.translate('generate_receipt'),
         Icons.add_circle,
       ));
-    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+    } else if (title ==
+        localizationService.translate('paid_awaiting_receipts')) {
       items.add(_buildMenuItem(
-        'pending_receipts', 
-        localizationService.translate('pending_receipts'), 
+        'pending_receipts',
+        localizationService.translate('pending_receipts'),
         Icons.pending,
       ));
       items.add(_buildMenuItem(
-        'process_pending', 
-        localizationService.translate('process'), 
+        'process_pending',
+        localizationService.translate('process'),
         Icons.play_arrow,
       ));
     } else if (title == localizationService.translate('unpaid_payments')) {
       items.add(_buildMenuItem(
-        'unpaid_debts', 
-        localizationService.translate('unpaid_debts'), 
+        'unpaid_debts',
+        localizationService.translate('unpaid_debts'),
         Icons.warning,
       ));
       items.add(_buildMenuItem(
-        'send_reminders', 
-        localizationService.translate('send_reminders'), 
+        'send_reminders',
+        localizationService.translate('send_reminders'),
         Icons.notifications_active,
       ));
     }
-    
+
     // Add divider and export option for all cards
     items.add(const PopupMenuDivider());
     items.add(_buildMenuItem(
-      'export', 
-      localizationService.translate('export_data'), 
+      'export',
+      localizationService.translate('export_data'),
       Icons.download,
     ));
-    
+
     return items;
   }
-  
+
   bool _isRevenueCard(String title) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     return title == localizationService.translate('daily_revenue') ||
-           title == localizationService.translate('weekly_revenue') ||
-           title == localizationService.translate('monthly_revenue');
+        title == localizationService.translate('weekly_revenue') ||
+        title == localizationService.translate('monthly_revenue');
   }
 
   /// Build individual menu item with consistent styling
-  PopupMenuItem<String> _buildMenuItem(String value, String text, IconData icon) {
+  PopupMenuItem<String> _buildMenuItem(
+      String value, String text, IconData icon) {
     return PopupMenuItem<String>(
       value: value,
       child: Row(
@@ -1439,54 +1616,55 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   /// Handle menu item selection
   void _handleMenuAction(String action, String cardTitle, String value) {
+    void defer(VoidCallback f) => WidgetsBinding.instance.addPostFrameCallback((_) => f());
     switch (action) {
       case 'view_details':
-        _showCardDetails(cardTitle, value);
-        
+        defer(() => _showCardDetails(cardTitle, value));
+
       case 'view_revenue_drivers':
-        _navigateToRevenueDrivers(cardTitle);
-        
+        defer(() => _navigateToRevenueDrivers(cardTitle));
+
       case 'revenue_breakdown':
-        _navigateToRevenueBreakdown(cardTitle);
-        
+        defer(() => _navigateToRevenueBreakdown(cardTitle));
+
       case 'view_all_drivers':
-        _navigateToDriversList(filter: 'all');
-        
+        defer(() => _navigateToDriversList(filter: 'all'));
+
       case 'active_drivers':
-        _navigateToDriversList(filter: 'active');
-        
+        defer(() => _navigateToDriversList(filter: 'active'));
+
       case 'add_driver':
-        _navigateToAddDriver();
-        
+        defer(_navigateToAddDriver);
+
       case 'view_all_vehicles':
-        _navigateToVehiclesList(filter: 'all');
-        
+        defer(() => _navigateToVehiclesList(filter: 'all'));
+
       case 'active_vehicles':
-        _navigateToVehiclesList(filter: 'active');
-        
+        defer(() => _navigateToVehiclesList(filter: 'active'));
+
       case 'add_vehicle':
-        _navigateToAddVehicle();
-        
+        defer(_navigateToAddVehicle);
+
       case 'view_receipts':
-        _navigateToReceiptsList(filter: 'generated');
-        
+        defer(() => _navigateToReceiptsList(filter: 'generated'));
+
       case 'generate_receipt':
-        _navigateToGenerateReceipt();
-        
+        defer(_navigateToGenerateReceipt);
+
       case 'pending_receipts':
-        _navigateToReceiptsList(filter: 'pending');
-        
+        defer(() => _navigateToReceiptsList(filter: 'pending'));
+
       case 'process_pending':
-        _processPendingReceipts();
-        
+        defer(_processPendingReceipts);
+
       case 'unpaid_debts':
-        _navigateToDebtsList(filter: 'unpaid');
-        
+        defer(() => _navigateToDebtsList(filter: 'unpaid'));
+
       case 'send_reminders':
-        _sendPaymentReminders();
-        
+        defer(_sendPaymentReminders);
+
       case 'export':
-        _exportCardData(cardTitle);
+        defer(() => _exportCardData(cardTitle));
     }
   }
 
@@ -1512,16 +1690,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               ),
               SizedBox(width: 12.w),
               Expanded(
-                child: AutoSizeText(
+                child: Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
-                  minFontSize: 12,
-                  stepGranularity: 0.5,
                 ),
               ),
             ],
@@ -1578,7 +1755,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   void _navigateToRevenueDrivers(String period) {
     // Navigate to drivers list filtered by revenue period
     Navigator.pushNamed(
-      context, 
+      context,
       '/admin/drivers',
       arguments: {
         'filter': 'revenue',
@@ -1589,7 +1766,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   void _navigateToRevenueBreakdown(String period) {
     Navigator.pushNamed(
-      context, 
+      context,
       '/admin/analytics',
       arguments: {
         'view': 'revenue_breakdown',
@@ -1600,7 +1777,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   void _navigateToDriversList({required String filter}) {
     Navigator.pushNamed(
-      context, 
+      context,
       '/admin/drivers',
       arguments: {'filter': filter},
     );
@@ -1612,7 +1789,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   void _navigateToVehiclesList({required String filter}) {
     Navigator.pushNamed(
-      context, 
+      context,
       '/admin/vehicles',
       arguments: {'filter': filter},
     );
@@ -1637,16 +1814,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ReceiptsScreen(
-          
-        ),
+        builder: (context) => const ReceiptsScreen(),
       ),
     );
   }
 
   void _navigateToDebtsList({required String filter}) {
     Navigator.pushNamed(
-      context, 
+      context,
       '/admin/debts',
       arguments: {'filter': filter},
     );
@@ -1654,18 +1829,24 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 
   /// Action methods
   void _processPendingReceipts() {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
       title: localizationService.translate('process_pending_receipts'),
-      message: localizationService.translate('confirm_process_pending_receipts'),
+      message:
+          localizationService.translate('confirm_process_pending_receipts'),
       confirmText: localizationService.translate('process'),
       onConfirm: () async {
         try {
           // 1) Fetch pending receipts from the backend (real API, no mock data)
-          final Map<String, dynamic> resp = await _apiService.getPendingReceipts();
-          final Map<String, dynamic> data = (resp['data'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-          final List<dynamic> list = (data['pending_receipts'] as List<dynamic>?) ??
-              (data['data'] as List<dynamic>?) ?? <dynamic>[];
+          final Map<String, dynamic> resp =
+              await _apiService.getPendingReceipts();
+          final Map<String, dynamic> data =
+              (resp['data'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+          final List<dynamic> list =
+              (data['pending_receipts'] as List<dynamic>?) ??
+                  (data['data'] as List<dynamic>?) ??
+                  <dynamic>[];
           final List<String> paymentIds = list
               .whereType<Map<String, dynamic>>()
               .map((m) => m['payment_id']?.toString() ?? '')
@@ -1673,7 +1854,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               .toList();
 
           if (paymentIds.isEmpty) {
-            _showSuccessSnackBar(localizationService.translate('no_pending_receipts'));
+            _showSuccessSnackBar(
+                localizationService.translate('no_pending_receipts'));
             return;
           }
 
@@ -1684,7 +1866,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           AppEvents.instance.emit(AppEventType.receiptsUpdated);
           AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
 
-          _showSuccessSnackBar(localizationService.translate('pending_receipts_processed'));
+          _showSuccessSnackBar(
+              localizationService.translate('pending_receipts_processed'));
         } on Exception catch (e) {
           _showErrorSnackBar('Failed to process receipts: $e');
         }
@@ -1693,35 +1876,41 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   void _sendPaymentReminders() {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
       title: localizationService.translate('send_payment_reminders'),
       message: localizationService.translate('confirm_send_reminders'),
       confirmText: localizationService.translate('send'),
       onConfirm: () {
         // Implement reminder sending
-        _showSuccessSnackBar(localizationService.translate('payment_reminders_sent'));
+        _showSuccessSnackBar(
+            localizationService.translate('payment_reminders_sent'));
       },
     );
   }
 
   void _exportCardData(String cardTitle) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     _showActionDialog(
       title: localizationService.translate('export_data'),
-      message: '${localizationService.translate('confirm_export_data')} "$cardTitle"?',
+      message:
+          '${localizationService.translate('confirm_export_data')} "$cardTitle"?',
       confirmText: localizationService.translate('export'),
       onConfirm: () {
         // Implement data export
-        _showSuccessSnackBar(localizationService.translate('data_exported_successfully'));
+        _showSuccessSnackBar(
+            localizationService.translate('data_exported_successfully'));
       },
     );
   }
 
   /// Helper methods
   IconData _getCardIcon(String title) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
-    
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
+
     if (title == localizationService.translate('daily_revenue')) {
       return Icons.today;
     } else if (title == localizationService.translate('weekly_revenue')) {
@@ -1732,9 +1921,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       return Icons.person;
     } else if (title == localizationService.translate('vehicles')) {
       return Icons.directions_car;
-    } else if (title == localizationService.translate('payments_with_receipts')) {
+    } else if (title ==
+        localizationService.translate('payments_with_receipts')) {
       return Icons.receipt;
-    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+    } else if (title ==
+        localizationService.translate('paid_awaiting_receipts')) {
       return Icons.receipt_long;
     } else if (title == localizationService.translate('unpaid_payments')) {
       return Icons.pending_actions;
@@ -1743,7 +1934,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     }
   }
 
-  String _getCardDescription(String title, LocalizationService localizationService) {
+  String _getCardDescription(
+      String title, LocalizationService localizationService) {
     if (title == localizationService.translate('daily_revenue')) {
       return localizationService.translate('daily_revenue_desc');
     } else if (title == localizationService.translate('weekly_revenue')) {
@@ -1754,9 +1946,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       return localizationService.translate('drivers_desc');
     } else if (title == localizationService.translate('vehicles')) {
       return localizationService.translate('vehicles_desc');
-    } else if (title == localizationService.translate('payments_with_receipts')) {
+    } else if (title ==
+        localizationService.translate('payments_with_receipts')) {
       return localizationService.translate('payments_with_receipts_desc');
-    } else if (title == localizationService.translate('paid_awaiting_receipts')) {
+    } else if (title ==
+        localizationService.translate('paid_awaiting_receipts')) {
       return localizationService.translate('paid_awaiting_receipts_desc');
     } else if (title == localizationService.translate('unpaid_payments')) {
       return localizationService.translate('unpaid_payments_desc');
@@ -1782,7 +1976,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               color: Colors.white.withOpacity(0.2),
             ),
           ),
-          title: AutoSizeText(
+          title: Text(
             title,
             style: const TextStyle(
               color: textPrimary,
@@ -1829,7 +2023,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   void _showSuccessSnackBar(String message) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final localizationService =
+        Provider.of<LocalizationService>(context, listen: false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -1844,7 +2039,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       ),
     );
   }
-
 
   Widget _buildGlassCard({required Widget child}) => DecoratedBox(
         decoration: BoxDecoration(
@@ -1873,10 +2067,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   Widget _buildDrawer(LocalizationService localizationService) {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
     final UserData? user = authProvider.user;
-    
+
     // Get user permissions (defaulting to admin for now)
     final UserPermissions permissions = UserPermissions.fromRole('admin');
-    
+
     // Get badge counts from dashboard data
     final badges = NavigationBuilder.getBadgesFromDashboardData(_dashboardData);
     badges['reminders'] = _remindersCount;
@@ -1899,23 +2093,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: cardColor,
-                    backgroundImage: _avatarImage(user),
-                    child: _avatarImage(user) == null
-                        ? (user?.name != null && user!.name.isNotEmpty)
-                            ? Text(
-                                user.name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(
-                                  color: textPrimary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.person,
-                                color: textPrimary,
-                                size: 30,
-                              )
-                        : null,
+                    child: _avatarWidget(user, radius: 30),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -1949,6 +2127,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 onLogout: () async {
                   Navigator.pop(context);
                   await authProvider.logout();
+                  if (!mounted) return;
+                  // Replace the entire stack so the user lands on Login
+                  await Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                    (route) => false,
+                  );
                 },
               ),
             ),
@@ -1958,12 +2142,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     );
   }
 
-  ImageProvider? _avatarImage(UserData? user) {
+
+  String? _avatarUrl(UserData? user) {
     final String? url = user?.avatarUrl;
     if (url == null || url.isEmpty) return null;
-
-    // Always proxy storage files through API to ensure CORS headers on web
-    // Accept absolute or relative URLs; extract the path part.
     String pathPart;
     try {
       final Uri u = Uri.parse(url);
@@ -1971,18 +2153,52 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     } on Exception {
       pathPart = url;
     }
-
-    // Normalize to /files/public/<relative_path>
     if (pathPart.startsWith('/storage')) {
       pathPart = pathPart.replaceFirst('/storage', '');
     }
     if (!pathPart.startsWith('/')) pathPart = '/$pathPart';
-
     final String apiBase = ApiConfig.baseUrl; // ends with /api
-    final String proxied = "$apiBase/files/public$pathPart";
-    return NetworkImage(proxied);
+    return "$apiBase/files/public$pathPart";
   }
 
+  Widget _avatarWidget(UserData? user, {double? radius}) {
+    final String? url = _avatarUrl(user);
+    final double r = radius ?? 20;
+    if (url == null) {
+      final String initial = ((user?.name ?? '').isNotEmpty)
+          ? user!.name.substring(0, 1).toUpperCase()
+          : '';
+      return Center(
+        child: initial.isNotEmpty
+            ? Text(initial,
+                style: const TextStyle(
+                    color: textPrimary, fontWeight: FontWeight.bold))
+            : const Icon(Icons.person, color: textPrimary, size: 20),
+      );
+    }
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: r * 2,
+        height: r * 2,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) {
+          final String initial = ((user?.name ?? '').isNotEmpty)
+              ? user!.name.substring(0, 1).toUpperCase()
+              : '';
+          return Container(
+            color: Colors.white24,
+            alignment: Alignment.center,
+            child: initial.isNotEmpty
+                ? Text(initial,
+                    style: const TextStyle(
+                        color: textPrimary, fontWeight: FontWeight.bold))
+                : const Icon(Icons.person, color: textPrimary, size: 20),
+          );
+        },
+      ),
+    );
+  }
 
   String _formatCurrency(amount) {
     final double value = _toDouble(amount);
@@ -2124,6 +2340,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
 }
 
 // Custom Chart Painter
+class _FooterIcon extends StatelessWidget {
+  const _FooterIcon({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final Color bg = ThemeConstants.primaryBlue.withOpacity(0.22);
+    return InkResponse(
+      onTap: onTap,
+      radius: 28.r,
+      child: Container(
+        width: 46.w,
+        height: 46.w,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 22.sp),
+      ),
+    );
+  }
+}
+
 class ChartPainter extends CustomPainter {
   ChartPainter(
       {required this.data, required this.animationValue, this.yAxisMax});

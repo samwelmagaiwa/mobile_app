@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +7,7 @@ import '../../constants/theme_constants.dart';
 import '../../providers/debts_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/app_events.dart';
+import '../../services/localization_service.dart';
 
 class DebtRecordsListScreen extends StatefulWidget {
   const DebtRecordsListScreen(
@@ -23,7 +24,9 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _records = <Map<String, dynamic>>[];
+  Map<String, dynamic>? _summary;
   bool _unpaidOnly = false;
+  bool _paidOnly = false;
 
   @override
   void initState() {
@@ -37,14 +40,48 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
         _loading = true;
         _error = null;
       });
-      final Map<String, dynamic> res = await _api.getDriverDebtRecords(
-          widget.driverId,
-          unpaidOnly: _unpaidOnly,
-          limit: 500);
+      // Use the new summary endpoint which consistently returns debt_records
+      final Map<String, dynamic> res =
+          await _api.getDriverDebtSummary(widget.driverId);
       final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
-      final List<dynamic> items =
-          (data?['debt_records'] as List<dynamic>?) ?? <dynamic>[];
-      _records = items.map((e) => e as Map<String, dynamic>).toList();
+      _summary = Map<String, dynamic>.from(data ?? <String, dynamic>{});
+      final List<dynamic> allItems = (data?['debt_records'] as List<dynamic>?) ??
+          (res['debt_records'] as List<dynamic>?) ??
+          <dynamic>[];
+      // Compute paid vs unpaid totals from full list
+      double totalPaid = 0;
+      double totalUnpaid = 0;
+      for (final dynamic e in allItems) {
+        if (e is Map) {
+          final m = e.cast<String, dynamic>();
+          final v = m['is_paid'];
+          final bool paid = v == true || v == 1;
+          final double amount = double.tryParse(m['expected_amount']?.toString() ?? '') ?? 0;
+          if (paid) {
+            totalPaid += amount;
+          } else {
+            totalUnpaid += amount;
+          }
+        }
+      }
+      _summary!['total_paid_amount'] = totalPaid;
+      _summary!['total_unpaid_amount'] = totalUnpaid;
+
+      // Apply filter on client if requested
+      List<dynamic> items = List<dynamic>.from(allItems);
+      if (_unpaidOnly || _paidOnly) {
+        items = items.where((e) {
+          if (e is Map) {
+            final m = e.cast<String, dynamic>();
+            final v = m['is_paid'];
+            final bool paid = v == true || v == 1;
+            if (_unpaidOnly) return !paid;
+            if (_paidOnly) return paid;
+          }
+          return true;
+        }).toList();
+      }
+      _records = items.map((e) => (e as Map).cast<String, dynamic>()).toList();
     } on Exception catch (e) {
       _error = e.toString();
     } finally {
@@ -74,21 +111,55 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                       children: <Widget>[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              FilterChip(
-                                label: const Text('Bila Kulipwa',
-                                    style: TextStyle(color: Colors.white)),
-                                selected: _unpaidOnly,
-                                onSelected: (bool v) {
-                                  setState(() => _unpaidOnly = v);
-                                  _load();
-                                },
-                                selectedColor: ThemeConstants.primaryOrange
-                                    .withOpacity(0.2),
-                                checkmarkColor: Colors.white,
-                                backgroundColor: Colors.white.withOpacity(0.08),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: ToggleButtons(
+                                  isSelected: <bool>[_unpaidOnly, _paidOnly],
+                                  onPressed: (int index) {
+                                    setState(() {
+                                      if (index == 0) {
+                                        _unpaidOnly = !_unpaidOnly;
+                                        if (_unpaidOnly) _paidOnly = false;
+                                      } else {
+                                        _paidOnly = !_paidOnly;
+                                        if (_paidOnly) _unpaidOnly = false;
+                                      }
+                                    });
+                                    _load();
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: Colors.white70,
+                                  selectedColor: Colors.white,
+                                  borderColor: Colors.white24,
+                                  selectedBorderColor: Colors.white38,
+                                  fillColor:
+                                      ThemeConstants.primaryOrange.withOpacity(0.20),
+                                  constraints: BoxConstraints(minHeight: 36.h, minWidth: 120.w),
+                                  children: <Widget>[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                      child: Text(
+                                        LocalizationService.instance
+                                            .translate('filter_unpaid_only'),
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                      child: Text(
+                                        LocalizationService.instance
+                                            .translate('filter_paid_only'),
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(height: 8),
+                              if (_summary != null) _SummaryHeader(summary: _summary!),
                             ],
                           ),
                         ),
@@ -147,7 +218,8 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                                       children: <Widget>[
                                         IconButton(
                                           icon: Icon(Icons.edit,
-                                              color: Colors.white70, size: 18.sp),
+                                              color: Colors.white70,
+                                              size: 18.sp),
                                           onPressed: isPaid
                                               ? null
                                               : () async {
@@ -171,17 +243,24 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
                                                             context,
                                                             listen: false)
                                                         .markChanged();
-                                                    
+
                                                     // Emit events to notify other screens of debt changes
-                                                    AppEvents.instance.emit(AppEventType.debtsUpdated);
-                                                    AppEvents.instance.emit(AppEventType.receiptsUpdated);
-                                                    AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
+                                                    AppEvents.instance.emit(
+                                                        AppEventType
+                                                            .debtsUpdated);
+                                                    AppEvents.instance.emit(
+                                                        AppEventType
+                                                            .receiptsUpdated);
+                                                    AppEvents.instance.emit(
+                                                        AppEventType
+                                                            .dashboardShouldRefresh);
                                                   }
                                                 },
                                         ),
                                         IconButton(
                                           icon: Icon(Icons.delete,
-                                              color: Colors.white70, size: 18.sp),
+                                              color: Colors.white70,
+                                              size: 18.sp),
                                           onPressed: isPaid
                                               ? null
                                               : () => _confirmDelete(
@@ -220,7 +299,7 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
       builder: (BuildContext context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const AutoSizeText('Futa Deni', style: TextStyle(color: Colors.white), maxLines: 1, minFontSize: 12, stepGranularity: 0.5),
+        title: const Text('Futa Deni', style: TextStyle(color: Colors.white)),
         content: const Text('Je, una uhakika unataka kufuta deni hili?',
             style: TextStyle(color: Colors.white70)),
         actions: <Widget>[
@@ -240,12 +319,85 @@ class _DebtRecordsListScreenState extends State<DebtRecordsListScreen> {
       if (!mounted) return;
       Provider.of<DebtsProvider>(context, listen: false).markChanged();
       await _load();
-      
+
       // Emit events to notify other screens of debt changes
       AppEvents.instance.emit(AppEventType.debtsUpdated);
       AppEvents.instance.emit(AppEventType.receiptsUpdated);
       AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
     }
+  }
+}
+
+class _SummaryHeader extends StatelessWidget {
+  const _SummaryHeader({required this.summary});
+  final Map<String, dynamic> summary;
+  @override
+  Widget build(BuildContext context) {
+    String t(String k) => LocalizationService.instance.translate(k);
+    double toDouble(Object? v) {
+      if (v == null) return 0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    final double totalDebt = toDouble(summary['total_debt']);
+    final double totalPaid = toDouble(summary['total_paid_amount']);
+    final double totalUnpaid = toDouble(summary['total_unpaid_amount']);
+    final int unpaidDays = int.tryParse(summary['unpaid_days']?.toString() ?? '0') ?? 0;
+    final String? lastPaidIso = summary['last_payment_date']?.toString();
+    String lastPaid = '';
+    if (lastPaidIso != null && lastPaidIso.isNotEmpty) {
+      final DateTime? dt = DateTime.tryParse(lastPaidIso);
+      if (dt != null) {
+        lastPaid = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      }
+    }
+
+    return ThemeConstants.buildGlassCard(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.w),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                AutoSizeText('${t('summary_total_debt')}: TSH ${_fmt(totalDebt)}',
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text('${t('summary_unpaid_days')}: $unpaidDays',
+                    style: const TextStyle(color: Colors.white70)),
+                const SizedBox(height: 6),
+                Row(children: <Widget>[
+                  Expanded(
+                    child: Text('${t('paid_total')}: TSH ${_fmt(totalPaid)}',
+                        style: const TextStyle(color: Colors.white70)),
+                  ),
+                  Expanded(
+                    child: Text('${t('unpaid_total')}: TSH ${_fmt(totalUnpaid)}',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(color: Colors.white70)),
+                  ),
+                ]),
+                ],
+              ),
+            ),
+            if (lastPaid.isNotEmpty)
+            Text('${t('last_payment')}: $lastPaid',
+                style: const TextStyle(color: Colors.white70)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmt(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
   }
 }
 
@@ -457,12 +609,12 @@ class _EditDebtRecordScreenState extends State<_EditDebtRecordScreen> {
       );
       if (!mounted) return;
       Provider.of<DebtsProvider>(context, listen: false).markChanged();
-      
+
       // Emit events to notify other screens of debt changes
       AppEvents.instance.emit(AppEventType.debtsUpdated);
       AppEvents.instance.emit(AppEventType.receiptsUpdated);
       AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
-      
+
       Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _saving = false);

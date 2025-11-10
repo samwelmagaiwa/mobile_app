@@ -63,72 +63,108 @@ class Driver {
       return '';
     }
 
-    final dynamic userMap = json['user'] ?? json['owner'] ?? json['created_by_user'];
+    final dynamic userMap =
+        json['user'] ?? json['owner'] ?? json['created_by_user'];
     final dynamic driverMap = json['driver'];
 
     // Compose name from possible first/last name pairs
     String composeName(Map<String, dynamic>? m) {
       if (m == null) return '';
-      String first = pickString([m['first_name'], m['firstName'], m['given_name']]);
-      String last = pickString([m['last_name'], m['lastName'], m['surname'], m['family_name']]);
-      final String combined = (first + ' ' + last).trim();
+      final String first =
+          pickString([m['first_name'], m['firstName'], m['given_name']]);
+      final String last = pickString(
+          [m['last_name'], m['lastName'], m['surname'], m['family_name']]);
+      final String combined = '$first $last'.trim();
       if (combined.isNotEmpty) return combined;
       return pickString([m['name'], m['full_name'], m['driver_name']]);
     }
 
     final String name = pickString([
-      json['name'], json['full_name'], json['driver_name'],
+      json['name'],
+      json['full_name'],
+      json['driver_name'],
       composeName(json as Map<String, dynamic>?),
       composeName(userMap is Map<String, dynamic> ? userMap : null),
       composeName(driverMap is Map<String, dynamic> ? driverMap : null),
-      userMap is Map<String, dynamic> ? userMap['name'] : null,
-      driverMap is Map<String, dynamic> ? driverMap['name'] : null,
+      if (userMap is Map<String, dynamic>) userMap['name'] else null,
+      if (driverMap is Map<String, dynamic>) driverMap['name'] else null,
     ]);
     final String email = pickString([
       json['email'],
-      userMap is Map<String, dynamic> ? userMap['email'] : null,
-      driverMap is Map<String, dynamic> ? driverMap['email'] : null,
+      if (userMap is Map<String, dynamic>) userMap['email'] else null,
+      if (driverMap is Map<String, dynamic>) driverMap['email'] else null,
     ]);
     final String phone = pickString([
-      json['phone'], json['phone_number'], json['phoneNumber'], ' ' + pickString([]),
-      userMap is Map<String, dynamic> ? userMap['phone_number'] : null,
-      driverMap is Map<String, dynamic> ? driverMap['phone_number'] : null,
+      json['phone'],
+      json['phone_number'],
+      json['phoneNumber'],
+      ' ${pickString([])}',
+      if (userMap is Map<String, dynamic>) userMap['phone_number'] else null,
+      if (driverMap is Map<String, dynamic>)
+        driverMap['phone_number']
+      else
+        null,
     ]);
     final String license = pickString([
-      json['license_number'], json['license'], json['license_no'],
-      driverMap is Map<String, dynamic> ? driverMap['license_number'] : null,
+      json['license_number'],
+      json['license'],
+      json['license_no'],
+      if (driverMap is Map<String, dynamic>)
+        driverMap['license_number']
+      else
+        null,
     ]);
     final String? vehicleNo = pickString([
-      json['vehicle_number'], json['plate_number'], json['registration_no'],
-      driverMap is Map<String, dynamic> ? driverMap['vehicle_number'] : null,
+      json['vehicle_number'],
+      json['plate_number'],
+      json['registration_no'],
+      if (driverMap is Map<String, dynamic>)
+        driverMap['vehicle_number']
+      else
+        null,
     ]).isNotEmpty
         ? pickString([
-            json['vehicle_number'], json['plate_number'], json['registration_no'],
-            driverMap is Map<String, dynamic> ? driverMap['vehicle_number'] : null,
+            json['vehicle_number'],
+            json['plate_number'],
+            json['registration_no'],
+            if (driverMap is Map<String, dynamic>)
+              driverMap['vehicle_number']
+            else
+              null,
           ])
         : null;
     final String? vehicleTy = pickString([
-      json['vehicle_type'], json['type'],
-      driverMap is Map<String, dynamic> ? driverMap['vehicle_type'] : null,
+      json['vehicle_type'],
+      json['type'],
+      if (driverMap is Map<String, dynamic>)
+        driverMap['vehicle_type']
+      else
+        null,
     ]).isNotEmpty
         ? pickString([
-            json['vehicle_type'], json['type'],
-            driverMap is Map<String, dynamic> ? driverMap['vehicle_type'] : null,
+            json['vehicle_type'],
+            json['type'],
+            if (driverMap is Map<String, dynamic>)
+              driverMap['vehicle_type']
+            else
+              null,
           ])
         : null;
     final String status = pickString([
       json['status'],
-      (json['is_active'] == true || json['is_active'] == 1) ? 'active' : '',
-      userMap is Map<String, dynamic>
-          ? ((userMap['is_active'] == true || userMap['is_active'] == 1)
-              ? 'active'
-              : '')
-          : '',
-      driverMap is Map<String, dynamic>
-          ? ((driverMap['is_active'] == true || driverMap['is_active'] == 1)
-              ? 'active'
-              : '')
-          : '',
+      if (json['is_active'] == true || json['is_active'] == 1) 'active' else '',
+      if (userMap is Map<String, dynamic>)
+        (userMap['is_active'] == true || userMap['is_active'] == 1)
+            ? 'active'
+            : ''
+      else
+        '',
+      if (driverMap is Map<String, dynamic>)
+        (driverMap['is_active'] == true || driverMap['is_active'] == 1)
+            ? 'active'
+            : ''
+      else
+        '',
     ]);
 
     return Driver(

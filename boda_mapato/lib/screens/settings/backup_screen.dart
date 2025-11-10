@@ -15,7 +15,7 @@ class BackupScreen extends StatefulWidget {
 class _BackupScreenState extends State<BackupScreen> {
   final LocalizationService _localizationService = LocalizationService.instance;
   final ApiService _apiService = ApiService();
-  
+
   bool _autoBackupEnabled = false;
   bool _isBackingUp = false;
   bool _isRestoring = false;
@@ -102,17 +102,21 @@ class _BackupScreenState extends State<BackupScreen> {
                   children: [
                     // Auto Backup Toggle
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: const Icon(Icons.schedule, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      leading: const Icon(Icons.schedule,
+                          color: ThemeConstants.textSecondary),
                       title: Text(
                         _localizationService.translate('auto_backup'),
-                        style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 16),
+                        style: const TextStyle(
+                            color: ThemeConstants.textPrimary, fontSize: 16),
                       ),
                       subtitle: Text(
-                        _localizationService.isSwahili 
-                          ? 'Hifadhi data kiotomatiki kila siku'
-                          : 'Automatically backup data daily',
-                        style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+                        _localizationService.isSwahili
+                            ? 'Hifadhi data kiotomatiki kila siku'
+                            : 'Automatically backup data daily',
+                        style: const TextStyle(
+                            color: ThemeConstants.textSecondary, fontSize: 13),
                       ),
                       trailing: Switch.adaptive(
                         value: _autoBackupEnabled,
@@ -129,30 +133,35 @@ class _BackupScreenState extends State<BackupScreen> {
 
                     // Manual Backup
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: _isBackingUp 
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: ThemeConstants.primaryOrange,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(Icons.backup, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      leading: _isBackingUp
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: ThemeConstants.primaryOrange,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.backup,
+                              color: ThemeConstants.textSecondary),
                       title: Text(
                         _localizationService.translate('backup_now'),
-                        style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 16),
+                        style: const TextStyle(
+                            color: ThemeConstants.textPrimary, fontSize: 16),
                       ),
                       subtitle: Text(
-                        _lastBackupDate != null 
-                          ? '${_localizationService.translate('last_backup')}: $_lastBackupDate'
-                          : _localizationService.isSwahili 
-                            ? 'Hakuna hifadhi ya hivi karibuni'
-                            : 'No recent backup',
-                        style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+                        _lastBackupDate != null
+                            ? '${_localizationService.translate('last_backup')}: $_lastBackupDate'
+                            : _localizationService.isSwahili
+                                ? 'Hakuna hifadhi ya hivi karibuni'
+                                : 'No recent backup',
+                        style: const TextStyle(
+                            color: ThemeConstants.textSecondary, fontSize: 13),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: _isBackingUp ? null : _performBackup,
                     ),
 
@@ -160,28 +169,33 @@ class _BackupScreenState extends State<BackupScreen> {
 
                     // Restore Data
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: _isRestoring 
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: ThemeConstants.primaryOrange,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(Icons.restore, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      leading: _isRestoring
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: ThemeConstants.primaryOrange,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.restore,
+                              color: ThemeConstants.textSecondary),
                       title: Text(
                         _localizationService.translate('restore_data'),
-                        style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 16),
+                        style: const TextStyle(
+                            color: ThemeConstants.textPrimary, fontSize: 16),
                       ),
                       subtitle: Text(
-                        _localizationService.isSwahili 
-                          ? 'Rejesha data kutoka hifadhi iliyopo'
-                          : 'Restore data from existing backup',
-                        style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+                        _localizationService.isSwahili
+                            ? 'Rejesha data kutoka hifadhi iliyopo'
+                            : 'Restore data from existing backup',
+                        style: const TextStyle(
+                            color: ThemeConstants.textSecondary, fontSize: 13),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: _isRestoring ? null : _showRestoreDialog,
                     ),
                   ],
@@ -206,7 +220,9 @@ class _BackupScreenState extends State<BackupScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            _localizationService.isSwahili ? 'Maelezo ya Hifadhi' : 'Backup Information',
+                            _localizationService.isSwahili
+                                ? 'Maelezo ya Hifadhi'
+                                : 'Backup Information',
                             style: const TextStyle(
                               color: ThemeConstants.textPrimary,
                               fontSize: 16,
@@ -218,14 +234,14 @@ class _BackupScreenState extends State<BackupScreen> {
                       const SizedBox(height: 12),
                       Text(
                         _localizationService.isSwahili
-                          ? '• Data yote ya madereva, malipo, na risiti itahifadhiwa\n'
-                            '• Hifadhi zinazohifadhiwa kwenye cloud kwa usalama\n'
-                            '• Unaweza kurejesha data wakati wowote\n'
-                            '• Hifadhi ya kiotomatiki inafanywa kila siku saa 2:00 usiku'
-                          : '• All driver, payment, and receipt data will be backed up\n'
-                            '• Backups are stored securely in the cloud\n'
-                            '• You can restore data at any time\n'
-                            '• Auto backup runs daily at 2:00 AM',
+                            ? '• Data yote ya madereva, malipo, na risiti itahifadhiwa\n'
+                                '• Hifadhi zinazohifadhiwa kwenye cloud kwa usalama\n'
+                                '• Unaweza kurejesha data wakati wowote\n'
+                                '• Hifadhi ya kiotomatiki inafanywa kila siku saa 2:00 usiku'
+                            : '• All driver, payment, and receipt data will be backed up\n'
+                                '• Backups are stored securely in the cloud\n'
+                                '• You can restore data at any time\n'
+                                '• Auto backup runs daily at 2:00 AM',
                         style: const TextStyle(
                           color: ThemeConstants.textSecondary,
                           fontSize: 13,
@@ -272,9 +288,9 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
-        _localizationService.isSwahili 
-          ? 'Imeshindikana kuhifadhi: ${e}'
-          : 'Backup failed: ${e}',
+        _localizationService.isSwahili
+            ? 'Imeshindikana kuhifadhi: ${e}'
+            : 'Backup failed: ${e}',
       );
     } finally {
       if (!mounted) return;
@@ -299,9 +315,9 @@ class _BackupScreenState extends State<BackupScreen> {
           ],
         ),
         content: Text(
-          _localizationService.isSwahili 
-            ? 'Je, una uhakika unataka kurejesha data? Hii itafuta data ya sasa na kuiweka na ile ya zamani.'
-            : 'Are you sure you want to restore data? This will replace current data with backup data.',
+          _localizationService.isSwahili
+              ? 'Je, una uhakika unataka kurejesha data? Hii itafuta data ya sasa na kuiweka na ile ya zamani.'
+              : 'Are you sure you want to restore data? This will replace current data with backup data.',
           style: const TextStyle(color: ThemeConstants.textSecondary),
         ),
         actions: [
@@ -349,9 +365,9 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!mounted) return;
       ThemeConstants.showErrorSnackBar(
         context,
-        _localizationService.isSwahili 
-          ? 'Imeshindikana kurejesha: ${e}'
-          : 'Restore failed: ${e}',
+        _localizationService.isSwahili
+            ? 'Imeshindikana kurejesha: ${e}'
+            : 'Restore failed: ${e}',
       );
     } finally {
       if (!mounted) return;

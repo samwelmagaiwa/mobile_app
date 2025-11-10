@@ -34,8 +34,8 @@ class CustomCard extends StatelessWidget {
     final double responsiveElevation =
         elevation ?? ResponsiveUtils.getResponsiveSpacing(context, 2);
 
-    final bool noShadow = (elevation != null && elevation == 0) ||
-        responsiveElevation <= 0.001;
+    final bool noShadow =
+        (elevation != null && elevation == 0) || responsiveElevation <= 0.001;
 
     final Container card = Container(
       margin: margin ?? ResponsiveUtils.getResponsiveMargin(context),

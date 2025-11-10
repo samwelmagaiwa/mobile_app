@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Represents a single navigation item with its properties
-class NavigationItem { // For items like settings, logout that appear in all roles
+class NavigationItem {
+  // For items like settings, logout that appear in all roles
 
   const NavigationItem({
     required this.key,
@@ -22,7 +23,8 @@ class NavigationItem { // For items like settings, logout that appear in all rol
 }
 
 /// Represents a quick action item for dashboard
-class QuickActionItem { // For special styling
+class QuickActionItem {
+  // For special styling
 
   const QuickActionItem({
     required this.key,
@@ -146,11 +148,12 @@ class NavigationConfig {
   }
 
   /// Get navigation items by permission level
-  static List<NavigationItem> getItemsByPermissions(List<String> userPermissions) {
+  static List<NavigationItem> getItemsByPermissions(
+      List<String> userPermissions) {
     return allNavigationItems.where((item) {
       if (item.isSystemItem) return true;
       if (item.requiredPermissions == null) return true;
-      
+
       return item.requiredPermissions!.every(
         (permission) => userPermissions.contains(permission),
       );
@@ -158,10 +161,11 @@ class NavigationConfig {
   }
 
   /// Get quick actions by permission level
-  static List<QuickActionItem> getQuickActionsByPermissions(List<String> userPermissions) {
+  static List<QuickActionItem> getQuickActionsByPermissions(
+      List<String> userPermissions) {
     return quickActions.where((action) {
       if (action.requiredPermissions == null) return true;
-      
+
       return action.requiredPermissions!.every(
         (permission) => userPermissions.contains(permission),
       );

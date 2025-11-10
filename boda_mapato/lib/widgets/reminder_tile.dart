@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../constants/colors.dart';
-import '../constants/strings.dart';
 import '../constants/styles.dart';
 import '../models/reminder.dart';
+import '../utils/date_utils.dart';
 
 class ReminderTile extends StatelessWidget {
   const ReminderTile({
@@ -155,27 +155,27 @@ class ReminderTile extends StatelessWidget {
                         itemBuilder: (final BuildContext context) =>
                             <PopupMenuEntry<String>>[
                           if (reminder.status == ReminderStatus.active)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: "complete",
                               child: Row(
                                 children: <Widget>[
                                   Icon(Icons.check, size: 16.sp),
-                                  SizedBox(width: 8),
-                                  Text("Kamilisha"),
+                                  const SizedBox(width: 8),
+                                  const Text("Kamilisha"),
                                 ],
                               ),
                             ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: "edit",
                             child: Row(
                               children: <Widget>[
                                 Icon(Icons.edit, size: 16.sp),
-                                SizedBox(width: 8),
-                                Text("Hariri"),
+                                const SizedBox(width: 8),
+                                const Text("Hariri"),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: "delete",
                             child: Row(
                               children: <Widget>[
@@ -184,8 +184,8 @@ class ReminderTile extends StatelessWidget {
                                   size: 16.sp,
                                   color: AppColors.error,
                                 ),
-                                SizedBox(width: 8),
-                                Text(
+                                const SizedBox(width: 8),
+                                const Text(
                                   "Futa",
                                   style: TextStyle(color: AppColors.error),
                                 ),

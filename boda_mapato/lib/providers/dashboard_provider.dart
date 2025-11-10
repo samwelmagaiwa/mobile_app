@@ -55,10 +55,12 @@ class DashboardProvider extends ChangeNotifier {
       generatedReceipts = _toInt(d3['count']);
       pendingReceipts = _toInt(d4['count']);
 
-      dailyRevenue = _toDouble(d5['revenue'] ?? d5['daily_revenue'] ?? d5['total']);
-      weeklyRevenue = _toDouble(d6['revenue'] ?? d6['weekly_revenue'] ?? d6['total']);
-      monthlyRevenue = _toDouble(d7['revenue'] ?? d7['monthly_revenue'] ?? d7['total']);
-
+      dailyRevenue =
+          _toDouble(d5['revenue'] ?? d5['daily_revenue'] ?? d5['total']);
+      weeklyRevenue =
+          _toDouble(d6['revenue'] ?? d6['weekly_revenue'] ?? d6['total']);
+      monthlyRevenue =
+          _toDouble(d7['revenue'] ?? d7['monthly_revenue'] ?? d7['total']);
     } on Exception catch (e) {
       _setError(e.toString());
     } finally {
@@ -69,7 +71,8 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> refresh() => loadAll();
 
   Map<String, dynamic> _extract(Map<String, dynamic> response) {
-    if (response.containsKey('data') && response['data'] is Map<String, dynamic>) {
+    if (response.containsKey('data') &&
+        response['data'] is Map<String, dynamic>) {
       return response['data'] as Map<String, dynamic>;
     }
     return response;

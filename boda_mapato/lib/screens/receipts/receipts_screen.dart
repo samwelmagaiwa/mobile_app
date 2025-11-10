@@ -17,7 +17,7 @@ import 'receipt_viewer_screen.dart';
 // ignore_for_file: directives_ordering
 class ReceiptsScreen extends StatefulWidget {
   const ReceiptsScreen({super.key, this.initialFilter = 'all'});
-  
+
   final String initialFilter;
 
   @override
@@ -34,7 +34,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
   List<PendingReceiptItem> _pendingReceipts = <PendingReceiptItem>[];
   int _totalReceipts = 0;
   String _selectedFilter = 'all'; // 'all' or 'pending'
-  
+
   // Event subscription for automatic refresh
   late StreamSubscription<AppEvent> _eventSubscription;
   Timer? _debounce;
@@ -44,7 +44,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     super.initState();
     _selectedFilter = widget.initialFilter;
     _loadReceipts();
-    
+
     // Listen to app events for automatic refresh
     _eventSubscription = AppEvents.instance.stream.listen((event) {
       switch (event.type) {
@@ -80,56 +80,73 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       });
 
       Map<String, dynamic> response;
-      
+
       // Load receipts based on selected filter
       final String q = _searchController.text.trim();
       if (_selectedFilter == 'pending') {
         response = await _apiService.getPendingReceipts();
       } else {
         // Use backend search by query when available
-        response = await _apiService.getReceipts(query: q.isNotEmpty ? q : null);
+        response =
+            await _apiService.getReceipts(query: q.isNotEmpty ? q : null);
       }
 
       if (response['success'] == true) {
         final data = response['data'] as Map<String, dynamic>? ?? {};
-        
+
         if (_selectedFilter == 'pending') {
           // For pending receipts, parse as PendingReceiptItem objects
-          final pendingReceiptsData = data['pending_receipts'] as List<dynamic>? ?? 
-                                     data['data'] as List<dynamic>? ?? <dynamic>[];
+          final pendingReceiptsData =
+              data['pending_receipts'] as List<dynamic>? ??
+                  data['data'] as List<dynamic>? ??
+                  <dynamic>[];
           // Apply client-side filtering for pending list (by driver name/phone/reference)
           final String q = _searchController.text.trim().toLowerCase();
           final List<PendingReceiptItem> items = pendingReceiptsData
-              .map((item) => PendingReceiptItem.fromJson(item as Map<String, dynamic>))
+              .map((item) =>
+                  PendingReceiptItem.fromJson(item as Map<String, dynamic>))
               .toList();
           final List<PendingReceiptItem> filtered = q.isEmpty
               ? items
               : items.where((e) {
-                  final s = '${e.driver.name} ${e.driver.phone} ${e.referenceNumber} ${e.paymentId}'.toLowerCase();
+                  final s =
+                      '${e.driver.name} ${e.driver.phone} ${e.referenceNumber} ${e.paymentId}'
+                          .toLowerCase();
                   return s.contains(q);
                 }).toList();
           setState(() {
             _pendingReceipts = filtered;
-            _receipts = <Receipt>[]; // Clear regular receipts when showing pending
-            _totalReceipts = data['total'] as int? ?? data['count'] as int? ?? filtered.length;
+            _receipts =
+                <Receipt>[]; // Clear regular receipts when showing pending
+            _totalReceipts = data['total'] as int? ??
+                data['count'] as int? ??
+                filtered.length;
             _isLoading = false;
           });
         } else {
           // For all receipts, parse as Receipt objects
-          final receiptsData = data['receipts'] as List<dynamic>? ?? data['data'] as List<dynamic>? ?? <dynamic>[];
+          final receiptsData = data['receipts'] as List<dynamic>? ??
+              data['data'] as List<dynamic>? ??
+              <dynamic>[];
           // As a safety, client-side filter if backend search isn't available
           final String q = _searchController.text.trim().toLowerCase();
-          final List<Receipt> items = receiptsData.map((item) => Receipt.fromJson(item as Map<String, dynamic>)).toList();
+          final List<Receipt> items = receiptsData
+              .map((item) => Receipt.fromJson(item as Map<String, dynamic>))
+              .toList();
           final List<Receipt> filtered = q.isEmpty
               ? items
               : items.where((r) {
-                  final s = '${r.driverName} ${r.receiptNumber} ${r.paymentId}'.toLowerCase();
+                  final s = '${r.driverName} ${r.receiptNumber} ${r.paymentId}'
+                      .toLowerCase();
                   return s.contains(q);
                 }).toList();
           setState(() {
             _receipts = filtered;
-            _pendingReceipts = <PendingReceiptItem>[]; // Clear pending receipts when showing all
-            _totalReceipts = data['total'] as int? ?? data['count'] as int? ?? filtered.length;
+            _pendingReceipts =
+                <PendingReceiptItem>[]; // Clear pending receipts when showing all
+            _totalReceipts = data['total'] as int? ??
+                data['count'] as int? ??
+                filtered.length;
             _isLoading = false;
           });
         }
@@ -157,9 +174,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
 
   void _onSearchChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
-      _loadReceipts();
-    });
+    _debounce = Timer(const Duration(milliseconds: 350), _loadReceipts);
   }
 
   void _clearSearch() {
@@ -171,7 +186,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    
+
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) => Scaffold(
         backgroundColor: ThemeConstants.primaryBlue,
@@ -186,7 +201,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               if (!_isLoading) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: ThemeConstants.primaryOrange.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
@@ -217,9 +233,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           children: [
             // Search bar
             _buildSearchBar(localizationService),
-            
+
             const SizedBox(height: 16),
-            
+
             // Content
             Expanded(
               child: _buildContent(localizationService),
@@ -270,8 +286,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               Expanded(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: _selectedFilter == 'pending' 
-                        ? ThemeConstants.primaryOrange 
+                    color: _selectedFilter == 'pending'
+                        ? ThemeConstants.primaryOrange
                         : Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -280,8 +296,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     child: Text(
                       localizationService.translate('pending'),
                       style: TextStyle(
-                        color: _selectedFilter == 'pending' 
-                            ? Colors.white 
+                        color: _selectedFilter == 'pending'
+                            ? Colors.white
                             : Colors.white.withOpacity(0.8),
                       ),
                     ),
@@ -292,8 +308,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               Expanded(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: _selectedFilter == 'all' 
-                        ? ThemeConstants.primaryOrange 
+                    color: _selectedFilter == 'all'
+                        ? ThemeConstants.primaryOrange
                         : Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -302,8 +318,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     child: Text(
                       localizationService.translate('all'),
                       style: TextStyle(
-                        color: _selectedFilter == 'all' 
-                            ? Colors.white 
+                        color: _selectedFilter == 'all'
+                            ? Colors.white
                             : Colors.white.withOpacity(0.8),
                       ),
                     ),
@@ -357,10 +373,10 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     }
 
     // Check if we have any data to show
-    final bool hasData = (_selectedFilter == 'pending') 
-        ? _pendingReceipts.isNotEmpty 
+    final bool hasData = (_selectedFilter == 'pending')
+        ? _pendingReceipts.isNotEmpty
         : _receipts.isNotEmpty;
-        
+
     if (!hasData) {
       return Center(
         child: Padding(
@@ -369,13 +385,15 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _selectedFilter == 'pending' ? Icons.pending_actions : Icons.receipt_long,
+                _selectedFilter == 'pending'
+                    ? Icons.pending_actions
+                    : Icons.receipt_long,
                 size: 80,
                 color: Colors.white.withOpacity(0.5),
               ),
               const SizedBox(height: 20),
               Text(
-                _selectedFilter == 'pending' 
+                _selectedFilter == 'pending'
                     ? localizationService.translate('no_pending_receipts')
                     : localizationService.translate('no_receipts_generated'),
                 style: const TextStyle(
@@ -388,7 +406,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               const SizedBox(height: 8),
               Text(
                 _selectedFilter == 'pending'
-                    ? localizationService.translate('all_payments_have_receipts')
+                    ? localizationService
+                        .translate('all_payments_have_receipts')
                     : localizationService.translate('receipts_list_empty'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
@@ -402,12 +421,14 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       );
     }
 
-      return RefreshIndicator(
+    return RefreshIndicator(
       onRefresh: _refreshReceipts,
       child: ListView.builder(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _selectedFilter == 'pending' ? _pendingReceipts.length : _receipts.length,
+        itemCount: _selectedFilter == 'pending'
+            ? _pendingReceipts.length
+            : _receipts.length,
         itemBuilder: (context, index) {
           if (_selectedFilter == 'pending') {
             final pendingReceipt = _pendingReceipts[index];
@@ -470,7 +491,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   ),
                   child: Builder(
                     builder: (context) => Text(
-                      Provider.of<LocalizationService>(context, listen: false).translate('pending'),
+                      Provider.of<LocalizationService>(context, listen: false)
+                          .translate('pending'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -504,7 +526,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   ),
                 ),
                 Text(
-'${pendingReceipt.coveredDaysCount} ${Provider.of<LocalizationService>(context, listen: false).translate('days').toLowerCase()}',
+                  '${pendingReceipt.coveredDaysCount} ${Provider.of<LocalizationService>(context, listen: false).translate('days').toLowerCase()}',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 12,
@@ -560,90 +582,93 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
             color: Colors.white.withOpacity(0.2),
           ),
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  receipt.receiptNumber.isNotEmpty ? receipt.receiptNumber : 'N/A',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    receipt.receiptNumber.isNotEmpty
+                        ? receipt.receiptNumber
+                        : 'N/A',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 8.w,
+                    vertical: 4.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(receipt.status),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      final l10n = LocalizationService.instance;
+                      final key =
+                          'receipt_status_${receipt.status.toLowerCase()}';
+                      return Text(
+                        l10n.translate(key),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              receipt.driverName,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'TSH ${_formatCurrency(receipt.amount)}',
+                  style: TextStyle(
+                    color: ThemeConstants.primaryOrange,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8.w,
-                  vertical: 4.h,
-                ),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(receipt.status),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Builder(
-                  builder: (context) {
-                    final l10n = LocalizationService.instance;
-                    final key = 'receipt_status_${receipt.status.toLowerCase()}';
-                    return Text(
-                      l10n.translate(key),
+                Text(
+                  _formatDate(receipt.generatedAt),
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12.sp,
                   ),
-                    );
-                  },
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            receipt.driverName,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
+              ],
             ),
-          ),
-          SizedBox(height: 4.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            if (receipt.paymentChannel.isNotEmpty) ...<Widget>[
+              SizedBox(height: 4.h),
               Text(
-'TSH ${_formatCurrency(receipt.amount)}',
-                style: TextStyle(
-                  color: ThemeConstants.primaryOrange,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                _formatDate(receipt.generatedAt),
+                receipt.paymentChannelDisplayName,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 12.sp,
                 ),
               ),
             ],
-          ),
-          if (receipt.paymentChannel.isNotEmpty) ...<Widget>[
-            SizedBox(height: 4.h),
-            Text(
-              receipt.paymentChannelDisplayName,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 12.sp,
-              ),
-            ),
           ],
-        ],
-      ),
+        ),
       ),
     );
   }

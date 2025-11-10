@@ -6,15 +6,16 @@ import 'package:http/http.dart' as http;
 
 class DashboardService {
   static const String baseUrl = 'http://your-laravel-backend.com/api/admin';
-  
+
   // Headers for authenticated requests
   static Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // Add your authentication token here
-    'Authorization': 'Bearer ${getAuthToken()}', // Replace with actual token logic
-  };
-  
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Add your authentication token here
+        'Authorization':
+            'Bearer ${getAuthToken()}', // Replace with actual token logic
+      };
+
   static String getAuthToken() {
     // Replace this with your actual token retrieval logic
     // e.g., from SharedPreferences, secure storage, etc.
@@ -32,14 +33,15 @@ class DashboardService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true) {
           return data['data']; // Returns the complete dashboard data object
         } else {
           throw Exception(data['message'] ?? 'Failed to load dashboard data');
         }
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+        throw Exception(
+            'HTTP ${response.statusCode}: ${response.reasonPhrase}');
       }
     } catch (e) {
       throw Exception('Network error: $e');
@@ -47,7 +49,7 @@ class DashboardService {
   }
 
   /// Individual endpoint methods (Alternative approach if you prefer separate calls)
-  
+
   static Future<int> getActiveDriversCount() async {
     try {
       final response = await http.get(
@@ -227,7 +229,6 @@ class DashboardService {
 
 /// Dashboard data model to structure the comprehensive response
 class DashboardData {
-
   DashboardData({
     required this.unpaidDebtsCount,
     required this.activeDevicesCount,

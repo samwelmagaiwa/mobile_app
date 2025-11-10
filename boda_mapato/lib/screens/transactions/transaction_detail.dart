@@ -1,6 +1,6 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
-import 'package:auto_size_text/auto_size_text.dart';
 
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
@@ -200,7 +200,6 @@ class TransactionDetailScreen extends StatelessWidget {
         title: const AutoSizeText(
           "Futa Muamala",
           maxLines: 1,
-          minFontSize: 12,
           stepGranularity: 0.5,
         ),
         content: const Text("Je, una uhakika unataka kufuta muamala huu?"),

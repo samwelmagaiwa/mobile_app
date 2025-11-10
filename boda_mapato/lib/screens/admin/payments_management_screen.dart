@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../services/api_service.dart';
@@ -13,12 +11,13 @@ class PaymentsManagementScreen extends StatefulWidget {
   final String? initialDriverId;
 
   @override
-  State<PaymentsManagementScreen> createState() => _PaymentsManagementScreenState();
+  State<PaymentsManagementScreen> createState() =>
+      _PaymentsManagementScreenState();
 }
 
 class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   final ApiService _api = ApiService();
-  
+
   // Helper method to convert various types to double
   double _toDouble(Object? value) {
     if (value == null) return 0;
@@ -29,7 +28,6 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
     }
     return 0;
   }
-  
 
   bool _loadingDrivers = true;
   bool _loadingSummary = false;
@@ -37,7 +35,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
 
   List<Map<String, dynamic>> _drivers = <Map<String, dynamic>>[];
   String? _selectedDriverId;
-  Map<String, dynamic>? _summary; // { driver_id, driver_name, total_debt, unpaid_days, debt_records: [] }
+  Map<String, dynamic>?
+      _summary; // { driver_id, driver_name, total_debt, unpaid_days, debt_records: [] }
 
   @override
   void initState() {
@@ -82,7 +81,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
       _selectedDriverId = driverId;
     });
     try {
-      final Map<String, dynamic> res = await _api.getDriverDebtSummary(driverId);
+      final Map<String, dynamic> res =
+          await _api.getDriverDebtSummary(driverId);
       if (!mounted) return;
       _summary = (res['data'] as Map?)?.cast<String, dynamic>();
     } on Exception catch (e) {
@@ -96,56 +96,61 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+      builder: (context, localizationService, child) =>
+          ThemeConstants.buildResponsiveScaffold(
         context,
         title: localizationService.translate('manage_payments'),
-      body: _loadingDrivers
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(_error!, style: const TextStyle(color: Colors.white)),
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    final bool isNarrow = constraints.maxWidth < 800;
-                    if (isNarrow) {
-                      // Stack vertically on small screens to avoid overflow
-                      return SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 80),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              SizedBox(height: 280, child: _buildDriversList()),
-                              const SizedBox(height: 12),
-                              _buildSummaryPane(),
-                            ],
+        body: _loadingDrivers
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(_error!,
+                          style: const TextStyle(color: Colors.white)),
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                      final bool isNarrow = constraints.maxWidth < 800;
+                      if (isNarrow) {
+                        // Stack vertically on small screens to avoid overflow
+                        return SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 80),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                SizedBox(
+                                    height: 280, child: _buildDriversList()),
+                                const SizedBox(height: 12),
+                                _buildSummaryPane(),
+                              ],
+                            ),
                           ),
-                        ),
+                        );
+                      }
+                      // Side-by-side on wide screens
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(flex: 5, child: _buildDriversList()),
+                          Expanded(flex: 7, child: _buildSummaryPane()),
+                        ],
                       );
-                    }
-                    // Side-by-side on wide screens
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(flex: 5, child: _buildDriversList()),
-                        Expanded(flex: 7, child: _buildSummaryPane()),
-                      ],
-                    );
-                  },
-                ),
-      floatingActionButton: (_selectedDriverId != null && (_summary?['debt_records'] is List))
-          ? FloatingActionButton.extended(
-              onPressed: _showRecordPaymentDialog,
-              backgroundColor: ThemeConstants.primaryOrange,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: Text(localizationService.translate('record_payment')),
-            )
-          : null,
+                    },
+                  ),
+        floatingActionButton: (_selectedDriverId != null &&
+                (_summary?['debt_records'] is List))
+            ? FloatingActionButton.extended(
+                onPressed: _showRecordPaymentDialog,
+                backgroundColor: ThemeConstants.primaryOrange,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.add),
+                label: Text(localizationService.translate('record_payment')),
+              )
+            : null,
       ),
     );
   }
@@ -153,7 +158,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   Widget _buildDriversList() {
     if (_drivers.isEmpty) {
       return const Center(
-        child: Text('Hakuna madereva kupatikana', style: TextStyle(color: Colors.white70)),
+        child: Text('Hakuna madereva kupatikana',
+            style: TextStyle(color: Colors.white70)),
       );
     }
     return ListView.separated(
@@ -166,7 +172,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
         final String name = (d['name'] ?? '').toString();
         final String vehicle = (d['vehicle_number'] ?? '').toString();
         final double debt = _toDouble(d['total_debt']);
-        final int days = int.tryParse((d['unpaid_days'] ?? '0').toString()) ?? 0;
+        final int days =
+            int.tryParse((d['unpaid_days'] ?? '0').toString()) ?? 0;
         final bool selected = id == _selectedDriverId;
         return InkWell(
           onTap: () => _loadSummary(id),
@@ -180,9 +187,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
             child: Row(
               children: <Widget>[
                 CircleAvatar(
-                  backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                  backgroundColor:
+                      ThemeConstants.primaryOrange.withOpacity(0.2),
                   child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(color: ThemeConstants.primaryOrange)),
+                      style:
+                          const TextStyle(color: ThemeConstants.primaryOrange)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -190,9 +199,13 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(name,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
                       if (vehicle.isNotEmpty)
-                        Text(vehicle, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(vehicle,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -200,11 +213,17 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
                     Text('TSH ${_formatCurrency(debt)}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text('$days siku', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text('$days siku',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
                   ],
                 ),
-                if (selected) const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.check, color: Colors.white)),
+                if (selected)
+                  const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.check, color: Colors.white)),
               ],
             ),
           ),
@@ -216,7 +235,8 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   Widget _buildSummaryPane() {
     if (_selectedDriverId == null) {
       return const Center(
-        child: Text('Chagua dereva upande wa kushoto', style: TextStyle(color: Colors.white70)),
+        child: Text('Chagua dereva upande wa kushoto',
+            style: TextStyle(color: Colors.white70)),
       );
     }
     if (_loadingSummary) {
@@ -248,7 +268,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text('Jumla ya deni: TSH ${_formatCurrency(totalDebt)}',
                     style: const TextStyle(color: Colors.white70)),
@@ -256,10 +280,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text('Siku ambazo hazijalipwa', style: TextStyle(color: Colors.white70)),
+          const Text('Siku ambazo hazijalipwa',
+              style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 8),
           if (unpaid.isEmpty)
-            const Text('Hakuna deni linalosubiri', style: TextStyle(color: Colors.white, fontSize: 12))
+            const Text('Hakuna deni linalosubiri',
+                style: TextStyle(color: Colors.white, fontSize: 12))
           else
             Wrap(
               spacing: 8,
@@ -267,17 +293,20 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
               children: unpaid.map((m) {
                 final String iso = (m['date'] ?? '').toString();
                 final DateTime? dt = DateTime.tryParse(iso);
-                final String label = dt != null ? DateFormat('dd/MM').format(dt) : iso;
+                final String label =
+                    dt != null ? DateFormat('dd/MM').format(dt) : iso;
                 final double rem = _toDouble(m['remaining_amount']);
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withOpacity(0.15)),
                   ),
                   child: Text('$label • ${rem.toStringAsFixed(0)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12)),
                 );
               }).toList(),
             ),
@@ -287,12 +316,13 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   }
 
   Future<void> _showRecordPaymentDialog() async {
-    final List<Map<String, dynamic>> records = (_summary?['debt_records'] as List?)
-            ?.whereType<Map>()
-            .map((e) => e.cast<String, dynamic>())
-            .where((m) => m['is_paid'] != true && m['is_paid'] != 1)
-            .toList() ??
-        <Map<String, dynamic>>[];
+    final List<Map<String, dynamic>> records =
+        (_summary?['debt_records'] as List?)
+                ?.whereType<Map>()
+                .map((e) => e.cast<String, dynamic>())
+                .where((m) => m['is_paid'] != true && m['is_paid'] != 1)
+                .toList() ??
+            <Map<String, dynamic>>[];
 
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     final TextEditingController amountCtrl = TextEditingController();
@@ -303,18 +333,21 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
         .where((s) => s.isNotEmpty)
         .toSet();
 
-  await showDialog<void>(
+    await showDialog<void>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
-        builder: (BuildContext context, void Function(void Function()) setStateDialog) {
+        builder: (BuildContext context,
+            void Function(void Function()) setStateDialog) {
           return AlertDialog(
             backgroundColor: ThemeConstants.primaryBlue,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const AutoSizeText('Rekodi Malipo',
-                style: TextStyle(color: Colors.white),
-                maxLines: 1,
-                minFontSize: 12,
-                stepGranularity: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text(
+              'Rekodi Malipo',
+              style: TextStyle(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -340,15 +373,21 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                       dropdownColor: ThemeConstants.primaryBlue,
                       style: const TextStyle(color: Colors.white),
                       items: const [
-                        DropdownMenuItem(value: 'cash', child: Text('Fedha taslimu')),
-                        DropdownMenuItem(value: 'mobile', child: Text('Pesa za simu')),
-                        DropdownMenuItem(value: 'bank', child: Text('Uhamisho wa benki')),
-                        DropdownMenuItem(value: 'other', child: Text('Nyingine')),
+                        DropdownMenuItem(
+                            value: 'cash', child: Text('Fedha taslimu')),
+                        DropdownMenuItem(
+                            value: 'mobile', child: Text('Pesa za simu')),
+                        DropdownMenuItem(
+                            value: 'bank', child: Text('Uhamisho wa benki')),
+                        DropdownMenuItem(
+                            value: 'other', child: Text('Nyingine')),
                       ],
-                      onChanged: (v) => setStateDialog(() => channel = v ?? channel),
+                      onChanged: (v) =>
+                          setStateDialog(() => channel = v ?? channel),
                     ),
                     const SizedBox(height: 10),
-                    const Text('Chagua siku zinazolipwa', style: TextStyle(color: Colors.white70)),
+                    const Text('Chagua siku zinazolipwa',
+                        style: TextStyle(color: Colors.white70)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 8,
@@ -356,11 +395,13 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                       children: records.map((m) {
                         final String iso = (m['date'] ?? '').toString();
                         final DateTime? dt = DateTime.tryParse(iso);
-                        final String label = dt != null ? DateFormat('dd/MM').format(dt) : iso;
+                        final String label =
+                            dt != null ? DateFormat('dd/MM').format(dt) : iso;
                         final bool selected = selectedDays.contains(iso);
                         return ChoiceChip(
                           selected: selected,
-                          label: Text(label, style: const TextStyle(color: Colors.white)),
+                          label: Text(label,
+                              style: const TextStyle(color: Colors.white)),
                           selectedColor: ThemeConstants.primaryOrange,
                           backgroundColor: Colors.white.withOpacity(0.08),
                           onSelected: (_) => setStateDialog(() {
@@ -393,6 +434,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
                   if (selectedDays.isEmpty) return;
+                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(context);
                   try {
                     final Map<String, dynamic> payload = <String, dynamic>{
@@ -400,18 +442,21 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                       'amount': double.parse(amountCtrl.text.trim()),
                       'payment_channel': channel,
                       'covers_days': selectedDays.toList(),
-                      if (remarksCtrl.text.trim().isNotEmpty) 'remarks': remarksCtrl.text.trim(),
+                      if (remarksCtrl.text.trim().isNotEmpty)
+                        'remarks': remarksCtrl.text.trim(),
                     };
                     await _api.recordPayment(payload);
                     if (!mounted) return;
-                    // ignore: use_build_context_synchronously
-                    ThemeConstants.showSuccessSnackBar(context, 'Malipo yamehifadhiwa kikamilifu');
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Malipo yamehifadhiwa kikamilifu')),
+                    );
                     await _loadSummary(_selectedDriverId!);
                     await _loadDrivers();
                   } on Exception catch (e) {
                     if (!mounted) return;
-                    // ignore: use_build_context_synchronously
-                    ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuhifadhi: $e');
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Imeshindikana kuhifadhi: $e')),
+                    );
                   }
                 },
                 child: const Text('Hifadhi'),
@@ -443,7 +488,6 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
     return v.toStringAsFixed(0);
   }
-
 }
 /*
       color: ThemeConstants.primaryBlue,

@@ -37,11 +37,17 @@ class AuthController extends Controller
         ]);
 
         try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required|string',
-                'phone_number' => 'required|string',
-            ]);
+            $request->validate(
+                [
+                    'email' => 'required|email',
+                    'password' => 'required|string',
+                    'phone_number' => ['required', 'regex:/^(0\d{9}|\+\d{9,15})$/'],
+                ],
+                [
+                    'phone_number.required' => 'Namba ya simu inahitajika',
+                    'phone_number.regex' => 'Namba ya simu si sahihi. Tumia namba ya ndani (mfano: 0743519100) au ya kimataifa (mfano: +255743519100).',
+                ]
+            );
 
             // Find user by email
             $user = User::where('email', $request->email)->first();
@@ -142,10 +148,25 @@ class AuthController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
 
+            // Build UI badges and gating flags
+            $badges = [];
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                $badges[] = 'Super Admin';
+            }
+
+            $can = [
+                'manage_all' => method_exists($user, 'isSuperAdmin') ? $user->isSuperAdmin() : false,
+                'create_users' => method_exists($user, 'canCreateUsers') ? $user->canCreateUsers() : false,
+                'manage_drivers' => method_exists($user, 'canManageDrivers') ? $user->canManageDrivers() : false,
+            ];
+
             return ResponseHelper::success([
                 'user' => $userData,
                 'token' => $token,
                 'role' => $user->role,
+                'role_display' => $user->role_display ?? $user->role,
+                'badges' => $badges,
+                'can' => $can,
                 'dashboard_route' => $this->getDashboardRoute($user->role),
             ], 'Login successful');
 
@@ -397,9 +418,24 @@ class AuthController extends Controller
             $user = $request->user();
             $userData = $this->getUserDataWithRelations($user);
 
+            // Build UI badges and gating flags
+            $badges = [];
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                $badges[] = 'Super Admin';
+            }
+
+            $can = [
+                'manage_all' => method_exists($user, 'isSuperAdmin') ? $user->isSuperAdmin() : false,
+                'create_users' => method_exists($user, 'canCreateUsers') ? $user->canCreateUsers() : false,
+                'manage_drivers' => method_exists($user, 'canManageDrivers') ? $user->canManageDrivers() : false,
+            ];
+
             return ResponseHelper::success([
                 'user' => $userData,
                 'role' => $user->role,
+                'role_display' => $user->role_display ?? $user->role,
+                'badges' => $badges,
+                'can' => $can,
                 'dashboard_route' => $this->getDashboardRoute($user->role),
             ], 'User data retrieved successfully');
 

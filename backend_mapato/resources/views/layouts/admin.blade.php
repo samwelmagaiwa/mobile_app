@@ -242,7 +242,12 @@
                             </div>
                             <div class="user-info">
                                 <div class="user-name">{{ auth()->user()->name ?? 'Admin User' }}</div>
-                                <div class="user-role">{{ ucfirst(auth()->user()->role ?? 'admin') }}</div>
+                                <div class="user-role">
+                                    {{ ucfirst(auth()->user()->role ?? 'admin') }}
+                                    @if((auth()->user()->role ?? '') === 'super_admin')
+                                        <span class="nav-badge" title="Super Admin">Super Admin</span>
+                                    @endif
+                                </div>
                             </div>
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z"/>

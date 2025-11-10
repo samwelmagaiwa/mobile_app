@@ -172,7 +172,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   Widget build(final BuildContext context) {
     ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildResponsiveScaffold(
+      builder: (context, localizationService, child) =>
+          ThemeConstants.buildResponsiveScaffold(
         context,
         title: localizationService.translate('drivers_management'),
         body: _isLoading
@@ -290,7 +291,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         ],
       );
 
-  Widget _buildSearchAndFilter(LocalizationService localizationService) => Container(
+  Widget _buildSearchAndFilter(LocalizationService localizationService) =>
+      Container(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: <Widget>[
@@ -349,13 +351,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                   _buildFilterChip(
                     "active",
                     "Hai",
-                    _drivers.where((final Driver d) => d.status == "active").length,
+                    _drivers
+                        .where((final Driver d) => d.status == "active")
+                        .length,
                   ),
                   const SizedBox(width: 8),
                   _buildFilterChip(
                     "inactive",
                     "Hahai",
-                    _drivers.where((final Driver d) => d.status == "inactive").length,
+                    _drivers
+                        .where((final Driver d) => d.status == "inactive")
+                        .length,
                   ),
                 ],
               ),
@@ -779,7 +785,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                       value: "record_payment",
                       child: Row(
                         children: <Widget>[
-                          Icon(Icons.payments, color: ThemeConstants.primaryOrange),
+                          Icon(Icons.payments,
+                              color: ThemeConstants.primaryOrange),
                           SizedBox(width: 8),
                           Text("Rekodi Malipo"),
                         ],
@@ -928,7 +935,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         ],
       );
 
-  Widget _buildFloatingActionButton(LocalizationService localizationService) => FloatingActionButton.extended(
+  Widget _buildFloatingActionButton(LocalizationService localizationService) =>
+      FloatingActionButton.extended(
         onPressed: _showAddDriverDialog,
         backgroundColor: ThemeConstants.primaryOrange,
         foregroundColor: Colors.white,
@@ -998,7 +1006,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       case "record_debt":
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => DebtsManagementScreen(initialDriverId: driver.id),
+            builder: (context) =>
+                DebtsManagementScreen(initialDriverId: driver.id),
           ),
         );
       case "activate":
@@ -1103,7 +1112,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
   String _formatDate(final DateTime date) =>
       "${date.day}/${date.month}/${date.year}";
 
-  String _formatThousands(num value) => NumberFormat('#,##0', 'sw_TZ').format(value);
+  String _formatThousands(num value) =>
+      NumberFormat('#,##0', 'sw_TZ').format(value);
 
   DateTime? _parseDate(final Object? value) {
     if (value == null) return null;
@@ -1398,6 +1408,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
+              // Capture messenger before any awaits to avoid context-after-await lint
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               try {
@@ -1422,17 +1434,21 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 final String message = isActive
                     ? "${driver.name} amezimwa"
                     : "${driver.name} amewashwa";
-                if (!mounted) return;
-                if (isActive) {
-                  // ignore: use_build_context_synchronously
-                  ThemeConstants.showErrorSnackBar(context, message);
-                } else {
-                  // ignore: use_build_context_synchronously
-                  ThemeConstants.showSuccessSnackBar(context, message);
-                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor:
+                        isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                  ),
+                );
               } on Exception catch (e) {
-                if (!mounted) return;
-                _showErrorSnackBar("Hitilafu katika kubadilisha hali: $e");
+                messenger.showSnackBar(
+                  SnackBar(
+                    content:
+                        Text("Hitilafu katika kubadilisha hali: $e"),
+                    backgroundColor: ThemeConstants.errorRed,
+                  ),
+                );
               }
             },
             child: Text(
@@ -1473,6 +1489,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
+              // Capture messenger before any awaits to avoid context-after-await lint
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               try {
@@ -1486,12 +1504,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 });
                 _filterDrivers();
 
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                ThemeConstants.showErrorSnackBar(context, "${driver.name} amefutwa");
+                messenger.showSnackBar(
+                  SnackBar(content: Text("${driver.name} amefutwa")),
+                );
               } on Exception catch (e) {
-                if (!mounted) return;
-                _showErrorSnackBar("Hitilafu katika kufuta dereva: $e");
+                messenger.showSnackBar(
+                  SnackBar(
+                    content:
+                        Text("Hitilafu katika kufuta dereva: $e"),
+                    backgroundColor: ThemeConstants.errorRed,
+                  ),
+                );
               }
             },
             child: const Text(
@@ -1506,7 +1529,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   Future<void> _exportDrivers() async {
     if (kIsWeb) {
-      ThemeConstants.showErrorSnackBar(context, "Uhamishaji wa faili haupatikani kwenye web. Tumia simu/desktop.");
+      ThemeConstants.showErrorSnackBar(context,
+          "Uhamishaji wa faili haupatikani kwenye web. Tumia simu/desktop.");
       return;
     }
 
@@ -1514,14 +1538,16 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       final String csv = _buildDriversCsv(_drivers);
 
       final Directory dir = await getApplicationDocumentsDirectory();
-      final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final String timestamp =
+          DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final String filePath = "${dir.path}/boda_drivers_$timestamp.csv";
 
       final File file = File(filePath);
       await file.writeAsString(csv);
 
       if (!mounted) return;
-      ThemeConstants.showSuccessSnackBar(context, "Faili limehifadhiwa: $filePath");
+      ThemeConstants.showSuccessSnackBar(
+          context, "Faili limehifadhiwa: $filePath");
     } on Exception catch (e) {
       if (!mounted) return;
       _showErrorSnackBar("Imeshindikana kuhamisha data: $e");
@@ -1602,7 +1628,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
       final Set<String> headers = rows.first.keys.toSet();
       if (!headers.containsAll(required)) {
         if (mounted) {
-          _showErrorSnackBar("Faili halina vichwa sahihi. Vinavyotakiwa: name, phone_number");
+          _showErrorSnackBar(
+              "Faili halina vichwa sahihi. Vinavyotakiwa: name, phone_number");
         }
         return;
       }
@@ -1629,7 +1656,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
         }
       }
 
-      final String message = "Uingizaji umekamilika: $success mafanikio, $failed imeshindikana";
+      final String message =
+          "Uingizaji umekamilika: $success mafanikio, $failed imeshindikana";
       if (!mounted) return;
       if (failed == 0) {
         ThemeConstants.showSuccessSnackBar(context, message);
@@ -1646,18 +1674,22 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
 
   Future<void> _exportDriversTemplate() async {
     if (kIsWeb) {
-      ThemeConstants.showErrorSnackBar(context, "Upakuaji wa faili kwenye web haupatikani");
+      ThemeConstants.showErrorSnackBar(
+          context, "Upakuaji wa faili kwenye web haupatikani");
       return;
     }
     try {
-      const String header = 'name,email,phone_number,license_number,vehicle_number,vehicle_type,status';
-      const String example = 'John Doe,john@example.com,+255712345678,DL123456,T123ABC,pikipiki,active';
+      const String header =
+          'name,email,phone_number,license_number,vehicle_number,vehicle_type,status';
+      const String example =
+          'John Doe,john@example.com,+255712345678,DL123456,T123ABC,pikipiki,active';
       const String csv = '$header\n$example\n';
       final Directory dir = await getApplicationDocumentsDirectory();
       final String filePath = "${dir.path}/drivers_template.csv";
       await File(filePath).writeAsString(csv);
       if (!mounted) return;
-      ThemeConstants.showSuccessSnackBar(context, "Template imehifadhiwa: $filePath");
+      ThemeConstants.showSuccessSnackBar(
+          context, "Template imehifadhiwa: $filePath");
     } on Exception catch (e) {
       _showErrorSnackBar("Imeshindikana kutengeneza template: $e");
     }
@@ -1827,7 +1859,8 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
       Navigator.pop(context);
       widget.onDriverUpdated(updated);
 
-      ThemeConstants.showSuccessSnackBar(context, "Taarifa za dereva zimehifadhiwa.");
+      ThemeConstants.showSuccessSnackBar(
+          context, "Taarifa za dereva zimehifadhiwa.");
     } on Exception catch (e) {
       if (!mounted) return;
       ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuhariri: $e");
@@ -2097,7 +2130,8 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         Navigator.pop(context);
         widget.onDriverAdded();
 
-        ThemeConstants.showSuccessSnackBar(context, "Dereva ${_nameController.text} ameongezwa kikamilifu!");
+        ThemeConstants.showSuccessSnackBar(
+            context, "Dereva ${_nameController.text} ameongezwa kikamilifu!");
 
         // Debug: Print the response
         debugPrint('Driver creation response: $response');
@@ -2135,7 +2169,8 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
                   'Error navigating to Driver Agreement Screen: $navError');
               if (!mounted) return;
               // Show error to user
-              ThemeConstants.showErrorSnackBar(context, 'Hitilafu katika kuongoza kwenye makubaliano: $navError');
+              ThemeConstants.showErrorSnackBar(context,
+                  'Hitilafu katika kuongoza kwenye makubaliano: $navError');
             }
           } else {
             debugPrint(
@@ -2149,7 +2184,8 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kuongeza dereva: $e");
+        ThemeConstants.showErrorSnackBar(
+            context, "Hitilafu katika kuongeza dereva: $e");
       }
     } finally {
       if (mounted) {

@@ -34,7 +34,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
     super.initState();
     _paymentDate = DateTime.now();
     _dateCtrl.text = DateFormat('yyyy-MM-dd').format(_paymentDate);
-    _monthForCtrl.text = DateFormat('yyyy-MM').format(DateTime(_paymentDate.year, _paymentDate.month));
+    _monthForCtrl.text = DateFormat('yyyy-MM')
+        .format(DateTime(_paymentDate.year, _paymentDate.month));
     _driverId = widget.initialDriver?.id;
   }
 
@@ -74,7 +75,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
         _paymentDate = picked;
         _dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
         // Default month_for to selected date's month
-        _monthForCtrl.text = DateFormat('yyyy-MM').format(DateTime(picked.year, picked.month));
+        _monthForCtrl.text =
+            DateFormat('yyyy-MM').format(DateTime(picked.year, picked.month));
       });
     }
   }
@@ -121,7 +123,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
         'driver_id': _driverId,
         'amount': double.parse(_amountCtrl.text.trim()),
         'payment_date': _dateCtrl.text.trim(),
-        if (_monthForCtrl.text.trim().isNotEmpty) 'month_for': _monthForCtrl.text.trim(),
+        if (_monthForCtrl.text.trim().isNotEmpty)
+          'month_for': _monthForCtrl.text.trim(),
         if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
       };
       await _api.storeNewPayment(payload);
@@ -133,7 +136,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
       ThemeConstants.showSuccessSnackBar(context, 'Payment recorded');
       Navigator.pop(context);
     } on ApiException catch (e) {
-      ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuhifadhi: ${e.message}');
+      ThemeConstants.showErrorSnackBar(
+          context, 'Imeshindikana kuhifadhi: ${e.message}');
     } on Exception catch (e) {
       ThemeConstants.showErrorSnackBar(context, 'Hitilafu: $e');
     } finally {
@@ -162,8 +166,12 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          widget.initialDriver?.name ?? 'Driver ID: ${_driverId ?? ''}',
-                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                          widget.initialDriver?.name ??
+                              'Driver ID: ${_driverId ?? ''}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -173,7 +181,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
               const SizedBox(height: 12),
 
               // Amount
-              const Text('Kiasi (TSh)', style: TextStyle(color: Colors.white, fontSize: 13)),
+              const Text('Kiasi (TSh)',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountCtrl,
@@ -190,7 +199,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
               const SizedBox(height: 12),
 
               // Payment date
-              const Text('Tarehe ya Malipo', style: TextStyle(color: Colors.white, fontSize: 13)),
+              const Text('Tarehe ya Malipo',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _dateCtrl,
@@ -207,7 +217,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
               const SizedBox(height: 12),
 
               // Month for
-              const Text('Mwezi Unaohusika (hiari)', style: TextStyle(color: Colors.white, fontSize: 13)),
+              const Text('Mwezi Unaohusika (hiari)',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _monthForCtrl,
@@ -217,7 +228,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
               const SizedBox(height: 12),
 
               // Notes
-              const Text('Maelezo (hiari)', style: TextStyle(color: Colors.white, fontSize: 13)),
+              const Text('Maelezo (hiari)',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _notesCtrl,
@@ -234,7 +246,8 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ThemeConstants.primaryOrange,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -243,7 +256,10 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
                         const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white)),
                         ),
                         const SizedBox(width: 8),
                       ],

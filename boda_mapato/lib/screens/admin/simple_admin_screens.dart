@@ -53,10 +53,10 @@ class SimpleVehiclesManagementScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Magari"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -98,10 +98,10 @@ class SimplePaymentsManagementScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Malipo"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -143,10 +143,10 @@ class SimpleAnalyticsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Takwimu"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -188,10 +188,10 @@ class SimpleReportsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ripoti"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -233,10 +233,10 @@ class SimpleRemindersScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mikumbuzo"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -278,10 +278,10 @@ class SimpleReportScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ripoti"),
-        backgroundColor: const Color(0xFF1E40AF),
+        backgroundColor: ThemeConstants.primaryBlue,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFF1E40AF),
+      backgroundColor: ThemeConstants.primaryBlue,
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -9,7 +9,8 @@ import '../../utils/responsive_helper.dart';
 enum PredictionMode { auto, average, regression }
 
 class DriverPredictionScreen extends StatefulWidget {
-  const DriverPredictionScreen({required this.driverId, required this.driverName, super.key});
+  const DriverPredictionScreen(
+      {required this.driverId, required this.driverName, super.key});
   final String driverId;
   final String driverName;
 
@@ -25,7 +26,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
 
   // Data
   double _totalPaid = 0;
-  double _totalAmount = 0; // from agreement.total_amount|total_profit|expected_total
+  double _totalAmount =
+      0; // from agreement.total_amount|total_profit|expected_total
   DateTime? _startDate;
   DateTime? _endDate; // may be null for Dei Waka
   bool _weekendsCountable = true;
@@ -67,14 +69,22 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
         if (pdata is Map<String, dynamic>) {
           _totalPaid = _num(pdata['total_paid']);
           _totalAmount = _num(pdata['total_amount']);
-          _startDate = _parseDate(pdata['start_date'] ?? pdata['contract_start'] ?? pdata['agreement_start']);
-          _endDate = _parseDate(pdata['predicted_end'] ?? pdata['contract_end'] ?? pdata['agreement_end']);
-          final List<dynamic> ph = List<dynamic>.from(pdata['payment_history'] ?? <dynamic>[]);
+          _startDate = _parseDate(pdata['start_date'] ??
+              pdata['contract_start'] ??
+              pdata['agreement_start']);
+          _endDate = _parseDate(pdata['predicted_end'] ??
+              pdata['contract_end'] ??
+              pdata['agreement_end']);
+          final List<dynamic> ph =
+              List<dynamic>.from(pdata['payment_history'] ?? <dynamic>[]);
           // Build per-day map and chart from server history
           _perDay.clear();
           _spots.clear();
           _labels.clear();
-          ph.sort((a, b) => ((a as Map<String, dynamic>)['date'] ?? '').toString().compareTo(((b as Map<String, dynamic>)['date'] ?? '').toString()));
+          ph.sort((a, b) => ((a as Map<String, dynamic>)['date'] ?? '')
+              .toString()
+              .compareTo(
+                  ((b as Map<String, dynamic>)['date'] ?? '').toString()));
           double running = 0;
           for (int i = 0; i < ph.length; i++) {
             final Map<String, dynamic> item = ph[i] as Map<String, dynamic>;
@@ -91,8 +101,11 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
           // Prediction results from server if provided
           _onTrack = (pdata['on_track'] ?? false) == true;
           _predictedDate = _parseDate(pdata['predicted_date']);
-          _estimatedDelayDays = int.tryParse((pdata['estimated_delay_days'] ?? 0).toString()) ?? 0;
-          _confidenceDays = int.tryParse((pdata['confidence_days'] ?? '').toString());
+          _estimatedDelayDays =
+              int.tryParse((pdata['estimated_delay_days'] ?? 0).toString()) ??
+                  0;
+          _confidenceDays =
+              int.tryParse((pdata['confidence_days'] ?? '').toString());
           _weekendsCountable = (pdata['weekends_countable'] ?? true) == true;
           _satIncluded = (pdata['saturday_included'] ?? true) == true;
           _sunIncluded = (pdata['sunday_included'] ?? true) == true;
@@ -112,9 +125,12 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
         return;
       }
 
-      final agreementResp = await _api.getDriverAgreementByDriverId(widget.driverId);
+      final agreementResp =
+          await _api.getDriverAgreementByDriverId(widget.driverId);
       final dynamic aData = agreementResp['data'] ?? agreementResp;
-      if (aData is! Map<String, dynamic>) throw Exception('Agreement not found');
+      if (aData is! Map<String, dynamic>) {
+        throw Exception('Agreement not found');
+      }
 
       _totalAmount = _parseNum(aData['total_amount']) ??
           _parseNum(aData['total_profit']) ??
@@ -134,7 +150,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
       );
 
       final List<dynamic> rows = (history['data'] is Map)
-          ? List<dynamic>.from((history['data'] as Map<String, dynamic>)['data'] ?? <dynamic>[])
+          ? List<dynamic>.from(
+              (history['data'] as Map<String, dynamic>)['data'] ?? <dynamic>[])
           : (history['data'] is List)
               ? List<dynamic>.from(history['data'])
               : <dynamic>[];
@@ -143,8 +160,10 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
       final Map<DateTime, double> perDay = <DateTime, double>{};
       for (final dynamic r in rows) {
         if (r is! Map) continue;
-        final DateTime? d = _parseDate(r['date'] ?? r['paid_at'] ?? r['created_at']);
-        final double amt = _parseNum(r['amount'] ?? r['total'] ?? r['paid_amount']) ?? 0;
+        final DateTime? d =
+            _parseDate(r['date'] ?? r['paid_at'] ?? r['created_at']);
+        final double amt =
+            _parseNum(r['amount'] ?? r['total'] ?? r['paid_amount']) ?? 0;
         if (d == null) continue;
         final DateTime day = DateTime(d.year, d.month, d.day);
         perDay.update(day, (v) => v + amt, ifAbsent: () => amt);
@@ -195,7 +214,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     // Prefer regression when trend is stable and positive
     final _RegResult reg = _fitRegression(perDay);
     if (reg.valid && reg.r2 >= 0.6 && reg.a > 0) {
-      _applyPredictionFromIncludedDays((reg.xStarCeil - reg.xNow).clamp(0, 36500));
+      _applyPredictionFromIncludedDays(
+          (reg.xStarCeil - reg.xNow).clamp(0, 36500));
       return;
     }
     // Else use recency-weighted average (EWMA). If that yields zero, fallback to average
@@ -217,7 +237,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     }
     _predictedDate = pd;
     if (_endDate != null) {
-      final DateTime end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+      final DateTime end =
+          DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
       _onTrack = !pd.isAfter(end);
       _estimatedDelayDays = _onTrack ? 0 : pd.difference(end).inDays;
     } else {
@@ -238,9 +259,11 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     _applyPredictionFromIncludedDays(need);
   }
 
-  double _computeEwmaDailyRate(Map<DateTime, double> perDay, {int windowDays = 60, double alpha = 0.3}) {
+  double _computeEwmaDailyRate(Map<DateTime, double> perDay,
+      {int windowDays = 60, double alpha = 0.3}) {
     if (_startDate == null || perDay.isEmpty) return 0;
-    final DateTime startWindow = DateTime.now().subtract(Duration(days: windowDays));
+    final DateTime startWindow =
+        DateTime.now().subtract(Duration(days: windowDays));
     double ewma = 0;
     bool initialized = false;
     // iterate chronologically
@@ -283,7 +306,10 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     for (int i = 0; i < n; i++) {
       final double x = xs[i];
       final double y = ys[i];
-      sumx += x; sumy += y; sumxy += x * y; sumx2 += x * x;
+      sumx += x;
+      sumy += y;
+      sumxy += x * y;
+      sumx2 += x * x;
     }
     final double denom = (n * sumx2) - (sumx * sumx);
     if (denom.abs() < 1e-6) return _RegResult.invalid();
@@ -300,9 +326,10 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     }
     final double r2 = ssTot.abs() < 1e-6 ? 0 : 1 - (ssRes / ssTot);
     final int xNow = _countIncludedDays(_startDate!, DateTime.now());
-    final double xStar = ( _totalAmount - b ) / (a == 0 ? 1e-6 : a);
+    final double xStar = (_totalAmount - b) / (a == 0 ? 1e-6 : a);
     final int xStarCeil = xStar.isNaN || xStar.isInfinite ? xNow : xStar.ceil();
-    return _RegResult(valid: true, a: a, b: b, r2: r2, xNow: xNow, xStarCeil: xStarCeil);
+    return _RegResult(
+        valid: true, a: a, b: b, r2: r2, xNow: xNow, xStarCeil: xStarCeil);
   }
 
   void _computePredictionAverage(Map<DateTime, double> perDay) {
@@ -314,7 +341,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     }
 
     final DateTime today = DateTime.now();
-    final DateTime s = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+    final DateTime s =
+        DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
     final DateTime t = DateTime(today.year, today.month, today.day);
 
     int includedDays = 0;
@@ -347,7 +375,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     _predictedDate = pd;
 
     if (_endDate != null) {
-      final DateTime end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+      final DateTime end =
+          DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
       _onTrack = !pd.isAfter(end);
       _estimatedDelayDays = _onTrack ? 0 : pd.difference(end).inDays;
     } else {
@@ -384,21 +413,25 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     for (int i = 0; i < n; i++) {
       final double x = xs[i];
       final double y = ys[i];
-      sumx += x; sumy += y; sumxy += x * y; sumx2 += x * x;
+      sumx += x;
+      sumy += y;
+      sumxy += x * y;
+      sumx2 += x * x;
     }
     final double denom = (n * sumx2) - (sumx * sumx);
     if (denom.abs() < 1e-6) {
       _computePredictionAverage(perDay);
       return;
     }
-    final double a = ((n * sumxy) - (sumx * sumy)) / denom; // slope per included day
+    final double a =
+        ((n * sumxy) - (sumx * sumy)) / denom; // slope per included day
     final double b = (sumy / n) - a * (sumx / n);
     if (a <= 0) {
       _computePredictionAverage(perDay);
       return;
     }
     final int xNow = _countIncludedDays(_startDate!, DateTime.now());
-    double xStar = ( _totalAmount - b ) / a;
+    double xStar = (_totalAmount - b) / a;
     if (xStar.isNaN || xStar.isInfinite) {
       _computePredictionAverage(perDay);
       return;
@@ -413,7 +446,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     }
     _predictedDate = pd;
     if (_endDate != null) {
-      final DateTime end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+      final DateTime end =
+          DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
       _onTrack = !pd.isAfter(end);
       _estimatedDelayDays = _onTrack ? 0 : pd.difference(end).inDays;
     } else {
@@ -497,21 +531,36 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
                 label: const Text('Auto (Bora)'),
                 selected: _mode == PredictionMode.auto,
                 onSelected: (sel) {
-                  if (sel) setState(() { _mode = PredictionMode.auto; _recomputePrediction(); });
+                  if (sel) {
+                    setState(() {
+                      _mode = PredictionMode.auto;
+                      _recomputePrediction();
+                    });
+                  }
                 },
               ),
               ChoiceChip(
                 label: const Text('Wastani kwa siku'),
                 selected: _mode == PredictionMode.average,
                 onSelected: (sel) {
-                  if (sel) setState(() { _mode = PredictionMode.average; _recomputePrediction(); });
+                  if (sel) {
+                    setState(() {
+                      _mode = PredictionMode.average;
+                      _recomputePrediction();
+                    });
+                  }
                 },
               ),
               ChoiceChip(
                 label: const Text('Regression (Mstari)'),
                 selected: _mode == PredictionMode.regression,
                 onSelected: (sel) {
-                  if (sel) setState(() { _mode = PredictionMode.regression; _recomputePrediction(); });
+                  if (sel) {
+                    setState(() {
+                      _mode = PredictionMode.regression;
+                      _recomputePrediction();
+                    });
+                  }
                 },
               ),
             ],
@@ -522,11 +571,20 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
             spacing: 12,
             runSpacing: 12,
             children: <Widget>[
-              _summaryCard('Jumla ya Malipo', 'TSH ${_ts(_totalPaid)} kati ya ${_ts(_totalAmount)}', Icons.payments, ThemeConstants.primaryOrange),
-              _summaryCard('Deni lililobaki', 'TSH ${_ts(balance)}', Icons.account_balance_wallet, ThemeConstants.warningAmber),
-              _summaryCard('Maendeleo ya Mkataba',
-                  _endDate == null ? 'Siku $daysPassed' : 'Siku $daysPassed kati ya $totalDays',
-                  Icons.calendar_today, Colors.lightBlueAccent),
+              _summaryCard(
+                  'Jumla ya Malipo',
+                  'TSH ${_ts(_totalPaid)} kati ya ${_ts(_totalAmount)}',
+                  Icons.payments,
+                  ThemeConstants.primaryOrange),
+              _summaryCard('Deni lililobaki', 'TSH ${_ts(balance)}',
+                  Icons.account_balance_wallet, ThemeConstants.warningAmber),
+              _summaryCard(
+                  'Maendeleo ya Mkataba',
+                  _endDate == null
+                      ? 'Siku $daysPassed'
+                      : 'Siku $daysPassed kati ya $totalDays',
+                  Icons.calendar_today,
+                  Colors.lightBlueAccent),
             ],
           ),
           const SizedBox(height: 16),
@@ -557,25 +615,33 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
                                 reservedSize: 42,
                                 getTitlesWidget: (value, meta) => Text(
                                   _ts(value),
-                                  style: const TextStyle(color: Colors.white60, fontSize: 10),
+                                  style: const TextStyle(
+                                      color: Colors.white60, fontSize: 10),
                                 ),
                               ),
                             ),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
-                                interval: max(1, (_labels.length / 6).floorToDouble()),
+                                interval: max(
+                                    1, (_labels.length / 6).floorToDouble()),
                                 getTitlesWidget: (value, meta) {
                                   final int i = value.toInt();
                                   if (i >= 0 && i < _labels.length) {
-                                    return Text(_labels[i], style: const TextStyle(color: Colors.white60, fontSize: 10));
+                                    return Text(_labels[i],
+                                        style: const TextStyle(
+                                            color: Colors.white60,
+                                            fontSize: 10));
                                   }
                                   return const SizedBox.shrink();
                                 },
                               ),
                             ),
                           ),
-                          gridData: FlGridData(drawVerticalLine: false, getDrawingHorizontalLine: (v) => const FlLine(color: Colors.white12, strokeWidth: 1)),
+                          gridData: FlGridData(
+                              drawVerticalLine: false,
+                              getDrawingHorizontalLine: (v) => const FlLine(
+                                  color: Colors.white12, strokeWidth: 1)),
                           borderData: FlBorderData(show: false),
                           lineBarsData: [
                             LineChartBarData(
@@ -583,7 +649,10 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
                               isCurved: true,
                               color: ThemeConstants.primaryOrange,
                               barWidth: 3,
-                              belowBarData: BarAreaData(show: true, color: ThemeConstants.primaryOrange.withOpacity(0.15)),
+                              belowBarData: BarAreaData(
+                                  show: true,
+                                  color: ThemeConstants.primaryOrange
+                                      .withOpacity(0.15)),
                               dotData: const FlDotData(show: false),
                             ),
                           ],
@@ -607,7 +676,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     );
   }
 
-  Widget _summaryCard(String title, String value, IconData icon, Color color) => ThemeConstants.buildGlassCardStatic(
+  Widget _summaryCard(String title, String value, IconData icon, Color color) =>
+      ThemeConstants.buildGlassCardStatic(
         child: Container(
           constraints: const BoxConstraints(minWidth: 260),
           padding: const EdgeInsets.all(12),
@@ -619,9 +689,13 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(value,
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
@@ -660,7 +734,8 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(_onTrack ? Icons.check_circle : Icons.warning_amber, color: _onTrack ? Colors.greenAccent : Colors.amber),
+            Icon(_onTrack ? Icons.check_circle : Icons.warning_amber,
+                color: _onTrack ? Colors.greenAccent : Colors.amber),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -699,20 +774,32 @@ class _DriverPredictionScreenState extends State<DriverPredictionScreen> {
     DateTime s = DateTime(start.year, start.month, start.day);
     DateTime e = DateTime(end.year, end.month, end.day);
     if (e.isBefore(s)) {
-      final tmp = s; s = e; e = tmp;
+      final tmp = s;
+      s = e;
+      e = tmp;
     }
-    int count = 0; DateTime d = s;
+    int count = 0;
+    DateTime d = s;
     while (!d.isAfter(e)) {
       if (_isIncluded(d)) count++;
       d = d.add(const Duration(days: 1));
     }
-    return count == 0 ? 1 : count; // at least 1 if inclusive start=end day is included
+    return count == 0
+        ? 1
+        : count; // at least 1 if inclusive start=end day is included
   }
 }
 
 class _RegResult {
-  const _RegResult({required this.valid, required this.a, required this.b, required this.r2, required this.xNow, required this.xStarCeil});
-  factory _RegResult.invalid() => const _RegResult(valid: false, a: 0, b: 0, r2: 0, xNow: 0, xStarCeil: 0);
+  const _RegResult(
+      {required this.valid,
+      required this.a,
+      required this.b,
+      required this.r2,
+      required this.xNow,
+      required this.xStarCeil});
+  factory _RegResult.invalid() =>
+      const _RegResult(valid: false, a: 0, b: 0, r2: 0, xNow: 0, xStarCeil: 0);
 
   final bool valid;
   final double a;

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/login_response.dart';
 import '../services/api_service.dart';
@@ -78,7 +79,8 @@ class AuthProvider extends ChangeNotifier {
       final bool serverUp = await api.testConnectivity();
       if (!serverUp) {
         final String url = ApiService.baseUrl;
-        final String msg = 'Seva haipatikani: ' + url + '/health. Hakikisha simu yako na kompyuta yako ziko kwenye mtandao mmoja na bandari 8000 inaruhusiwa.';
+        final String msg =
+            'Seva haipatikani: $url/health. Hakikisha simu yako na kompyuta yako ziko kwenye mtandao mmoja na bandari 8000 inaruhusiwa.';
         _setError(msg);
         _errorMessage = msg;
         return false;
@@ -91,7 +93,8 @@ class AuthProvider extends ChangeNotifier {
       );
 
       // Extract token and optimistically save it
-      final Map<String, dynamic>? responseData = response["data"] as Map<String, dynamic>?;
+      final Map<String, dynamic>? responseData =
+          response["data"] as Map<String, dynamic>?;
       final String? token = responseData != null
           ? responseData["token"] as String?
           : response["token"] as String?;
@@ -100,13 +103,24 @@ class AuthProvider extends ChangeNotifier {
       }
 
       // Fetch fresh user profile from backend using the token we just saved
-      final Map<String, dynamic>? freshUser = await AuthService.getCurrentUser();
+      final Map<String, dynamic>? freshUser =
+          await AuthService.getCurrentUser();
       if (freshUser == null) {
-        throw Exception("Imeshindikana kupata taarifa za mtumiaji baada ya kuingia.");
+        throw Exception(
+            "Imeshindikana kupata taarifa za mtumiaji baada ya kuingia.");
       }
       _user = UserData.fromJson(freshUser);
 
       _isAuthenticated = true;
+
+      // Force service selection after every successful login by clearing any previous choice
+      try {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.remove('selected_service');
+      } on Exception catch (_) {
+        // ignore storage errors
+      }
+
       notifyListeners();
       return true;
     } on Exception catch (e) {
@@ -161,6 +175,14 @@ class AuthProvider extends ChangeNotifier {
       // Continue with logout even if server request fails
       debugPrint("Logout error: $e");
     } finally {
+      // Clear any persisted service choice so next login requires selection
+      try {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.remove('selected_service');
+      } on Exception catch (_) {
+        // ignore storage errors
+      }
+
       _user = null;
       _isAuthenticated = false;
       _clearError();
@@ -173,6 +195,13 @@ class AuthProvider extends ChangeNotifier {
       await AuthService.clearAuthData();
     } on Exception {
       // ignore
+    }
+    // Clear any persisted service choice so next login requires selection
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('selected_service');
+    } on Exception catch (_) {
+      // ignore storage errors
     }
     _user = null;
     _isAuthenticated = false;
@@ -260,11 +289,13 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     try {
       final api = ApiService();
-      final res = await api.uploadProfileImage(bytes: Uint8List.fromList(bytes), filename: filename);
+      final res = await api.uploadProfileImage(
+          bytes: Uint8List.fromList(bytes), filename: filename);
       // Try to get updated user from response
       Map<String, dynamic>? updated;
       if (res['data'] is Map && (res['data'] as Map)['user'] is Map) {
-        updated = Map<String, dynamic>.from((res['data'] as Map)['user'] as Map);
+        updated =
+            Map<String, dynamic>.from((res['data'] as Map)['user'] as Map);
       } else if (res['user'] is Map) {
         updated = Map<String, dynamic>.from(res['user'] as Map);
       }

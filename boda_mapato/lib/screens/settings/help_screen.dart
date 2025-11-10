@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
 
@@ -9,7 +10,8 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService localizationService = LocalizationService.instance;
+    final LocalizationService localizationService =
+        LocalizationService.instance;
 
     return Scaffold(
       backgroundColor: ThemeConstants.primaryBlue,
@@ -75,42 +77,42 @@ class HelpScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildFAQItem(
-                      localizationService.isSwahili 
-                        ? 'Je, ninawezaje kuongeza dereva mpya?'
-                        : 'How do I add a new driver?',
                       localizationService.isSwahili
-                        ? 'Nenda kwenye dashibodi, chagua "Madereva" na ubofye kitufe cha "Ongeza Dereva". Jaza taarifa zote muhimu na uhifadhi.'
-                        : 'Go to the dashboard, select "Drivers" and tap the "Add Driver" button. Fill in all required information and save.',
+                          ? 'Je, ninawezaje kuongeza dereva mpya?'
+                          : 'How do I add a new driver?',
+                      localizationService.isSwahili
+                          ? 'Nenda kwenye dashibodi, chagua "Madereva" na ubofye kitufe cha "Ongeza Dereva". Jaza taarifa zote muhimu na uhifadhi.'
+                          : 'Go to the dashboard, select "Drivers" and tap the "Add Driver" button. Fill in all required information and save.',
                       Icons.person_add,
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildFAQItem(
-                      localizationService.isSwahili 
-                        ? 'Ninawezeaje kurekodi malipo?'
-                        : 'How do I record a payment?',
                       localizationService.isSwahili
-                        ? 'Nenda kwenye sehemu ya "Malipo", chagua dereva na ingiza kiasi alicho lipa. Mfumo utaongeza malipo na kumshusha deni lake.'
-                        : 'Go to the "Payments" section, select a driver and enter the amount paid. The system will add the payment and reduce their debt.',
+                          ? 'Ninawezeaje kurekodi malipo?'
+                          : 'How do I record a payment?',
+                      localizationService.isSwahili
+                          ? 'Nenda kwenye sehemu ya "Malipo", chagua dereva na ingiza kiasi alicho lipa. Mfumo utaongeza malipo na kumshusha deni lake.'
+                          : 'Go to the "Payments" section, select a driver and enter the amount paid. The system will add the payment and reduce their debt.',
                       Icons.payment,
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildFAQItem(
-                      localizationService.isSwahili 
-                        ? 'Ninawezeaje kutengeneza risiti?'
-                        : 'How do I generate receipts?',
                       localizationService.isSwahili
-                        ? 'Nenda kwenye "Toa Risiti", chagua malipo yanayohitaji risiti na ubofye "Tengeneza Risiti". Unaweza kutuma risiti kwa barua pepe au WhatsApp.'
-                        : 'Go to "Generate Receipts", select payments that need receipts and tap "Generate Receipt". You can send receipts via email or WhatsApp.',
+                          ? 'Ninawezeaje kutengeneza risiti?'
+                          : 'How do I generate receipts?',
+                      localizationService.isSwahili
+                          ? 'Nenda kwenye "Toa Risiti", chagua malipo yanayohitaji risiti na ubofye "Tengeneza Risiti". Unaweza kutuma risiti kwa barua pepe au WhatsApp.'
+                          : 'Go to "Generate Receipts", select payments that need receipts and tap "Generate Receipt". You can send receipts via email or WhatsApp.',
                       Icons.receipt,
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildFAQItem(
-                      localizationService.isSwahili 
-                        ? 'Jinsi ya kubadilisha lugha ya programu?'
-                        : 'How to change app language?',
                       localizationService.isSwahili
-                        ? 'Nenda kwenye "Mipangilio" > "Lugha" na uchague lugha unayotaka. Programu itabadilisha lugha moja kwa moja.'
-                        : 'Go to "Settings" > "Language" and select your preferred language. The app will change language immediately.',
+                          ? 'Jinsi ya kubadilisha lugha ya programu?'
+                          : 'How to change app language?',
+                      localizationService.isSwahili
+                          ? 'Nenda kwenye "Mipangilio" > "Lugha" na uchague lugha unayotaka. Programu itabadilisha lugha moja kwa moja.'
+                          : 'Go to "Settings" > "Language" and select your preferred language. The app will change language immediately.',
                       Icons.language,
                     ),
                   ],
@@ -134,7 +136,9 @@ class HelpScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            localizationService.isSwahili ? 'Wasiliana na Msaada' : 'Contact Support',
+                            localizationService.isSwahili
+                                ? 'Wasiliana na Msaada'
+                                : 'Contact Support',
                             style: const TextStyle(
                               color: ThemeConstants.textPrimary,
                               fontSize: 16,
@@ -145,48 +149,62 @@ class HelpScreen extends StatelessWidget {
                       ),
                     ),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      leading: const Icon(Icons.email, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 4),
+                      leading: const Icon(Icons.email,
+                          color: ThemeConstants.textSecondary),
                       title: Text(
                         localizationService.isSwahili ? 'Barua pepe' : 'Email',
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
                       ),
                       subtitle: const Text(
                         'support@bodamapato.com',
                         style: TextStyle(color: ThemeConstants.textSecondary),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: () {
                         // Open email client
-                        _showContactInfo(context, localizationService.isSwahili 
-                          ? 'Fungua programu ya barua pepe kuwasiliana nasi' 
-                          : 'Open email app to contact us');
+                        _showContactInfo(
+                            context,
+                            localizationService.isSwahili
+                                ? 'Fungua programu ya barua pepe kuwasiliana nasi'
+                                : 'Open email app to contact us');
                       },
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      leading: const Icon(Icons.phone, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 4),
+                      leading: const Icon(Icons.phone,
+                          color: ThemeConstants.textSecondary),
                       title: Text(
                         localizationService.isSwahili ? 'Simu' : 'Phone',
-                        style: const TextStyle(color: ThemeConstants.textPrimary),
+                        style:
+                            const TextStyle(color: ThemeConstants.textPrimary),
                       ),
                       subtitle: const Text(
                         '+255 123 456 789',
                         style: TextStyle(color: ThemeConstants.textSecondary),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: () {
                         // Open phone dialer
-                        _showContactInfo(context, localizationService.isSwahili 
-                          ? 'Piga simu kwa msaada' 
-                          : 'Call for support');
+                        _showContactInfo(
+                            context,
+                            localizationService.isSwahili
+                                ? 'Piga simu kwa msaada'
+                                : 'Call for support');
                       },
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      leading: const Icon(Icons.chat, color: ThemeConstants.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 4),
+                      leading: const Icon(Icons.chat,
+                          color: ThemeConstants.textSecondary),
                       title: const Text(
                         'WhatsApp',
                         style: TextStyle(color: ThemeConstants.textPrimary),
@@ -195,12 +213,15 @@ class HelpScreen extends StatelessWidget {
                         '+255 123 456 789',
                         style: TextStyle(color: ThemeConstants.textSecondary),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: ThemeConstants.textSecondary),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: ThemeConstants.textSecondary),
                       onTap: () {
                         // Open WhatsApp
-                        _showContactInfo(context, localizationService.isSwahili 
-                          ? 'Tumia WhatsApp kuwasiliana nasi' 
-                          : 'Use WhatsApp to contact us');
+                        _showContactInfo(
+                            context,
+                            localizationService.isSwahili
+                                ? 'Tumia WhatsApp kuwasiliana nasi'
+                                : 'Use WhatsApp to contact us');
                       },
                     ),
                   ],
@@ -301,11 +322,10 @@ class HelpScreen extends StatelessWidget {
           children: [
             Icon(Icons.info, color: ThemeConstants.primaryOrange, size: 18.sp),
             SizedBox(width: 8.w),
-            Expanded(
+            const Expanded(
               child: AutoSizeText('Info',
-                  style: const TextStyle(color: ThemeConstants.textPrimary),
+                  style: TextStyle(color: ThemeConstants.textPrimary),
                   maxLines: 1,
-                  minFontSize: 12,
                   stepGranularity: 0.5),
             ),
           ],

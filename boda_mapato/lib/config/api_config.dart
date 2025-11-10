@@ -7,11 +7,12 @@ import "package:http/http.dart" as http;
 mixin ApiConfig {
   // Environment enum
   // Default to local for Flutter web/desktop running on the same machine as Laravel
-  static const String _environment = Environment.local;
+  static const String _environment = Environment.emulator;
 
   // Toggle verbose HTTP logging in debug builds only
-  static const bool enableHttpLogs = true; // TEMP: enable verbose HTTP logs for debugging login
-  
+  static const bool enableHttpLogs =
+      true; // TEMP: enable verbose HTTP logs for debugging login
+
   // Get base URL based on environment
   static String get baseUrl {
     switch (_environment) {

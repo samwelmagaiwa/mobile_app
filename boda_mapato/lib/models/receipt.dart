@@ -42,14 +42,16 @@ class Receipt {
     List<String> parseStringList(Object? v) {
       if (v == null) return <String>[];
       if (v is List) return v.map((e) => e.toString()).toList();
-      if (v is String) return v.split(',').where((s) => s.trim().isNotEmpty).toList();
+      if (v is String) {
+        return v.split(',').where((s) => s.trim().isNotEmpty).toList();
+      }
       return <String>[];
     }
 
     // Handle both regular receipts and pending receipts (payment) data
-    final bool isPendingPayment = json.containsKey('reference_number') && 
-                                  !json.containsKey('receipt_number');
-    
+    final bool isPendingPayment = json.containsKey('reference_number') &&
+        !json.containsKey('receipt_number');
+
     if (isPendingPayment) {
       // This is pending receipt data (payment-based)
       final driver = json['driver'] as Map<String, dynamic>? ?? {};
@@ -60,8 +62,12 @@ class Receipt {
         driverId: driver['id']?.toString() ?? '',
         driverName: driver['name']?.toString() ?? '',
         amount: parseDouble(json['amount']),
-        paymentChannel: (json['payment_channel'] ?? json['formatted_payment_channel'] ?? 'cash').toString(),
-        generatedAt: parseDateTime(json['payment_date'] ?? json['formatted_date']),
+        paymentChannel: (json['payment_channel'] ??
+                json['formatted_payment_channel'] ??
+                'cash')
+            .toString(),
+        generatedAt:
+            parseDateTime(json['payment_date'] ?? json['formatted_date']),
         vehicleNumber: driver['vehicle_number']?.toString(),
         remarks: json['remarks']?.toString(),
         paidDates: parseStringList(json['covered_days'] ?? json['covers_days']),
@@ -72,12 +78,15 @@ class Receipt {
       // This is regular receipt data
       return Receipt(
         id: (json['id'] ?? '').toString(),
-        receiptNumber: (json['receipt_number'] ?? json['number'] ?? '').toString(),
+        receiptNumber:
+            (json['receipt_number'] ?? json['number'] ?? '').toString(),
         paymentId: (json['payment_id'] ?? '').toString(),
         driverId: (json['driver_id'] ?? '').toString(),
-        driverName: (json['driver_name'] ?? json['driver']?['name'] ?? '').toString(),
+        driverName:
+            (json['driver_name'] ?? json['driver']?['name'] ?? '').toString(),
         amount: parseDouble(json['amount'] ?? json['total_amount']),
-        paymentChannel: (json['payment_channel'] ?? json['method'] ?? 'cash').toString(),
+        paymentChannel:
+            (json['payment_channel'] ?? json['method'] ?? 'cash').toString(),
         generatedAt: parseDateTime(json['generated_at'] ?? json['created_at']),
         vehicleNumber: json['vehicle_number']?.toString(),
         remarks: json['remarks']?.toString(),

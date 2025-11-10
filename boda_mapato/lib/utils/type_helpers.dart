@@ -131,9 +131,9 @@ class TypeHelpers {
   }
 
   /// Create a typed list from dynamic
-static List<T> createTypedList<T>(
+  static List<T> createTypedList<T>(
     final value,
-T Function(Object?) converter,
+    T Function(Object?) converter,
   ) {
     if (value is List) {
       return value.map((final item) => converter(item)).toList();

@@ -23,6 +23,11 @@ class CheckRole
             return redirect()->guest(route('login'));
         }
 
+        // Super Admin bypass
+        if (method_exists($request->user(), 'isSuperAdmin') && $request->user()->isSuperAdmin()) {
+            return $next($request);
+        }
+
         // Check if user has the required role
         if (!$request->user()->hasRole($role)) {
             if ($request->expectsJson()) {

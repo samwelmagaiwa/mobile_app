@@ -42,188 +42,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(final BuildContext context) => Consumer<LocalizationService>(
-    builder: (context, localizationService, child) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(
-            localizationService.translate("dashboard"),
-            style: AppStyles.heading2,
-          ),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          actions: <Widget>[
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _loadDashboardData,
+        builder: (context, localizationService, child) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              title: Text(
+                localizationService.translate("dashboard"),
+                style: AppStyles.heading2,
+              ),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              actions: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadDashboardData,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const RemindersScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.notifications),
+            body: RefreshIndicator(
+              onRefresh: _loadDashboardData,
+              child: SafeArea(
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) =>
+                      SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppStyles.spacingM),
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight:
+                            constraints.maxHeight - AppStyles.spacingM * 2,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          // Revenue Summary Cards
+                          const RevenueCardsSection(),
+
+                          const SizedBox(height: AppStyles.spacingL),
+
+                          // Quick Actions
+                          Text(
+                            localizationService.translate("quick_actions"),
+                            style: AppStyles.heading3,
+                          ),
+                          const SizedBox(height: AppStyles.spacingM),
+                          QuickActionsSection(
+                              localizationService: localizationService),
+
+                          const SizedBox(height: AppStyles.spacingL),
+
+                          // Recent Transactions
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Flexible(
+                                child: Text(
+                                  localizationService
+                                      .translate("recent_transactions"),
+                                  style: AppStyles.heading3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (final BuildContext context) =>
+                                          const TransactionsScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                    localizationService.translate("view_all")),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppStyles.spacingM),
+                          const RecentTransactionsSection(),
+
+                          const SizedBox(height: AppStyles.spacingL),
+
+                          // Device Status
+                          Text(
+                            localizationService.translate("device_status"),
+                            style: AppStyles.heading3,
+                          ),
+                          const SizedBox(height: AppStyles.spacingM),
+                          const DeviceStatusSection(),
+
+                          // Add bottom padding to ensure FAB doesn't overlap content
+                          const SizedBox(height: AppStyles.spacingXL),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            bottomNavigationBar: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textSecondary,
+              items: <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.dashboard),
+                  label: localizationService.translate("dashboard"),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.account_balance_wallet),
+                  label: localizationService.translate("transactions"),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.receipt),
+                  label: localizationService.translate("generate_receipt"),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.assessment),
+                  label: localizationService.translate("reports"),
+                ),
+              ],
+              onTap: (final int index) {
+                switch (index) {
+                  case 0:
+                    // Already on dashboard
+                    break;
+                  case 1:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const TransactionsScreen(),
+                      ),
+                    );
+                  case 2:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const ReceiptScreen(),
+                      ),
+                    );
+                  case 3:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (final BuildContext context) =>
+                            const ReportScreen(),
+                      ),
+                    );
+                }
+              },
+            ),
+            floatingActionButton: FloatingActionButton(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (final BuildContext context) =>
-                        const RemindersScreen(),
+                        const DeviceSelectionScreen(),
                   ),
                 );
               },
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add, color: Colors.white),
             ),
-          ],
-        ),
-        body: RefreshIndicator(
-          onRefresh: _loadDashboardData,
-          child: SafeArea(
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) =>
-                  SingleChildScrollView(
-                padding: const EdgeInsets.all(AppStyles.spacingM),
-                physics: const BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - AppStyles.spacingM * 2,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      // Revenue Summary Cards
-                      const RevenueCardsSection(),
-
-                      const SizedBox(height: AppStyles.spacingL),
-
-                      // Quick Actions
-                      Text(
-                        localizationService.translate("quick_actions"),
-                        style: AppStyles.heading3,
-                      ),
-                      const SizedBox(height: AppStyles.spacingM),
-                      QuickActionsSection(localizationService: localizationService),
-
-                      const SizedBox(height: AppStyles.spacingL),
-
-                      // Recent Transactions
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              localizationService.translate("recent_transactions"),
-                              style: AppStyles.heading3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (final BuildContext context) =>
-                                      const TransactionsScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(localizationService.translate("view_all")),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppStyles.spacingM),
-                      const RecentTransactionsSection(),
-
-                      const SizedBox(height: AppStyles.spacingL),
-
-                      // Device Status
-                      Text(
-                        localizationService.translate("device_status"),
-                        style: AppStyles.heading3,
-                      ),
-                      const SizedBox(height: AppStyles.spacingM),
-                      const DeviceStatusSection(),
-
-                      // Add bottom padding to ensure FAB doesn't overlap content
-                      const SizedBox(height: AppStyles.spacingXL),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.dashboard),
-              label: localizationService.translate("dashboard"),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.account_balance_wallet),
-              label: localizationService.translate("transactions"),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.receipt),
-              label: localizationService.translate("generate_receipt"),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.assessment),
-              label: localizationService.translate("reports"),
-            ),
-          ],
-          onTap: (final int index) {
-            switch (index) {
-              case 0:
-                // Already on dashboard
-                break;
-              case 1:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (final BuildContext context) =>
-                        const TransactionsScreen(),
-                  ),
-                );
-              case 2:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (final BuildContext context) =>
-                        const ReceiptScreen(),
-                  ),
-                );
-              case 3:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (final BuildContext context) =>
-                        const ReportScreen(),
-                  ),
-                );
-            }
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (final BuildContext context) =>
-                    const DeviceSelectionScreen(),
-              ),
-            );
-          },
-          backgroundColor: AppColors.primary,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
+          );
+        },
       );
-    },
-  );
 }
 
 class QuickActionsSection extends StatelessWidget {
   const QuickActionsSection({required this.localizationService, super.key});
-  
+
   final LocalizationService localizationService;
 
   @override

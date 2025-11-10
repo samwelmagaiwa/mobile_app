@@ -186,100 +186,110 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) => Scaffold(
         backgroundColor: ThemeConstants.primaryBlue,
-        appBar: ThemeConstants.buildAppBar(localizationService.translate('debt_records'), actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDrivers,
-          ),
-        ]),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
-        child: SafeArea(
-          child: Column(
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: TextField(
-                        controller: _search,
-                        style:
-                            const TextStyle(color: ThemeConstants.textPrimary),
-                        decoration: InputDecoration(
-                          hintText:
-                              localizationService.translate('search_driver_hint'),
-                          hintStyle: const TextStyle(
-                              color: ThemeConstants.textSecondary),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.08),
-                          prefixIcon:
-                              const Icon(Icons.search, color: Colors.white70),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+        appBar: ThemeConstants.buildAppBar(
+            localizationService.translate('debt_records'),
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadDrivers,
+              ),
+            ]),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
+          child: SafeArea(
+            child: Column(
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: TextField(
+                          controller: _search,
+                          style: const TextStyle(
+                              color: ThemeConstants.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: localizationService
+                                .translate('search_driver_hint'),
+                            hintStyle: const TextStyle(
+                                color: ThemeConstants.textSecondary),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.08),
+                            prefixIcon:
+                                const Icon(Icons.search, color: Colors.white70),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: _loading ? null : _openCreateForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ThemeConstants.primaryOrange,
-                        foregroundColor: Colors.white,
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: _loading ? null : _openCreateForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ThemeConstants.primaryOrange,
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.add),
+                        label:
+                            Text(localizationService.translate('record_debt')),
                       ),
-                      icon: const Icon(Icons.add),
-                      label: Text(localizationService.translate('record_debt')),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: ThemeConstants.primaryOrange,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    tabs: <Widget>[
+                      Tab(text: localizationService.translate('with_debts')),
+                      Tab(text: localizationService.translate('without_debts')),
+                      Tab(text: localizationService.translate('all')),
+                    ],
+                  ),
                 ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: ThemeConstants.primaryOrange,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white70,
-                  tabs: <Widget>[
-                    Tab(text: localizationService.translate('with_debts')),
-                    Tab(text: localizationService.translate('without_debts')),
-                    Tab(text: localizationService.translate('all')),
-                  ],
+                const SizedBox(height: 8),
+                // Month/Year quick filter chips
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 8,
+                    children: <Widget>[
+                      _buildFilterChip(
+                          localizationService.translate('this_month'),
+                          MonthFilter.mweziHuu),
+                      _buildFilterChip(
+                          localizationService.translate('last_month'),
+                          MonthFilter.mweziUliopita),
+                      _buildFilterChip(
+                          localizationService.translate('this_year'),
+                          MonthFilter.mwakaHuu),
+                      _buildFilterChip(localizationService.translate('all'),
+                          MonthFilter.zote),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              // Month/Year quick filter chips
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  children: <Widget>[
-                    _buildFilterChip(localizationService.translate('this_month'), MonthFilter.mweziHuu),
-                    _buildFilterChip(localizationService.translate('last_month'), MonthFilter.mweziUliopita),
-                    _buildFilterChip(localizationService.translate('this_year'), MonthFilter.mwakaHuu),
-                    _buildFilterChip(localizationService.translate('all'), MonthFilter.zote),
-                  ],
+                const SizedBox(height: 8),
+                Expanded(
+                  child: _loading
+                      ? ThemeConstants.buildLoadingWidget()
+                      : _error != null
+                          ? _buildError()
+                          : _buildList(),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: _loading
-                    ? ThemeConstants.buildLoadingWidget()
-                    : _error != null
-                        ? _buildError()
-                        : _buildList(),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -320,9 +330,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
             const SizedBox(height: 8),
             Consumer<LocalizationService>(
               builder: (context, localizationService, child) => Text(
-                localizationService.translate('no_results'), 
-                style: const TextStyle(color: Colors.white70)
-              ),
+                  localizationService.translate('no_results'),
+                  style: const TextStyle(color: Colors.white70)),
             ),
           ],
         ),
@@ -354,7 +363,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
   Widget _buildDriverTile(Driver d) {
     final bool hasDebt = d.totalDebt > 0;
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => ThemeConstants.buildGlassCard(
+      builder: (context, localizationService, child) =>
+          ThemeConstants.buildGlassCard(
         onTap: () => _openDriverRecords(d),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -365,7 +375,8 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                 children: <Widget>[
                   CircleAvatar(
                     backgroundColor: ThemeConstants.cardColor,
-                    child: Text(d.name.isNotEmpty ? d.name[0].toUpperCase() : '?',
+                    child: Text(
+                        d.name.isNotEmpty ? d.name[0].toUpperCase() : '?',
                         style: const TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(width: 10),
@@ -395,7 +406,9 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            hasDebt ? localizationService.translate('has_debt') : localizationService.translate('no_debt'),
+                            hasDebt
+                                ? localizationService.translate('has_debt')
+                                : localizationService.translate('no_debt'),
                             style: TextStyle(
                               color: hasDebt
                                   ? ThemeConstants.errorRed
@@ -420,9 +433,14 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
                     spacing: 8,
                     runSpacing: 8,
                     children: <Widget>[
-                      _infoBox(Icons.badge, '${localizationService.translate('license')}: ${d.licenseNumber}', colW),
-                      _infoBox(Icons.payments,
-                          '${localizationService.translate('debt')}: ${d.totalDebt.toStringAsFixed(0)}', colW),
+                      _infoBox(
+                          Icons.badge,
+                          '${localizationService.translate('license')}: ${d.licenseNumber}',
+                          colW),
+                      _infoBox(
+                          Icons.payments,
+                          '${localizationService.translate('debt')}: ${d.totalDebt.toStringAsFixed(0)}',
+                          colW),
                       _infoBox(
                           Icons.event_available,
                           hasDebt && d.dueDates.isNotEmpty
@@ -490,7 +508,6 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
             side: BorderSide(color: Colors.white.withOpacity(0.25))),
       );
 
-
   void _openCreateForm() {
     _openDetailForm(null);
   }
@@ -556,6 +573,10 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
   void initState() {
     super.initState();
     _selectedDriver = widget.driver;
+    // If a driver object was injected but has an empty/unknown id, clear it
+    if (_selectedDriver != null && _selectedDriver!.id.trim().isEmpty) {
+      _selectedDriver = null;
+    }
     if (_selectedDriver == null) {
       _fetchDrivers();
     } else {
@@ -586,7 +607,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
 
   Future<void> _fetchAgreementForDriver(String driverId) async {
     try {
-      final Map<String, dynamic> res = await _api.getDriverAgreementByDriverId(driverId);
+      final Map<String, dynamic> res =
+          await _api.getDriverAgreementByDriverId(driverId);
       final Map<String, dynamic>? data = res['data'] as Map<String, dynamic>?;
       double defAmount = 0;
       if (data != null) {
@@ -822,10 +844,27 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
     // If a driver is already selected (e.g., launched from a driver row), show the card and a change button
     if (_selectedDriver != null) {
       final Driver d = _selectedDriver!;
+      final bool invalidInjected = d.id.trim().isEmpty || (!_allDrivers.any((Driver x) => x.id == d.id) && _allDrivers.isNotEmpty);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _buildDriverCard(d),
+          if (invalidInjected) ...<Widget>[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+              ),
+              child: const Text(
+                'Dereva aliyetolewa si sahihi kwenye mfumo. Tafadhali bofya "Badilisha dereva" kisha chagua dereva halali. ',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -838,7 +877,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          if (_agreementDefaultAmount != null || _agreementFrequencies.isNotEmpty)
+          if (_agreementDefaultAmount != null ||
+              _agreementFrequencies.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -858,7 +898,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w600)),
                   if (_agreementDefaultAmount != null)
-                    Text('Kiasi chaguo-msingi: TSH ${_agreementDefaultAmount!.toStringAsFixed(0)}',
+                    Text(
+                        'Kiasi chaguo-msingi: TSH ${_agreementDefaultAmount!.toStringAsFixed(0)}',
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w600)),
                 ],
@@ -1203,6 +1244,8 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
     }).toList();
   }
 
+  bool _isKnownDriver(String id) => _allDrivers.any((Driver d) => d.id == id);
+
   Future<void> _submit() async {
     if (_selectedDates.isEmpty) {
       _showSnack('Ongeza angalau tarehe moja ya deni');
@@ -1210,9 +1253,13 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
     }
     if (!_formKey.currentState!.validate()) return;
 
-    final String driverId = _selectedDriver?.id ?? widget.driver?.id ?? '';
-    if (driverId.isEmpty) {
-      _showSnack('Tafadhali chagua dereva kwanza');
+    final String driverId = _selectedDriver?.id.trim() ?? widget.driver?.id.trim() ?? '';
+    if (driverId.isEmpty || !_isKnownDriver(driverId)) {
+      _showSnack('Tafadhali chagua dereva sahihi kwanza');
+      // If drivers not loaded yet, fetch to populate dropdown
+      if (_allDrivers.isEmpty) {
+        await _fetchDrivers();
+      }
       return;
     }
 
@@ -1245,12 +1292,12 @@ class _DebtRecordFormScreenState extends State<DebtRecordFormScreen> {
       } on Exception catch (_) {
         debugPrint('Provider notification failed');
       }
-      
+
       // Emit events to notify other screens of debt changes
       AppEvents.instance.emit(AppEventType.debtsUpdated);
       AppEvents.instance.emit(AppEventType.receiptsUpdated);
       AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
-      
+
       _showSnack('Madeni yamehifadhiwa kikamilifu', success: true);
       Navigator.pop(context, true);
     } on Exception catch (e) {

@@ -1,13 +1,13 @@
 import 'dart:async';
+
 import "package:flutter/material.dart";
-import "package:provider/provider.dart";
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:auto_size_text/auto_size_text.dart';
+import "package:provider/provider.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
-import "../../services/localization_service.dart";
 import "../../services/app_events.dart";
+import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
 class ReportScreen extends StatefulWidget {
@@ -38,7 +38,6 @@ class _ReportScreenState extends State<ReportScreen> {
         case AppEventType.dashboardShouldRefresh:
         case AppEventType.debtsUpdated:
           if (mounted) _generateReport();
-          break;
       }
     });
   }
@@ -47,9 +46,11 @@ class _ReportScreenState extends State<ReportScreen> {
       {required DateTime start, required DateTime end}) {
     Map<String, dynamic> m = raw ?? <String, dynamic>{};
     // If backend wraps in { data: {...} }
-    if (m['data'] is Map<String, dynamic>) m = Map<String, dynamic>.from(m['data']);
+    if (m['data'] is Map<String, dynamic>) {
+      m = Map<String, dynamic>.from(m['data']);
+    }
 
-    num parseNum(dynamic v) {
+    num parseNum(v) {
       if (v is num) return v;
       if (v is String) return num.tryParse(v.replaceAll(',', '')) ?? 0;
       return 0;
@@ -65,26 +66,38 @@ class _ReportScreenState extends State<ReportScreen> {
 
     // Try direct totals (cover many backend variants)
     num totalRevenue = firstNum(m, [
-      'total_revenue', 'revenue_total', 'total', 'total_income', 'grand_total',
-      'total_collected', 'total_paid', 'payments_total', 'collections_total',
-      'debt_payments_total', 'income_total'
+      'total_revenue',
+      'revenue_total',
+      'total',
+      'total_income',
+      'grand_total',
+      'total_collected',
+      'total_paid',
+      'payments_total',
+      'collections_total',
+      'debt_payments_total',
+      'income_total'
     ]);
-    num totalExpenses = firstNum(m, ['total_expenses', 'expenses_total', 'expense_total']);
+    num totalExpenses =
+        firstNum(m, ['total_expenses', 'expenses_total', 'expense_total']);
 
     // Try nested maps if direct missing
     if (totalRevenue == 0 && m['revenue'] is Map<String, dynamic>) {
       totalRevenue = firstNum(Map<String, dynamic>.from(m['revenue']), [
-        'total_revenue', 'revenue_total', 'total', 'total_income', 'grand_total'
+        'total_revenue',
+        'revenue_total',
+        'total',
+        'total_income',
+        'grand_total'
       ]);
     }
     if (totalExpenses == 0 && m['expenses'] is Map<String, dynamic>) {
-      totalExpenses = firstNum(Map<String, dynamic>.from(m['expenses']), [
-        'total_expenses', 'expenses_total', 'total'
-      ]);
+      totalExpenses = firstNum(Map<String, dynamic>.from(m['expenses']),
+          ['total_expenses', 'expenses_total', 'total']);
     }
 
     // If backend returns daily_data over a range, sum within [start, end]
-    num sumDaily(dynamic daily) {
+    num sumDaily(daily) {
       num s = 0;
       if (daily is List) {
         for (final e in daily) {
@@ -94,12 +107,15 @@ class _ReportScreenState extends State<ReportScreen> {
               final DateTime? dt = DateTime.tryParse(d);
               if (dt != null) {
                 final DateTime dd = DateTime(dt.year, dt.month, dt.day);
-                if (!dd.isBefore(DateTime(start.year, start.month, start.day)) &&
+                if (!dd.isBefore(
+                        DateTime(start.year, start.month, start.day)) &&
                     !dd.isAfter(DateTime(end.year, end.month, end.day))) {
-                  s += firstNum(e, ['amount', 'total', 'revenue', 'paid', 'value']);
+                  s += firstNum(
+                      e, ['amount', 'total', 'revenue', 'paid', 'value']);
                 }
               } else {
-                s += firstNum(e, ['amount', 'total', 'revenue', 'paid', 'value']);
+                s += firstNum(
+                    e, ['amount', 'total', 'revenue', 'paid', 'value']);
               }
             }
           }
@@ -109,14 +125,21 @@ class _ReportScreenState extends State<ReportScreen> {
     }
 
     // Last-resort: sum amounts from lists when totals missing
-    num sumAmounts(dynamic list) {
+    num sumAmounts(list) {
       num s = 0;
       if (list is List) {
         for (final e in list) {
           if (e is Map<String, dynamic>) {
             s += firstNum(e, [
-              'amount', 'total', 'revenue', 'paid', 'paid_amount', 'amount_paid',
-              'amount_received', 'received', 'value'
+              'amount',
+              'total',
+              'revenue',
+              'paid',
+              'paid_amount',
+              'amount_paid',
+              'amount_received',
+              'received',
+              'value'
             ]);
           }
         }
@@ -125,12 +148,24 @@ class _ReportScreenState extends State<ReportScreen> {
     }
 
     if (totalRevenue == 0) {
-      if (m['daily_data'] is List) totalRevenue = sumDaily(m['daily_data']);
-      if (totalRevenue == 0 && m['transactions'] is List) totalRevenue = sumAmounts(m['transactions']);
-      if (totalRevenue == 0 && m['payments'] is List) totalRevenue = sumAmounts(m['payments']);
-      if (totalRevenue == 0 && m['revenues'] is List) totalRevenue = sumAmounts(m['revenues']);
-      if (totalRevenue == 0 && m['items'] is List) totalRevenue = sumAmounts(m['items']);
-      if (totalRevenue == 0 && m['data'] is List) totalRevenue = sumAmounts(m['data']);
+      if (m['daily_data'] is List) {
+        totalRevenue = sumDaily(m['daily_data']);
+      }
+      if (totalRevenue == 0 && m['transactions'] is List) {
+        totalRevenue = sumAmounts(m['transactions']);
+      }
+      if (totalRevenue == 0 && m['payments'] is List) {
+        totalRevenue = sumAmounts(m['payments']);
+      }
+      if (totalRevenue == 0 && m['revenues'] is List) {
+        totalRevenue = sumAmounts(m['revenues']);
+      }
+      if (totalRevenue == 0 && m['items'] is List) {
+        totalRevenue = sumAmounts(m['items']);
+      }
+      if (totalRevenue == 0 && m['data'] is List) {
+        totalRevenue = sumAmounts(m['data']);
+      }
     }
 
     // Transaction count from common shapes
@@ -160,14 +195,18 @@ class _ReportScreenState extends State<ReportScreen> {
       'transaction_count': transactionCount,
       'average_per_day': averagePerDay,
       // Preserve any progress fields if provided
-      if (m['progress_percent'] != null) 'progress_percent': parseNum(m['progress_percent']),
-      if (m['goal_progress'] != null) 'goal_progress': parseNum(m['goal_progress']),
-      if (m['revenue_growth'] != null) 'revenue_growth': parseNum(m['revenue_growth']),
+      if (m['progress_percent'] != null)
+        'progress_percent': parseNum(m['progress_percent']),
+      if (m['goal_progress'] != null)
+        'goal_progress': parseNum(m['goal_progress']),
+      if (m['revenue_growth'] != null)
+        'revenue_growth': parseNum(m['revenue_growth']),
     };
   }
 
-  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 0, 0, 0);
-  DateTime _endOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
+  DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
+  DateTime _endOfDay(DateTime d) =>
+      DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
 
   Future<void> _loadInitialData() async {
     // Generate using the full pipeline (with fallbacks) on first load
@@ -197,7 +236,7 @@ class _ReportScreenState extends State<ReportScreen> {
     });
 
     try {
-      Map<String, dynamic>? reportData;
+      late Map<String, dynamic> reportData;
 
       // Always send a full-day range for accuracy
       final DateTime start = _startOfDay(_startDate);
@@ -210,19 +249,16 @@ class _ReportScreenState extends State<ReportScreen> {
             startDate: start,
             endDate: end,
           );
-          break;
         case 'expense':
           reportData = await _apiService.getExpenseReport(
             startDate: start,
             endDate: end,
           );
-          break;
         case 'profit_loss':
           reportData = await _apiService.getProfitLossReport(
             startDate: start,
             endDate: end,
           );
-          break;
         default:
           // For daily/weekly/monthly, use revenue report as default
           reportData = await _apiService.getRevenueReport(
@@ -231,14 +267,16 @@ class _ReportScreenState extends State<ReportScreen> {
           );
       }
 
-      Map<String, dynamic> normalized =
-          _normalizeSummary(reportData != null ? Map<String, dynamic>.from(reportData!) : null,
-              start: start, end: end);
+      Map<String, dynamic> normalized = _normalizeSummary(
+          Map<String, dynamic>.from(reportData),
+          start: start,
+          end: end);
 
       // Fallback: if revenue total is still zero, try aggregating from payment history
       if (((normalized['total_revenue'] as num?) ?? 0) == 0) {
         try {
-          final Map<String, dynamic> paymentsResp = await _apiService.getPaymentHistory(
+          final Map<String, dynamic> paymentsResp =
+              await _apiService.getPaymentHistory(
             startDate: start,
             endDate: end,
             limit: 1000,
@@ -250,11 +288,13 @@ class _ReportScreenState extends State<ReportScreen> {
               ...normalized,
               // ensure totals reflect actual collections
               'total_revenue': fromPayments['total_revenue'],
-              'transaction_count': fromPayments['transaction_count'] ?? normalized['transaction_count'],
-              'average_per_day': fromPayments['average_per_day'] ?? normalized['average_per_day'],
+              'transaction_count': fromPayments['transaction_count'] ??
+                  normalized['transaction_count'],
+              'average_per_day': fromPayments['average_per_day'] ??
+                  normalized['average_per_day'],
             };
           }
-        } catch (_) {
+        } on Exception catch (_) {
           // ignore fallback errors
         }
       }
@@ -427,7 +467,7 @@ class _ReportScreenState extends State<ReportScreen> {
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Miamala",
-value: _currentReportData != null
+                  value: _currentReportData != null
                       ? "${_currentReportData!['transaction_count'] ?? 0}"
                       : "0",
                   icon: Icons.receipt_long,
@@ -439,7 +479,7 @@ value: _currentReportData != null
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Vyombo",
-value: _currentReportData != null
+                  value: _currentReportData != null
                       ? "${_currentReportData!['vehicle_count'] ?? 0}"
                       : "0",
                   icon: Icons.directions_car,
@@ -455,7 +495,7 @@ value: _currentReportData != null
               Expanded(
                 child: _buildEnhancedStatCard(
                   title: "Wastani",
-value: _currentReportData != null
+                  value: _currentReportData != null
                       ? "TSh ${_formatCurrency(_currentReportData!['average_per_day'] ?? 0)}"
                       : "TSh 0",
                   icon: Icons.trending_up,
@@ -465,12 +505,14 @@ value: _currentReportData != null
               ),
               const SizedBox(width: 12),
               Expanded(
-child: _buildEnhancedStatCard(
+                child: _buildEnhancedStatCard(
                   title: "Faida",
                   value: (() {
-                    final num tr = (_currentReportData?['total_revenue'] as num?) ?? 0;
-                    final num te = (_currentReportData?['total_expenses'] as num?) ?? 0;
-                    final double p = tr == 0 ? 0 : (((tr - te) / tr) * 100).toDouble();
+                    final num tr =
+                        (_currentReportData?['total_revenue'] as num?) ?? 0;
+                    final num te =
+                        (_currentReportData?['total_expenses'] as num?) ?? 0;
+                    final double p = tr == 0 ? 0 : (((tr - te) / tr) * 100);
                     return "${p.toStringAsFixed(0)}%";
                   })(),
                   icon: Icons.show_chart,
@@ -518,7 +560,7 @@ child: _buildEnhancedStatCard(
                           ),
                         ),
                         const SizedBox(height: 4),
-Text(
+                        Text(
                           _currentReportData != null
                               ? "TSh ${_formatCurrency((_currentReportData!['total_revenue'] ?? 0) as num)}"
                               : "TSh 0",
@@ -531,23 +573,23 @@ Text(
                       ],
                     ),
                   ),
-if ((_currentReportData?['revenue_growth'] as num?) != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: ThemeConstants.successGreen.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "+${((_currentReportData?['revenue_growth'] as num?) ?? 0).toString()}%",
-                      style: const TextStyle(
-                        color: ThemeConstants.successGreen,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                  if ((_currentReportData?['revenue_growth'] as num?) != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.successGreen.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "+${(_currentReportData?['revenue_growth'] as num?) ?? 0}%",
+                        style: const TextStyle(
+                          color: ThemeConstants.successGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -561,10 +603,14 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: FractionallySizedBox(
-                    widthFactor: (((_currentReportData?['progress_percent'] as num?)?.toDouble() ??
-                                (_currentReportData?['goal_progress'] as num?)?.toDouble() ??
-                                0) / 100)
-                            .clamp(0.0, 1.0),
+                    widthFactor: (((_currentReportData?['progress_percent']
+                                        as num?)
+                                    ?.toDouble() ??
+                                (_currentReportData?['goal_progress'] as num?)
+                                    ?.toDouble() ??
+                                0) /
+                            100)
+                        .clamp(0.0, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
                         color: ThemeConstants.successGreen,
@@ -575,7 +621,7 @@ if ((_currentReportData?['revenue_growth'] as num?) != null)
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "${(((_currentReportData?['progress_percent'] as num?)?.toDouble() ?? (_currentReportData?['goal_progress'] as num?)?.toDouble() ?? 0)).toStringAsFixed(0)}% ya lengo",
+                  "${((_currentReportData?['progress_percent'] as num?)?.toDouble() ?? (_currentReportData?['goal_progress'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}% ya lengo",
                   style: const TextStyle(
                     color: ThemeConstants.textSecondary,
                     fontSize: 12,
@@ -1016,7 +1062,8 @@ class _ReportPreviewDialog extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: ThemeConstants.textPrimary),
+                    icon: const Icon(Icons.close,
+                        color: ThemeConstants.textPrimary),
                   ),
                 ],
               ),
@@ -1046,10 +1093,14 @@ class _ReportPreviewDialog extends StatelessWidget {
               // Report Data (no mock defaults)
               Builder(
                 builder: (context) {
-                  final num totalRevenue = (reportData?['total_revenue'] as num?) ?? 0;
-                  final num totalExpenses = (reportData?['total_expenses'] as num?) ?? 0;
-                  final int transactionCount = (reportData?['transaction_count'] as int?) ?? 0;
-                  final num averagePerDay = (reportData?['average_per_day'] as num?) ?? 0;
+                  final num totalRevenue =
+                      (reportData?['total_revenue'] as num?) ?? 0;
+                  final num totalExpenses =
+                      (reportData?['total_expenses'] as num?) ?? 0;
+                  final int transactionCount =
+                      (reportData?['transaction_count'] as int?) ?? 0;
+                  final num averagePerDay =
+                      (reportData?['average_per_day'] as num?) ?? 0;
                   final num netProfit = totalRevenue - totalExpenses;
                   return Column(
                     children: <Widget>[

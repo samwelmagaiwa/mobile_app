@@ -60,13 +60,15 @@ class DemoLanguageScreen extends StatelessWidget {
                             ),
                             const Spacer(),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                localizationService.currentLanguage.toUpperCase(),
+                                localizationService.currentLanguage
+                                    .toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -79,7 +81,7 @@ class DemoLanguageScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Demo Content
                   Expanded(
                     child: Container(
@@ -115,7 +117,7 @@ class DemoLanguageScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Sample UI Elements
                           _buildDemoTile(
                             localizationService,
@@ -142,7 +144,7 @@ class DemoLanguageScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Language Switch Buttons
                   Row(
                     children: [
@@ -152,12 +154,14 @@ class DemoLanguageScreen extends StatelessWidget {
                             await localizationService.changeLanguage('sw');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: localizationService.currentLanguage == 'sw'
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.2),
-                            foregroundColor: localizationService.currentLanguage == 'sw'
-                                ? const Color(0xFF1E40AF)
-                                : Colors.white,
+                            backgroundColor:
+                                localizationService.currentLanguage == 'sw'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.2),
+                            foregroundColor:
+                                localizationService.currentLanguage == 'sw'
+                                    ? const Color(0xFF1E40AF)
+                                    : Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -176,12 +180,14 @@ class DemoLanguageScreen extends StatelessWidget {
                             await localizationService.changeLanguage('en');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: localizationService.currentLanguage == 'en'
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.2),
-                            foregroundColor: localizationService.currentLanguage == 'en'
-                                ? const Color(0xFF1E40AF)
-                                : Colors.white,
+                            backgroundColor:
+                                localizationService.currentLanguage == 'en'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.2),
+                            foregroundColor:
+                                localizationService.currentLanguage == 'en'
+                                    ? const Color(0xFF1E40AF)
+                                    : Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -204,7 +210,8 @@ class DemoLanguageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDemoTile(LocalizationService localizationService, IconData icon, String title) {
+  Widget _buildDemoTile(
+      LocalizationService localizationService, IconData icon, String title) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),

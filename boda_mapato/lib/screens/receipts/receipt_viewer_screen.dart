@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../models/receipt.dart';
@@ -65,7 +65,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       });
 
       final response = await _api.getReceipt(widget.receipt.id);
-      
+
       if (response['success'] == true) {
         // Prefill contact with driver's phone (fallback to email) if empty and store detail payload
         final dynamic data = response['data'];
@@ -84,15 +84,15 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
           }
         }
         if (mounted && _contactController.text.trim().isEmpty) {
-          _contactController.text = (phone != null && phone.isNotEmpty)
-              ? phone
-              : (email ?? '');
+          _contactController.text =
+              (phone != null && phone.isNotEmpty) ? phone : (email ?? '');
         }
         setState(() {
           _isLoading = false;
         });
       } else {
-        throw Exception(response['message'] ?? 'Imeshindikana kupakia maelezo ya risiti');
+        throw Exception(
+            response['message'] ?? 'Imeshindikana kupakia maelezo ya risiti');
       }
     } on Exception catch (e) {
       setState(() {
@@ -104,7 +104,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
 
   Future<void> _resendReceipt() async {
     if (_contactController.text.trim().isEmpty) {
-      ThemeConstants.showErrorSnackBar(context, LocalizationService.instance.translate('phone_or_email_required'));
+      ThemeConstants.showErrorSnackBar(context,
+          LocalizationService.instance.translate('phone_or_email_required'));
       return;
     }
 
@@ -119,16 +120,19 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         contactInfo: _contactController.text.trim(),
         message: msg,
       );
-      
+
       if (response['success'] == true) {
         if (!mounted) return;
-        ThemeConstants.showSuccessSnackBar(context, LocalizationService.instance.translate('receipt_resent'));
+        ThemeConstants.showSuccessSnackBar(
+            context, LocalizationService.instance.translate('receipt_resent'));
       } else {
-        throw Exception(response['message'] ?? LocalizationService.instance.translate('failed_to_send_receipt'));
+        throw Exception(response['message'] ??
+            LocalizationService.instance.translate('failed_to_send_receipt'));
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      ThemeConstants.showErrorSnackBar(context, '${LocalizationService.instance.translate('error')}: ${e.toString().replaceFirst('Exception: ', '')}');
+      ThemeConstants.showErrorSnackBar(context,
+          '${LocalizationService.instance.translate('error')}: ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -137,8 +141,12 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
   String _composeMessage() {
     final r = widget.receipt;
     final l10n = LocalizationService.instance;
-    final String days = r.paidDates.isNotEmpty ? '\\n' + l10n.translate('days') + ': ' + r.paidDates.join(', ') : '';
-    final String remarks = (r.remarks != null && r.remarks!.isNotEmpty) ? '\\n' + l10n.translate('remarks') + ': ' + r.remarks! : '';
+    final String days = r.paidDates.isNotEmpty
+        ? '\\n${l10n.translate('days')}: ${r.paidDates.join(', ')}'
+        : '';
+    final String remarks = (r.remarks != null && r.remarks!.isNotEmpty)
+        ? '\\n${l10n.translate('remarks')}: ${r.remarks!}'
+        : '';
     return '${l10n.translate('receipt')} ${r.receiptNumber}\\n${l10n.translate('amount')}: TSH ${r.amount.toStringAsFixed(0)}$days$remarks';
   }
 
@@ -190,7 +198,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                 ),
-                child: Text(LocalizationService.instance.translate('try_again')),
+                child:
+                    Text(LocalizationService.instance.translate('try_again')),
               ),
             ],
           ),
@@ -269,13 +278,15 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: _getStatusColor(widget.receipt.status),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    LocalizationService.instance.translate('receipt_status_${widget.receipt.status.toLowerCase()}'),
+                    LocalizationService.instance.translate(
+                        'receipt_status_${widget.receipt.status.toLowerCase()}'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12.sp,
@@ -305,12 +316,12 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-'TSH ${_formatCurrency(widget.receipt.amount)}',
-            style: TextStyle(
-              color: ThemeConstants.textPrimary,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-            ),
+                    'TSH ${_formatCurrency(widget.receipt.amount)}',
+                    style: TextStyle(
+                      color: ThemeConstants.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -337,14 +348,26 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
               ),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow(LocalizationService.instance.translate('receipt_number'), widget.receipt.receiptNumber),
-            _buildDetailRow(LocalizationService.instance.translate('payment_id'), _extractPaymentId()),
-            _buildDetailRow(LocalizationService.instance.translate('driver'), widget.receipt.driverName),
-            if (widget.receipt.vehicleNumber != null && widget.receipt.vehicleNumber!.isNotEmpty)
-              _buildDetailRow(LocalizationService.instance.translate('vehicle_plate'), widget.receipt.vehicleNumber!),
-            _buildDetailRow(LocalizationService.instance.translate('generated_date'), _formatDate(widget.receipt.generatedAt)),
-            if (widget.receipt.remarks != null && widget.receipt.remarks!.isNotEmpty)
-              _buildDetailRow(LocalizationService.instance.translate('remarks'), widget.receipt.remarks!),
+            _buildDetailRow(
+                LocalizationService.instance.translate('receipt_number'),
+                widget.receipt.receiptNumber),
+            _buildDetailRow(
+                LocalizationService.instance.translate('payment_id'),
+                _extractPaymentId()),
+            _buildDetailRow(LocalizationService.instance.translate('driver'),
+                widget.receipt.driverName),
+            if (widget.receipt.vehicleNumber != null &&
+                widget.receipt.vehicleNumber!.isNotEmpty)
+              _buildDetailRow(
+                  LocalizationService.instance.translate('vehicle_plate'),
+                  widget.receipt.vehicleNumber!),
+            _buildDetailRow(
+                LocalizationService.instance.translate('generated_date'),
+                _formatDate(widget.receipt.generatedAt)),
+            if (widget.receipt.remarks != null &&
+                widget.receipt.remarks!.isNotEmpty)
+              _buildDetailRow(LocalizationService.instance.translate('remarks'),
+                  widget.receipt.remarks!),
           ],
         ),
       ),
@@ -367,10 +390,15 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
               ),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow(LocalizationService.instance.translate('amount'), 'TSH ${_formatCurrency(widget.receipt.amount)}'),
-            _buildDetailRow(LocalizationService.instance.translate('payment_method'), widget.receipt.paymentChannelDisplayName),
+            _buildDetailRow(LocalizationService.instance.translate('amount'),
+                'TSH ${_formatCurrency(widget.receipt.amount)}'),
+            _buildDetailRow(
+                LocalizationService.instance.translate('payment_method'),
+                widget.receipt.paymentChannelDisplayName),
             if (widget.receipt.paidDates.isNotEmpty)
-              _buildDetailRow(LocalizationService.instance.translate('covered_days'), _formatPaidDates(widget.receipt.paidDates)),
+              _buildDetailRow(
+                  LocalizationService.instance.translate('covered_days'),
+                  _formatPaidDates(widget.receipt.paidDates)),
           ],
         ),
       ),
@@ -389,7 +417,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
             Expanded(
               child: Text(
                 '${LocalizationService.instance.translate('trips')}: $trips',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -402,16 +431,17 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
     // Try multiple possible locations
     final d = _detail;
     String? s;
-    String? _as(dynamic v) => v == null ? null : v.toString();
+    String? as(v) => v?.toString();
     if (d != null) {
-      s = _as(d['payment_id']) ?? _as(d['paymentId']);
+      s = as(d['payment_id']) ?? as(d['paymentId']);
       if ((s == null || s.isEmpty) && d['payment'] is Map<String, dynamic>) {
         final p = d['payment'] as Map<String, dynamic>;
-        s = _as(p['id']) ?? _as(p['payment_id']);
+        s = as(p['id']) ?? as(p['payment_id']);
       }
-      if ((s == null || s.isEmpty) && d['receipt_data'] is Map<String, dynamic>) {
+      if ((s == null || s.isEmpty) &&
+          d['receipt_data'] is Map<String, dynamic>) {
         final rd = d['receipt_data'] as Map<String, dynamic>;
-        s = _as(rd['payment_id']) ?? _as(rd['paymentId']);
+        s = as(rd['payment_id']) ?? as(rd['paymentId']);
       }
     }
     return (s != null && s.isNotEmpty) ? s : widget.receipt.paymentId;
@@ -430,7 +460,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
       }
       final dynamic rd = d['receipt_data'];
       if (rd is Map<String, dynamic>) {
-        final dynamic nested = rd['trips_total'] ?? rd['trips'] ?? rd['total_trips'];
+        final dynamic nested =
+            rd['trips_total'] ?? rd['trips'] ?? rd['total_trips'];
         if (nested is num) return nested.toInt();
         if (nested is String) {
           final int? v = int.tryParse(nested);
@@ -451,12 +482,14 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.orangeAccent, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                LocalizationService.instance.translate('outstanding_info_message'),
-                style: TextStyle(color: Colors.white),
+                LocalizationService.instance
+                    .translate('outstanding_info_message'),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -492,9 +525,13 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
             ),
             const SizedBox(height: 12),
             if (widget.receipt.sentAt != null)
-              _buildDetailRow(LocalizationService.instance.translate('sent_date'), _formatDate(widget.receipt.sentAt!)),
-            if (widget.receipt.sentTo != null && widget.receipt.sentTo!.isNotEmpty)
-              _buildDetailRow(LocalizationService.instance.translate('sent_to'), widget.receipt.sentTo!),
+              _buildDetailRow(
+                  LocalizationService.instance.translate('sent_date'),
+                  _formatDate(widget.receipt.sentAt!)),
+            if (widget.receipt.sentTo != null &&
+                widget.receipt.sentTo!.isNotEmpty)
+              _buildDetailRow(LocalizationService.instance.translate('sent_to'),
+                  widget.receipt.sentTo!),
           ],
         ),
       ),
@@ -522,10 +559,13 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
               style: const TextStyle(color: Colors.white),
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: LocalizationService.instance.translate('phone_or_email'),
-                hintText: _contactController.text.isEmpty ? 'Mf. +2557XXXXXXX' : null,
+                labelText:
+                    LocalizationService.instance.translate('phone_or_email'),
+                hintText:
+                    _contactController.text.isEmpty ? 'Mf. +2557XXXXXXX' : null,
                 hintStyle: const TextStyle(color: ThemeConstants.textSecondary),
-                labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                labelStyle:
+                    const TextStyle(color: ThemeConstants.textSecondary),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.06),
                 enabledBorder: OutlineInputBorder(
@@ -534,7 +574,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
+                  borderSide:
+                      const BorderSide(color: ThemeConstants.primaryOrange),
                 ),
               ),
             ),
@@ -561,7 +602,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen>
                         ),
                       )
                     : const Icon(Icons.send),
-                label: Text(_isSending ? LocalizationService.instance.translate('sending') : LocalizationService.instance.translate('send_again')),
+                label: Text(_isSending
+                    ? LocalizationService.instance.translate('sending')
+                    : LocalizationService.instance.translate('send_again')),
               ),
             ),
           ],

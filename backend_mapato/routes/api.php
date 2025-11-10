@@ -18,6 +18,11 @@ use App\Http\Controllers\API\PaymentReceiptController;
 use App\Http\Controllers\API\CommunicationController;
 use App\Http\Controllers\DriverAgreementController;
 use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\Inventory\ProductController as InventoryProductController;
+use App\Http\Controllers\Inventory\CustomerController as InventoryCustomerController;
+use App\Http\Controllers\Inventory\SalesController as InventorySalesController;
+use App\Http\Controllers\Inventory\StockMovementController as InventoryStockMovementController;
+use App\Http\Controllers\Inventory\ReminderController as InventoryReminderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -198,6 +203,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('two-factor', [\App\Http\Controllers\API\SecurityController::class, 'setTwoFactor']);
         Route::get('login-history', [\App\Http\Controllers\API\SecurityController::class, 'getLoginHistory']);
     });
+
+    // Inventory (all authenticated roles)
+    Route::get('inventory/products', [InventoryProductController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('products', [InventoryProductController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/products', [InventoryProductController::class, 'store'])->middleware('role_any:admin,manager');
+    Route::put('inventory/products/{id}', [InventoryProductController::class, 'update'])->middleware('role_any:admin,manager');
+    Route::get('inventory/customers', [InventoryCustomerController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('customers', [InventoryCustomerController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/customers', [InventoryCustomerController::class, 'store'])->middleware('role_any:admin,manager');
+    Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update'])->middleware('role_any:admin,manager');
+    Route::get('inventory/sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager');
+    Route::post('sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager');
+    Route::post('stock-movements', [InventoryStockMovementController::class, 'store'])->middleware('role_any:admin,manager');
+    Route::get('inventory/reminders', [InventoryReminderController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::put('inventory/reminders/{id}/done', [InventoryReminderController::class, 'markDone'])->middleware('role_any:admin,manager,sales_officer');
+    Route::put('inventory/reminders/{id}/snooze', [InventoryReminderController::class, 'snooze'])->middleware('role_any:admin,manager,sales_officer');
 
     // Admin routes (Vehicle Owner/Admin only)
     Route::middleware(['role:admin'])->group(function () {

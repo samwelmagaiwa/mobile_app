@@ -140,24 +140,6 @@ class DriverData {
     this.emergencyContact,
   });
 
-  static double _toDouble(dynamic v) {
-    if (v == null) return 0.0;
-    if (v is num) return v.toDouble();
-    if (v is String) {
-      final String cleaned = v.replaceAll(RegExp(r'[^0-9\.-]'), '');
-      return double.tryParse(cleaned) ?? 0.0;
-    }
-    return 0.0;
-  }
-
-  static int _toInt(dynamic v) {
-    if (v == null) return 0;
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
-  }
-
   factory DriverData.fromJson(final Map<String, dynamic> json) => DriverData(
         id: (json["id"] as String?) ?? "",
         userId: (json["user_id"] as String?) ?? "",
@@ -173,6 +155,25 @@ class DriverData {
         totalTrips: _toInt(json["total_trips"]),
         totalEarnings: _toDouble(json["total_earnings"]),
       );
+
+  static double _toDouble(v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    if (v is String) {
+      final String cleaned = v.replaceAll(RegExp(r'[^0-9\.-]'), '');
+      return double.tryParse(cleaned) ?? 0.0;
+    }
+    return 0;
+  }
+
+  static int _toInt(v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
   final String id;
   final String userId;
   final String licenseNumber;

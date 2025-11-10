@@ -5,8 +5,13 @@ import '../utils/responsive_helper.dart';
 
 class ThemeConstants {
   // Modern theme colors - matching admin dashboard
-  static const Color primaryBlue =
-      Color(0xFF1E40AF); // Deep blue from admin dashboard image
+  static const Color primaryBlue = Color(0xFF0D3D4D); // Dark teal base
+  // Background gradient to match the shared image (dark teal to deep cyan)
+  static const Color bgTop = Color(0xFF04121A); // very dark blue-teal (top)
+  static const Color bgMid = Color(0xFF092D3A); // mid deep teal-blue
+  static const Color bgBottom = Color(0xFF0D485A); // bottom brighter teal-blue
+  static const Color footerBarColor =
+      Color(0xFF1BA3C7); // bright cyan-blue as in reference footer
   static const Color primaryGradientStart = Color(0xFF667eea);
   static const Color primaryGradientEnd = Color(0xFF764ba2);
   static const Color cardColor = Color(0x1AFFFFFF);
@@ -17,12 +22,37 @@ class ThemeConstants {
   static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
 
+  // Inventory teal-cyan palette (for consistent design across inventory pages)
+  // 30% alpha teal fill, 25% alpha cyan border, vivid cyan accent, neutral chip ~28% alpha
+  static const Color invFill = Color(0x4D0F6C7D); // rgba(15,108,125,0.30)
+  static const Color invBorder = Color(0x4020B8CE); // rgba(32,184,206,0.25)
+  static const Color invAccent = Color(0xFF20B8CE); // cyan accent
+  static const Color invCard = Color(0xE60B5B6B); // rgba(11,91,107,0.90)
+  static const Color invNeutralChip = Color(0x4720B8CE); // ~28% alpha cyan
+
+  // App/dashboard background decoration (gradient)
+  static const BoxDecoration dashboardBackground = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [bgTop, bgMid, bgBottom],
+      stops: [0.0, 0.55, 1.0],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+  );
+
   // Glass card decoration
   static BoxDecoration glassCardDecoration = BoxDecoration(
     color: cardColor,
     borderRadius: BorderRadius.circular(20.r),
-    border: Border.all(color: Colors.white.withOpacity(0.2)),
-    boxShadow: <BoxShadow>[],
+    border: Border.all(color: Colors.white.withOpacity(0.18)),
+    boxShadow: const <BoxShadow>[],
+  );
+
+  // Inventory card decoration (teal tint)
+  static BoxDecoration invCardDecoration = BoxDecoration(
+    color: invCard,
+    borderRadius: BorderRadius.circular(14.r),
+    border: Border.all(color: invBorder),
   );
 
   // Standard app bar theme
@@ -35,7 +65,7 @@ class ThemeConstants {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: primaryBlue,
+        backgroundColor: bgTop,
         foregroundColor: textPrimary,
         elevation: 0,
         actions: actions,
@@ -77,6 +107,27 @@ class ThemeConstants {
         ),
       );
 
+  // Convenience: inventory input decoration (teal/cyan)
+  static InputDecoration invInputDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: captionStyle,
+        filled: true,
+        fillColor: invFill,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14.r),
+          borderSide: const BorderSide(color: invBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14.r),
+          borderSide: const BorderSide(color: invBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14.r),
+          borderSide: const BorderSide(color: invAccent, width: 1.4),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      );
+
   // Standard scaffold with blue background
   static Widget buildScaffold({
     required String title,
@@ -86,11 +137,16 @@ class ThemeConstants {
     Widget? drawer,
   }) =>
       Scaffold(
-        backgroundColor: primaryBlue,
+        backgroundColor: Colors.transparent,
         appBar: buildAppBar(title, actions: actions),
-        body: DecoratedBox(
-          decoration: const BoxDecoration(color: primaryBlue),
-          child: SafeArea(child: body),
+        body: Stack(
+          children: [
+            const DecoratedBox(
+              decoration: dashboardBackground,
+              child: SizedBox.expand(),
+            ),
+            SafeArea(child: body),
+          ],
         ),
         floatingActionButton: floatingActionButton,
         drawer: drawer,
@@ -119,28 +175,28 @@ class ThemeConstants {
 
   // Text styles
   static TextStyle get headingStyle => TextStyle(
-    color: textPrimary,
-    fontSize: 18.sp,
-    fontWeight: FontWeight.bold,
-  );
+        color: textPrimary,
+        fontSize: 18.sp,
+        fontWeight: FontWeight.bold,
+      );
 
   static TextStyle get subHeadingStyle => TextStyle(
-    color: textSecondary,
-    fontSize: 16.sp,
-    fontWeight: FontWeight.w600,
-  );
+        color: textSecondary,
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w600,
+      );
 
   static TextStyle get bodyStyle => TextStyle(
-    color: textPrimary,
-    fontSize: 14.sp,
-    fontWeight: FontWeight.normal,
-  );
+        color: textPrimary,
+        fontSize: 14.sp,
+        fontWeight: FontWeight.normal,
+      );
 
   static TextStyle get captionStyle => TextStyle(
-    color: textSecondary,
-    fontSize: 12.sp,
-    fontWeight: FontWeight.normal,
-  );
+        color: textSecondary,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.normal,
+      );
 
   // Top snackbar utility methods - truly positions at TOP of screen
   static void _showTopSnackBar(
@@ -152,7 +208,7 @@ class ThemeConstants {
   }) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: MediaQuery.of(context).padding.top + 10,
@@ -202,9 +258,9 @@ class ThemeConstants {
         ),
       ),
     );
-    
+
     overlay.insert(overlayEntry);
-    
+
     // Auto-remove after duration
     Future.delayed(duration ?? const Duration(seconds: 3), () {
       overlayEntry.remove();
@@ -213,7 +269,7 @@ class ThemeConstants {
 
   static void showSuccessSnackBar(BuildContext context, String message) {
     _showTopSnackBar(
-      context, 
+      context,
       message,
       backgroundColor: successGreen,
       icon: Icons.check_circle,
@@ -222,7 +278,7 @@ class ThemeConstants {
 
   static void showErrorSnackBar(BuildContext context, String message) {
     _showTopSnackBar(
-      context, 
+      context,
       message,
       backgroundColor: errorRed,
       icon: Icons.error,
@@ -231,7 +287,7 @@ class ThemeConstants {
 
   static void showWarningSnackBar(BuildContext context, String message) {
     _showTopSnackBar(
-      context, 
+      context,
       message,
       backgroundColor: warningAmber,
       icon: Icons.warning,

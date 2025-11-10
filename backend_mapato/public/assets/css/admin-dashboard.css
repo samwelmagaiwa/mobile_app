@@ -891,6 +891,13 @@ body {
   }
 }
 
+/* Super Admin badge styling */
+.nav-badge.badge-super-admin {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #111827;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
 /* Utility Classes */
 .text-center { text-align: center; }
 .text-right { text-align: right; }

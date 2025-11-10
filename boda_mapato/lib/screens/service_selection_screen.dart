@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/localization_service.dart';
 import '../constants/theme_constants.dart';
+import '../services/localization_service.dart';
 
 class ServiceSelectionScreen extends StatelessWidget {
   const ServiceSelectionScreen({super.key});
@@ -19,16 +19,26 @@ class ServiceSelectionScreen extends StatelessWidget {
     switch (service) {
       case 'inventory':
         if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/inventory');
+          await Navigator.pushReplacementNamed(context, '/inventory');
         }
-        break;
+        return;
       case 'rental':
+        if (context.mounted) {
+          await Navigator.pushReplacementNamed(context, '/coming-soon',
+              arguments: service);
+        }
+        return;
       case 'transport':
+        if (context.mounted) {
+          await Navigator.pushReplacementNamed(context, '/modern-dashboard');
+        }
+        return;
       default:
         if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/coming-soon', arguments: service);
+          await Navigator.pushReplacementNamed(context, '/coming-soon',
+              arguments: service);
         }
-        break;
+        return;
     }
   }
 
@@ -47,7 +57,6 @@ class ServiceSelectionScreen extends StatelessWidget {
               AutoSizeText(
                 loc.translate('select_service_subtitle'),
                 maxLines: 2,
-                minFontSize: 12,
                 style: ThemeConstants.subHeadingStyle,
               ),
               SizedBox(height: 16.h),
@@ -85,7 +94,8 @@ class ServiceSelectionScreen extends StatelessWidget {
 }
 
 class _ServiceTile extends StatelessWidget {
-  const _ServiceTile({required this.icon, required this.label, required this.onTap});
+  const _ServiceTile(
+      {required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -95,32 +105,42 @@ class _ServiceTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16.r),
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white24),
-        ),
-        padding: EdgeInsets.all(16.w),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 56.w,
-              height: 56.w,
+              width: 80.w,
+              height: 80.w,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.blue.shade700,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 28.sp),
+              child: Icon(icon, color: Colors.white, size: 40.sp),
             ),
-            SizedBox(height: 12.h),
-            AutoSizeText(
-              label,
-              maxLines: 1,
-              minFontSize: 12,
-              style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
+            SizedBox(height: 8.h),
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: AutoSizeText(
+                  label,
+                  maxLines: 2,
+                  minFontSize: 10,
+                  maxFontSize: 14,
+                  overflow: TextOverflow.ellipsis,
+                  style: ThemeConstants.bodyStyle
+                      .copyWith(fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ],
         ),
