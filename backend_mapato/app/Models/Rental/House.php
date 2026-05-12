@@ -24,7 +24,52 @@ class House extends Model
         'water_meter',
         'status',
         'current_tenant_id',
+        'floor',
+        'bedrooms',
+        'bathrooms',
+        'square_meters',
+        'description',
     ];
+
+    protected $casts = [
+        'rent_amount' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'bedrooms' => 'integer',
+        'bathrooms' => 'integer',
+        'square_meters' => 'integer',
+    ];
+
+    /**
+     * House type options.
+     */
+    public static function houseTypes(): array
+    {
+        return [
+            'apartment' => 'Apartment',
+            'room' => 'Room',
+            'commercial' => 'Commercial',
+            'studio' => 'Studio',
+            'bedroom' => 'Bedroom',
+            'single_room' => 'Single Room',
+            'bedsitter' => 'Bedsitter',
+            'one_bedroom' => '1 Bedroom',
+            'two_bedroom' => '2 Bedroom',
+            'three_bedroom' => '3 Bedroom',
+        ];
+    }
+
+    /**
+     * Status options.
+     */
+    public static function statuses(): array
+    {
+        return [
+            'vacant' => 'Vacant',
+            'occupied' => 'Occupied',
+            'maintenance' => 'Under Maintenance',
+            'reserved' => 'Reserved',
+        ];
+    }
 
     public function property()
     {
@@ -49,5 +94,36 @@ class House extends Model
     public function activeAgreement()
     {
         return $this->hasOne(RentalAgreement::class)->where('status', 'active');
+    }
+
+    public function bills()
+    {
+        return $this->hasManyThrough(RentBill::class, RentalAgreement::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasManyThrough(RentalPayment::class, RentalAgreement::class);
+    }
+
+    /**
+     * Check if house is vacant.
+     */
+    public function getIsVacantAttribute(): bool
+    {
+        return $this->status === 'vacant';
+    }
+
+    /**
+     * Get display identifier.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $parts = array_filter([
+            $this->property?->name,
+            $this->block?->name,
+            $this->house_number,
+        ]);
+        return implode(' - ', $parts);
     }
 }

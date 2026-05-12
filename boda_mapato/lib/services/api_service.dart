@@ -266,6 +266,7 @@ class ApiService {
   Future<Map<String, dynamic>> _get(
     final String endpoint, {
     final bool requireAuth = true,
+    final Map<String, dynamic>? queryParams,
   }) async {
     try {
       final Map<String, String> headers =
@@ -275,9 +276,14 @@ class ApiService {
       if (requireAuth && !headers.containsKey("Authorization")) {
         throw ApiException("Hauruhusiwi - tafadhali ingia tena");
       }
+
+      final Uri uri = Uri.parse("$baseUrl$endpoint").replace(
+        queryParameters: queryParams?.map((key, value) => MapEntry(key, value.toString())),
+      );
+
       final http.Response response = await http
           .get(
-            Uri.parse("$baseUrl$endpoint"),
+            uri,
             headers: headers,
           )
           .timeout(timeoutDuration);
@@ -803,9 +809,38 @@ class ApiService {
   Future<Map<String, dynamic>> getRentalProperties() async =>
       _get("/rental/properties");
 
+  Future<Map<String, dynamic>> getRentalPropertiesPaginated({
+    int page = 1,
+    String? search,
+    String? status,
+    int perPage = 15,
+  }) async {
+    final queryParams = {
+      'page': page.toString(),
+      'per_page': perPage.toString(),
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (status != null) 'status': status,
+    };
+    return _get("/rental/properties", queryParams: queryParams);
+  }
+
+  Future<Map<String, dynamic>> getRentalPropertyDetails(
+          String propertyId) async =>
+      _get("/rental/properties/$propertyId");
+
+  Future<Map<String, dynamic>> getRentalPropertyStats() async =>
+      _get("/rental/properties/stats");
+
   Future<Map<String, dynamic>> addRentalProperty(
           Map<String, dynamic> data) async =>
       _post("/rental/properties", data);
+
+  Future<Map<String, dynamic>> updateRentalProperty(
+          String propertyId, Map<String, dynamic> data) async =>
+      _put("/rental/properties/$propertyId", data);
+
+  Future<Map<String, dynamic>> deleteRentalProperty(String propertyId) async =>
+      _delete("/rental/properties/$propertyId");
 
   Future<Map<String, dynamic>> addHouseToProperty(
           String propertyId, Map<String, dynamic> data) async =>
@@ -845,7 +880,8 @@ class ApiService {
     if (photoPath != null && photoPath.isNotEmpty) {
       final file = File(photoPath);
       if (await file.exists()) {
-        request.files.add(await http.MultipartFile.fromPath('tenant_photo', photoPath));
+        request.files
+            .add(await http.MultipartFile.fromPath('tenant_photo', photoPath));
       }
     }
 

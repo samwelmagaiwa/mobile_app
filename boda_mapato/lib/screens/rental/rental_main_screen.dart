@@ -200,9 +200,6 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                         _onItemTapped(2);
                       } else if (item.key == 'tenants') {
                         _onItemTapped(3);
-                      } else if (item.key == 'properties') {
-                        // For now map to dashboard or subview if we had one
-                        _onItemTapped(0);
                       } else if (item.key == 'switch_service') {
                         showDialog(
                           context: context,

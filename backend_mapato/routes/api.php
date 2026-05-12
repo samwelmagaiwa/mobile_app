@@ -296,10 +296,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Properties
             Route::prefix('properties')->group(function () {
                 Route::get('', [PropertyController::class, 'index']);
+                Route::get('stats', [PropertyController::class, 'stats']);
+                Route::get('trashed', [PropertyController::class, 'trashed']);
                 Route::post('', [PropertyController::class, 'store']);
                 Route::get('{id}', [PropertyController::class, 'show']);
                 Route::put('{id}', [PropertyController::class, 'update']);
                 Route::delete('{id}', [PropertyController::class, 'destroy']);
+                Route::post('{id}/restore', [PropertyController::class, 'restore']);
                 Route::post('{id}/houses', [PropertyController::class, 'addHouse']);
             });
             

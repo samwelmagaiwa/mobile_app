@@ -35,6 +35,22 @@ class RentalProvider extends ChangeNotifier {
   List<dynamic> _arrears = [];
   List<dynamic> get arrears => _arrears;
 
+  // Selected Property for details
+  Map<String, dynamic>? _selectedProperty;
+  Map<String, dynamic>? get selectedProperty => _selectedProperty;
+
+  // Property Stats
+  Map<String, dynamic>? _propertyStats;
+  Map<String, dynamic>? get propertyStats => _propertyStats;
+
+  // Pagination
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _hasMore = true;
+  int get currentPage => _currentPage;
+  int get totalPages => _totalPages;
+  bool get hasMore => _hasMore;
+
   // Last payment for showing receipt
   dynamic _lastPayment;
   dynamic get lastPayment => _lastPayment;
@@ -199,6 +215,98 @@ class RentalProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error adding house: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchPropertyDetails(String propertyId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _api.getRentalPropertyDetails(propertyId);
+      _selectedProperty = response['data'];
+    } catch (e) {
+      debugPrint('Error fetching property details: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchPropertyStats() async {
+    try {
+      final response = await _api.getRentalPropertyStats();
+      _propertyStats = response['data'];
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching property stats: $e');
+    }
+  }
+
+  Future<void> fetchPropertiesWithPagination(
+      {String? search, String? status, int page = 1}) async {
+    if (page > 1 && !_hasMore) return;
+
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _api.getRentalPropertiesPaginated(
+          page: page, search: search, status: status);
+      final data = response['data'];
+
+      if (page == 1) {
+        _properties = (data['data'] as List?) ?? [];
+      } else {
+        _properties.addAll((data['data'] as List?) ?? []);
+      }
+
+      _currentPage = data['current_page'] ?? 1;
+      _totalPages = data['last_page'] ?? 1;
+      _hasMore = _currentPage < _totalPages;
+    } catch (e) {
+      debugPrint('Error fetching properties: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void resetPagination() {
+    _currentPage = 1;
+    _totalPages = 1;
+    _hasMore = true;
+    _properties = [];
+  }
+
+  Future<bool> updateProperty(
+      String propertyId, Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _api.updateRentalProperty(propertyId, data);
+      await fetchProperties();
+      return true;
+    } catch (e) {
+      debugPrint('Error updating property: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteProperty(String propertyId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _api.deleteRentalProperty(propertyId);
+      _properties.removeWhere((p) => p['id'] == propertyId);
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting property: $e');
       return false;
     } finally {
       _isLoading = false;

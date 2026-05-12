@@ -81,14 +81,20 @@ class ResponseHelper
     }
 
     /**
-     * Return a paginated response
+     * Return a paginated response with resource transformation
      */
-    public static function paginated($data, string $message = 'Data retrieved successfully'): JsonResponse
+    public static function paginate($data, $resourceClass = null): JsonResponse
     {
+        $items = $data->items();
+        
+        if ($resourceClass && class_exists($resourceClass)) {
+            $items = $resourceClass::collection($data)->resolve();
+        }
+        
         return response()->json([
             'status' => 'success',
-            'message' => $message,
-            'data' => $data->items(),
+            'message' => 'Data retrieved successfully',
+            'data' => $items,
             'pagination' => [
                 'current_page' => $data->currentPage(),
                 'last_page' => $data->lastPage(),

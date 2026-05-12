@@ -37,7 +37,7 @@ import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/rental/rental_dashboard_screen.dart';
-import 'screens/rental/rental_properties_screen.dart';
+import 'screens/rental/properties_list_screen.dart';
 import 'screens/rental/rental_tenants_screen.dart';
 import 'screens/rental/rental_payments_screen.dart';
 import 'screens/rental/rental_receipts_screen.dart';
@@ -45,6 +45,9 @@ import 'screens/rental/rental_arrears_screen.dart';
 import 'screens/rental/rental_main_screen.dart';
 import 'screens/rental/onboard_tenant_screen.dart';
 import 'screens/rental/billing_list_screen.dart';
+import 'screens/rental/property_details_screen.dart';
+import 'screens/rental/create_property_screen.dart';
+import 'screens/rental/edit_property_screen.dart';
 import 'providers/rental_provider.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
@@ -223,7 +226,19 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/dashboard": (final BuildContext context) =>
                     const RentalMainScreen(),
                 "/rental/properties": (final BuildContext context) =>
-                    const RentalPropertiesScreen(),
+                    const PropertiesListScreen(),
+                "/rental/property-details": (final BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, String>?;
+                  return PropertyDetailsScreen(propertyId: args?['id'] ?? '');
+                },
+                "/rental/add-property": (final BuildContext context) =>
+                    const CreatePropertyScreen(),
+                "/rental/edit-property": (final BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
+                  return EditPropertyScreen(property: args?['property'] ?? {});
+                },
                 "/rental/tenants": (final BuildContext context) =>
                     const RentalTenantsScreen(),
                 "/rental/onboard-tenant": (final BuildContext context) =>

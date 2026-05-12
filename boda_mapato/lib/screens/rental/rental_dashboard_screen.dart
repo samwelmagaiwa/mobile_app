@@ -20,8 +20,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchProperties();
-      context.read<RentalProvider>().fetchBills();
+      context.read<RentalProvider>().fetchDashboard();
     });
   }
 
@@ -66,7 +65,10 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           ),
           title: Text(
             LocalizationService.instance.translate("rental_dashboard"),
-            style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold),
           ),
         ),
         body: content,
@@ -102,12 +104,12 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final rentalProvider = context.watch<RentalProvider>();
     final properties = rentalProvider.properties;
     final totalProperties = properties.length;
-    
+
     // Calculate total arrears and occupancy
     double totalArrears = 0;
     int totalHouses = 0;
     int occupiedHouses = 0;
-    
+
     for (var prop in properties) {
       final houses = prop['houses'] as List? ?? [];
       totalHouses += houses.length;
@@ -129,12 +131,15 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
       crossAxisSpacing: 16.w,
       childAspectRatio: isTablet ? 1.5 : 1.3,
       children: [
-        _buildStatCard(
-          context,
-          loc.translate("properties"),
-          totalProperties.toString(),
-          Icons.business,
-          ThemeConstants.footerBarColor,
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, "/rental/properties"),
+          child: _buildStatCard(
+            context,
+            loc.translate("properties"),
+            totalProperties.toString(),
+            Icons.business,
+            ThemeConstants.footerBarColor,
+          ),
         ),
         _buildStatCard(
           context,
@@ -161,7 +166,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String title, String value,
+      IconData icon, Color color) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
       child: Column(
@@ -234,7 +240,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData icon, VoidCallback onTap) {
+  Widget _buildActionButton(
+      BuildContext context, String label, IconData icon, VoidCallback onTap) {
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       onTap: onTap,
@@ -272,8 +279,9 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
               style: ThemeConstants.responsiveSubHeadingStyle(context),
             ),
             TextButton(
-              onPressed: () {},
-              child: Text(loc.translate("see_all"), style: const TextStyle(color: ThemeConstants.footerBarColor)),
+              onPressed: () => Navigator.pushNamed(context, "/rental/properties"),
+              child: Text(loc.translate("see_all"),
+                  style: const TextStyle(color: ThemeConstants.footerBarColor)),
             ),
           ],
         ),
@@ -283,7 +291,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: Text(loc.translate("no_properties_found"), style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
+              child: Text(loc.translate("no_properties_found"),
+                  style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
             ),
           )
         else
@@ -298,7 +307,11 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                 child: ThemeConstants.buildResponsiveGlassCard(
                   context,
                   onTap: () {
-                    // Navigate to property detail
+                    Navigator.pushNamed(
+                      context,
+                      "/rental/property-details",
+                      arguments: {'id': prop['id'].toString()},
+                    );
                   },
                   child: Row(
                     children: [
@@ -309,7 +322,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                           color: ThemeConstants.footerBarColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12.r),
                         ),
-                        child: Icon(Icons.location_city, color: ThemeConstants.footerBarColor),
+                        child: Icon(Icons.location_city,
+                            color: ThemeConstants.footerBarColor),
                       ),
                       SizedBox(width: 16.w),
                       Expanded(
@@ -345,7 +359,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Icon(Icons.chevron_right, color: Colors.white54, size: 20.w),
+                          Icon(Icons.chevron_right,
+                              color: Colors.white54, size: 20.w),
                         ],
                       ),
                     ],
