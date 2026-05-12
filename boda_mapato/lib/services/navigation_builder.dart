@@ -7,6 +7,7 @@ import '../constants/theme_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/service_switcher_dialog.dart';
 
 // ignore_for_file: directives_ordering
 /// Service for building navigation UI components dynamically
@@ -323,10 +324,16 @@ class NavigationBuilder {
     );
   }
 
-  /// Navigate to a route represented by a NavigationItem (no popping assumptions)
   static void _navigateTo(NavigationItem item, BuildContext context) {
     if (item.route == '/dashboard') {
       // Already on dashboard, do nothing
+      return;
+    }
+    if (item.route == '/switch_service') {
+      showDialog(
+        context: context,
+        builder: (context) => const ServiceSwitcherDialog(),
+      );
       return;
     }
     Navigator.pushNamed(context, item.route);
@@ -372,12 +379,15 @@ class NavigationBuilder {
     required BuildContext context,
     required LocalizationService localization,
     required UserPermissions permissions,
+    List<NavigationItem>? customItems,
   }) async {
-    // Include both main drawer items and system items (e.g., Settings) in the grid
-    final items = <NavigationItem>[
+    // Determine which items to show: custom list or default drawer + system items
+    final baseItems = customItems ?? [
       ...NavigationConfig.drawerItems,
       ...NavigationConfig.systemItems,
-    ]
+    ];
+
+    final items = baseItems
         // Exclude the logout action from the grid
         .where((item) => item.key != 'logout')
         .where((item) => _hasPermission(item, permissions))
@@ -446,7 +456,7 @@ class NavigationBuilder {
   }
 
   /// Public helper to show the same grid menu used by quick action '/menu'
-  static Future<void> showGridMenu(BuildContext context) async {
+  static Future<void> showGridMenu(BuildContext context, {List<NavigationItem>? customItems}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final String role = auth.user?.role ?? 'viewer';
     final perms = UserPermissions.fromRole(role);
@@ -454,6 +464,7 @@ class NavigationBuilder {
       context: context,
       localization: LocalizationService.instance,
       permissions: perms,
+      customItems: customItems,
     );
   }
 

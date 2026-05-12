@@ -59,9 +59,9 @@ class ResponsiveHelper {
 
   /// Card padding based on device type
   static EdgeInsets get cardPadding {
-    if (isMobile) return EdgeInsets.all(wp(3)); // 12px on mobile
-    if (isTablet) return EdgeInsets.all(wp(2.5)); // ~15px on tablet
-    return EdgeInsets.all(wp(2)); // ~20px on desktop
+    if (isMobile) return EdgeInsets.symmetric(horizontal: wp(2.5), vertical: wp(2)); // Narrower horizontal
+    if (isTablet) return EdgeInsets.all(wp(2)); 
+    return EdgeInsets.all(wp(1.5));
   }
 
   // Responsive dimensions for common UI elements
@@ -126,9 +126,9 @@ class ResponsiveHelper {
   // Container constraints
   /// Maximum width for cards/content containers
   static double get maxCardWidth {
-    if (isMobile) return _screenWidth * 0.95;
-    if (isTablet) return _screenWidth * 0.8;
-    return _screenWidth * 0.6;
+    if (isMobile) return _screenWidth * 0.98; // Use more width
+    if (isTablet) return _screenWidth * 0.9;
+    return _screenWidth * 0.85;
   }
 
   /// Maximum content width for readable text

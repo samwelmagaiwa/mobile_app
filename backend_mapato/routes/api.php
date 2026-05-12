@@ -23,6 +23,11 @@ use App\Http\Controllers\Inventory\CustomerController as InventoryCustomerContro
 use App\Http\Controllers\Inventory\SalesController as InventorySalesController;
 use App\Http\Controllers\Inventory\StockMovementController as InventoryStockMovementController;
 use App\Http\Controllers\Inventory\ReminderController as InventoryReminderController;
+use App\Http\Controllers\API\Rental\PropertyController;
+use App\Http\Controllers\API\Rental\BlockController;
+use App\Http\Controllers\API\Rental\HouseController;
+use App\Http\Controllers\API\Rental\TenantController;
+use App\Http\Controllers\API\Rental\BillingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -280,6 +285,77 @@ Route::middleware(['auth:sanctum'])->group(function () {
             
             // View reminders from admin
             Route::get('reminders', [DriverViewController::class, 'getReminders']);
+        });
+    });
+
+    // Rental Service Module
+    Route::prefix('rental')->group(function () {
+        // Landlord & Admin routes
+        Route::middleware(['role:admin,landlord'])->group(function () {
+            // Properties
+            Route::prefix('properties')->group(function () {
+                Route::get('', [PropertyController::class, 'index']);
+                Route::post('', [PropertyController::class, 'store']);
+                Route::get('{id}', [PropertyController::class, 'show']);
+                Route::put('{id}', [PropertyController::class, 'update']);
+                Route::delete('{id}', [PropertyController::class, 'destroy']);
+                Route::post('{id}/houses', [PropertyController::class, 'addHouse']);
+            });
+            
+            // Blocks
+            Route::prefix('blocks')->group(function () {
+                Route::get('{propertyId}', [BlockController::class, 'index']);
+                Route::post('{propertyId}', [BlockController::class, 'store']);
+                Route::get('block/{id}', [BlockController::class, 'show']);
+                Route::put('block/{id}', [BlockController::class, 'update']);
+                Route::delete('block/{id}', [BlockController::class, 'destroy']);
+            });
+            
+            // Houses
+            Route::prefix('houses')->group(function () {
+                Route::get('', [HouseController::class, 'index']);
+                Route::get('{id}', [HouseController::class, 'show']);
+                Route::put('{id}', [HouseController::class, 'update']);
+                Route::delete('{id}', [HouseController::class, 'destroy']);
+            });
+            
+            // Tenants
+            Route::prefix('tenants')->group(function () {
+                Route::get('', [TenantController::class, 'index']);
+                Route::get('{id}', [TenantController::class, 'show']);
+                Route::post('onboard', [TenantController::class, 'onboard']);
+                Route::put('{id}/status', [TenantController::class, 'updateStatus']);
+                Route::delete('{id}', [TenantController::class, 'terminate']);
+            });
+            
+            // Payments
+            Route::prefix('payments')->group(function () {
+                Route::get('', [BillingController::class, 'getPayments']);
+                Route::post('record', [BillingController::class, 'recordPayment']);
+            });
+            
+            // Receipts
+            Route::prefix('receipts')->group(function () {
+                Route::get('', [BillingController::class, 'getReceipts']);
+                Route::get('{id}', [BillingController::class, 'getReceipt']);
+            });
+            
+            // Reports
+            Route::get('dashboard', [BillingController::class, 'getDashboard']);
+            Route::get('reports/arrears', [BillingController::class, 'getArrears']);
+            Route::get('reports/revenue', [BillingController::class, 'getRevenue']);
+        });
+
+        // Tenant self-service routes
+        Route::middleware(['role:tenant'])->group(function () {
+            Route::get('tenant/bills', [TenantController::class, 'myBills']);
+            Route::get('tenant/payments', [TenantController::class, 'myPayments']);
+            Route::get('tenant/receipts', [TenantController::class, 'myReceipts']);
+        });
+
+        // Common routes (Landlord, Caretaker, Tenant)
+        Route::middleware(['role:admin,landlord,caretaker,tenant'])->group(function () {
+            Route::get('billing/bills', [BillingController::class, 'getBills']);
         });
     });
 

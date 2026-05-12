@@ -14,7 +14,7 @@ mixin AuthService {
 
   // Alternative URLs for different environments:
   // For development on localhost: "http://127.0.1:8000/api"
-  // For Android emulator: "http://10.2.2:8000/api"
+  // For Android emulator: "http://10.0.2.2:8000/api"
   // For iOS simulator: "http://127.0.1:8000/api"
 
   static const Duration timeoutDuration = Duration(seconds: 30);

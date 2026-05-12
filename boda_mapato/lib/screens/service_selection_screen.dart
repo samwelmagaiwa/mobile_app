@@ -24,8 +24,7 @@ class ServiceSelectionScreen extends StatelessWidget {
         return;
       case 'rental':
         if (context.mounted) {
-          await Navigator.pushReplacementNamed(context, '/coming-soon',
-              arguments: service);
+          await Navigator.pushReplacementNamed(context, '/rental/dashboard');
         }
         return;
       case 'transport':

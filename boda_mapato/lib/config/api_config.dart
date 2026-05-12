@@ -21,7 +21,7 @@ mixin ApiConfig {
         return "http://127.0.0.1:8000/api";
       case Environment.network:
         // LAN IP of the dev machine hosting Laravel (update if your IP changes)
-        return "http://192.168.1.124:8000/api";
+        return "http://192.168.145.10:8000/api";
       case Environment.emulator:
         // Android emulator loopback to host
         return "http://10.0.2.2:8000/api";
@@ -38,7 +38,7 @@ mixin ApiConfig {
       case Environment.local:
         return "http://127.0.0.1:8000";
       case Environment.network:
-        return "http://192.168.1.124:8000";
+        return "http://192.168.145.10:8000";
       case Environment.emulator:
         return "http://10.0.2.2:8000";
       case Environment.production:
@@ -80,7 +80,7 @@ mixin Environment {
   static const String local = "local";
   // 192.168.1.5:8000 - for real device testing
   static const String network = "network";
-  // 10.2.2:8000 - for Android emulator
+  // 10.0.2.2:8000 - for Android emulator
   static const String emulator = "emulator";
   // production server
   static const String production = "production";

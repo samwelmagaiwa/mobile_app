@@ -58,7 +58,7 @@ class UserManagementController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
             'phone_number' => 'nullable|string|max:50',
-            'role' => 'nullable|string|in:super_admin,admin,driver',
+            'role' => 'nullable|string|in:super_admin,admin,driver,landlord,caretaker,tenant',
             'is_active' => 'nullable|boolean',
         ]);
         if ($validator->fails()) {
@@ -97,7 +97,7 @@ class UserManagementController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id . ',id',
             'phone_number' => 'nullable|string|max:50',
-            'role' => 'sometimes|string|in:super_admin,admin,driver',
+            'role' => 'sometimes|string|in:super_admin,admin,driver,landlord,caretaker,tenant',
             'is_active' => 'sometimes|boolean',
         ]);
         if ($validator->fails()) {

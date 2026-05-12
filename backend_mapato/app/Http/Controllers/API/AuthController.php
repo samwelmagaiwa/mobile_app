@@ -49,6 +49,12 @@ class AuthController extends Controller
                 ]
             );
 
+            // Normalize phone numbers for comparison (remove symbols and match suffixes)
+            $normalize = function ($number) {
+                return preg_replace('/[^0-9]/', '', $number);
+            };
+            $normalizedRequestPhone = $normalize($request->phone_number);
+
             // Find user by email
             $user = User::where('email', $request->email)->first();
 
@@ -89,8 +95,9 @@ class AuthController extends Controller
                 return ResponseHelper::error('Account is inactive', 403);
             }
 
-            // Verify phone number matches
-            if ($user->phone_number !== $request->phone_number) {
+            // Verify phone number matches (comparing last 9 digits for maximum compatibility)
+            $normalizedUserPhone = $normalize($user->phone_number);
+            if (substr($normalizedUserPhone, -9) !== substr($normalizedRequestPhone, -9)) {
                 Log::warning('Login failed - Phone number mismatch', [
                     'user_id' => $user->id,
                     'email' => $request->email,
@@ -535,6 +542,10 @@ class AuthController extends Controller
             case 'admin':
             case 'super_admin':
                 return $user->load('createdUsers');
+            case 'landlord':
+                return $user->load('ownedProperties.houses');
+            case 'tenant':
+                return $user->load('tenantProfile', 'rentalAgreements.house.property');
             default:
                 return $user;
         }
@@ -550,6 +561,10 @@ class AuthController extends Controller
                 return '/super-admin/dashboard';
             case 'admin':
                 return '/admin/dashboard';
+            case 'landlord':
+                return '/landlord/dashboard';
+            case 'tenant':
+                return '/tenant/dashboard';
             case 'driver':
                 return '/driver/dashboard';
             default:

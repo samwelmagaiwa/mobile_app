@@ -21,7 +21,7 @@ class ApiService {
 
   // Alternative URLs for different environments:
   // For real device testing: "http://192.168.1.124:8000/api";
-  // For Android emulator: "http://10.2.2:8000/api";
+  // For Android emulator: "http://10.0.2.2:8000/api";
   // For iOS simulator: "http://127.0.1:8000/api";
 
   // Timeout duration - reduced for better UX
@@ -798,6 +798,43 @@ class ApiService {
         "/users/$userId",
         "/admin/user-management/users/$userId"
       ], userData);
+
+  // Rental Module APIs
+  Future<Map<String, dynamic>> getRentalProperties() async =>
+      _get("/rental/properties");
+
+  Future<Map<String, dynamic>> addRentalProperty(
+          Map<String, dynamic> data) async =>
+      _post("/rental/properties", data);
+
+  Future<Map<String, dynamic>> addHouseToProperty(
+          String propertyId, Map<String, dynamic> data) async =>
+      _post("/rental/properties/$propertyId/houses", data);
+
+  Future<Map<String, dynamic>> getRentalDashboard() async =>
+      _get("/rental/dashboard");
+
+  Future<Map<String, dynamic>> getRentalTenants() async =>
+      _get("/rental/tenants");
+
+  Future<Map<String, dynamic>> onboardTenant(Map<String, dynamic> data) async =>
+      _post("/rental/tenants/onboard", data);
+
+  Future<Map<String, dynamic>> getRentalBills() async =>
+      _get("/rental/billing/bills");
+
+  Future<Map<String, dynamic>> recordRentalPayment(
+          Map<String, dynamic> data) async =>
+      _post("/rental/payments/record", data);
+
+  Future<Map<String, dynamic>> getRentalPayments() async =>
+      _get("/rental/payments");
+
+  Future<Map<String, dynamic>> getRentalReceipts() async =>
+      _get("/rental/receipts");
+
+  Future<Map<String, dynamic>> getRentalArrears() async =>
+      _get("/rental/reports/arrears");
 
   Future<Map<String, dynamic>> deleteUser(String userId) async =>
       _deleteFirst(<String>[

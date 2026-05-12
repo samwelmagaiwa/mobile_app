@@ -345,7 +345,7 @@ mixin AppStyles {
       );
 
   // Responsive Card Theme
-  static CardTheme cardTheme(BuildContext context) => CardTheme(
+  static CardThemeData cardTheme(BuildContext context) => CardThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
             ResponsiveUtils.getResponsiveBorderRadius(context, 12),

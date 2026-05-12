@@ -36,6 +36,16 @@ import 'screens/reminders/reminders_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/rental/rental_dashboard_screen.dart';
+import 'screens/rental/rental_properties_screen.dart';
+import 'screens/rental/rental_tenants_screen.dart';
+import 'screens/rental/rental_payments_screen.dart';
+import 'screens/rental/rental_receipts_screen.dart';
+import 'screens/rental/rental_arrears_screen.dart';
+import 'screens/rental/rental_main_screen.dart';
+import 'screens/rental/onboard_tenant_screen.dart';
+import 'screens/rental/billing_list_screen.dart';
+import 'providers/rental_provider.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
 import 'utils/web_keyboard_fix_stub.dart'
@@ -118,6 +128,7 @@ class BodaMapatoApp extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => ScreenUtilInit(
+        designSize: const Size(390, 844),
         minTextAdapt: true,
         splitScreenMode: true,
         useInheritedMediaQuery: true,
@@ -143,7 +154,13 @@ class BodaMapatoApp extends StatelessWidget {
               create: (final BuildContext _) => DashboardProvider()..loadAll(),
             ),
             ChangeNotifierProvider<InventoryProvider>(
-              create: (final BuildContext _) => InventoryProvider()..bootstrap(),
+              create: (final BuildContext _) =>
+                  InventoryProvider()..bootstrap(),
+            ),
+            ChangeNotifierProvider<RentalProvider>(
+              create: (final BuildContext _) => RentalProvider()
+                ..fetchProperties()
+                ..fetchBills(),
             ),
           ],
           child: Consumer<LocalizationService>(
@@ -203,6 +220,22 @@ class BodaMapatoApp extends StatelessWidget {
                     const InventoryHome(),
                 "/coming-soon": (final BuildContext context) =>
                     const ComingSoonScreen(),
+                "/rental/dashboard": (final BuildContext context) =>
+                    const RentalMainScreen(),
+                "/rental/properties": (final BuildContext context) =>
+                    const RentalPropertiesScreen(),
+                "/rental/tenants": (final BuildContext context) =>
+                    const RentalTenantsScreen(),
+                "/rental/onboard-tenant": (final BuildContext context) =>
+                    const OnboardTenantScreen(),
+                "/rental/billing": (final BuildContext context) =>
+                    const BillingListScreen(),
+                "/rental/payments": (final BuildContext context) =>
+                    const RentalPaymentsScreen(),
+                "/rental/receipts": (final BuildContext context) =>
+                    const RentalReceiptsScreen(),
+                "/rental/arrears": (final BuildContext context) =>
+                    const RentalArrearsScreen(),
               },
             ),
           ),
@@ -234,7 +267,7 @@ class BodaMapatoApp extends StatelessWidget {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        dialogTheme: const DialogTheme(
+        dialogTheme: const DialogThemeData(
           backgroundColor: ThemeConstants.primaryBlue,
           surfaceTintColor: Colors.transparent,
         ),
@@ -421,7 +454,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   return const ModernDashboardScreen();
                 }
                 if (service == 'rental') {
-                  return ComingSoonScreen(service: service);
+                  return const RentalMainScreen();
                 }
                 // Fallback to existing role-based dashboards
                 if (authProvider.user!.role == "admin" ||

@@ -564,6 +564,7 @@ class AppLocalizations {
       'rental_service': 'Rental',
       'transport_service': 'Transport',
       'coming_soon': 'Coming soon…',
+      'switch_service': 'Switch Service',
 
       // Inventory module
       'inventory_dashboard': 'Inventory Dashboard',
@@ -625,6 +626,15 @@ class AppLocalizations {
       'add_customer': 'Add Customer',
       'customer_name': 'Customer Name',
       'address': 'Address',
+
+      // Rental navigation
+      'rental_dashboard': 'Rental Dashboard',
+      'tenants': 'Tenants',
+      'properties': 'Properties',
+      'rent_payments': 'Rent Payments',
+      'arrears': 'Arrears',
+      'billing_reports': 'Billing Reports',
+      'sms_history': 'SMS History',
     },
     'sw': {
       // General
@@ -1146,6 +1156,7 @@ class AppLocalizations {
       'rental_service': 'Uajiri (Rental)',
       'transport_service': 'Usafirishaji (Transport)',
       'coming_soon': 'Inakuja hivi karibuni…',
+      'switch_service': 'Badili Huduma',
 
       // Moduli ya Hesabu
       'inventory_dashboard': 'Dashibodi ya Hesabu',
@@ -1208,7 +1219,14 @@ class AppLocalizations {
       'customer_name': 'Jina la Mteja',
 'address': 'Anwani',
 
-      // Madeni/Malipo (Debts/Payments)
+      // Rental navigation
+      'rental_dashboard': 'Dashibodi ya Upangaji',
+      'tenants': 'Wapangaji',
+      'properties': 'Majengo/Nyumba',
+      'rent_payments': 'Malipo ya Kodi',
+      'arrears': 'Madeni ya Kodi',
+      'billing_reports': 'Ripoti za Ankara',
+      'sms_history': 'Historia ya SMS',
     },
   };
 

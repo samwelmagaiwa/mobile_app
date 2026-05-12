@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('devices', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('driver_id');
+            $table->uuid('driver_id')->nullable();
             $table->string('name');
             $table->enum('type', ['bajaji', 'pikipiki', 'gari']);
             $table->string('plate_number', 20)->unique();

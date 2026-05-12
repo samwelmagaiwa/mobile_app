@@ -8,6 +8,7 @@ import '../../../constants/theme_constants.dart';
 import '../../../models/user_permissions.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/localization_service.dart';
+import '../../../widgets/service_switcher_dialog.dart';
 import 'categories/categories_screen.dart';
 import 'dashboard/inventory_dashboard_screen.dart';
 import 'orders/orders_screen.dart';
@@ -158,7 +159,21 @@ class _InventoryHomeState extends State<InventoryHome> {
           },
         ));
       }
-    }
+    } // This closes the main perms check or else block
+
+    // Add Switch Service to quick menu
+    items.add(_GridNavItem(
+      label: loc.translate('switch_service'),
+      icon: Icons.sync_alt,
+      color: ThemeConstants.primaryBlue.withOpacity(0.85),
+      onTap: () {
+        Navigator.of(context).pop();
+        showDialog(
+          context: context,
+          builder: (context) => const ServiceSwitcherDialog(),
+        );
+      },
+    ));
 
     await showDialog<void>(
       context: context,
@@ -541,6 +556,22 @@ class _InventoryDrawer extends StatelessWidget {
                       onTap: () => onSelected(idxRem),
                     ),
                 ],
+              ),
+            ),
+            const Divider(color: Colors.white24, height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: ListTile(
+                leading: Icon(Icons.sync_alt, color: Colors.white, size: 22.sp),
+                title: Text(loc.translate('switch_service'),
+                    style: ThemeConstants.bodyStyle),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (context) => const ServiceSwitcherDialog(),
+                  );
+                },
               ),
             ),
             const Divider(color: Colors.white24, height: 1),

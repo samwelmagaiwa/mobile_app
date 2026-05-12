@@ -113,6 +113,64 @@ class NavigationConfig {
       route: '/admin/communications',
       requiredPermissions: ['view_communications'],
     ),
+    NavigationItem(
+      key: 'switch_service',
+      icon: Icons.sync_alt,
+      route: '/switch_service', // Special route
+      isSystemItem: true,
+    ),
+  ];
+
+  // Specific navigation items for Rental Service
+  static const List<NavigationItem> rentalDrawerItems = [
+    NavigationItem(
+      key: 'rental_dashboard',
+      icon: Icons.dashboard,
+      route: '/rental/dashboard',
+      isSystemItem: true,
+    ),
+    NavigationItem(
+      key: 'tenants',
+      icon: Icons.people_alt,
+      route: '/rental/tenants',
+      requiredPermissions: ['view_tenants'],
+    ),
+    NavigationItem(
+      key: 'properties',
+      icon: Icons.business,
+      route: '/rental/properties',
+      requiredPermissions: ['view_properties'],
+    ),
+    NavigationItem(
+      key: 'rent_payments',
+      icon: Icons.payments,
+      route: '/rental/billing',
+      requiredPermissions: ['view_rent_payments'],
+    ),
+    NavigationItem(
+      key: 'arrears',
+      icon: Icons.pending_actions,
+      route: '/rental/arrears',
+      requiredPermissions: ['view_arrears'],
+    ),
+    NavigationItem(
+      key: 'billing_reports',
+      icon: Icons.receipt_long,
+      route: '/rental/reports',
+      requiredPermissions: ['view_rental_reports'],
+    ),
+    NavigationItem(
+      key: 'sms_history',
+      icon: Icons.message_outlined,
+      route: '/rental/sms',
+      requiredPermissions: ['view_sms_history'],
+    ),
+    NavigationItem(
+      key: 'switch_service',
+      icon: Icons.sync_alt,
+      route: '/switch_service', // Special route
+      isSystemItem: true,
+    ),
   ];
 
   // System navigation items (always visible)
@@ -193,6 +251,13 @@ class DefaultPermissions {
     'manage_communications',
     'generate_receipts',
     'manage_settings',
+    // Rental permissions
+    'view_tenants',
+    'view_properties',
+    'view_rent_payments',
+    'view_arrears',
+    'view_rental_reports',
+    'view_sms_history',
   ];
 
   static const List<String> manager = [

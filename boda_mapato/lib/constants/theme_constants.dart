@@ -301,7 +301,7 @@ class ThemeConstants {
     return BoxDecoration(
       color: cardColor,
       borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-      border: Border.all(color: Colors.white.withOpacity(0.2)),
+      border: Border.all(color: Colors.white.withOpacity(0.12)), // Subtler border
       boxShadow: <BoxShadow>[
         BoxShadow(
           color: Colors.black.withOpacity(0.1),
@@ -415,10 +415,7 @@ class ThemeConstants {
       body: DecoratedBox(
         decoration: const BoxDecoration(color: primaryBlue),
         child: SafeArea(
-          child: Padding(
-            padding: ResponsiveHelper.defaultPadding,
-            child: body,
-          ),
+          child: body,
         ),
       ),
       floatingActionButton: floatingActionButton,

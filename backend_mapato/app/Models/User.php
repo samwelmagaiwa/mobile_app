@@ -87,6 +87,9 @@ class User extends Authenticatable
         'super_admin' => 'Super Admin',
         'admin' => 'Admin',
         'driver' => 'Driver',
+        'landlord' => 'Landlord',
+        'caretaker' => 'Caretaker',
+        'tenant' => 'Tenant',
     ];
 
     /**
@@ -148,6 +151,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is landlord
+     */
+    public function isLandlord(): bool
+    {
+        return $this->hasRole('landlord');
+    }
+
+    /**
+     * Check if user is caretaker
+     */
+    public function isCaretaker(): bool
+    {
+        return $this->hasRole('caretaker');
+    }
+
+    /**
+     * Check if user is tenant
+     */
+    public function isTenant(): bool
+    {
+        return $this->hasRole('tenant');
+    }
+
+    /**
      * Check if user can create other users
      */
     public function canCreateUsers(): bool
@@ -161,6 +188,30 @@ class User extends Authenticatable
     public function canManageDrivers(): bool
     {
         return $this->isSuperAdmin() || $this->isAdmin();
+    }
+
+    /**
+     * Get the tenant profile associated with the user.
+     */
+    public function tenantProfile()
+    {
+        return $this->hasOne(\App\Models\Rental\TenantProfile::class, 'user_id');
+    }
+
+    /**
+     * Get properties owned by the landlord.
+     */
+    public function ownedProperties()
+    {
+        return $this->hasMany(\App\Models\Rental\Property::class, 'owner_id');
+    }
+
+    /**
+     * Get agreements for the tenant.
+     */
+    public function rentalAgreements()
+    {
+        return $this->hasMany(\App\Models\Rental\RentalAgreement::class, 'tenant_id');
     }
 
     /**
