@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/service_switcher_dialog.dart';
 
 class OnboardTenantScreen extends StatefulWidget {
@@ -140,9 +141,10 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Register Tenant",
+      title: loc.translate("register_tenant"),
       body: Column(
         children: [
           _buildStepper(),
@@ -172,7 +174,16 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildStepper() {
-    final steps = ["Personal", "Contact", "Identity", "Job", "History", "Peeps", "Terms"];
+    final loc = LocalizationService.instance;
+    final steps = [
+      loc.translate("personal"),
+      loc.translate("contact"),
+      loc.translate("identity"),
+      loc.translate("job"),
+      loc.translate("history"),
+      loc.translate("peeps"),
+      loc.translate("terms"),
+    ];
     return Container(
       height: 60.h,
       padding: EdgeInsets.symmetric(horizontal: 10.w),
@@ -238,7 +249,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                   ),
-                  child: const Text("Previous", style: TextStyle(color: Colors.white, fontSize: 13)),
+                  child: Text(LocalizationService.instance.translate("previous"), style: const TextStyle(color: Colors.white, fontSize: 13)),
                 ),
               ),
             if (_currentStep > 0) SizedBox(width: 12.w),
@@ -254,7 +265,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 ),
                 child: _isSaving 
                   ? SizedBox(height: 20.h, width: 20.h, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(_currentStep == _totalSteps - 1 ? "Submit" : "Next Step", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                  : Text(_currentStep == _totalSteps - 1 ? LocalizationService.instance.translate("submit") : LocalizationService.instance.translate("next_step"), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
               ),
             ),
           ],
@@ -266,55 +277,57 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   // --- Step Content Builders ---
 
   Widget _buildStep1() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 1: Personal Information",
+      title: "${loc.translate('step')} 1: ${loc.translate('personal_info')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField("First Name", _firstNameController, Icons.person)),
+            Expanded(child: _buildInputField(loc.translate("first_name"), _firstNameController, Icons.person)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Last Name", _lastNameController, Icons.person)),
+            Expanded(child: _buildInputField(loc.translate("last_name"), _lastNameController, Icons.person)),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildDropdownField("Gender", _gender, ["Male", "Female", "Other"], (v) => setState(() => _gender = v!))),
+            Expanded(child: _buildDropdownField(loc.translate("gender"), _gender, ["Male", "Female", "Other"], (v) => setState(() => _gender = v!), labels: [loc.translate("male"), loc.translate("female"), loc.translate("other")])),
             SizedBox(width: 8.w),
-            Expanded(child: _buildDatePickerField("Birth Date", _dob, (d) => setState(() => _dob = d))),
+            Expanded(child: _buildDatePickerField(loc.translate("birth_date"), _dob, (d) => setState(() => _dob = d))),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildInputField("NIDA / ID", _nidaController, Icons.badge)),
+            Expanded(child: _buildInputField(loc.translate("nida_id"), _nidaController, Icons.badge)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Phone No", _phoneController, Icons.phone, keyboardType: TextInputType.phone)),
+            Expanded(child: _buildInputField(loc.translate("phone_no"), _phoneController, Icons.phone, keyboardType: TextInputType.phone)),
           ],
         ),
         SizedBox(height: 12.h),
-        _buildInputField("Email Address", _emailController, Icons.email, keyboardType: TextInputType.emailAddress),
+        _buildInputField(loc.translate("email_address"), _emailController, Icons.email, keyboardType: TextInputType.emailAddress),
       ],
     );
   }
 
   Widget _buildStep2() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 2: Emergency Contact",
+      title: "${loc.translate('step')} 2: ${loc.translate('emergency_contact')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField("Contact Name", _emergencyNameController, Icons.person_outline)),
+            Expanded(child: _buildInputField(loc.translate("contact_name"), _emergencyNameController, Icons.person_outline)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Relationship", _relationshipController, Icons.family_restroom)),
+            Expanded(child: _buildInputField(loc.translate("relationship"), _relationshipController, Icons.family_restroom)),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildInputField("Phone No", _emergencyPhoneController, Icons.phone_android, keyboardType: TextInputType.phone)),
+            Expanded(child: _buildInputField(loc.translate("phone_no"), _emergencyPhoneController, Icons.phone_android, keyboardType: TextInputType.phone)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Email", _emergencyEmailController, Icons.alternate_email, keyboardType: TextInputType.emailAddress)),
+            Expanded(child: _buildInputField(loc.translate("email_address"), _emergencyEmailController, Icons.alternate_email, keyboardType: TextInputType.emailAddress)),
           ],
         ),
       ],
@@ -322,22 +335,23 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildStep3() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 3: Identification",
+      title: "${loc.translate('step')} 3: ${loc.translate('identification')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField("DL / ID No", _idNumberController, Icons.fingerprint)),
+            Expanded(child: _buildInputField(loc.translate("id_number"), _idNumberController, Icons.fingerprint)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("State Issued", _idStateController, Icons.map)),
+            Expanded(child: _buildInputField(loc.translate("state_issued"), _idStateController, Icons.map)),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildDatePickerField("Exp Date", _idExpiration, (d) => setState(() => _idExpiration = d))),
+            Expanded(child: _buildDatePickerField(loc.translate("exp_date"), _idExpiration, (d) => setState(() => _idExpiration = d))),
             SizedBox(width: 8.w),
-            Expanded(child: _buildUploadField("Upload ID")),
+            Expanded(child: _buildUploadField(loc.translate("upload_id"))),
           ],
         ),
       ],
@@ -345,91 +359,95 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildStep4() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 4: Current Employment",
+      title: "${loc.translate('step')} 4: ${loc.translate('employment')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField("Employer", _employerController, Icons.business)),
+            Expanded(child: _buildInputField(loc.translate("employer"), _employerController, Icons.business)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Job Title", _jobTitleController, Icons.work_outline)),
+            Expanded(child: _buildInputField(loc.translate("job_title"), _jobTitleController, Icons.work_outline)),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildInputField("Duration", _employmentLengthController, Icons.timer)),
+            Expanded(child: _buildInputField(loc.translate("employment_duration"), _employmentLengthController, Icons.timer)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Work No", _workPhoneController, Icons.phone, keyboardType: TextInputType.phone)),
+            Expanded(child: _buildInputField(loc.translate("work_no"), _workPhoneController, Icons.phone, keyboardType: TextInputType.phone)),
           ],
         ),
         SizedBox(height: 12.h),
-        _buildCheckboxRow("Currently Employed", _isEmployed, (v) => setState(() => _isEmployed = v!)),
+        _buildCheckboxRow(loc.translate("currently_employed"), _isEmployed, (v) => setState(() => _isEmployed = v!)),
       ],
     );
   }
 
   Widget _buildStep5() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 5: Rental History",
+      title: "${loc.translate('step')} 5: ${loc.translate('rental_history')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField("Prev Address", _prevAddressController, Icons.home_work)),
+            Expanded(child: _buildInputField(loc.translate("prev_address"), _prevAddressController, Icons.home_work)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Stay Years", _stayDurationController, Icons.history)),
+            Expanded(child: _buildInputField(loc.translate("stay_duration"), _stayDurationController, Icons.history)),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildInputField("Reason Out", _reasonForLeavingController, Icons.exit_to_app)),
+            Expanded(child: _buildInputField(loc.translate("reason_leaving"), _reasonForLeavingController, Icons.exit_to_app)),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Landlord", _prevLandlordNameController, Icons.person_pin)),
+            Expanded(child: _buildInputField(loc.translate("landlord_name"), _prevLandlordNameController, Icons.person_pin)),
           ],
         ),
         SizedBox(height: 12.h),
-        _buildInputField("Landlord Phone", _prevLandlordPhoneController, Icons.phone, keyboardType: TextInputType.phone),
+        _buildInputField(loc.translate("landlord_phone"), _prevLandlordPhoneController, Icons.phone, keyboardType: TextInputType.phone),
       ],
     );
   }
 
   Widget _buildStep6() {
+    final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "Step 6: Occupant Details",
+      title: "${loc.translate('step')} 6: ${loc.translate('occupants')}",
       children: [
         Row(
           children: [
-            Expanded(child: _buildNumberField("Adults", _adultsCount, (v) => setState(() => _adultsCount = v))),
+            Expanded(child: _buildNumberField(loc.translate("adults_count"), _adultsCount, (v) => setState(() => _adultsCount = v))),
             SizedBox(width: 8.w),
-            Expanded(child: _buildNumberField("Children", _childrenCount, (v) => setState(() => _childrenCount = v))),
+            Expanded(child: _buildNumberField(loc.translate("children_count"), _childrenCount, (v) => setState(() => _childrenCount = v))),
           ],
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildDropdownField("Others Stay?", _willOthersLive ? "Yes" : "No", ["Yes", "No"], (v) => setState(() => _willOthersLive = v == "Yes"))),
+            Expanded(child: _buildDropdownField(loc.translate("others_stay"), _willOthersLive ? "Yes" : "No", ["Yes", "No"], (v) => setState(() => _willOthersLive = v == "Yes"), labels: [loc.translate("yes"), loc.translate("no")])),
             SizedBox(width: 8.w),
-            Expanded(child: _buildDropdownField("Pet Type", _petType, ["None", "Dog", "Cat", "Other"], (v) => setState(() => _petType = v!))),
+            Expanded(child: _buildDropdownField(loc.translate("pet_type"), _petType, ["None", "Dog", "Cat", "Other"], (v) => setState(() => _petType = v!), labels: [loc.translate("none"), loc.translate("dog"), loc.translate("cat"), loc.translate("other")])),
           ],
         ),
         if (_petType != "None") ...[
           SizedBox(height: 12.h),
           Row(
             children: [
-              Expanded(child: _buildInputField("Breed", _petBreedController, Icons.pets)),
+              Expanded(child: _buildInputField(loc.translate("breed"), _petBreedController, Icons.pets)),
               SizedBox(width: 8.w),
-              Expanded(child: _buildInputField("Pet Age", _petAgeController, Icons.cake, keyboardType: TextInputType.number)),
+              Expanded(child: _buildInputField(loc.translate("pet_age"), _petAgeController, Icons.cake, keyboardType: TextInputType.number)),
             ],
           ),
           SizedBox(height: 12.h),
-          _buildInputField("Weight", _petWeightController, Icons.scale, keyboardType: TextInputType.number),
+          _buildInputField(loc.translate("pet_weight"), _petWeightController, Icons.scale, keyboardType: TextInputType.number),
         ],
       ],
     );
   }
 
   Widget _buildStep7() {
+    final loc = LocalizationService.instance;
     final rentalProvider = context.watch<RentalProvider>();
     final properties = rentalProvider.properties;
 
@@ -442,13 +460,13 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     }
 
     return _buildStepLayout(
-      title: "Step 7: Assignment & Terms",
+      title: "${loc.translate('step')} 7: ${loc.translate('terms_conditions')}",
       children: [
         Row(
           children: [
             Expanded(
               child: _buildDropdownField(
-                "Property", 
+                loc.translate("property"), 
                 _selectedPropertyId, 
                 properties.map((p) => p['id'].toString()).toList(),
                 (v) => setState(() { _selectedPropertyId = v; _selectedHouseId = null; }),
@@ -458,7 +476,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
             SizedBox(width: 8.w),
             Expanded(
               child: _buildDropdownField(
-                "House", 
+                loc.translate("house"), 
                 _selectedHouseId, 
                 houses.map((h) => h['id'].toString()).toList(),
                 (v) => setState(() => _selectedHouseId = v),
@@ -470,16 +488,16 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildDatePickerField("Start Date", _startDate, (d) => setState(() => _startDate = d!))),
+            Expanded(child: _buildDatePickerField(loc.translate("start_date"), _startDate, (d) => setState(() => _startDate = d!))),
             SizedBox(width: 8.w),
-            Expanded(child: _buildInputField("Rent (Tsh)", _amountController, Icons.payments, keyboardType: TextInputType.number)),
+            Expanded(child: _buildInputField(loc.translate("rent_amount"), _amountController, Icons.payments, keyboardType: TextInputType.number)),
           ],
         ),
         SizedBox(height: 16.h),
-        _buildPhotoUploadField("Tenant Photo", _tenantPhotoPath, _pickTenantPhoto),
+        _buildPhotoUploadField(loc.translate("tenant_photo"), _tenantPhotoPath, _pickTenantPhoto),
         SizedBox(height: 20.h),
-        _buildCheckboxRow("I accept Terms & Conditions", _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
-        _buildCheckboxRow("I agree to the Privacy Policy", _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
+        _buildCheckboxRow(loc.translate("accept_terms"), _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
+        _buildCheckboxRow(loc.translate("agree_privacy"), _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
       ],
     );
   }
@@ -623,7 +641,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           children: [
             Icon(Icons.upload_file, color: ThemeConstants.primaryOrange, size: 18.w),
             SizedBox(width: 4.w),
-            Text("Attach", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(LocalizationService.instance.translate("attach"), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -659,7 +677,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 children: [
                   Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                   Text(
-                    path != null ? "Photo attached successfully" : "Tap to capture or upload tenant photo",
+                    path != null ? LocalizationService.instance.translate("photo_attached") : LocalizationService.instance.translate("tap_to_upload"),
                     style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ],
@@ -691,13 +709,14 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Future<void> _handleSave() async {
+    final loc = LocalizationService.instance;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedHouseId == null) {
-      if (mounted) ThemeConstants.showErrorSnackBar(context, "Please select a house in Step 7");
+      if (mounted) ThemeConstants.showErrorSnackBar(context, loc.translate("select_house_error"));
       return;
     }
     if (!_acceptedTerms || !_acceptedPrivacy) {
-      if (mounted) ThemeConstants.showErrorSnackBar(context, "Please accept Terms and Privacy Policy");
+      if (mounted) ThemeConstants.showErrorSnackBar(context, loc.translate("accept_terms_error"));
       return;
     }
 
@@ -758,10 +777,10 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
       if (success) {
-        ThemeConstants.showSuccessSnackBar(context, "Tenant onboarded successfully!");
+        ThemeConstants.showSuccessSnackBar(context, loc.translate("tenant_onboarded_success"));
         Navigator.pop(context);
       } else {
-        ThemeConstants.showErrorSnackBar(context, "Failed to onboard tenant. Try again.");
+        ThemeConstants.showErrorSnackBar(context, loc.translate("failed_to_onboard"));
       }
     }
   }

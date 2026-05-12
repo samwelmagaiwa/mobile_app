@@ -40,10 +40,19 @@ class RentalService
             TenantProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'id_number' => $data['id_number'] ?? null,
-                    'occupation' => $data['occupation'] ?? null,
-                    'emergency_contact_name' => $data['emergency_contact_name'] ?? null,
-                    'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
+                    'gender' => $data['gender'] ?? null,
+                    'dob' => $data['dob'] ?? null,
+                    'id_number' => $data['nida'] ?? ($data['id_details']['number'] ?? ($data['id_number'] ?? null)),
+                    'id_state' => $data['id_details']['state'] ?? null,
+                    'id_expiration' => $data['id_details']['expiration'] ?? null,
+                    'occupation' => $data['employment']['title'] ?? ($data['occupation'] ?? null),
+                    'employment' => $data['employment'] ?? null,
+                    'emergency_contact_name' => $data['emergency_contact']['name'] ?? ($data['emergency_contact_name'] ?? null),
+                    'emergency_contact_phone' => $data['emergency_contact']['phone'] ?? ($data['emergency_contact_phone'] ?? null),
+                    'history' => $data['history'] ?? null,
+                    'occupants' => $data['occupants'] ?? null,
+                    'pets' => $data['pets'] ?? null,
+                    'photo_url' => $data['photo_url'] ?? null,
                     'notes' => $data['notes'] ?? null,
                 ]
             );

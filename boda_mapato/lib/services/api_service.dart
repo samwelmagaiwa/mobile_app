@@ -817,8 +817,42 @@ class ApiService {
   Future<Map<String, dynamic>> getRentalTenants() async =>
       _get("/rental/tenants");
 
-  Future<Map<String, dynamic>> onboardTenant(Map<String, dynamic> data) async =>
-      _post("/rental/tenants/onboard", data);
+  Future<Map<String, dynamic>> onboardTenant(Map<String, dynamic> data) async {
+    final Map<String, String> headers = await _authHeaders;
+    final uri = Uri.parse("$baseUrl/rental/tenants/onboard");
+    final request = http.MultipartRequest('POST', uri);
+
+    // Add auth headers (remove Content-Type to let MultipartRequest set it)
+    final Map<String, String> h = Map.of(headers);
+    h.remove('Content-Type');
+    request.headers.addAll(h);
+
+    // Filter fields & map complex structures to strings or individual fields
+    final String? photoPath = data.remove('tenant_photo');
+
+    // Add all remaining data as fields (convert nested maps/lists to JSON strings)
+    data.forEach((key, value) {
+      if (value != null) {
+        if (value is Map || value is List) {
+          request.fields[key] = json.encode(value);
+        } else {
+          request.fields[key] = value.toString();
+        }
+      }
+    });
+
+    // Add File if present
+    if (photoPath != null && photoPath.isNotEmpty) {
+      final file = File(photoPath);
+      if (await file.exists()) {
+        request.files.add(await http.MultipartFile.fromPath('tenant_photo', photoPath));
+      }
+    }
+
+    final streamed = await request.send().timeout(timeoutDuration);
+    final response = await http.Response.fromStream(streamed);
+    return _handleResponse(response);
+  }
 
   Future<Map<String, dynamic>> getRentalBills() async =>
       _get("/rental/billing/bills");

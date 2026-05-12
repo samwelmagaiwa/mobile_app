@@ -44,4 +44,9 @@ class RentalAgreement extends Model
     {
         return $this->hasMany(RentBill::class, 'agreement_id');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(RentalPayment::class, 'tenant_id', 'tenant_id');
+    }
 }

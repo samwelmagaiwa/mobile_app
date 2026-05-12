@@ -28,6 +28,7 @@ use App\Http\Controllers\API\Rental\BlockController;
 use App\Http\Controllers\API\Rental\HouseController;
 use App\Http\Controllers\API\Rental\TenantController;
 use App\Http\Controllers\API\Rental\BillingController;
+use App\Http\Controllers\API\Rental\CaretakerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -344,6 +345,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('dashboard', [BillingController::class, 'getDashboard']);
             Route::get('reports/arrears', [BillingController::class, 'getArrears']);
             Route::get('reports/revenue', [BillingController::class, 'getRevenue']);
+            
+            // Caretakers
+            Route::prefix('caretakers')->group(function () {
+                Route::get('', [CaretakerController::class, 'index']);
+                Route::post('', [CaretakerController::class, 'store']);
+                Route::put('{id}', [CaretakerController::class, 'update']);
+                Route::delete('{id}', [CaretakerController::class, 'destroy']);
+                Route::post('{id}/assign', [CaretakerController::class, 'assignProperties']);
+            });
         });
 
         // Tenant self-service routes

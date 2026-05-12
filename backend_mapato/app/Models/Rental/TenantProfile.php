@@ -15,13 +15,30 @@ class TenantProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'gender',
+        'dob',
         'id_number',
+        'id_state',
+        'id_expiration',
         'occupation',
         'emergency_contact_name',
         'emergency_contact_phone',
+        'employment',
+        'history',
+        'occupants',
+        'pets',
         'photo_url',
         'contract_url',
         'notes',
+    ];
+
+    protected $casts = [
+        'dob' => 'date',
+        'id_expiration' => 'date',
+        'employment' => 'array',
+        'history' => 'array',
+        'occupants' => 'array',
+        'pets' => 'array',
     ];
 
     public function user()

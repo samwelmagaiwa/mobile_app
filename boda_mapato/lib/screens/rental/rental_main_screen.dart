@@ -27,11 +27,11 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
     const RentalDashboardScreen(isSubView: true),
     const BillingListScreen(isSubView: true),
     // Placeholder for Arrears/Debts
-    const Center(child: Text("Arrears Tracking Coming Soon", style: TextStyle(color: Colors.white))),
+    Center(child: Text(LocalizationService.instance.translate("coming_soon_arrears"), style: const TextStyle(color: Colors.white))),
     // Placeholder for Tenants List
-    const Center(child: Text("Tenants List Coming Soon", style: TextStyle(color: Colors.white))),
+    Center(child: Text(LocalizationService.instance.translate("coming_soon_tenants"), style: const TextStyle(color: Colors.white))),
     // Placeholder for Receipts List
-    const Center(child: Text("Rent Receipts Coming Soon", style: TextStyle(color: Colors.white))),
+    Center(child: Text(LocalizationService.instance.translate("coming_soon_receipts"), style: const TextStyle(color: Colors.white))),
   ];
 
   void _onItemTapped(int index) {
@@ -176,7 +176,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    user?.name ?? "Landlord",
+                    user?.name ?? loc.translate("welcome_landlord"),
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -216,7 +216,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
           const Divider(color: Colors.white10),
           _DrawerItem(
             icon: Icons.logout,
-            label: "Logout",
+            label: loc.translate("logout"),
             color: ThemeConstants.errorRed,
             onTap: () async {
               await auth.logout();

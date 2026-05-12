@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
+import '../../services/localization_service.dart';
+import '../../widgets/service_switcher_dialog.dart';
 
 class RentalDashboardScreen extends StatefulWidget {
   final bool isSubView;
@@ -63,7 +65,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             },
           ),
           title: Text(
-            "Rental Dashboard",
+            LocalizationService.instance.translate("rental_dashboard"),
             style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
           ),
         ),
@@ -73,22 +75,23 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
 
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Rental Dashboard",
+      title: LocalizationService.instance.translate("rental_dashboard"),
       body: content,
     );
   }
 
   Widget _buildWelcomeSection(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final loc = LocalizationService.instance;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Habari, ${user?.name ?? 'Mwenyekiti'}",
+          "${loc.translate('welcome')}, ${user?.name ?? loc.translate('welcome_landlord')}",
           style: ThemeConstants.responsiveHeadingStyle(context),
         ),
         Text(
-          "Karibu kwenye mfumo wa upangaji",
+          loc.translate("select_service_subtitle"),
           style: ThemeConstants.responsiveCaptionStyle(context),
         ),
       ],
@@ -116,8 +119,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
       }
     }
 
+    final loc = LocalizationService.instance;
     final isTablet = constraints.maxWidth >= 600;
-
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -128,28 +131,28 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
       children: [
         _buildStatCard(
           context,
-          "Properties",
+          loc.translate("properties"),
           totalProperties.toString(),
           Icons.business,
           ThemeConstants.footerBarColor,
         ),
         _buildStatCard(
           context,
-          "Houses",
+          loc.translate("houses"),
           totalHouses.toString(),
           Icons.home,
           ThemeConstants.successGreen,
         ),
         _buildStatCard(
           context,
-          "Occupancy",
+          loc.translate("occupancy"),
           "${totalHouses > 0 ? ((occupiedHouses / totalHouses) * 100).toStringAsFixed(0) : 0}%",
           Icons.people,
           ThemeConstants.primaryOrange,
         ),
         _buildStatCard(
           context,
-          "Arrears",
+          loc.translate("arrears"),
           "Tsh ${totalArrears.toStringAsFixed(0)}",
           Icons.money_off,
           ThemeConstants.errorRed,
@@ -187,11 +190,12 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context) {
+    final loc = LocalizationService.instance;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Quick Actions",
+          loc.translate("quick_actions"),
           style: ThemeConstants.responsiveSubHeadingStyle(context),
         ),
         SizedBox(height: 12.h),
@@ -200,7 +204,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             Expanded(
               child: _buildActionButton(
                 context,
-                "Add Property",
+                loc.translate("add_property"),
                 Icons.add_business,
                 () => Navigator.pushNamed(context, "/rental/add-property"),
               ),
@@ -209,7 +213,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             Expanded(
               child: _buildActionButton(
                 context,
-                "View Bills",
+                loc.translate("view_bills"),
                 Icons.receipt_long,
                 () => Navigator.pushNamed(context, "/rental/billing"),
               ),
@@ -221,7 +225,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           width: double.infinity,
           child: _buildActionButton(
             context,
-            "Onboard Tenant",
+            loc.translate("onboard_tenant"),
             Icons.person_add,
             () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
           ),
@@ -256,6 +260,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final rentalProvider = context.watch<RentalProvider>();
     final properties = rentalProvider.properties;
 
+    final loc = LocalizationService.instance;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -263,12 +268,12 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "My Properties",
+              loc.translate("my_properties"),
               style: ThemeConstants.responsiveSubHeadingStyle(context),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text("See All", style: TextStyle(color: ThemeConstants.footerBarColor)),
+              child: Text(loc.translate("see_all"), style: const TextStyle(color: ThemeConstants.footerBarColor)),
             ),
           ],
         ),
@@ -278,7 +283,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: Text("No properties found", style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
+              child: Text(loc.translate("no_properties_found"), style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
             ),
           )
         else
@@ -333,7 +338,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            "${(prop['houses'] as List? ?? []).length} Houses",
+                            "${(prop['houses'] as List? ?? []).length} ${loc.translate('houses')}",
                             style: TextStyle(
                               color: ThemeConstants.primaryOrange,
                               fontSize: 12.sp,

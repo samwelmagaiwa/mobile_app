@@ -90,22 +90,50 @@ class TenantController extends Controller
     public function onboard(Request $request)
     {
         $request->validate([
-            'name' => 'required|string',
+            'first_name' => 'required|string',
+            'last_name' => 'required|string',
             'email' => 'required|email',
-            'phone_number' => 'required|string',
-            'house_id' => 'required|exists:rental_houses,id',
+            'phone' => 'required|string',
+            'rental_house_id' => 'required|exists:rental_houses,id',
             'rent_amount' => 'required|numeric',
-            'rent_cycle' => 'sometimes|in:monthly,quarterly,semi_annual,annual',
             'start_date' => 'sometimes|date',
-            'deposit_paid' => 'sometimes|numeric',
-            'id_number' => 'nullable|string',
-            'occupation' => 'nullable|string',
-            'emergency_contact_name' => 'nullable|string',
-            'emergency_contact_phone' => 'nullable|string',
+            'gender' => 'nullable|string',
+            'dob' => 'nullable|date',
+            'nida' => 'nullable|string',
+            'emergency_contact' => 'nullable|array',
+            'id_details' => 'nullable|array',
+            'employment' => 'nullable|array',
+            'history' => 'nullable|array',
+            'occupants' => 'nullable|array',
+            'pets' => 'nullable|array',
+            'tenant_photo' => 'nullable|image|max:2048', // 2MB max
         ]);
 
         try {
-            $result = $this->rentalService->onboardTenant($request->all());
+            $data = $request->all();
+            
+            // Multipart sends JSON arrays as strings, so we must decode them
+            $jsonFields = ['emergency_contact', 'id_details', 'employment', 'history', 'occupants', 'pets'];
+            foreach ($jsonFields as $field) {
+                if (isset($data[$field]) && is_string($data[$field])) {
+                    $decoded = json_decode($data[$field], true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $data[$field] = $decoded;
+                    }
+                }
+            }
+
+            // Map common fields for backward compatibility or Service expected names
+            $data['name'] = ($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? '');
+            $data['phone_number'] = $data['phone'] ?? null;
+            $data['house_id'] = $data['rental_house_id'] ?? null;
+
+            // Handle Photo Upload
+            if ($request->hasFile('tenant_photo')) {
+                $path = $request->file('tenant_photo')->store('tenant_photos', 'public');
+                $data['photo_url'] = $path;
+            }
+            $result = $this->rentalService->onboardTenant($data);
             
             // Send welcome SMS
             $house = House::find($request->house_id);

@@ -104,6 +104,13 @@ class UserPermissions {
           'inv_create_sales',
           'inv_manage_sales',
           'inv_view_reminders',
+          // Rental
+          'view_tenants',
+          'view_properties',
+          'view_rent_payments',
+          'view_arrears',
+          'view_rental_reports',
+          'view_sms_history',
         ];
       case 'manager':
         return const [
@@ -125,6 +132,13 @@ class UserPermissions {
           'inv_create_sales',
           'inv_manage_sales',
           'inv_view_reminders',
+          // Rental
+          'view_tenants',
+          'view_properties',
+          'view_rent_payments',
+          'view_arrears',
+          'view_rental_reports',
+          'view_sms_history',
         ];
       case 'operator':
         return const [
@@ -135,7 +149,7 @@ class UserPermissions {
           'generate_receipts',
           // Inventory (Sales Officer)
           'inv_view_products',
-          'inv_manage_products', // allow create/edit, no delete enforced at UI level
+          'inv_manage_products',
           'inv_create_sales',
           'inv_view_reminders',
         ];
@@ -155,7 +169,7 @@ class UserPermissions {
           'inv_view_reminders',
         ];
       default:
-        return const []; // No permissions for unknown roles
+        return const [];
     }
   }
 

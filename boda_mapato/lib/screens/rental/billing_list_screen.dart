@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../services/localization_service.dart';
 import 'receipt_view_screen.dart';
 
 class BillingListScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                 child: rentalProvider.isLoading && bills.isEmpty
                   ? const Center(child: CircularProgressIndicator(color: Colors.white))
                   : bills.isEmpty
-                    ? Center(child: Text("No bills found", style: TextStyle(color: Colors.white54, fontSize: 14.sp)))
+                    ? Center(child: Text(LocalizationService.instance.translate("no_bills_found"), style: TextStyle(color: Colors.white54, fontSize: 14.sp)))
                     : RefreshIndicator(
                         onRefresh: () => rentalProvider.fetchBills(),
                         child: ListView.builder(
@@ -84,7 +85,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
             },
           ),
           title: Text(
-            "Rent Billing",
+            LocalizationService.instance.translate("rent_billing"),
             style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
           ),
         ),
@@ -94,23 +95,24 @@ class _BillingListScreenState extends State<BillingListScreen> {
 
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Rent Billing",
+      title: LocalizationService.instance.translate("rent_billing"),
       body: content,
     );
   }
 
   Widget _buildFilters(BuildContext context) {
+    final loc = LocalizationService.instance;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip("All", 'all'),
+          _buildFilterChip(loc.translate("all"), 'all'),
           SizedBox(width: 8.w),
-          _buildFilterChip("Unpaid", 'unpaid'),
+          _buildFilterChip(loc.translate("unpaid"), 'unpaid'),
           SizedBox(width: 8.w),
-          _buildFilterChip("Overdue", 'overdue'),
+          _buildFilterChip(loc.translate("overdue"), 'overdue'),
           SizedBox(width: 8.w),
-          _buildFilterChip("Paid", 'paid'),
+          _buildFilterChip(loc.translate("paid"), 'paid'),
         ],
       ),
     );
@@ -137,6 +139,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
     final status = bill['status'] as String;
     final isOverdue = bill['is_overdue'] == 1 || bill['is_overdue'] == true;
     
+    final loc = LocalizationService.instance;
     Color statusColor = ThemeConstants.successGreen;
     if (isOverdue) {
       statusColor = ThemeConstants.errorRed;
@@ -179,7 +182,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                   border: Border.all(color: statusColor.withOpacity(0.5)),
                 ),
                 child: Text(
-                  isOverdue ? "OVERDUE" : status.toUpperCase(),
+                  isOverdue ? loc.translate("overdue").toUpperCase() : (loc.translate(status).toUpperCase()),
                   style: TextStyle(color: statusColor, fontSize: 10.sp, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -189,9 +192,9 @@ class _BillingListScreenState extends State<BillingListScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildAmountItem("Total", bill['amount_due']),
-              _buildAmountItem("Paid", bill['amount_paid']),
-              _buildAmountItem("Balance", bill['balance'], isBold: true),
+              _buildAmountItem(loc.translate("total"), bill['amount_due']),
+              _buildAmountItem(loc.translate("paid"), bill['amount_paid']),
+              _buildAmountItem(loc.translate("balance"), bill['balance'], isBold: true),
             ],
           ),
           SizedBox(height: 12.h),
@@ -200,13 +203,13 @@ class _BillingListScreenState extends State<BillingListScreen> {
               Icon(Icons.calendar_today, color: Colors.white54, size: 14.w),
               SizedBox(width: 4.w),
               Text(
-                "Due: ${bill['due_date']}",
+                "${loc.translate('due')}: ${bill['due_date']}",
                 style: TextStyle(color: Colors.white54, fontSize: 11.sp),
               ),
               const Spacer(),
               if (status != 'paid')
                 Text(
-                  "Tap to Pay",
+                  loc.translate("tap_to_pay"),
                   style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 12.sp, fontWeight: FontWeight.bold),
                 ),
             ],
@@ -255,7 +258,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Record Payment",
+                  LocalizationService.instance.translate("record_payment"),
                   style: ThemeConstants.responsiveHeadingStyle(context),
                 ),
                 SizedBox(height: 8.h),
@@ -270,7 +273,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: Colors.white),
-                    decoration: ThemeConstants.invInputDecoration("Amount Paid (Tsh)").copyWith(
+                    decoration: ThemeConstants.invInputDecoration(LocalizationService.instance.translate("amount_paid_tsh")).copyWith(
                       prefixIcon: const Icon(Icons.payments, color: Colors.white70),
                     ),
                   ),
@@ -289,7 +292,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                       if (mounted) {
                         setModalState(() => isSaving = false);
                         if (success) {
-                          ThemeConstants.showSuccessSnackBar(context, "Payment recorded successfully!");
+                          ThemeConstants.showSuccessSnackBar(context, LocalizationService.instance.translate("payment_success"));
                           final lastPayment = context.read<RentalProvider>().lastPayment;
                           Navigator.pop(context); // Close modal
                           if (lastPayment != null) {
@@ -301,14 +304,14 @@ class _BillingListScreenState extends State<BillingListScreen> {
                             );
                           }
                         } else {
-                          ThemeConstants.showErrorSnackBar(context, "Failed to record payment.");
+                          ThemeConstants.showErrorSnackBar(context, LocalizationService.instance.translate("payment_failed"));
                         }
                       }
                     },
                     style: ThemeConstants.responsiveElevatedButtonStyle(context),
                     child: isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Confirm Payment"),
+                      : Text(LocalizationService.instance.translate("confirm_payment")),
                   ),
                 ),
                 SizedBox(height: 12.h),

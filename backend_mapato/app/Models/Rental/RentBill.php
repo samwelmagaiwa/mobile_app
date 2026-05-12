@@ -35,4 +35,14 @@ class RentBill extends Model
     {
         return $this->hasMany(RentalPayment::class, 'bill_id');
     }
+
+    /**
+     * Check if bill is overdue.
+     */
+    public function getIsOverdueAttribute(): bool
+    {
+        return in_array($this->status, ['unpaid', 'partial']) && 
+               $this->due_date && 
+               $this->due_date->lt(now()->toDateString());
+    }
 }

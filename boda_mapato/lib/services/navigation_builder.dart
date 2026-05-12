@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../config/navigation_config.dart';
 import '../models/user_permissions.dart';
@@ -396,59 +397,72 @@ class NavigationBuilder {
     await showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: ThemeConstants.primaryBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      localization.translate('menu'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.white70, size: 18.sp),
-                    onPressed: () => Navigator.of(ctx).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.8,
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: ThemeConstants.primaryBlue.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
                 ),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return _MenuGridTile(
-                    icon: item.icon,
-                    label: localization.translate(item.key),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _navigateTo(item, context);
-                    },
-                  );
-                },
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      localization.translate('menu'),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white70, size: 22.sp),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 12.w,
+                    mainAxisSpacing: 12.h,
+                    childAspectRatio: 0.75, // Provide more height to prevent overflow
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _MenuGridTile(
+                      icon: item.icon,
+                      label: localization.translate(item.key),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _navigateTo(item, context);
+                      },
+                    );
+                  },
+                ),
+                SizedBox(height: 10.h),
+              ],
+            ),
           ),
         ),
       ),
@@ -537,56 +551,57 @@ class _MenuGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         onTap: onTap,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final double h =
-                constraints.maxHeight.isFinite ? constraints.maxHeight : 90;
-            // Compute sizes responsively to avoid overflows on tight tiles
-            double side = h * 0.52; // avatar circle side
-            if (side < 36) side = 36;
-            if (side > 56) side = 56;
+                constraints.maxHeight.isFinite ? constraints.maxHeight : 90.h;
+            
+            // Compute sizes responsively to avoid overflows
+            double side = h * 0.50; // icon container side
+            if (side < 32.w) side = 32.w;
+            if (side > 56.w) side = 56.w;
+            
             double iconSize = side * 0.5;
-            if (iconSize < 18) iconSize = 18;
-            if (iconSize > 28) iconSize = 28;
             double spacing = h * 0.08;
-            if (spacing < 4) spacing = 4;
-            if (spacing > 8) spacing = 8;
-            double fontSize = h * 0.18;
-            if (fontSize < 10) fontSize = 10;
-            if (fontSize > 12) fontSize = 12;
+            double fontSize = h * 0.14;
+            if (fontSize < 10.sp) fontSize = 10.sp;
+            if (fontSize > 12.sp) fontSize = 12.sp;
 
-            return FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: side,
-                    height: side,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
+            return Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: side,
+                      height: side,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: iconSize),
                     ),
-                    child: Icon(icon, color: Colors.white, size: iconSize),
-                  ),
-                  SizedBox(height: spacing),
-                  // Let the text shrink and ellipsize within the tile
-                  ConstrainedBox(
-                    constraints:
-                        BoxConstraints(maxWidth: constraints.maxWidth - 4),
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: fontSize),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
+                    SizedBox(height: spacing),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

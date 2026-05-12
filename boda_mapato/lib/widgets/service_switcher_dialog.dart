@@ -61,25 +61,29 @@ class ServiceSwitcherDialog extends StatelessWidget {
               ],
             ),
             SizedBox(height: 16.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ServiceOption(
-                  icon: Icons.storefront,
-                  label: loc.translate('inventory_service'),
-                  onTap: () => _switchService(context, 'inventory'),
-                ),
-                _ServiceOption(
-                  icon: Icons.home_work_outlined,
-                  label: loc.translate('rental_service'),
-                  onTap: () => _switchService(context, 'rental'),
-                ),
-                _ServiceOption(
-                  icon: Icons.local_shipping_outlined,
-                  label: loc.translate('transport_service'),
-                  onTap: () => _switchService(context, 'transport'),
-                ),
-              ],
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 4.w,
+                runSpacing: 12.h,
+                children: [
+                  _ServiceOption(
+                    icon: Icons.storefront,
+                    label: loc.translate('inventory_service'),
+                    onTap: () => _switchService(context, 'inventory'),
+                  ),
+                  _ServiceOption(
+                    icon: Icons.home_work_outlined,
+                    label: loc.translate('rental_service'),
+                    onTap: () => _switchService(context, 'rental'),
+                  ),
+                  _ServiceOption(
+                    icon: Icons.local_shipping_outlined,
+                    label: loc.translate('transport_service'),
+                    onTap: () => _switchService(context, 'transport'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
