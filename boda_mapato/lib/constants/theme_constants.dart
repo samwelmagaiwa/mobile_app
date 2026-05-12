@@ -338,34 +338,28 @@ class ThemeConstants {
   }
 
   /// Responsive glass card widget with MediaQuery-based sizing
-  static Widget buildResponsiveGlassCard(
-    BuildContext context, {
-    required Widget child,
-    VoidCallback? onTap,
-  }) {
+  static Widget buildResponsiveGlassCard(BuildContext context,
+      {required Widget child, required VoidCallback onTap, EdgeInsets? padding}) {
     ResponsiveHelper.init(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-        child: Container(
-          constraints: BoxConstraints(
-            minHeight: ResponsiveHelper.cardMinHeight,
-            maxWidth: ResponsiveHelper.maxCardWidth,
-          ),
-          decoration: responsiveGlassCardDecoration(context),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: ResponsiveHelper.isMobile ? 8 : 10,
-                sigmaY: ResponsiveHelper.isMobile ? 8 : 10,
-              ),
-              child: Padding(
-                padding: ResponsiveHelper.cardPadding,
-                child: child,
-              ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
+      child: Container(
+        constraints: BoxConstraints(
+          minHeight: ResponsiveHelper.cardMinHeight,
+          maxWidth: ResponsiveHelper.maxCardWidth,
+        ),
+        decoration: responsiveGlassCardDecoration(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: ResponsiveHelper.isMobile ? 8 : 10,
+              sigmaY: ResponsiveHelper.isMobile ? 8 : 10,
+            ),
+            child: Padding(
+              padding: padding ?? ResponsiveHelper.cardPadding,
+              child: child,
             ),
           ),
         ),
@@ -375,7 +369,7 @@ class ThemeConstants {
 
   /// Responsive glass card widget without touch handling (for display-only cards)
   static Widget buildResponsiveGlassCardStatic(BuildContext context,
-      {required Widget child}) {
+      {required Widget child, EdgeInsets? padding}) {
     ResponsiveHelper.init(context);
     return Container(
       constraints: BoxConstraints(
@@ -391,7 +385,7 @@ class ThemeConstants {
             sigmaY: ResponsiveHelper.isMobile ? 8 : 10,
           ),
           child: Padding(
-            padding: ResponsiveHelper.cardPadding,
+            padding: padding ?? ResponsiveHelper.cardPadding,
             child: child,
           ),
         ),
