@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import '../constants/theme_constants.dart';
 
 /// A utility class for creating SnackBars with selectable text content
 class SelectableSnackBar {
@@ -10,21 +10,8 @@ class SelectableSnackBar {
     final Duration duration = const Duration(seconds: 4),
     final SnackBarAction? action,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: SelectableText(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: backgroundColor ?? Colors.black87,
-        duration: duration,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        action: action,
-      ),
-    );
+    // Redirect to ThemeConstants for top-positioned notification
+    ThemeConstants.showSuccessSnackBar(context, message);
   }
 
   /// Shows an error SnackBar with selectable text
@@ -33,12 +20,7 @@ class SelectableSnackBar {
     required final String message,
     final Duration duration = const Duration(seconds: 6),
   }) {
-    show(
-      context,
-      message: message,
-      backgroundColor: Colors.red[600],
-      duration: duration,
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   /// Shows a success SnackBar with selectable text
@@ -47,12 +29,7 @@ class SelectableSnackBar {
     required final String message,
     final Duration duration = const Duration(seconds: 3),
   }) {
-    show(
-      context,
-      message: message,
-      backgroundColor: Colors.green[600],
-      duration: duration,
-    );
+    ThemeConstants.showSuccessSnackBar(context, message);
   }
 
   /// Shows an info SnackBar with selectable text
@@ -61,12 +38,7 @@ class SelectableSnackBar {
     required final String message,
     final Duration duration = const Duration(seconds: 4),
   }) {
-    show(
-      context,
-      message: message,
-      backgroundColor: Colors.blue[600],
-      duration: duration,
-    );
+    ThemeConstants.showInfoSnackBar(context, message);
   }
 
   /// Shows a warning SnackBar with selectable text
@@ -75,12 +47,7 @@ class SelectableSnackBar {
     required final String message,
     final Duration duration = const Duration(seconds: 5),
   }) {
-    show(
-      context,
-      message: message,
-      backgroundColor: Colors.orange[600],
-      duration: duration,
-    );
+    ThemeConstants.showWarningSnackBar(context, message);
   }
 }
 

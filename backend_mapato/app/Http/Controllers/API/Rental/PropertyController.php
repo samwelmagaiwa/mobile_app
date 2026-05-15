@@ -34,7 +34,7 @@ class PropertyController extends Controller
             ->setOwner($request->user()->id)
             ->getAll($filters, $perPage);
 
-        return ResponseHelper::paginated($properties, PropertyResource::class);
+        return ResponseHelper::paginate($properties, PropertyResource::class);
     }
 
     /**

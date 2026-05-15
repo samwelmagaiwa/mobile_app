@@ -61,24 +61,17 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ThemeConstants.primaryBlue,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(_loc.translate('properties'),
-            style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
-            ).then((_) => _loadProperties(refresh: true)),
-          ),
-        ],
-      ),
+    return ThemeConstants.buildScaffold(
+      title: _loc.translate('properties'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
+          ).then((_) => _loadProperties(refresh: true)),
+        ),
+      ],
       body: SafeArea(
         child: Column(
           children: [
@@ -92,7 +85,7 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
 
   Widget _buildSearchAndFilter() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
+      padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 12.h),
       child: Column(
         children: [
           // Search bar
@@ -122,10 +115,11 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
               contentPadding: EdgeInsets.symmetric(vertical: 12.h),
             ),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 12.h),
           // Status filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
                 _buildFilterChip(null, _loc.translate('all')),
@@ -152,25 +146,24 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
         setState(() => _selectedStatus = status);
         _loadProperties(refresh: true);
       },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: isSelected
               ? ThemeConstants.primaryOrange
               : Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: isSelected
-                ? ThemeConstants.primaryOrange
-                : Colors.white.withOpacity(0.15),
-          ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: ThemeConstants.primaryOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+          ] : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             color: isSelected ? Colors.white : Colors.white70,
             fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),
       ),
@@ -181,8 +174,7 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
     return Consumer<RentalProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.properties.isEmpty) {
-          return const Center(
-              child: CircularProgressIndicator(color: Colors.white));
+          return ThemeConstants.buildLoadingWidget();
         }
         if (provider.properties.isEmpty) {
           return _buildEmptyState();
@@ -192,15 +184,13 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
           color: ThemeConstants.primaryOrange,
           child: ListView.builder(
             controller: _scrollController,
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 20.h),
             itemCount: provider.properties.length + (provider.hasMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == provider.properties.length) {
                 return Padding(
                   padding: EdgeInsets.all(16.h),
-                  child: const Center(
-                      child:
-                          CircularProgressIndicator(color: Colors.white54)),
+                  child: const Center(child: CircularProgressIndicator(color: Colors.white54)),
                 );
               }
               final p = provider.properties[index] as Map<String, dynamic>;
@@ -218,21 +208,21 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(24.w),
+            padding: EdgeInsets.all(24.r),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withOpacity(0.05),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.apartment, size: 56.sp, color: Colors.white38),
+            child: Icon(Icons.apartment_outlined, size: 56.sp, color: Colors.white38),
           ),
           SizedBox(height: 20.h),
           Text(_loc.translate('no_properties'),
-              style: TextStyle(color: Colors.white54, fontSize: 16.sp, fontWeight: FontWeight.w500)),
+              style: ThemeConstants.subHeadingStyle),
           SizedBox(height: 8.h),
           Text(_loc.translate('add_property_hint'),
-              style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
+              style: ThemeConstants.captionStyle),
           SizedBox(height: 24.h),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
@@ -242,9 +232,15 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: Text(_loc.translate('add_property'),
-                style: TextStyle(color: Colors.white, fontSize: 14.sp)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add, color: Colors.white),
+                SizedBox(width: 8.w),
+                Text(_loc.translate('add_property'),
+                    style: TextStyle(color: Colors.white, fontSize: 14.sp)),
+              ],
+            ),
           ),
         ],
       ),
@@ -263,168 +259,123 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
       case 'active':
         statusColor = ThemeConstants.successGreen;
         break;
-      case 'inactive':
-        statusColor = Colors.white38;
-        break;
       case 'under_maintenance':
         statusColor = ThemeConstants.warningAmber;
         break;
-      case 'archived':
-        statusColor = Colors.white24;
-        break;
-      default:
-        statusColor = Colors.white54;
+      default: statusColor = Colors.white54;
     }
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: ThemeConstants.buildResponsiveGlassCard(
         context,
-        MaterialPageRoute(
-          builder: (_) => PropertyDetailsScreen(propertyId: property['id']),
-        ),
-      ).then((_) => _loadProperties(refresh: true)),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 14.h),
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          ThemeConstants.primaryOrange.withOpacity(0.3),
-                          ThemeConstants.primaryOrange.withOpacity(0.1),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PropertyDetailsScreen(propertyId: property['id']),
+          ),
+        ).then((_) => _loadProperties(refresh: true)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12.r),
+                  decoration: BoxDecoration(
+                    color: ThemeConstants.primaryOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(Icons.business_outlined, color: ThemeConstants.primaryOrange, size: 24.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        property['name'] ?? '',
+                        style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.bold, fontSize: 16.sp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 2.h),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 12.sp, color: Colors.white54),
+                          SizedBox(width: 4.w),
+                          Expanded(
+                            child: Text(
+                              property['full_address'] ?? "${property['district'] ?? ''}, ${property['region'] ?? ''}",
+                              style: ThemeConstants.captionStyle.copyWith(fontSize: 11.sp),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Icon(Icons.apartment,
-                        color: ThemeConstants.primaryOrange, size: 24.sp),
+                    ],
                   ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          property['name'] ?? '',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 3.h),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on,
-                                size: 12.sp, color: Colors.white54),
-                            SizedBox(width: 4.w),
-                            Expanded(
-                              child: Text(
-                                property['full_address'] ??
-                                    "${property['district'] ?? ''}, ${property['region'] ?? ''}",
-                                style: TextStyle(
-                                    color: Colors.white54, fontSize: 11.sp),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 10.w, vertical: 5.h),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    child: Text(
-                      statusDisplay.toString(),
-                      style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600),
-                    ),
+                  child: Text(
+                    statusDisplay.toString().toUpperCase(),
+                    style: TextStyle(color: statusColor, fontSize: 9.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   ),
-                ],
-              ),
-              SizedBox(height: 14.h),
-              // Stats row
-              Row(
-                children: [
-                  Expanded(
-                      child: _buildStat(
-                          Icons.home, '$totalUnits', _loc.translate('houses'))),
-                  Container(width: 1, height: 28.h, color: Colors.white12),
-                  Expanded(
-                      child: _buildStat(Icons.person, '$occupied',
-                          _loc.translate('occupied'))),
-                  Container(width: 1, height: 28.h, color: Colors.white12),
-                  Expanded(
-                      child: _buildStat(Icons.meeting_room, '$vacant',
-                          _loc.translate('vacant'),
-                          color: vacant > 0
-                              ? ThemeConstants.successGreen
-                              : null)),
-                ],
-              ),
-              SizedBox(height: 10.h),
-              // Chips row
-              Row(
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Row(
+              children: [
+                Expanded(child: _buildStat(Icons.home_outlined, '$totalUnits', _loc.translate('houses'))),
+                _statDivider(),
+                Expanded(child: _buildStat(Icons.person_outline, '$occupied', _loc.translate('occupied'))),
+                _statDivider(),
+                Expanded(child: _buildStat(Icons.meeting_room_outlined, '$vacant', _loc.translate('vacant'),
+                    color: vacant > 0 ? ThemeConstants.successGreen : null)),
+              ],
+            ),
+            if (property['property_type_display'] != null || property['billing_cycle_display'] != null) ...[
+              SizedBox(height: 16.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
                 children: [
                   if (property['property_type_display'] != null)
                     _buildChip(property['property_type_display']),
-                  SizedBox(width: 8.w),
                   if (property['billing_cycle_display'] != null)
                     _buildChip(property['billing_cycle_display']),
                 ],
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStat(IconData icon, String value, String label,
-      {Color? color}) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14.sp, color: color ?? Colors.white54),
-              SizedBox(width: 4.w),
-              Text(value,
-                  style: TextStyle(
-                      color: color ?? Colors.white,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-          SizedBox(height: 2.h),
-          Text(label,
-              style: TextStyle(color: Colors.white38, fontSize: 10.sp)),
-        ],
-      ),
+  Widget _statDivider() => Container(width: 1, height: 24.h, color: Colors.white.withOpacity(0.08));
+
+  Widget _buildStat(IconData icon, String value, String label, {Color? color}) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14.sp, color: color ?? Colors.white54),
+            SizedBox(width: 6.w),
+            Text(value, style: TextStyle(color: color ?? Colors.white, fontSize: 15.sp, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        SizedBox(height: 2.h),
+        Text(label, style: ThemeConstants.captionStyle.copyWith(fontSize: 10.sp)),
+      ],
     );
   }
 
@@ -432,11 +383,11 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
-      child: Text(label,
-          style: TextStyle(color: Colors.white70, fontSize: 10.sp)),
+      child: Text(label, style: ThemeConstants.captionStyle.copyWith(fontSize: 10.sp, color: Colors.white70)),
     );
   }
 }

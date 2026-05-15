@@ -85,8 +85,9 @@ class ApiService {
   Future<Map<String, dynamic>> get(
     final String endpoint, {
     final bool requireAuth = true,
+    final Map<String, dynamic>? queryParams,
   }) async {
-    return _get(endpoint, requireAuth: requireAuth);
+    return _get(endpoint, requireAuth: requireAuth, queryParams: queryParams);
   }
 
   // Safe GET that returns null instead of throwing on API errors (e.g., 404)
@@ -278,7 +279,8 @@ class ApiService {
       }
 
       final Uri uri = Uri.parse("$baseUrl$endpoint").replace(
-        queryParameters: queryParams?.map((key, value) => MapEntry(key, value.toString())),
+        queryParameters:
+            queryParams?.map((key, value) => MapEntry(key, value.toString())),
       );
 
       final http.Response response = await http
@@ -760,10 +762,13 @@ class ApiService {
 
   // Users management endpoints
   Future<Map<String, dynamic>> getUsers(
-      {int page = 1, int limit = 50, String? query}) async {
-    final String q = (query != null && query.isNotEmpty)
+      {int page = 1, int limit = 50, String? query, String? serviceType}) async {
+    String q = (query != null && query.isNotEmpty)
         ? "&q=${Uri.encodeComponent(query)}"
         : "";
+    if (serviceType != null && serviceType.isNotEmpty) {
+      q += "&service_type=${Uri.encodeComponent(serviceType)}";
+    }
     final List<String> endpoints = <String>[
       "/admin/users?page=$page&limit=$limit$q",
       "/users?page=$page&limit=$limit$q",
@@ -774,10 +779,13 @@ class ApiService {
 
   /// Get users created by the currently authenticated admin
   Future<Map<String, dynamic>> getMyUsers(
-      {int page = 1, int limit = 50, String? query}) async {
-    final String q = (query != null && query.isNotEmpty)
+      {int page = 1, int limit = 50, String? query, String? serviceType}) async {
+    String q = (query != null && query.isNotEmpty)
         ? "&q=${Uri.encodeComponent(query)}"
         : "";
+    if (serviceType != null && serviceType.isNotEmpty) {
+      q += "&service_type=${Uri.encodeComponent(serviceType)}";
+    }
     final List<String> endpoints = <String>[
       "/admin/users?created_by=me&page=$page&limit=$limit$q",
       "/admin/users/mine?page=$page&limit=$limit$q",
@@ -805,6 +813,10 @@ class ApiService {
         "/admin/user-management/users/$userId"
       ], userData);
 
+  Future<Map<String, dynamic>> updateUserPermissions(
+          String userId, List<String> permissions) async =>
+      updateUser(userId, {'permissions': permissions});
+
   // Rental Module APIs
   Future<Map<String, dynamic>> getRentalProperties() async =>
       _get("/rental/properties");
@@ -831,13 +843,66 @@ class ApiService {
   Future<Map<String, dynamic>> getRentalPropertyStats() async =>
       _get("/rental/properties/stats");
 
-  Future<Map<String, dynamic>> addRentalProperty(
-          Map<String, dynamic> data) async =>
-      _post("/rental/properties", data);
+  Future<Map<String, dynamic>> addRentalProperty(Map<String, dynamic> data,
+      {File? image}) async {
+    final Map<String, String> fields = {};
+    data.forEach((key, value) {
+      // EXCLUDE cover_image from regular fields if we have a file, 
+      // or if it's already a File object in the map
+      if (key == 'cover_image' && (image != null || value is File)) return;
+      if (value != null) fields[key] = value.toString();
+    });
+
+    if (image != null) {
+      debugPrint('Adding property with Multipart image. Fields: $fields');
+      debugPrint('Image field name: cover_image, Path: ${image.path}');
+      return await postMultipart("/rental/properties", fields,
+          fileField: 'cover_image', file: image);
+    }
+
+    debugPrint('Adding property WITHOUT image (JSON). Data: $data');
+    return await _post("/rental/properties", data);
+  }
+
+  Future<Map<String, dynamic>> addRentalPropertyWithImage(
+    Map<String, dynamic> fields, {
+    required String imagePath,
+  }) async {
+    final headers = await _authHeaders;
+    final uri = Uri.parse("$baseUrl/rental/properties");
+    final request = http.MultipartRequest('POST', uri);
+    final h = Map<String, String>.of(headers);
+    h.remove('Content-Type');
+    request.headers.addAll(h);
+
+    request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+    fields.forEach((key, value) {
+      if (value != null) request.fields[key] = value.toString();
+    });
+
+    final response = await http.Response.fromStream(await request.send());
+    return _handleResponse(response);
+  }
 
   Future<Map<String, dynamic>> updateRentalProperty(
-          String propertyId, Map<String, dynamic> data) async =>
-      _put("/rental/properties/$propertyId", data);
+      String propertyId, Map<String, dynamic> data,
+      {File? image}) async {
+    final Map<String, String> fields = {};
+    data.forEach((key, value) {
+      if (key == 'cover_image' && (image != null || value is File)) return;
+      if (value != null) fields[key] = value.toString();
+    });
+    fields['_method'] = 'PUT';
+
+    if (image != null) {
+      debugPrint('Updating property with Multipart image. Fields: $fields');
+      return await postMultipart("/rental/properties/$propertyId", fields,
+          fileField: 'cover_image', file: image);
+    }
+
+    debugPrint('Updating property WITHOUT image (JSON). Data: $data');
+    return await _put("/rental/properties/$propertyId", data);
+  }
 
   Future<Map<String, dynamic>> deleteRentalProperty(String propertyId) async =>
       _delete("/rental/properties/$propertyId");
@@ -864,11 +929,19 @@ class ApiService {
 
     // Filter fields & map complex structures to strings or individual fields
     final String? photoPath = data.remove('tenant_photo');
+    final String? idDocPath = data.remove('id_document');
 
-    // Add all remaining data as fields (convert nested maps/lists to JSON strings)
+    // Add all remaining data as fields
+    // For nested maps (emergency_contact, id_details, etc.), flatten them for Laravel multipart support
     data.forEach((key, value) {
       if (value != null) {
-        if (value is Map || value is List) {
+        if (value is Map) {
+          value.forEach((subKey, subValue) {
+            if (subValue != null) {
+              request.fields['$key[$subKey]'] = subValue.toString();
+            }
+          });
+        } else if (value is List) {
           request.fields[key] = json.encode(value);
         } else {
           request.fields[key] = value.toString();
@@ -876,12 +949,19 @@ class ApiService {
       }
     });
 
-    // Add File if present
+    // Add Tenant Photo if present
     if (photoPath != null && photoPath.isNotEmpty) {
       final file = File(photoPath);
       if (await file.exists()) {
-        request.files
-            .add(await http.MultipartFile.fromPath('tenant_photo', photoPath));
+        request.files.add(await http.MultipartFile.fromPath('tenant_photo', photoPath));
+      }
+    }
+
+    // Add ID Document if present
+    if (idDocPath != null && idDocPath.isNotEmpty) {
+      final file = File(idDocPath);
+      if (await file.exists()) {
+        request.files.add(await http.MultipartFile.fromPath('id_document', idDocPath));
       }
     }
 
@@ -905,6 +985,107 @@ class ApiService {
 
   Future<Map<String, dynamic>> getRentalArrears() async =>
       _get("/rental/reports/arrears");
+
+  /// Send multipart request with file upload for maintenance requests
+  Future<Map<String, dynamic>> postMultipart(
+    String endpoint,
+    Map<String, dynamic> fields, {
+    required String fileField,
+    required dynamic file,
+  }) async {
+    final headers = await _authHeaders;
+    final uri = Uri.parse("$baseUrl$endpoint");
+    final request = http.MultipartRequest('POST', uri);
+    final h = Map<String, String>.of(headers);
+    h.remove('Content-Type');
+    request.headers.addAll(h);
+
+    request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
+    fields.forEach((key, value) {
+      if (value != null) request.fields[key] = value.toString();
+    });
+
+    final response = await http.Response.fromStream(await request.send());
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> sendSmsReminder(String billId) async =>
+      _post("/rental/billing/$billId/reminder", {'type': 'sms'});
+
+  // Tenant management
+  Future<Map<String, dynamic>> updateTenantStatus(
+          String tenantId, String status) async =>
+      _put("/rental/tenants/$tenantId/status", {'status': status});
+
+  Future<Map<String, dynamic>> terminateTenant(String tenantId) async =>
+      _delete("/rental/tenants/$tenantId");
+
+  Future<Map<String, dynamic>> getRentalSearchTenants(String query) async =>
+      _get("/rental/tenants", queryParams: {'search': query});
+
+  // Agreement APIs
+  Future<Map<String, dynamic>> getAgreements(
+      {String? status, String? search}) async {
+    final params = <String, dynamic>{};
+    if (status != null) params['status'] = status;
+    if (search != null) params['search'] = search;
+    return _get("/rental/agreements", queryParams: params);
+  }
+
+  Future<Map<String, dynamic>> createAgreement(
+          Map<String, dynamic> data) async =>
+      _post("/rental/agreements", data);
+
+  Future<Map<String, dynamic>> renewAgreement(
+          String id, Map<String, dynamic> data) async =>
+      _post("/rental/agreements/$id/renew", data);
+
+  Future<Map<String, dynamic>> terminateAgreement(
+          String id, String reason) async =>
+      _post("/rental/agreements/$id/terminate", {'termination_reason': reason});
+
+  Future<Map<String, dynamic>> getExpiringAgreements() async =>
+      _get("/rental/agreements/expiring");
+
+  // Blocks
+  Future<Map<String, dynamic>> getRentalBlocks(String propertyId) async =>
+      _get("/rental/blocks/$propertyId");
+
+  Future<Map<String, dynamic>> addRentalBlock(
+          String propertyId, Map<String, dynamic> data) async =>
+      _post("/rental/blocks/$propertyId", data);
+
+  // Houses
+  Future<Map<String, dynamic>> getPropertyHouses(String propertyId) async =>
+      _get("/rental/properties/$propertyId/houses");
+  Future<Map<String, dynamic>> getHouseDetails(String houseId) async =>
+      _get("/rental/houses/$houseId");
+
+  Future<Map<String, dynamic>> createHouse(Map<String, dynamic> data) async =>
+      _post("/rental/houses", data);
+
+  Future<Map<String, dynamic>> updateHouse(
+          String houseId, Map<String, dynamic> data) async =>
+      _put("/rental/houses/$houseId", data);
+
+  Future<Map<String, dynamic>> deleteHouse(String houseId) async =>
+      _delete("/rental/houses/$houseId");
+
+  // Reports
+  Future<Map<String, dynamic>> getOccupancyReport() async =>
+      _get("/rental/reports/occupancy");
+
+  Future<Map<String, dynamic>> getRevenueReport(
+      {String? period, DateTime? startDate, DateTime? endDate}) async {
+    final queryParams = <String, String>{};
+    if (period != null) queryParams['period'] = period;
+    if (startDate != null)
+      queryParams['start_date'] = startDate.toIso8601String().split('T')[0];
+    if (endDate != null)
+      queryParams['end_date'] = endDate.toIso8601String().split('T')[0];
+    if (queryParams.isEmpty) return _get("/rental/reports/revenue");
+    return _get("/rental/reports/revenue", queryParams: queryParams);
+  }
 
   Future<Map<String, dynamic>> deleteUser(String userId) async =>
       _deleteFirst(<String>[
@@ -1176,7 +1357,7 @@ class ApiService {
   Future<Map<String, dynamic>> getDashboardReport() async =>
       _get("/admin/reports/dashboard");
 
-  Future<Map<String, dynamic>> getRevenueReport({
+  Future<Map<String, dynamic>> getAdminRevenueReport({
     final DateTime? startDate,
     final DateTime? endDate,
   }) async {

@@ -27,11 +27,20 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
     const RentalDashboardScreen(isSubView: true),
     const BillingListScreen(isSubView: true),
     // Placeholder for Arrears/Debts
-    Center(child: Text(LocalizationService.instance.translate("coming_soon_arrears"), style: const TextStyle(color: Colors.white))),
+    Center(
+        child: Text(
+            LocalizationService.instance.translate("coming_soon_arrears"),
+            style: const TextStyle(color: Colors.white))),
     // Placeholder for Tenants List
-    Center(child: Text(LocalizationService.instance.translate("coming_soon_tenants"), style: const TextStyle(color: Colors.white))),
+    Center(
+        child: Text(
+            LocalizationService.instance.translate("coming_soon_tenants"),
+            style: const TextStyle(color: Colors.white))),
     // Placeholder for Receipts List
-    Center(child: Text(LocalizationService.instance.translate("coming_soon_receipts"), style: const TextStyle(color: Colors.white))),
+    Center(
+        child: Text(
+            LocalizationService.instance.translate("coming_soon_receipts"),
+            style: const TextStyle(color: Colors.white))),
   ];
 
   void _onItemTapped(int index) {
@@ -43,7 +52,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
   @override
   Widget build(BuildContext context) {
     final localizationService = LocalizationService.instance;
-    
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: _buildRentalDrawer(context, localizationService),
@@ -75,6 +84,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
 
   /// Footer styled exactly like Transport module
   Widget _buildRentalFooter(BuildContext context) {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
     return ColoredBox(
       color: ThemeConstants.footerBarColor,
       child: SafeArea(
@@ -102,24 +112,28 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                 // Left side: Rent Payments, Arrears
                 Row(
                   children: <Widget>[
-                    _FooterIcon(
-                      icon: Icons.payments_outlined,
-                      isSelected: _selectedIndex == 1,
-                      onTap: () => _onItemTapped(1),
-                    ),
-                    SizedBox(width: 14.w),
-                    _FooterIcon(
-                      icon: Icons.pending_actions,
-                      isSelected: _selectedIndex == 2,
-                      onTap: () => _onItemTapped(2),
-                    ),
+                    if (user?.hasPermission('manage_billing_rental') ?? false)
+                      _FooterIcon(
+                        icon: Icons.payments_outlined,
+                        isSelected: _selectedIndex == 1,
+                        onTap: () => _onItemTapped(1),
+                      ),
+                    if ((user?.hasPermission('manage_billing_rental') ?? false) && (user?.hasPermission('manage_debts_transport') ?? false))
+                      SizedBox(width: 14.w),
+                    if (user?.hasPermission('manage_debts_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.pending_actions,
+                        isSelected: _selectedIndex == 2,
+                        onTap: () => _onItemTapped(2),
+                      ),
                   ],
                 ),
                 // Center: Menu
                 _FooterIcon(
                   icon: Icons.apps,
                   isCenter: true,
-                  onTap: () => NavigationBuilder.showGridMenu(context, customItems: [
+                  onTap: () =>
+                      NavigationBuilder.showGridMenu(context, customItems: [
                     ...NavigationConfig.rentalDrawerItems,
                     ...NavigationConfig.systemItems,
                   ]),
@@ -127,17 +141,20 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                 // Right side: Tenants, Receipts
                 Row(
                   children: <Widget>[
-                    _FooterIcon(
-                      icon: Icons.people_alt_outlined,
-                      isSelected: _selectedIndex == 3,
-                      onTap: () => _onItemTapped(3),
-                    ),
-                    SizedBox(width: 14.w),
-                    _FooterIcon(
-                      icon: Icons.receipt_long_outlined,
-                      isSelected: _selectedIndex == 4,
-                      onTap: () => _onItemTapped(4),
-                    ),
+                    if (user?.hasPermission('onboard_tenants_rental') ?? false)
+                      _FooterIcon(
+                        icon: Icons.people_alt_outlined,
+                        isSelected: _selectedIndex == 3,
+                        onTap: () => _onItemTapped(3),
+                      ),
+                    if ((user?.hasPermission('onboard_tenants_rental') ?? false) && (user?.hasPermission('manage_receipts_transport') ?? false))
+                      SizedBox(width: 14.w),
+                    if (user?.hasPermission('manage_receipts_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.receipt_long_outlined,
+                        isSelected: _selectedIndex == 4,
+                        onTap: () => _onItemTapped(4),
+                      ),
                   ],
                 ),
               ],
@@ -159,9 +176,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.1),
-            ),
+            decoration: BoxDecoration(color: Colors.black.withOpacity(0.1)),
             child: SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,25 +185,30 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                     radius: 30,
                     backgroundColor: ThemeConstants.cardColor,
                     child: Text(
-                      user?.name?.substring(0, 1).toUpperCase() ?? "L",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                        user?.name?.substring(0, 1).toUpperCase() ?? "L",
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    user?.name ?? loc.translate("welcome_landlord"),
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    user?.email ?? "landlord@mapato.com",
-                    style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 14),
-                  ),
+                  Text(user?.name ?? loc.translate("welcome_landlord"),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  Text(user?.email ?? "landlord@mapato.com",
+                      style: const TextStyle(
+                          color: ThemeConstants.textSecondary, fontSize: 14)),
                 ],
               ),
             ),
           ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
                 for (final item in NavigationConfig.rentalDrawerItems)
-                  _DrawerItem(
+                  if (item.isSystemItem || (item.requiredPermissions?.any((p) => user?.hasPermission(p) ?? false) ?? true))
+                    _DrawerItem(
                     icon: item.icon,
                     label: LocalizationService.instance.translate(item.key),
                     onTap: () {
@@ -200,25 +220,32 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                         _onItemTapped(2);
                       } else if (item.key == 'tenants') {
                         _onItemTapped(3);
+                      } else if (item.key == 'lease_agreements') {
+                        Navigator.pushNamed(context, '/rental/agreements');
+                      } else if (item.key == 'lease_templates') {
+                        Navigator.pushNamed(context, '/rental/lease-templates');
                       } else if (item.key == 'switch_service') {
                         showDialog(
-                          context: context,
-                          builder: (context) => const ServiceSwitcherDialog(),
-                        );
+                            context: context,
+                            builder: (context) =>
+                                const ServiceSwitcherDialog());
                       } else {
                         Navigator.pushNamed(context, item.route);
                       }
                     },
                   ),
-          const Divider(color: Colors.white10),
-          _DrawerItem(
-            icon: Icons.logout,
-            label: loc.translate("logout"),
-            color: ThemeConstants.errorRed,
-            onTap: () async {
-              await auth.logout();
-              if (mounted) Navigator.pushReplacementNamed(context, "/");
-            },
+                const Divider(color: Colors.white10),
+                _DrawerItem(
+                  icon: Icons.logout,
+                  label: loc.translate("logout"),
+                  color: ThemeConstants.errorRed,
+                  onTap: () async {
+                    await auth.logout();
+                    if (mounted) Navigator.pushReplacementNamed(context, "/");
+                  },
+                ),
+              ],
+            ),
           ),
           SizedBox(height: 20.h),
         ],
@@ -242,10 +269,12 @@ class _FooterIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = isCenter 
-        ? ThemeConstants.primaryOrange 
-        : (isSelected ? ThemeConstants.primaryOrange.withOpacity(0.5) : ThemeConstants.primaryBlue.withOpacity(0.22));
-    
+    final Color bg = isCenter
+        ? ThemeConstants.primaryOrange
+        : (isSelected
+            ? ThemeConstants.primaryOrange.withOpacity(0.5)
+            : ThemeConstants.primaryBlue.withOpacity(0.22));
+
     return InkResponse(
       onTap: onTap,
       radius: 28.r,

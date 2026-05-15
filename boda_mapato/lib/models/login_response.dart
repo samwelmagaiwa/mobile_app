@@ -65,6 +65,8 @@ class UserData {
     this.driver,
     this.assignedDevice,
     this.avatarUrl,
+    this.permissions,
+    this.fullAccess = false,
   });
 
   factory UserData.fromJson(final Map<String, dynamic> json) => UserData(
@@ -90,6 +92,10 @@ class UserData {
             : null,
         // Flexible avatar/profile image keys from backend
         avatarUrl: _pickAvatarUrl(json),
+        permissions: json["permissions"] != null
+            ? List<String>.from((json["permissions"] as List).map((e) => e.toString()))
+            : null,
+        fullAccess: (json["full_access"] as bool?) ?? false,
       );
   final String id;
   final String name;
@@ -102,6 +108,13 @@ class UserData {
   final DriverData? driver;
   final DeviceData? assignedDevice;
   final String? avatarUrl;
+  final List<String>? permissions;
+  final bool fullAccess;
+
+  bool hasPermission(String permission) {
+    if (isSuperAdmin || fullAccess) return true;
+    return permissions?.contains(permission) ?? false;
+  }
 
   bool get isSuperAdmin => role == "super_admin";
   bool get isAdmin => role == "admin";

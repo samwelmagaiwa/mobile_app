@@ -303,7 +303,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       // Fetch all-time revenue to display on the balance card
       try {
         final Map<String, dynamic> revResp =
-            await _apiService.getRevenueReport();
+            await _apiService.getAdminRevenueReport();
         final Map<String, dynamic> revData = _extractDataFromResponse(revResp);
         _dashboardData['total_revenue'] = _toDouble(
           revData['total_revenue'] ??
@@ -736,14 +736,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade400,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   @override
@@ -877,6 +870,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     final double gapMid = isShort ? 4.0 : 6.0;
     final double gapSmall = isShort ? 3.0 : 4.0;
 
+    final bool canViewRevenue =
+        Provider.of<AuthProvider>(context, listen: false)
+            .user
+            ?.hasPermission('view_reports_transport') ??
+        false;
+
+    if (!canViewRevenue) return const SizedBox.shrink();
+
     return SizedBox(
       height: cardHeight,
       child: PageView(
@@ -984,103 +985,79 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
               0,
         );
 
+        final user = Provider.of<AuthProvider>(context, listen: false).user;
+        final bool canViewDrivers = user?.hasPermission('manage_drivers_transport') ?? false;
+        final bool canViewVehicles = user?.hasPermission('manage_vehicles_transport') ?? false;
+        final bool canViewRevenue = user?.hasPermission('view_reports_transport') ?? false;
+
         return Column(
           children: <Widget>[
             // First row: Revenue cards (Daily, Weekly, Monthly)
+            if (canViewRevenue)
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("daily_revenue"),
+                      "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
+                      "",
+                      Icons.today,
+                      true,
+                    ),
+                  ),
+                  ResponsiveHelper.horizontalSpace(4),
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("weekly_revenue"),
+                      "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
+                      "",
+                      Icons.calendar_view_week,
+                      false,
+                    ),
+                  ),
+                ],
+              ),
+            if (canViewRevenue) ResponsiveHelper.verticalSpace(2),
+            if (canViewRevenue)
+              _buildStatCard(
+                localizationService.translate("monthly_revenue"),
+                "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
+                "",
+                Icons.calendar_month,
+                false,
+              ),
+            if (canViewRevenue && (canViewDrivers || canViewVehicles))
+              ResponsiveHelper.verticalSpace(2),
+
+            // Second row: Drivers and Vehicles
             Row(
               children: <Widget>[
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("daily_revenue"),
-                    "TSH ${_formatCurrency(_dashboardData["daily_revenue"])}",
-                    "",
-                    Icons.today,
-                    true,
+                if (canViewDrivers)
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("drivers"),
+                      "$activeDrivers",
+                      "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
+                      Icons.people,
+                      true,
+                    ),
                   ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("weekly_revenue"),
-                    "TSH ${_formatCurrency(_dashboardData["weekly_revenue"])}",
-                    "",
-                    Icons.calendar_view_week,
-                    true,
+                if (canViewDrivers && canViewVehicles)
+                  ResponsiveHelper.horizontalSpace(4),
+                if (canViewVehicles)
+                  Expanded(
+                    child: _buildStatCard(
+                      localizationService.translate("vehicles"),
+                      "$activeVehicles",
+                      "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
+                      Icons.directions_car,
+                      true,
+                    ),
                   ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("monthly_revenue"),
-                    "TSH ${_formatCurrency(_dashboardData["monthly_revenue"])}",
-                    "",
-                    Icons.trending_up,
-                    true,
-                  ),
-                ),
-              ],
-            ),
-            ResponsiveHelper.verticalSpace(2),
-            // Second row: Payment/Receipt cards
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("payments_with_receipts"),
-                    "${_dashboardData["payment_receipts_count"] ?? 0}",
-                    "",
-                    Icons.receipt,
-                    true,
-                  ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("paid_awaiting_receipts"),
-                    "${_dashboardData["pending_receipts_count"] ?? 0}",
-                    "",
-                    Icons.receipt_long,
-                    true,
-                  ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("unpaid_payments"),
-                    "${_dashboardData["unpaid_debts_count"] ?? 0}",
-                    "",
-                    Icons.pending_actions,
-                    false,
-                  ),
-                ),
-              ],
-            ),
-            ResponsiveHelper.verticalSpace(2),
-            // Third row: Resources (Drivers, Vehicles)
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("drivers"),
-                    "$activeDrivers",
-                    "${localizationService.translate("active")} $activeDrivers/$totalDrivers",
-                    Icons.person,
-                    true,
-                  ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                Expanded(
-                  child: _buildStatCard(
-                    localizationService.translate("vehicles"),
-                    "$activeVehicles",
-                    "${localizationService.translate("active")} $activeVehicles/$totalVehicles",
-                    Icons.directions_car,
-                    true,
-                  ),
-                ),
-                ResponsiveHelper.horizontalSpace(4),
-                // Empty space to maintain 3-column layout
-                const Expanded(child: SizedBox()),
+                if (canViewDrivers || canViewVehicles)
+                  ResponsiveHelper.horizontalSpace(4),
+                if (canViewDrivers || canViewVehicles)
+                  const Expanded(child: SizedBox()),
               ],
             ),
           ],
@@ -1374,7 +1351,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
       );
 
   // Not used anymore; kept for reference. Footer now handles the quick menu.
-  Widget _buildQuickActions(LocalizationService localizationService) => const SizedBox.shrink();
+  Widget _buildQuickActions(LocalizationService localizationService) =>
+      const SizedBox.shrink();
 
   /// Footer styled like Inventory footer bar, with a centered Menu action
   Widget _buildFooter() {
@@ -1405,21 +1383,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 // Left side: Payments, Debts
                 Row(
                   children: <Widget>[
-                    _FooterIcon(
-                      icon: Icons.payments_outlined,
-                      onTap: () => Navigator.push(
-                        context,
-MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_payments_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.payments_outlined,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PaymentsScreen()),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 14.w),
-                    _FooterIcon(
-                      icon: Icons.pending_actions,
-                      onTap: () => Navigator.push(
-                        context,
-MaterialPageRoute(builder: (_) => const DebtsManagementScreen()),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_payments_transport') ?? false)
+                      SizedBox(width: 14.w),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_debts_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.pending_actions,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DebtsManagementScreen()),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 // Center: Menu
@@ -1430,18 +1413,22 @@ MaterialPageRoute(builder: (_) => const DebtsManagementScreen()),
                 // Right side: Drivers, Receipts
                 Row(
                   children: <Widget>[
-                    _FooterIcon(
-                      icon: Icons.people_alt_outlined,
-                      onTap: () => Navigator.push(
-                        context,
-MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_drivers_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.people_alt_outlined,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DriversManagementScreen()),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 14.w),
-                    _FooterIcon(
-                      icon: Icons.receipt_long_outlined,
-                      onTap: () => _navigateToReceiptsList(filter: 'generated'),
-                    ),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_drivers_transport') ?? false)
+                      SizedBox(width: 14.w),
+                    if (context.read<AuthProvider>().user?.hasPermission('manage_receipts_transport') ?? false)
+                      _FooterIcon(
+                        icon: Icons.receipt_long_outlined,
+                        onTap: () => _navigateToReceiptsList(filter: 'generated'),
+                      ),
                   ],
                 ),
               ],
@@ -1616,7 +1603,8 @@ MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
 
   /// Handle menu item selection
   void _handleMenuAction(String action, String cardTitle, String value) {
-    void defer(VoidCallback f) => WidgetsBinding.instance.addPostFrameCallback((_) => f());
+    void defer(VoidCallback f) =>
+        WidgetsBinding.instance.addPostFrameCallback((_) => f());
     switch (action) {
       case 'view_details':
         defer(() => _showCardDetails(cardTitle, value));
@@ -2023,21 +2011,7 @@ MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
   }
 
   void _showSuccessSnackBar(String message) {
-    final localizationService =
-        Provider.of<LocalizationService>(context, listen: false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        action: SnackBarAction(
-          label: localizationService.translate('close'),
-          textColor: Colors.white,
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
-      ),
-    );
+    ThemeConstants.showSuccessSnackBar(context, message);
   }
 
   Widget _buildGlassCard({required Widget child}) => DecoratedBox(
@@ -2068,8 +2042,7 @@ MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
     final UserData? user = authProvider.user;
 
-    // Get user permissions (defaulting to admin for now)
-    final UserPermissions permissions = UserPermissions.fromRole('admin');
+    // Removed hardcoded permissions logic to use UserData granular permissions
 
     // Get badge counts from dashboard data
     final badges = NavigationBuilder.getBadgesFromDashboardData(_dashboardData);
@@ -2122,7 +2095,7 @@ MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
               children: NavigationBuilder.buildDrawerItems(
                 localization: localizationService,
                 badges: badges,
-                permissions: permissions,
+                user: user,
                 context: context,
                 onLogout: () async {
                   Navigator.pop(context);
@@ -2141,7 +2114,6 @@ MaterialPageRoute(builder: (_) => const DriversManagementScreen()),
       ),
     );
   }
-
 
   String? _avatarUrl(UserData? user) {
     final String? url = user?.avatarUrl;

@@ -6,10 +6,11 @@ import 'package:file_picker/file_picker.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
-import '../../widgets/service_switcher_dialog.dart';
 
 class OnboardTenantScreen extends StatefulWidget {
-  const OnboardTenantScreen({super.key});
+  final Map<String, dynamic>? preSelectedProperty;
+  final Map<String, dynamic>? preSelectedHouse;
+  const OnboardTenantScreen({super.key, this.preSelectedProperty, this.preSelectedHouse});
 
   @override
   State<OnboardTenantScreen> createState() => _OnboardTenantScreenState();
@@ -40,6 +41,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   final _idNumberController = TextEditingController();
   final _idStateController = TextEditingController();
   DateTime? _idExpiration;
+  String? _idDocPath;
+  String? _idDocName;
 
   // Step 4: Employment
   final _employerController = TextEditingController();
@@ -69,11 +72,21 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   String? _selectedHouseId;
   DateTime _startDate = DateTime.now();
   final _amountController = TextEditingController();
+  final _notesController = TextEditingController();
   String? _tenantPhotoPath;
   bool _acceptedTerms = false;
   bool _acceptedPrivacy = false;
 
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RentalProvider>().fetchProperties();
+      context.read<RentalProvider>().fetchTenants();
+    });
+  }
 
   @override
   void dispose() {
@@ -185,42 +198,52 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
       loc.translate("terms"),
     ];
     return Container(
-      height: 60.h,
-      padding: EdgeInsets.symmetric(horizontal: 10.w),
+      height: 64.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.08))),
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: steps.length,
-        separatorBuilder: (context, index) => Icon(Icons.chevron_right, color: Colors.white24, size: 16.w),
+        separatorBuilder: (context, index) => Icon(Icons.chevron_right, color: Colors.white24, size: 14.w),
         itemBuilder: (context, index) {
           bool isCompleted = index < _currentStep;
           bool isCurrent = index == _currentStep;
           return Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: BoxDecoration(
-                    color: isCurrent ? ThemeConstants.primaryOrange : (isCompleted ? ThemeConstants.successGreen : Colors.white10),
-                    shape: BoxShape.circle,
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 200),
+              scale: isCurrent ? 1.05 : 1.0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 26.w,
+                    height: 26.w,
+                    decoration: BoxDecoration(
+                      color: isCurrent ? ThemeConstants.primaryOrange : (isCompleted ? ThemeConstants.successGreen : Colors.white10),
+                      shape: BoxShape.circle,
+                      boxShadow: isCurrent ? [BoxShadow(color: ThemeConstants.primaryOrange.withOpacity(0.3), blurRadius: 6)] : null,
+                    ),
+                    child: Center(
+                      child: isCompleted 
+                        ? Icon(Icons.check, color: Colors.white, size: 14.w)
+                        : Text("${index + 1}", style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                    ),
                   ),
-                  child: Center(
-                    child: isCompleted 
-                      ? Icon(Icons.check, color: Colors.white, size: 14.w)
-                      : Text("${index + 1}", style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                  SizedBox(width: 8.w),
+                  Text(
+                    steps[index],
+                    style: TextStyle(
+                      color: isCurrent ? Colors.white : Colors.white54,
+                      fontSize: 11.sp,
+                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
-                ),
-                SizedBox(width: 4.w),
-                Text(
-                  steps[index],
-                  style: TextStyle(
-                    color: isCurrent ? Colors.white : Colors.white54,
-                    fontSize: 10.sp,
-                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -230,10 +253,10 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
 
   Widget _buildBottomActions() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 20.h),
       decoration: BoxDecoration(
-        color: ThemeConstants.footerBarColor,
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: const Offset(0, -2))],
+        color: ThemeConstants.bgMid,
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
       ),
       child: SafeArea(
         top: false,
@@ -242,14 +265,16 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
             if (_currentStep > 0)
               Expanded(
                 flex: 1,
-                child: OutlinedButton(
-                  onPressed: _prevStep,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white38),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                child: ThemeConstants.buildResponsiveGlassCard(
+                  context,
+                  onTap: _prevStep,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  child: Center(
+                    child: Text(
+                      LocalizationService.instance.translate("previous"),
+                      style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w500),
+                    ),
                   ),
-                  child: Text(LocalizationService.instance.translate("previous"), style: const TextStyle(color: Colors.white, fontSize: 13)),
                 ),
               ),
             if (_currentStep > 0) SizedBox(width: 12.w),
@@ -259,13 +284,19 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 onPressed: _isSaving ? null : _nextStep,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                  elevation: 2,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                  elevation: 6,
+                  shadowColor: ThemeConstants.primaryOrange.withOpacity(0.4),
                 ),
                 child: _isSaving 
                   ? SizedBox(height: 20.h, width: 20.h, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(_currentStep == _totalSteps - 1 ? LocalizationService.instance.translate("submit") : LocalizationService.instance.translate("next_step"), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                  : Text(
+                      _currentStep == _totalSteps - 1 
+                        ? LocalizationService.instance.translate("submit") 
+                        : LocalizationService.instance.translate("next_step"), 
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp),
+                    ),
               ),
             ),
           ],
@@ -455,7 +486,11 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     if (_selectedPropertyId != null) {
       final prop = properties.firstWhere((p) => p['id'].toString() == _selectedPropertyId, orElse: () => null);
       if (prop != null) {
-        houses = (prop['houses'] as List? ?? []).where((h) => h['is_occupied'] == 0 || h['is_occupied'] == false).toList();
+        houses = (prop['houses'] as List? ?? []).where((h) => 
+          h['status'] == 'vacant' || 
+          h['is_occupied'] == 0 || 
+          h['is_occupied'] == false
+        ).toList();
       }
     }
 
@@ -479,7 +514,16 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 loc.translate("house"), 
                 _selectedHouseId, 
                 houses.map((h) => h['id'].toString()).toList(),
-                (v) => setState(() => _selectedHouseId = v),
+                (v) => setState(() {
+                  _selectedHouseId = v;
+                  final house = houses.firstWhere((h) => h['id'].toString() == v, orElse: () => null);
+                  if (house != null) {
+                    final rent = house['rent'] ?? house['rent_amount'];
+                    if (rent != null) {
+                      _amountController.text = num.parse(rent.toString()).toStringAsFixed(0);
+                    }
+                  }
+                }),
                 labels: houses.map((h) => "${h['house_number']}").toList(),
               ),
             ),
@@ -495,6 +539,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         ),
         SizedBox(height: 16.h),
         _buildPhotoUploadField(loc.translate("tenant_photo"), _tenantPhotoPath, _pickTenantPhoto),
+        SizedBox(height: 16.h),
+        _buildInputField("Maelezo ya Ziada", _notesController, Icons.note_alt),
         SizedBox(height: 20.h),
         _buildCheckboxRow(loc.translate("accept_terms"), _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
         _buildCheckboxRow(loc.translate("agree_privacy"), _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
@@ -506,17 +552,25 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
 
   Widget _buildStepLayout({required String title, required List<Widget> children}) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 20.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: Text(title, style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 16.sp, fontWeight: FontWeight.bold)),
+            padding: EdgeInsets.only(left: 4.w, bottom: 20.h),
+            child: Text(
+              title,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
-          SizedBox(height: 16.h),
           ...children,
-          SizedBox(height: 20.h),
+          SizedBox(height: 120.h), // Extra space for bottom actions
         ],
       ),
     );
@@ -525,7 +579,6 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   Widget _buildInputField(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType}) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
-      padding: EdgeInsets.zero,
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
@@ -543,9 +596,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   Widget _buildDropdownField(String label, String? value, List<String> items, Function(String?) onChanged, {List<String>? labels}) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
-      padding: EdgeInsets.zero,
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: items.contains(value) ? value : null,
         isExpanded: true,
         items: List.generate(items.length, (i) => DropdownMenuItem(
           value: items[i],
@@ -566,7 +618,6 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   Widget _buildDatePickerField(String label, DateTime? date, Function(DateTime?) onSelected) {
     return ThemeConstants.buildResponsiveGlassCard(
       context,
-      padding: EdgeInsets.zero,
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
@@ -632,16 +683,36 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       padding: EdgeInsets.zero,
-      onTap: () {},
+      onTap: () async {
+        final result = await FilePicker.platform.pickFiles(type: FileType.any);
+        if (result != null && result.files.single.path != null) {
+          setState(() {
+            _idDocPath = result.files.single.path;
+            _idDocName = result.files.single.name;
+          });
+          if (mounted) ThemeConstants.showSuccessSnackBar(context, "${LocalizationService.instance.translate('photo_attached')}: ${_idDocName}");
+        }
+      },
       child: Container(
         height: 48.h,
         alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.upload_file, color: ThemeConstants.primaryOrange, size: 18.w),
+            Icon(
+              _idDocPath != null ? Icons.check_circle : Icons.upload_file, 
+              color: _idDocPath != null ? ThemeConstants.successGreen : ThemeConstants.primaryOrange, 
+              size: 18.w
+            ),
             SizedBox(width: 4.w),
-            Text(LocalizationService.instance.translate("attach"), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                _idDocName ?? LocalizationService.instance.translate("attach"), 
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -708,6 +779,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     );
   }
 
+
+
   Future<void> _handleSave() async {
     final loc = LocalizationService.instance;
     if (!_formKey.currentState!.validate()) return;
@@ -730,6 +803,11 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
       "dob": _dob?.toIso8601String().split('T')[0],
       "nida": _nidaController.text,
       "gender": _gender,
+      "occupation": _jobTitleController.text,
+      "emergency_contact_name": _emergencyNameController.text,
+      "emergency_contact_phone": _emergencyPhoneController.text,
+      "emergency_contact_relationship": _relationshipController.text,
+      "notes": _notesController.text,
       "emergency_contact": {
         "name": _emergencyNameController.text,
         "relationship": _relationshipController.text,
@@ -741,6 +819,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         "state": _idStateController.text,
         "expiration": _idExpiration?.toIso8601String().split('T')[0],
       },
+      "id_number": _idNumberController.text,
       "employment": {
         "employer": _employerController.text,
         "title": _jobTitleController.text,
@@ -767,9 +846,12 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           "weight": _petWeightController.text,
       },
       "rental_house_id": _selectedHouseId,
+      "house_id": _selectedHouseId,
+      "property_id": _selectedPropertyId,
       "rent_amount": _amountController.text,
       "start_date": _startDate.toIso8601String().split('T')[0],
       "tenant_photo": _tenantPhotoPath,
+      "id_document": _idDocPath,
     };
 
     final success = await context.read<RentalProvider>().onboardTenant(data);

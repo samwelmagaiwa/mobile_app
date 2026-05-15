@@ -461,14 +461,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   void _onSave() {
     // TODO(dev): integrate with InventoryProvider API
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product saved (UI only).')));
+    ThemeConstants.showInfoSnackBar(context, 'Product saved (UI only).');
   }
 
   void _onDelete() {
     // TODO(dev): hook to provider delete
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product deleted (UI only).')));
+    ThemeConstants.showInfoSnackBar(context, 'Product deleted (UI only).');
   }
 }
 

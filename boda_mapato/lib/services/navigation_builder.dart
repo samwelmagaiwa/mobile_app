@@ -1,23 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../config/navigation_config.dart';
-import '../models/user_permissions.dart';
-import '../services/localization_service.dart';
-import '../screens/receipts/receipts_screen.dart';
-import '../constants/theme_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/service_switcher_dialog.dart';
+
+import 'package:boda_mapato/models/login_response.dart';
+import 'package:boda_mapato/config/navigation_config.dart';
+import 'package:boda_mapato/services/localization_service.dart';
+import 'package:boda_mapato/providers/auth_provider.dart';
+import 'package:boda_mapato/constants/theme_constants.dart';
+import 'package:boda_mapato/widgets/service_switcher_dialog.dart';
+import 'package:boda_mapato/screens/receipts/receipts_screen.dart';
 
 // ignore_for_file: directives_ordering
 /// Service for building navigation UI components dynamically
 class NavigationBuilder {
-  /// Build drawer navigation items
+  /// Build drawer items list for the sidebar navigation
   static List<Widget> buildDrawerItems({
     required LocalizationService localization,
     required Map<String, dynamic> badges,
-    required UserPermissions permissions,
+    required UserData? user,
     required BuildContext context,
     required VoidCallback onLogout,
   }) {
@@ -26,7 +27,7 @@ class NavigationBuilder {
     // Get available navigation items based on permissions
     final availableItems = NavigationConfig.drawerItems
         .where(
-          (item) => _hasPermission(item, permissions),
+            (item) => _hasPermission(item, user),
         )
         .toList();
 
@@ -69,12 +70,12 @@ class NavigationBuilder {
   /// Build quick action buttons
   static List<Widget> buildQuickActions({
     required LocalizationService localization,
-    required UserPermissions permissions,
+    required UserData? user,
     required BuildContext context,
   }) {
     final availableActions = NavigationConfig.quickActions
         .where(
-          (action) => _hasPermissionForAction(action, permissions),
+            (action) => _hasPermissionForAction(action, user),
         )
         .toList();
 
@@ -351,12 +352,10 @@ class NavigationBuilder {
       case '/menu':
         // Show drawer items as a 3-column grid menu on top of the main screen
         final auth = Provider.of<AuthProvider>(context, listen: false);
-        final String role = auth.user?.role ?? 'viewer';
-        final perms = UserPermissions.fromRole(role);
         _showGridMenu(
           context: context,
           localization: LocalizationService.instance,
-          permissions: perms,
+          user: auth.user,
         );
         return;
       case '/receipts':
@@ -379,19 +378,20 @@ class NavigationBuilder {
   static Future<void> _showGridMenu({
     required BuildContext context,
     required LocalizationService localization,
-    required UserPermissions permissions,
+    required UserData? user,
     List<NavigationItem>? customItems,
   }) async {
     // Determine which items to show: custom list or default drawer + system items
-    final baseItems = customItems ?? [
-      ...NavigationConfig.drawerItems,
-      ...NavigationConfig.systemItems,
-    ];
+    final baseItems = customItems ??
+        [
+          ...NavigationConfig.drawerItems,
+          ...NavigationConfig.systemItems,
+        ];
 
     final items = baseItems
         // Exclude the logout action from the grid
         .where((item) => item.key != 'logout')
-        .where((item) => _hasPermission(item, permissions))
+        .where((item) => _hasPermission(item, user))
         .toList();
 
     await showDialog<void>(
@@ -409,10 +409,9 @@ class NavigationBuilder {
               border: Border.all(color: Colors.white.withOpacity(0.2)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5)),
               ],
             ),
             child: Column(
@@ -422,42 +421,25 @@ class NavigationBuilder {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      localization.translate('menu'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                    Text(localization.translate('menu'),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5)),
                     IconButton(
-                      icon: Icon(Icons.close, color: Colors.white70, size: 22.sp),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
+                        icon: Icon(Icons.close,
+                            color: Colors.white70, size: 22.sp),
+                        onPressed: () => Navigator.of(ctx).pop()),
                   ],
                 ),
                 SizedBox(height: 20.h),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 12.w,
-                    mainAxisSpacing: 12.h,
-                    childAspectRatio: 0.75, // Provide more height to prevent overflow
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _MenuGridTile(
-                      icon: item.icon,
-                      label: localization.translate(item.key),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _navigateTo(item, context);
-                      },
-                    );
+                _PaginatableGrid(
+                  items: items,
+                  localization: localization,
+                  onItemTap: (item) {
+                    Navigator.of(context).pop();
+                    _navigateTo(item, context);
                   },
                 ),
                 SizedBox(height: 10.h),
@@ -469,54 +451,64 @@ class NavigationBuilder {
     );
   }
 
+  /// Paginatable grid widget - splits items into multiple swipeable pages
+  static const int _itemsPerPage = 9; // 3x3 grid
+
   /// Public helper to show the same grid menu used by quick action '/menu'
-  static Future<void> showGridMenu(BuildContext context, {List<NavigationItem>? customItems}) async {
+  static Future<void> showGridMenu(BuildContext context,
+      {List<NavigationItem>? customItems}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final String role = auth.user?.role ?? 'viewer';
-    final perms = UserPermissions.fromRole(role);
     await _showGridMenu(
       context: context,
       localization: LocalizationService.instance,
-      permissions: perms,
+      user: auth.user,
       customItems: customItems,
     );
   }
 
   /// Check if user has permission for navigation item
-  static bool _hasPermission(NavigationItem item, UserPermissions permissions) {
+  static bool _hasPermission(NavigationItem item, UserData? user) {
     if (item.isSystemItem) return true;
     if (item.requiredPermissions == null || item.requiredPermissions!.isEmpty) {
       return true;
     }
-    return permissions.hasAll(item.requiredPermissions!);
+    // Check if any of the required permissions is granted
+    // Changed from "all" to "any" for more flexible system matching
+    for (final p in item.requiredPermissions!) {
+      if (user?.hasPermission(p) ?? false) return true;
+    }
+    return false;
   }
 
   /// Check if user has permission for quick action
   static bool _hasPermissionForAction(
-      QuickActionItem action, UserPermissions permissions) {
+      QuickActionItem action, UserData? user) {
     if (action.requiredPermissions == null ||
         action.requiredPermissions!.isEmpty) {
       return true;
     }
-    return permissions.hasAll(action.requiredPermissions!);
+    for (final p in action.requiredPermissions!) {
+      if (user?.hasPermission(p) ?? false) return true;
+    }
+    return false;
   }
 
   /// Get navigation items for current user
   static List<NavigationItem> getAvailableNavigationItems(
-      UserPermissions permissions) {
+      UserData? user) {
     return NavigationConfig.allNavigationItems
         .where(
-          (item) => _hasPermission(item, permissions),
+          (item) => _hasPermission(item, user),
         )
         .toList();
   }
 
   /// Get quick actions for current user
   static List<QuickActionItem> getAvailableQuickActions(
-      UserPermissions permissions) {
+      UserData? user) {
     return NavigationConfig.quickActions
         .where(
-          (action) => _hasPermissionForAction(action, permissions),
+          (action) => _hasPermissionForAction(action, user),
         )
         .toList();
   }
@@ -557,12 +549,12 @@ class _MenuGridTile extends StatelessWidget {
           builder: (context, constraints) {
             final double h =
                 constraints.maxHeight.isFinite ? constraints.maxHeight : 90.h;
-            
+
             // Compute sizes responsively to avoid overflows
             double side = h * 0.50; // icon container side
             if (side < 32.w) side = 32.w;
             if (side > 56.w) side = 56.w;
-            
+
             double iconSize = side * 0.5;
             double spacing = h * 0.08;
             double fontSize = h * 0.14;
@@ -581,13 +573,15 @@ class _MenuGridTile extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.1)),
                       ),
                       child: Icon(icon, color: Colors.white, size: iconSize),
                     ),
                     SizedBox(height: spacing),
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                      constraints:
+                          BoxConstraints(maxWidth: constraints.maxWidth),
                       child: Text(
                         label,
                         textAlign: TextAlign.center,
@@ -618,4 +612,110 @@ int _toInt(value) {
     return int.tryParse(value) ?? 0;
   }
   return 0;
+}
+
+/// A paginatable grid that splits items into pages of 9 (3x3) with swipe/dots
+class _PaginatableGrid extends StatefulWidget {
+  final List<NavigationItem> items;
+  final LocalizationService localization;
+  final void Function(NavigationItem) onItemTap;
+  static const int itemsPerPage = 9;
+
+  const _PaginatableGrid({
+    required this.items,
+    required this.localization,
+    required this.onItemTap,
+  });
+
+  @override
+  State<_PaginatableGrid> createState() => _PaginatableGridState();
+}
+
+class _PaginatableGridState extends State<_PaginatableGrid> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  int get _totalPages =>
+      ((widget.items.length - 1) ~/ _PaginatableGrid.itemsPerPage) + 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalPages = _totalPages;
+    final showPages = totalPages > 1;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 420.h,
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (p) => setState(() => _currentPage = p),
+            children: List.generate(totalPages, (pageIdx) {
+              final start = pageIdx * _PaginatableGrid.itemsPerPage;
+              final end = (start + _PaginatableGrid.itemsPerPage)
+                  .clamp(0, widget.items.length);
+              final pageItems = widget.items.sublist(start, end);
+
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 0.9,
+                  ),
+                  itemCount: pageItems.length,
+                  itemBuilder: (ctx, i) {
+                    final item = pageItems[i];
+                    return _MenuGridTile(
+                      icon: item.icon,
+                      label: widget.localization.translate(item.key),
+                      onTap: () => widget.onItemTap(item),
+                    );
+                  },
+                ),
+              );
+            }),
+          ),
+        ),
+        if (showPages)
+          Padding(
+            padding: EdgeInsets.only(top: 8.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(totalPages, (i) {
+                final isActive = i == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: EdgeInsets.symmetric(horizontal: 3.w),
+                  width: isActive ? 24.w : 8.w,
+                  height: 8.h,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? ThemeConstants.primaryOrange
+                        : Colors.white24,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                );
+              }),
+            ),
+          ),
+      ],
+    );
+  }
 }

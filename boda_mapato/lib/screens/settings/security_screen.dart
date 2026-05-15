@@ -533,8 +533,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                               onPressed: loadingMore
                                   ? null
                                   : () async {
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      setStateDialog(() => loadingMore = true);
                                       try {
                                         final next =
                                             await _apiService.getLoginHistory(
@@ -554,9 +552,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                         setStateDialog(
                                             () => loadingMore = false);
                                         if (mounted) {
-                                          messenger.showSnackBar(
-                                            SnackBar(content: Text(e.toString())),
-                                          );
+                                          ThemeConstants.showErrorSnackBar(context, e.toString());
                                         }
                                       }
                                     },

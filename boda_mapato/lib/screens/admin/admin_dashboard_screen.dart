@@ -6,13 +6,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../constants/theme_constants.dart';
-import '../../models/login_response.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/api_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/localization_service.dart';
+import 'package:boda_mapato/constants/theme_constants.dart';
+import 'package:boda_mapato/models/login_response.dart';
+import 'package:boda_mapato/providers/auth_provider.dart';
+import 'package:boda_mapato/services/api_service.dart';
+import 'package:boda_mapato/services/auth_service.dart';
+import 'package:boda_mapato/services/localization_service.dart';
+import 'package:boda_mapato/services/navigation_builder.dart';
+import 'package:boda_mapato/screens/settings/user_permissions_management_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -265,14 +268,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade400,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   @override
@@ -500,10 +496,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildStatsCards() => IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
+  Widget _buildStatsCards() {
+    final AuthProvider auth = Provider.of<AuthProvider>(context, listen: false);
+    final bool canViewDrivers =
+        auth.user?.hasPermission('manage_drivers_transport') ?? false;
+    final bool canViewVehicles =
+        auth.user?.hasPermission('manage_vehicles_transport') ?? false;
+    final bool canViewPayments =
+        auth.user?.hasPermission('manage_payments_transport') ?? false;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (canViewDrivers)
             Expanded(
               child: _buildStatCard(
                 "Madereva",
@@ -513,7 +519,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 true,
               ),
             ),
+          if (canViewDrivers && (canViewVehicles || canViewPayments))
             const SizedBox(width: 8),
+          if (canViewVehicles)
             Expanded(
               child: _buildStatCard(
                 "Magari",
@@ -523,7 +531,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 true,
               ),
             ),
-            const SizedBox(width: 8),
+          if (canViewVehicles && canViewPayments) const SizedBox(width: 8),
+          if (canViewPayments)
             Expanded(
               child: _buildStatCard(
                 "Malipo",
@@ -533,9 +542,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 false,
               ),
             ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 
   Widget _buildStatCard(String title, String value, String change,
           IconData icon, bool isPositive) =>
@@ -1023,75 +1033,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
             Expanded(
               child: ListView(
-                children: <Widget>[
-                  _buildNavItem(
-                      icon: Icons.dashboard,
-                      title: localizationService.translate("dashboard"),
-                      page: "dashboard"),
-                  _buildNavItem(
-                      icon: Icons.auto_graph,
-                      title: localizationService.translate("modern_dashboard"),
-                      page: "modern_dashboard"),
-                  const Divider(color: Colors.white24, height: 16),
-                  _buildNavItem(
-                      icon: Icons.people,
-                      title: localizationService.translate("drivers"),
-                      page: "drivers",
-                      badge: "${_dashboardData["total_drivers"] ?? 0}"),
-                  _buildNavItem(
-                      icon: Icons.directions_car,
-                      title: localizationService.translate("vehicles"),
-                      page: "vehicles",
-                      badge: "${_dashboardData["total_vehicles"] ?? 0}"),
-                  const Divider(color: Colors.white24, height: 16),
-                  _buildNavItem(
-                      icon: Icons.assignment_turned_in,
-                      title: localizationService.translate("debts_records"),
-                      page: "debts"),
-                  _buildNavItem(
-                      icon: Icons.receipt,
-                      title: localizationService.translate("receipts"),
-                      page: "receipts"),
-                  _buildNavItem(
-                      icon: Icons.swap_horiz,
-                      title: localizationService.translate("transactions"),
-                      page: "transactions"),
-                  const Divider(color: Colors.white24, height: 16),
-                  _buildNavItem(
-                      icon: Icons.analytics,
-                      title: localizationService.translate("reports"),
-                      page: "reports"),
-                  _buildNavItem(
-                      icon: Icons.trending_up,
-                      title: localizationService.translate("analytics"),
-                      page: "analytics"),
-                  const Divider(color: Colors.white24, height: 16),
-                  _buildNavItem(
-                      icon: Icons.notifications,
-                      title: localizationService.translate("reminders"),
-                      page: "reminders"),
-                  _buildNavItem(
-                      icon: Icons.chat,
-                      title: localizationService.translate("communications"),
-                      page: "communications"),
-                  _buildNavItem(
-                      icon: Icons.settings,
-                      title: localizationService.translate("settings"),
-                      page: "settings"),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton.icon(
-                onPressed: () => _handleLogout(localizationService),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: errorRed,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 48),
+                padding: EdgeInsets.zero,
+                children: NavigationBuilder.buildDrawerItems(
+                  localization: localizationService,
+                  badges: NavigationBuilder.getBadgesFromDashboardData(_dashboardData),
+                  user: Provider.of<AuthProvider>(context, listen: false).user,
+                  context: context,
+                  onLogout: () async {
+                    Navigator.pop(context);
+                    await Provider.of<AuthProvider>(context, listen: false).logout();
+                    if (!mounted) return;
+                    Navigator.pushReplacementNamed(context, "/");
+                  },
                 ),
-                icon: const Icon(Icons.logout),
-                label: Text(localizationService.translate("logout")),
               ),
             ),
           ],

@@ -1,9 +1,5 @@
-import "package:flutter/material.dart";
-import "package:provider/provider.dart";
-
-import "../../constants/colors.dart";
-import "../../constants/strings.dart";
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../models/device.dart";
 import "../../providers/device_provider.dart";
 import "../../widgets/custom_button.dart";
@@ -34,12 +30,7 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
 
   Future<void> _saveDevice() async {
     if (!_formKey.currentState!.validate() || selectedDeviceType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Tafadhali jaza taarifa zote zinazohitajika"),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ThemeConstants.showErrorSnackBar(context, "Tafadhali jaza taarifa zote zinazohitajika");
       return;
     }
 
@@ -65,22 +56,12 @@ class _DeviceSelectionScreenState extends State<DeviceSelectionScreen> {
           .addDevice(device);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Chombo kimesajiliwa kwa mafanikio"),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Chombo kimesajiliwa kwa mafanikio");
         Navigator.pop(context);
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
       }
     } finally {
       if (mounted) {

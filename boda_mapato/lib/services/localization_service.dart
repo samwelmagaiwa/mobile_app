@@ -635,6 +635,8 @@ class AppLocalizations {
       'arrears': 'Arrears',
       'billing_reports': 'Billing Reports',
       'sms_history': 'SMS History',
+      'lease_agreements': 'Lease Agreements',
+      'lease_templates': 'Lease Templates',
 
       // Rental Onboarding
       'register_tenant': 'Register Tenant',
@@ -690,6 +692,9 @@ class AppLocalizations {
       'select_house': 'Select House',
       'start_date': 'Start Date',
       'rent_amount': 'Rent Amount',
+      'deposit_amount': 'Security Deposit Amount',
+      'deposit': 'Security Deposit',
+      'deposit_exceeds_rent': 'Deposit cannot exceed rent',
       'capture_tenant_photo': 'Capture Tenant Photo',
       'photo_attached': 'Photo attached successfully',
       'tap_to_upload': 'Tap to upload photo',
@@ -724,7 +729,7 @@ class AppLocalizations {
       'confirm_payment': 'Confirm Payment',
       'payment_success': 'Payment recorded successfully!',
       'payment_failed': 'Failed to record payment.',
-      
+
       // Rental Property Management
       'property_details': 'Property Details',
       'edit_property': 'Edit Property',
@@ -786,7 +791,7 @@ class AppLocalizations {
       'logout_confirm': 'Je, una uhakika unataka kutoka?',
       'version': 'Toleo',
       'app_description': 'Programu ya kusimamia biashara za pikipiki',
-'copyright': '© 2024 Boda Mapato',
+      'copyright': '© 2024 Boda Mapato',
 
       // Debts/Payments common (fallback via translate() will prettify missing keys)
 
@@ -1329,7 +1334,7 @@ class AppLocalizations {
       'balance': 'Baki',
       'add_customer': 'Ongeza Mteja',
       'customer_name': 'Jina la Mteja',
-'address': 'Anwani',
+      'address': 'Anwani',
 
       // Rental navigation
       'rental_dashboard': 'Dashibodi ya Upangaji',
@@ -1339,6 +1344,8 @@ class AppLocalizations {
       'arrears': 'Madeni ya Kodi',
       'billing_reports': 'Ripoti za Ankara',
       'sms_history': 'Historia ya SMS',
+      'lease_agreements': 'Mikataba ya Kukodi',
+      'lease_templates': 'Sampuli za Mikataba',
 
       // Rental Onboarding (Swahili)
       'register_tenant': 'Sajili Mpangaji',
@@ -1394,6 +1401,9 @@ class AppLocalizations {
       'select_house': 'Chagua Nyumba/Chumba',
       'start_date': 'Tarehe ya Kuanza',
       'rent_amount': 'Kiasi cha Kodi',
+      'deposit_amount': 'Kiasi cha Amana (Security Deposit)',
+      'deposit': 'Amana (Deposit)',
+      'deposit_exceeds_rent': 'Amana haiwezi kuzidi kodi',
       'capture_tenant_photo': 'Piga Picha ya Mpangaji',
       'photo_attached': 'Picha imepakiwa kikamilifu',
       'tap_to_upload': 'Gusa kupakia picha',

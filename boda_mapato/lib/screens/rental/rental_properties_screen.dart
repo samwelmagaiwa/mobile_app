@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:ui';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../services/localization_service.dart';
 
 class RentalPropertiesScreen extends StatefulWidget {
   const RentalPropertiesScreen({super.key});
@@ -37,12 +38,56 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     'Kigoma'
   ];
 
+  final TextEditingController _searchController = TextEditingController();
+  String? _selectedStatus;
+  String? _selectedType;
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchProperties();
+      _loadProperties();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _loadProperties() {
+    context.read<RentalProvider>().fetchPropertiesWithPagination(
+          search: _searchQuery.isNotEmpty ? _searchQuery : null,
+          status: _selectedStatus,
+        );
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+    context.read<RentalProvider>().resetPagination();
+    _loadProperties();
+  }
+
+  void _applyFilter({String? status, String? type}) {
+    setState(() {
+      _selectedStatus = status;
+      _selectedType = type;
+    });
+    context.read<RentalProvider>().resetPagination();
+    _loadProperties();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchQuery = '';
+      _selectedStatus = null;
+      _selectedType = null;
+      _searchController.clear();
+    });
+    context.read<RentalProvider>().resetPagination();
+    _loadProperties();
   }
 
   @override
@@ -55,15 +100,111 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
       title: "Mali ya Upangaji",
       actions: [
         IconButton(
-          icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () => _showAddPropertyDialog(context),
-        ),
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () => _showAddPropertyDialog(context)),
       ],
-      body: rentalProvider.isLoading && properties.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : properties.isEmpty
-              ? _buildEmptyState()
-              : _buildPropertyList(properties),
+      body: Column(
+        children: [
+          _buildSearchAndFilter(),
+          Expanded(
+            child: rentalProvider.isLoading && properties.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white))
+                : properties.isEmpty
+                    ? _buildEmptyState()
+                    : _buildPropertyList(properties),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      child: Column(
+        children: [
+          // Search Bar
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: "Tafuta mali...",
+              hintStyle: TextStyle(color: Colors.white38),
+              prefixIcon: Icon(Icons.search, color: Colors.white38),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear, color: Colors.white38),
+                      onPressed: _clearFilters)
+                  : null,
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.1),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          // Filter Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip("All", null,
+                    _selectedStatus == null && _selectedType == null),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Hai", "active", _selectedStatus == "active"),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Si Hai", "inactive", _selectedStatus == "inactive"),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Matengenezo", "under_maintenance",
+                    _selectedStatus == "under_maintenance"),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Apartment", "apartment", _selectedType == "apartment",
+                    isType: true),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Hostel", "hostel", _selectedType == "hostel",
+                    isType: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String? value, bool isSelected,
+      {bool isType = false}) {
+    return GestureDetector(
+      onTap: () {
+        if (isType) {
+          _applyFilter(type: isSelected ? null : value);
+        } else {
+          _applyFilter(status: isSelected ? null : value);
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? ThemeConstants.primaryOrange
+              : Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+              color:
+                  isSelected ? ThemeConstants.primaryOrange : Colors.white12),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      ),
     );
   }
 
@@ -456,7 +597,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                   prefix: "TSh ")),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField("Depoziti Default", "0",
+                              child: _buildNumberField("${LocalizationService.instance.translate('deposit')} Default", "0",
                                   prefix: "TSh ")),
                         ],
                       ),
@@ -474,8 +615,8 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                 'address': addressController.text,
                                 'region': selectedRegion ?? 'Dar es Salaam',
                                 'district': 'Default',
-                                'default_billing_cycle': 'monthly',
-                                'default_currency': 'TZS',
+                                'billing_cycle': 'monthly',
+                                'currency': 'TZS',
                               });
                               if (context.mounted) Navigator.pop(context);
                             }
@@ -556,7 +697,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
             border: Border.all(color: Colors.white12),
           ),
           child: DropdownButton<String>(
-            value: value,
+            value: (value != null && items.contains(value)) ? value : null,
             isExpanded: true,
             dropdownColor: ThemeConstants.primaryBlue,
             underline: const SizedBox(),
@@ -695,7 +836,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                   prefix: "TSh ")),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField("Depoziti", "0",
+                              child: _buildNumberField(LocalizationService.instance.translate('deposit'), "0",
                                   prefix: "TSh ")),
                         ],
                       ),

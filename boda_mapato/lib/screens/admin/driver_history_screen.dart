@@ -437,14 +437,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: ThemeConstants.errorRed,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    ThemeConstants.showErrorSnackBar(context, message);
   }
 
   @override

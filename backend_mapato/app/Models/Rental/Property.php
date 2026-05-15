@@ -38,7 +38,7 @@ class Property extends Model
         'utility_billing_enabled',
         'latitude',
         'longitude',
-        'image_url',
+        'cover_image',
     ];
 
     protected $casts = [
@@ -150,7 +150,8 @@ class Property extends Model
     public function getOccupancyRateAttribute(): float
     {
         $total = $this->houses()->count();
-        if ($total == 0) return 0;
+        if ($total == 0)
+            return 0;
         return round(($this->occupied_units_count / $total) * 100, 1);
     }
 

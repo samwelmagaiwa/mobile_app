@@ -90,14 +90,14 @@ class ReceiptViewScreen extends StatelessWidget {
       child: Column(
         children: [
           _buildReceiptRow("Date", payment['created_at'] ?? 'Today'),
-          _buildReceiptRow("Tenant", payment['bill']['tenant']['name'] ?? 'N/A'),
-          _buildReceiptRow("Property", payment['bill']['house']['property']['name'] ?? 'N/A'),
-          _buildReceiptRow("House #", payment['bill']['house']['house_number'] ?? 'N/A'),
+          _buildReceiptRow("Mteja", (payment['bill']?['tenant']?['name'] ?? 'N/A').toString()),
+          _buildReceiptRow("Property", (payment['bill']?['house']?['property']?['name'] ?? 'N/A').toString()),
+          _buildReceiptRow("House #", (payment['bill']?['house']?['house_number'] ?? 'N/A').toString()),
           const Divider(color: Colors.white10),
           _buildReceiptRow("Payment Method", (payment['payment_method'] ?? 'Cash').toString().toUpperCase()),
           _buildReceiptRow("Amount Paid", "Tsh ${payment['amount']}", isBold: true),
           const Divider(color: Colors.white10),
-          _buildReceiptRow("Remaining Balance", "Tsh ${payment['bill']['balance'] ?? '0'}", color: ThemeConstants.errorRed),
+          _buildReceiptRow("Baki", "Tsh ${payment['bill']?['balance'] ?? '0'}", color: ThemeConstants.errorRed),
           SizedBox(height: 24.h),
           // Barcode or QR placeholder
           Container(

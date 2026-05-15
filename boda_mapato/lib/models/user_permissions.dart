@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes, avoid_dynamic_calls
+﻿// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes, avoid_dynamic_calls
 /// User permissions model for role-based access control
 class UserPermissions {
   const UserPermissions({
@@ -111,6 +111,10 @@ class UserPermissions {
           'view_arrears',
           'view_rental_reports',
           'view_sms_history',
+          'view_maintenance',
+          'manage_maintenance',
+          'view_vendors',
+          'manage_vendors',
         ];
       case 'manager':
         return const [

@@ -263,4 +263,53 @@ class BillingController extends Controller
             'total' => $payments->sum('amount_paid'),
         ]);
     }
+
+    /**
+     * Get occupancy report.
+     * GET /rental/reports/occupancy
+     */
+    public function getOccupancy(Request $request)
+    {
+        $user = $request->user();
+        
+        // Get all properties with house counts
+        $properties = \App\Models\Rental\Property::where('owner_id', $user->id)
+            ->withCount('houses')
+            ->get();
+        
+        $totalHouses = $properties->sum('houses_count');
+        $occupiedHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+            $query->where('owner_id', $user->id);
+        })->where('status', 'occupied')->count();
+        
+        $vacantHouses = $totalHouses - $occupiedHouses;
+        $maintenanceHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+            $query->where('owner_id', $user->id);
+        })->where('status', 'maintenance')->count();
+        
+        // Per property occupancy
+        $byProperty = $properties->map(function($property) {
+            $occupied = $property->houses()->where('status', 'occupied')->count();
+            $total = $property->houses()->count();
+            return [
+                'property_id' => $property->id,
+                'property_name' => $property->name,
+                'total_units' => $total,
+                'occupied' => $occupied,
+                'vacant' => $total - $occupied,
+                'occupancy_rate' => $total > 0 ? round(($occupied / $total) * 100, 1) : 0,
+            ];
+        });
+        
+        return ResponseHelper::success([
+            'summary' => [
+                'total_units' => $totalHouses,
+                'occupied' => $occupiedHouses,
+                'vacant' => $vacantHouses,
+                'maintenance' => $maintenanceHouses,
+                'occupancy_rate' => $totalHouses > 0 ? round(($occupiedHouses / $totalHouses) * 100, 1) : 0,
+            ],
+            'by_property' => $byProperty,
+        ]);
+    }
 }

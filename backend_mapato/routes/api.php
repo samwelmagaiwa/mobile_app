@@ -29,6 +29,8 @@ use App\Http\Controllers\API\Rental\HouseController;
 use App\Http\Controllers\API\Rental\TenantController;
 use App\Http\Controllers\API\Rental\BillingController;
 use App\Http\Controllers\API\Rental\CaretakerController;
+use App\Http\Controllers\API\Rental\AgreementController;
+use App\Http\Controllers\API\Rental\MaintenanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,12 +63,12 @@ Route::middleware(['auth:sanctum'])->prefix('payment-receipts')->group(function 
 });
 
 // PROTECTED ADMIN ROUTES
-Route::middleware(['auth:sanctum','role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('dashboard', [AdminController::class, 'dashboard']);
     Route::get('dashboard-data', [DashboardController::class, 'index']);
     Route::get('dashboard-stats', [DashboardController::class, 'getStats']);
-    
+
     // Individual Dashboard Card Endpoints
     Route::prefix('dashboard')->group(function () {
         Route::get('active-drivers-count', [DashboardController::class, 'getActiveDriversCount']);
@@ -193,7 +195,7 @@ Route::get('files/public/{path}', [\App\Http\Controllers\API\MediaController::cl
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
     // Auth routes
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -233,22 +235,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('admin')->group(function () {
             // Dashboard
             Route::get('dashboard', [AdminController::class, 'dashboard']);
-            
+
             // Vehicle management
             Route::get('vehicles', [AdminController::class, 'getVehicles']);
             Route::post('vehicles', [AdminController::class, 'createVehicle']);
             Route::post('assign-driver', [AdminController::class, 'assignDriverToVehicle']);
-            
+
             // Payment management
             Route::post('record-payment', [AdminController::class, 'recordPayment']);
             Route::get('payment-history', [AdminController::class, 'getPaymentHistory']);
-            
+
             // Receipt management
             Route::post('generate-receipt', [AdminController::class, 'generateReceipt']);
-            
+
             // Reminders/Notes
             Route::post('reminders', [AdminController::class, 'addReminder']);
-            
+
             // Reports (admin view) - DISABLED - Using temporary routes instead
             // Route::prefix('reports')->group(function () {
             //     Route::get('dashboard', [ReportController::class, 'dashboard']);
@@ -267,23 +269,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Driver dashboard (read-only)
             Route::get('dashboard', [DriverViewController::class, 'dashboard']);
             Route::get('profile', [DriverViewController::class, 'getProfile']);
-            
+
             // Payments summary (driver-authorized)
             Route::get('payments/summary', [DriverViewController::class, 'getPaymentsSummary']);
 
             // Payments list and history
             Route::get('payments', [DriverViewController::class, 'getPayments']);
             Route::get('payment-history', [DriverViewController::class, 'getPaymentHistory']);
-            
+
             // Debts for driver
             Route::get('debts/records', [DriverViewController::class, 'getDebtRecords']);
 
             // View receipts
             Route::get('receipts', [DriverViewController::class, 'getReceipts']);
-            
+
             // Submit payment request (for admin approval)
             Route::post('submit-payment-request', [DriverViewController::class, 'submitPaymentRequest']);
-            
+
             // View reminders from admin
             Route::get('reminders', [DriverViewController::class, 'getReminders']);
         });
@@ -304,8 +306,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::delete('{id}', [PropertyController::class, 'destroy']);
                 Route::post('{id}/restore', [PropertyController::class, 'restore']);
                 Route::post('{id}/houses', [PropertyController::class, 'addHouse']);
+                Route::get('{id}/houses', [HouseController::class, 'getByProperty']);
             });
-            
+
             // Blocks
             Route::prefix('blocks')->group(function () {
                 Route::get('{propertyId}', [BlockController::class, 'index']);
@@ -314,15 +317,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::put('block/{id}', [BlockController::class, 'update']);
                 Route::delete('block/{id}', [BlockController::class, 'destroy']);
             });
-            
+
             // Houses
             Route::prefix('houses')->group(function () {
                 Route::get('', [HouseController::class, 'index']);
+                Route::post('', [HouseController::class, 'store']);
                 Route::get('{id}', [HouseController::class, 'show']);
                 Route::put('{id}', [HouseController::class, 'update']);
                 Route::delete('{id}', [HouseController::class, 'destroy']);
             });
-            
+
             // Tenants
             Route::prefix('tenants')->group(function () {
                 Route::get('', [TenantController::class, 'index']);
@@ -331,24 +335,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::put('{id}/status', [TenantController::class, 'updateStatus']);
                 Route::delete('{id}', [TenantController::class, 'terminate']);
             });
-            
+
             // Payments
             Route::prefix('payments')->group(function () {
                 Route::get('', [BillingController::class, 'getPayments']);
                 Route::post('record', [BillingController::class, 'recordPayment']);
             });
-            
+
             // Receipts
             Route::prefix('receipts')->group(function () {
                 Route::get('', [BillingController::class, 'getReceipts']);
                 Route::get('{id}', [BillingController::class, 'getReceipt']);
             });
-            
+
             // Reports
             Route::get('dashboard', [BillingController::class, 'getDashboard']);
             Route::get('reports/arrears', [BillingController::class, 'getArrears']);
             Route::get('reports/revenue', [BillingController::class, 'getRevenue']);
-            
+            Route::get('reports/occupancy', [BillingController::class, 'getOccupancy']);
+            Route::get('reports/houses', [HouseController::class, 'index']);
+
             // Caretakers
             Route::prefix('caretakers')->group(function () {
                 Route::get('', [CaretakerController::class, 'index']);
@@ -356,6 +362,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::put('{id}', [CaretakerController::class, 'update']);
                 Route::delete('{id}', [CaretakerController::class, 'destroy']);
                 Route::post('{id}/assign', [CaretakerController::class, 'assignProperties']);
+            });
+
+            // Lease Agreements
+            Route::prefix('agreements')->group(function () {
+                Route::get('', [AgreementController::class, 'index']);
+                Route::get('expiring', [AgreementController::class, 'getExpiring']);
+                Route::post('', [AgreementController::class, 'store']);
+                Route::get('{id}', [AgreementController::class, 'show']);
+                Route::post('{id}/renew', [AgreementController::class, 'renew']);
+                Route::post('{id}/terminate', [AgreementController::class, 'terminate']);
+                Route::post('{id}/documents', [AgreementController::class, 'uploadDocument']);
+            });
+
+            // Maintenance
+            Route::prefix('maintenance')->group(function () {
+                Route::get('requests', [MaintenanceController::class, 'index']);
+                Route::post('requests', [MaintenanceController::class, 'store']);
+                Route::get('requests/{id}', [MaintenanceController::class, 'show']);
+                Route::put('requests/{id}/status', [MaintenanceController::class, 'updateStatus']);
+                Route::post('requests/{id}/assign', [MaintenanceController::class, 'assign']);
+
+                Route::get('vendors', [MaintenanceController::class, 'getVendors']);
+                Route::post('vendors', [MaintenanceController::class, 'storeVendor']);
+
+                Route::get('preventive', [MaintenanceController::class, 'getPreventive']);
+                Route::post('preventive', [MaintenanceController::class, 'storePreventive']);
             });
         });
 
@@ -372,7 +404,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
     });
 
-    
+
     // Common routes (all authenticated users)
     Route::prefix('common')->group(function () {
         // Basic user info
@@ -402,7 +434,7 @@ Route::fallback(function () {
         'requested_url' => request()->fullUrl(),
         'available_endpoints' => [
             'GET /api/health',
-            'GET /api/test', 
+            'GET /api/test',
             'GET /api/debug',
             'POST /api/auth/login',
             'POST /api/auth/forgot-password',

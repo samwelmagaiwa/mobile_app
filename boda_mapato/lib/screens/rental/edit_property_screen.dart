@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
@@ -22,6 +24,11 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   late final TextEditingController _addressController;
   late final TextEditingController _wardController;
   late final TextEditingController _streetController;
+  late final TextEditingController _defaultRentController;
+  late final TextEditingController _defaultDepositController;
+  late final TextEditingController _ownershipNotesController;
+  late final TextEditingController _latController;
+  late final TextEditingController _lngController;
 
   late String _propertyType;
   late String? _region;
@@ -29,6 +36,9 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   late String _billingCycle;
   late String _currency;
   late String _status;
+  bool _utilityBillingEnabled = false;
+  File? _newCoverImage;
+  String? _currentImageUrl;
 
   bool _isSubmitting = false;
 
@@ -54,12 +64,28 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _addressController = TextEditingController(text: p['address'] ?? '');
     _wardController = TextEditingController(text: p['ward'] ?? '');
     _streetController = TextEditingController(text: p['street'] ?? '');
+    _latController = TextEditingController(text: (p['latitude'] ?? '').toString());
+    _lngController = TextEditingController(text: (p['longitude'] ?? '').toString());
+    _defaultRentController = TextEditingController(text: (p['default_rent_amount'] ?? '0').toString());
+    _defaultDepositController = TextEditingController(text: (p['default_deposit_amount'] ?? '0').toString());
+    _ownershipNotesController = TextEditingController(text: p['ownership_notes'] ?? '');
+    _utilityBillingEnabled = p['utility_billing_enabled'] == 1 || p['utility_billing_enabled'] == true;
     _propertyType = p['property_type'] ?? 'apartment';
     _region = p['region'];
     _district = p['district'];
-    _billingCycle = p['billing_cycle'] ?? 'monthly';
-    _currency = p['currency'] ?? 'TZS';
+    _billingCycle = p['default_billing_cycle'] ?? p['billing_cycle'] ?? 'monthly';
+    _currency = p['default_currency'] ?? p['currency'] ?? 'TZS';
     _status = p['status'] ?? 'active';
+    _currentImageUrl = p['cover_image'];
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked =
+        await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
+    if (picked != null) {
+      setState(() => _newCoverImage = File(picked.path));
+    }
   }
 
   @override
@@ -86,51 +112,40 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       'ward': _wardController.text.trim(),
       'street': _streetController.text.trim(),
       'address': _addressController.text.trim(),
-      'billing_cycle': _billingCycle,
-      'currency': _currency,
+      'latitude': _latController.text,
+      'longitude': _lngController.text,
+      'default_billing_cycle': _billingCycle,
+      'default_currency': _currency,
       'status': _status,
+      'default_rent_amount': _defaultRentController.text,
+      'default_deposit_amount': _defaultDepositController.text,
+      'ownership_notes': _ownershipNotesController.text,
+      'utility_billing_enabled': _utilityBillingEnabled ? 1 : 0,
     };
 
     final success = await context
         .read<RentalProvider>()
-        .updateProperty(widget.property['id'], data);
+        .updateProperty(widget.property['id'], data, image: _newCoverImage);
 
     setState(() => _isSubmitting = false);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_loc.translate('property_updated')),
-          backgroundColor: ThemeConstants.successGreen,
-        ),
-      );
+      ThemeConstants.showSuccessSnackBar(context, _loc.translate('property_updated'));
       Navigator.pop(context);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_loc.translate('error_occurred')),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      ThemeConstants.showErrorSnackBar(context, _loc.translate('error_occurred'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ThemeConstants.primaryBlue,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(_loc.translate('edit_property'),
-            style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+    return ThemeConstants.buildScaffold(
+      title: _loc.translate('edit_property'),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 20.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -161,10 +176,10 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 20.h),
                 _buildSection(
                   _loc.translate('location'),
-                  Icons.location_on,
+                  Icons.location_on_outlined,
                   [
                     _buildDropdownField(
                       label: _loc.translate('region'),
@@ -187,7 +202,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                           child: _buildTextInput(
                             controller: _wardController,
                             label: _loc.translate('ward'),
-                            icon: Icons.map,
+                            icon: Icons.map_outlined,
                           ),
                         ),
                         SizedBox(width: 12.w),
@@ -195,7 +210,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                           child: _buildTextInput(
                             controller: _streetController,
                             label: _loc.translate('street'),
-                            icon: Icons.streetview,
+                            icon: Icons.streetview_outlined,
                           ),
                         ),
                       ],
@@ -204,16 +219,36 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                     _buildTextInput(
                       controller: _addressController,
                       label: _loc.translate('address'),
-                      icon: Icons.home,
+                      icon: Icons.home_outlined,
                       required: true,
                       maxLines: 2,
                     ),
+                    SizedBox(height: 14.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextInput(
+                            controller: _latController,
+                            label: "Latitudo",
+                            icon: Icons.location_on_outlined,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: _buildTextInput(
+                            controller: _lngController,
+                            label: "Longitudo",
+                            icon: Icons.location_on_outlined,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 20.h),
                 _buildSection(
                   _loc.translate('configuration'),
-                  Icons.settings,
+                  Icons.settings_outlined,
                   [
                     Row(
                       children: [
@@ -246,13 +281,112 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                     _buildDropdownField(
                       label: _loc.translate('status'),
                       value: _status,
-                      items: const ['active', 'inactive', 'under_maintenance', 'archived'],
+                      items: const [
+                        'active',
+                        'inactive',
+                        'under_maintenance',
+                        'archived'
+                      ],
                       formatter: _formatType,
                       onChanged: (v) => setState(() => _status = v!),
                     ),
+                    SizedBox(height: 14.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextInput(
+                            controller: _defaultRentController,
+                            label: "Kodi ya Msingi (TSh)",
+                            icon: Icons.monetization_on_outlined,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: _buildTextInput(
+                            controller: _defaultDepositController,
+                            label: "Amana ya Msingi (TSh)",
+                            icon: Icons.savings_outlined,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Bili za Huduma (Maji/Umeme)",
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 13.sp)),
+                        Switch(
+                          value: _utilityBillingEnabled,
+                          onChanged: (v) =>
+                              setState(() => _utilityBillingEnabled = v),
+                          activeColor: ThemeConstants.primaryOrange,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14.h),
+                    _buildTextInput(
+                      controller: _ownershipNotesController,
+                      label: "Maelezo ya Umiliki",
+                      icon: Icons.note_alt_outlined,
+                      maxLines: 3,
+                    ),
                   ],
                 ),
-                SizedBox(height: 28.h),
+                SizedBox(height: 20.h),
+                _buildSection(
+                  _loc.translate('media'),
+                  Icons.image_outlined,
+                  [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 180.h,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(18.r),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.12),
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: _newCoverImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(18.r),
+                                child: Image.file(_newCoverImage!,
+                                    width: double.infinity,
+                                    height: 180.h,
+                                    fit: BoxFit.cover),
+                              )
+                            : (_currentImageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(18.r),
+                                    child: Image.network(_currentImageUrl!,
+                                        width: double.infinity,
+                                        height: 180.h,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Center(
+                                            child: Icon(Icons.broken_image_outlined,
+                                                color: Colors.white24,
+                                                size: 40.sp))),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.cloud_upload_outlined,
+                                          size: 40.sp, color: Colors.white38),
+                                      SizedBox(height: 8.h),
+                                      Text(_loc.translate('tap_to_upload'),
+                                          style: ThemeConstants.captionStyle),
+                                    ],
+                                  )),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 32.h),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -262,17 +396,19 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                       disabledBackgroundColor: ThemeConstants.primaryOrange.withOpacity(0.5),
                       padding: EdgeInsets.symmetric(vertical: 16.h),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                      elevation: 8,
+                      shadowColor: ThemeConstants.primaryOrange.withOpacity(0.4),
                     ),
                     child: _isSubmitting
                         ? SizedBox(
                             height: 20.h,
                             width: 20.h,
                             child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text(_loc.translate('update'),
-                            style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                        : Text(_loc.translate('update_property'),
+                            style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 40.h),
               ],
             ),
           ),
@@ -282,25 +418,19 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   }
 
   Widget _buildSection(String title, IconData icon, List<Widget> children) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
+    return ThemeConstants.buildResponsiveGlassCardStatic(
+      context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: ThemeConstants.primaryOrange, size: 18.sp),
-              SizedBox(width: 8.w),
-              Text(title,
-                  style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              Icon(icon, color: ThemeConstants.primaryOrange, size: 20.sp),
+              SizedBox(width: 10.w),
+              Text(title, style: ThemeConstants.headingStyle.copyWith(fontSize: 15.sp)),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 20.h),
           ...children,
         ],
       ),

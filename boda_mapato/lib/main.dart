@@ -48,7 +48,21 @@ import 'screens/rental/billing_list_screen.dart';
 import 'screens/rental/property_details_screen.dart';
 import 'screens/rental/create_property_screen.dart';
 import 'screens/rental/edit_property_screen.dart';
-import 'providers/rental_provider.dart';
+import 'screens/rental/record_payment_screen.dart';
+import 'screens/rental/tenant_details_screen.dart';
+import 'screens/rental/house_details_screen.dart';
+import 'screens/rental/tenant_self_service_screen.dart';
+import 'screens/rental/blocks_management_screen.dart';
+import 'screens/rental/house_management_screen.dart';
+import 'screens/rental/lease_agreements_screen.dart';
+import 'screens/rental/create_agreement_screen.dart';
+import 'screens/rental/lease_details_screen.dart';
+import 'package:boda_mapato/screens/maintenance/maintenance_list_screen.dart';
+import 'package:boda_mapato/screens/maintenance/maintenance_details_screen.dart';
+import 'package:boda_mapato/screens/maintenance/request_maintenance_screen.dart';
+import 'package:boda_mapato/screens/maintenance/vendors_list_screen.dart';
+import 'package:boda_mapato/providers/rental_provider.dart';
+import 'package:boda_mapato/providers/maintenance_provider.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
 import 'utils/web_keyboard_fix_stub.dart'
@@ -165,6 +179,10 @@ class BodaMapatoApp extends StatelessWidget {
                 ..fetchProperties()
                 ..fetchBills(),
             ),
+            ChangeNotifierProvider<MaintenanceProvider>(
+              create: (final BuildContext _) =>
+                  MaintenanceProvider()..fetchRequests(),
+            ),
           ],
           child: Consumer<LocalizationService>(
             builder: (context, localizationService, child) => MaterialApp(
@@ -241,16 +259,68 @@ class BodaMapatoApp extends StatelessWidget {
                 },
                 "/rental/tenants": (final BuildContext context) =>
                     const RentalTenantsScreen(),
+                "/rental/tenant-details": (final BuildContext context) {
+                  final tenant = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>;
+                  return TenantDetailsScreen(tenant: tenant);
+                },
                 "/rental/onboard-tenant": (final BuildContext context) =>
                     const OnboardTenantScreen(),
+                "/rental/house-details": (final BuildContext context) {
+                  final house = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>;
+                  return HouseDetailsScreen(house: house);
+                },
                 "/rental/billing": (final BuildContext context) =>
                     const BillingListScreen(),
+                "/rental/maintenance": (final BuildContext context) =>
+                    const MaintenanceListScreen(),
+                "/rental/maintenance-details": (final BuildContext context) {
+                  final request = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>;
+                  return MaintenanceDetailsScreen(request: request);
+                },
+                "/rental/maintenance-request": (final BuildContext context) =>
+                    const RequestMaintenanceScreen(),
+                "/rental/vendors": (final BuildContext context) =>
+                    const VendorsListScreen(),
                 "/rental/payments": (final BuildContext context) =>
                     const RentalPaymentsScreen(),
                 "/rental/receipts": (final BuildContext context) =>
                     const RentalReceiptsScreen(),
                 "/rental/arrears": (final BuildContext context) =>
                     const RentalArrearsScreen(),
+                "/rental/record-payment": (final BuildContext context) =>
+                    const RecordPaymentScreen(),
+                "/rental/tenant-self-service": (final BuildContext context) =>
+                    const TenantSelfServiceScreen(),
+                "/rental/blocks": (final BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, String>?;
+                  return BlocksManagementScreen(
+                    propertyId: args?['propertyId'] ?? '',
+                    propertyName: args?['propertyName'] ?? '',
+                  );
+                },
+                "/rental/houses": (final BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, String>?;
+                  return HouseManagementScreen(
+                    propertyId: args?['propertyId'] ?? '',
+                    propertyName: args?['propertyName'] ?? '',
+                  );
+                },
+                "/rental/agreements": (final BuildContext context) =>
+                    const LeaseAgreementsScreen(),
+                "/rental/create-agreement": (final BuildContext context) =>
+                    const CreateAgreementScreen(),
+                "/rental/agreement-details": (final BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
+                  return LeaseDetailsScreen(agreement: args);
+                },
+                "/rental/lease-templates": (final BuildContext context) =>
+                    const LeaseAgreementsScreen(), // Placeholder for templates
               },
             ),
           ),

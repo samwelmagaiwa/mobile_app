@@ -5,6 +5,7 @@ import "package:provider/provider.dart";
 import "../../constants/colors.dart";
 import "../../constants/strings.dart";
 import "../../constants/styles.dart";
+import "../../constants/theme_constants.dart";
 import "../../models/transaction.dart";
 import "../../providers/transaction_provider.dart";
 import "../../utils/date_utils.dart";
@@ -185,12 +186,7 @@ class TransactionDetailScreen extends StatelessWidget {
 
   void _showEditDialog(final BuildContext context) {
     // TODO(dev): Implement edit transaction dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Uhariri wa muamala utaongezwa hivi karibuni"),
-        backgroundColor: AppColors.info,
-      ),
-    );
+    ThemeConstants.showInfoSnackBar(context, "Uhariri wa muamala utaongezwa hivi karibuni");
   }
 
   void _showDeleteDialog(final BuildContext context) {
@@ -217,22 +213,12 @@ class TransactionDetailScreen extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Go back to transactions list
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Muamala umefutwa"),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
+                  ThemeConstants.showSuccessSnackBar(context, "Muamala umefutwa");
                 }
               } on Exception catch (e) {
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Hitilafu: $e"),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                  ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
                 }
               }
             },

@@ -1177,20 +1177,12 @@ class _VehiclesManagementScreenState extends State<VehiclesManagementScreen>
 
   void _exportVehicles() {
     // TODO(dev): Implement export functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Kipengele cha kuhamisha kinatengenezwa..."),
-      ),
-    );
+    ThemeConstants.showInfoSnackBar(context, "Kipengele cha kuhamisha kinatengenezwa...");
   }
 
   void _importVehicles() {
     // TODO(dev): Implement import functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Kipengele cha kuingiza kinatengenezwa..."),
-      ),
-    );
+    ThemeConstants.showInfoSnackBar(context, "Kipengele cha kuingiza kinatengenezwa...");
   }
 }
 
@@ -1286,16 +1278,10 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
       if (!mounted) return;
       Navigator.pop(context);
       widget.onVehicleUpdated(updated);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Taarifa za chombo zimehifadhiwa.'),
-        backgroundColor: ThemeConstants.successGreen,
-      ));
+      ThemeConstants.showSuccessSnackBar(context, 'Taarifa za chombo zimehifadhiwa.');
     } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Hitilafu: $e'),
-        backgroundColor: ThemeConstants.errorRed,
-      ));
+      ThemeConstants.showErrorSnackBar(context, 'Hitilafu: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -1446,16 +1432,10 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
       if (!mounted) return;
       Navigator.pop(context);
       widget.onAssigned(updated);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Dereva amewekwa kwa chombo.'),
-        backgroundColor: ThemeConstants.successGreen,
-      ));
+      ThemeConstants.showSuccessSnackBar(context, 'Dereva amewekwa kwa chombo.');
     } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Hitilafu: $e'),
-        backgroundColor: ThemeConstants.errorRed,
-      ));
+      ThemeConstants.showErrorSnackBar(context, 'Hitilafu: $e');
     }
   }
 
@@ -1620,29 +1600,11 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
         Navigator.pop(context);
         widget.onVehicleAdded();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Chombo ${_plateNumberController.text} kimesajiliwa kikamilifu!",
-            ),
-            backgroundColor: successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Chombo ${_plateNumberController.text} kimesajiliwa kikamilifu!");
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu katika kusajili chombo: $e"),
-            backgroundColor: errorRed,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu katika kusajili chombo: $e");
       }
     } finally {
       if (mounted) {

@@ -36,7 +36,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     try {
       // Load different types of analytics data
-      final revenueData = await _apiService.getRevenueReport(
+      final revenueData = await _apiService.getAdminRevenueReport(
         startDate: DateTime.now().subtract(const Duration(days: 30)),
         endDate: DateTime.now(),
       );

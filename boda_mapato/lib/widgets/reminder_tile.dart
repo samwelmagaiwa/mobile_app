@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../constants/colors.dart';
 import '../constants/styles.dart';
+import '../constants/theme_constants.dart';
 import '../models/reminder.dart';
 import '../utils/date_utils.dart';
 
@@ -225,12 +226,7 @@ class ReminderTile extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           // Snooze reminder (add 1 hour)
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Kikumbusho kimesongwa kwa saa 1"),
-                              backgroundColor: AppColors.info,
-                            ),
-                          );
+                          ThemeConstants.showInfoSnackBar(context, "Kikumbusho kimesongwa kwa saa 1");
                         },
                         icon: Icon(Icons.snooze, size: 16.sp),
                         label: const Text("Songeza"),

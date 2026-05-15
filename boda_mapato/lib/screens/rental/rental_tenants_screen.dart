@@ -12,6 +12,10 @@ class RentalTenantsScreen extends StatefulWidget {
 }
 
 class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String? _selectedStatus;
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -21,25 +25,135 @@ class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+  }
+
+  List<dynamic> _filterTenants(List tenants) {
+    return tenants.where((tenant) {
+      final name = (tenant['name'] ?? '').toString().toLowerCase();
+      final phone = (tenant['phone_number'] ?? '').toString().toLowerCase();
+      final house =
+          (tenant['house']?['house_number'] ?? '').toString().toLowerCase();
+
+      final matchesSearch = _searchQuery.isEmpty ||
+          name.contains(_searchQuery.toLowerCase()) ||
+          phone.contains(_searchQuery.toLowerCase()) ||
+          house.contains(_searchQuery.toLowerCase());
+
+      final status = tenant['agreement']?['status'] ?? 'active';
+      final matchesStatus =
+          _selectedStatus == null || status == _selectedStatus;
+
+      return matchesSearch && matchesStatus;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final rentalProvider = context.watch<RentalProvider>();
     final tenants = rentalProvider.tenants;
+    final filteredTenants = _filterTenants(tenants);
 
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Wapangaji",
       actions: [
         IconButton(
-          icon: const Icon(Icons.person_add, color: Colors.white),
-          onPressed: () =>
-              Navigator.pushNamed(context, "/rental/onboard-tenant"),
-        ),
+            icon: const Icon(Icons.person_add, color: Colors.white),
+            onPressed: () =>
+                Navigator.pushNamed(context, "/rental/onboard-tenant")),
       ],
-      body: rentalProvider.isLoading && tenants.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : tenants.isEmpty
-              ? _buildEmptyState()
-              : _buildTenantList(tenants),
+      body: Column(
+        children: [
+          _buildSearchAndFilter(),
+          Expanded(
+            child: rentalProvider.isLoading && tenants.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white))
+                : tenants.isEmpty
+                    ? _buildEmptyState()
+                    : _buildTenantList(filteredTenants),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: "Tafuta mwenyeji...",
+              hintStyle: TextStyle(color: Colors.white38),
+              prefixIcon: Icon(Icons.search, color: Colors.white38),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear, color: Colors.white38),
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                        });
+                      })
+                  : null,
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.1),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip("All", null, _selectedStatus == null),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Mstaafu", "active", _selectedStatus == "active"),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Notisi", "notice", _selectedStatus == "notice"),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Mhalifu", "defaulter", _selectedStatus == "defaulter"),
+                SizedBox(width: 8.w),
+                _buildFilterChip(
+                    "Ameondoka", "terminated", _selectedStatus == "terminated"),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String? value, bool isSelected) {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedStatus = isSelected ? null : value),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+            color: isSelected
+                ? ThemeConstants.primaryOrange
+                : Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20.r)),
+        child:
+            Text(label, style: TextStyle(color: Colors.white, fontSize: 12.sp)),
+      ),
     );
   }
 
@@ -131,7 +245,8 @@ class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showTenantDetails(tenant),
+          onTap: () => Navigator.pushNamed(context, '/rental/tenant-details',
+              arguments: tenant),
           borderRadius: BorderRadius.circular(20.r),
           child: Padding(
             padding: EdgeInsets.all(16.w),
@@ -220,189 +335,5 @@ class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
         ),
       ),
     );
-  }
-
-  void _showTenantDetails(Map<String, dynamic> tenant) {
-    final house = tenant['house'] ?? {};
-    final agreement = tenant['agreement'] ?? {};
-    final profile = tenant['profile'];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: ThemeConstants.primaryBlue,
-          borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24.r), topRight: Radius.circular(24.r)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2.r)),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
-                            color:
-                                ThemeConstants.primaryOrange.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Text(
-                            (tenant['name'] ?? '?')
-                                .substring(0, 1)
-                                .toUpperCase(),
-                            style: TextStyle(
-                                color: ThemeConstants.primaryOrange,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 32.sp),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(tenant['name'] ?? '',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22.sp,
-                                      fontWeight: FontWeight.bold)),
-                              SizedBox(height: 4.h),
-                              Text(tenant['phone_number'] ?? '',
-                                  style: TextStyle(
-                                      color: Colors.white54, fontSize: 14.sp)),
-                              if (tenant['email'] != null) ...[
-                                SizedBox(height: 2.h),
-                                Text(tenant['email'] ?? '',
-                                    style: TextStyle(
-                                        color: Colors.white38,
-                                        fontSize: 12.sp)),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 24.h),
-                    _buildSectionTitle("Taarifa ya Nyumba"),
-                    _buildDetailRow("Nyumba", house['house_number'] ?? '-'),
-                    _buildDetailRow("Mali", house['property_name'] ?? '-'),
-                    _buildDetailRow("Block", house['block_name'] ?? '-'),
-                    SizedBox(height: 16.h),
-                    _buildSectionTitle("Mkataba"),
-                    _buildDetailRow("Kodi",
-                        "TSh ${_formatCurrency((agreement['rent_amount'] ?? 0).toDouble())}"),
-                    _buildDetailRow("Kipindi",
-                        _formatRentCycle(agreement['rent_cycle'] ?? 'monthly')),
-                    _buildDetailRow("Kuanzia", agreement['start_date'] ?? '-'),
-                    _buildDetailRow(
-                        "Muishio", agreement['end_date'] ?? 'Hajawahi'),
-                    _buildDetailRow("Status",
-                        _formatStatus(agreement['status'] ?? 'active')),
-                    if (profile != null) ...[
-                      SizedBox(height: 16.h),
-                      _buildSectionTitle("Taarifa za Ziada"),
-                      if (profile['id_number'] != null)
-                        _buildDetailRow("NIDA", profile['id_number']),
-                      if (profile['occupation'] != null)
-                        _buildDetailRow("Kazi", profile['occupation']),
-                      if (profile['emergency_contact_name'] != null)
-                        _buildDetailRow(
-                            "Mawasiliano", profile['emergency_contact_name']),
-                      if (profile['emergency_contact_phone'] != null)
-                        _buildDetailRow(
-                            "Simu", profile['emergency_contact_phone']),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Text(title,
-          style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600)),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
-          Flexible(
-            child: Text(value,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500),
-                textAlign: TextAlign.right),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatCurrency(double value) {
-    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
-    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
-    return value.toStringAsFixed(0);
-  }
-
-  String _formatRentCycle(String cycle) {
-    switch (cycle) {
-      case 'monthly':
-        return 'Mwezi';
-      case 'quarterly':
-        return 'Robo Mwaka';
-      case 'semi_annual':
-        return 'Miwaka 6';
-      case 'annual':
-        return 'Mwaka';
-      default:
-        return cycle;
-    }
-  }
-
-  String _formatStatus(String status) {
-    switch (status) {
-      case 'active':
-        return 'Mstaafu';
-      case 'notice':
-        return 'Notisi';
-      case 'defaulter':
-        return 'Mhalifu';
-      case 'terminated':
-        return 'Ameondoka';
-      default:
-        return status;
-    }
   }
 }

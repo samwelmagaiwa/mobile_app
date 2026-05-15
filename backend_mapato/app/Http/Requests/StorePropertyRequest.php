@@ -16,10 +16,19 @@ class StorePropertyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'property_type' => ['required', Rule::in([
-                'apartment', 'rental_compound', 'standalone_house', 
-                'hostel', 'commercial_building', 'mixed_use', 'office_space', 'shop_units'
-            ])],
+            'property_type' => [
+                'required',
+                Rule::in([
+                    'apartment',
+                    'rental_compound',
+                    'standalone_house',
+                    'hostel',
+                    'commercial_building',
+                    'mixed_use',
+                    'office_space',
+                    'shop_units'
+                ])
+            ],
             'region' => ['required', 'string', 'max:100'],
             'district' => ['required', 'string', 'max:100'],
             'ward' => ['nullable', 'string', 'max:100'],
@@ -27,8 +36,8 @@ class StorePropertyRequest extends FormRequest
             'address' => ['required', 'string', 'max:500'],
             'description' => ['nullable', 'string', 'max:1000'],
             'billing_cycle' => ['required', Rule::in(['monthly', 'quarterly', 'yearly'])],
-            'currency' => ['sometimes', 'string', 'max:10', 'default:TZS'],
-            'status' => ['sometimes', Rule::in(['active', 'inactive', 'under_maintenance', 'archived']), 'default:active'],
+            'currency' => ['sometimes', 'string', 'max:10'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive', 'under_maintenance', 'archived'])],
             'total_units' => ['nullable', 'integer', 'min:0'],
             'number_of_blocks' => ['nullable', 'integer', 'min:1'],
             'caretaker_id' => ['nullable', 'exists:users,id'],
@@ -37,7 +46,7 @@ class StorePropertyRequest extends FormRequest
             'utility_billing_enabled' => ['sometimes', 'boolean'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'cover_image' => ['nullable', 'url'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5000'],
         ];
     }
 

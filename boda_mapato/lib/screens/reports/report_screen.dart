@@ -245,7 +245,7 @@ class _ReportScreenState extends State<ReportScreen> {
       // Determine which API endpoint to call based on selected period
       switch (_selectedPeriod) {
         case 'revenue':
-          reportData = await _apiService.getRevenueReport(
+          reportData = await _apiService.getAdminRevenueReport(
             startDate: start,
             endDate: end,
           );
@@ -261,7 +261,7 @@ class _ReportScreenState extends State<ReportScreen> {
           );
         default:
           // For daily/weekly/monthly, use revenue report as default
-          reportData = await _apiService.getRevenueReport(
+          reportData = await _apiService.getAdminRevenueReport(
             startDate: start,
             endDate: end,
           );
@@ -308,12 +308,7 @@ class _ReportScreenState extends State<ReportScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
       }
     } finally {
       if (mounted) {
@@ -1138,12 +1133,7 @@ class _ReportPreviewDialog extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Ripoti imehamishwa"),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        ThemeConstants.showSuccessSnackBar(context, "Ripoti imehamishwa");
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -1157,12 +1147,7 @@ class _ReportPreviewDialog extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Ripoti imechapishwa"),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        ThemeConstants.showSuccessSnackBar(context, "Ripoti imechapishwa");
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,

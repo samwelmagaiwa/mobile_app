@@ -36,102 +36,96 @@ class _BillingListScreenState extends State<BillingListScreen> {
       return true;
     }).toList();
 
-    final content = LayoutBuilder(
-      builder: (context, constraints) {
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w),
-          child: Column(
-            children: [
-              SizedBox(height: 16.h),
-              _buildFilters(context),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: rentalProvider.isLoading && bills.isEmpty
-                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                  : bills.isEmpty
-                    ? Center(child: Text(LocalizationService.instance.translate("no_bills_found"), style: TextStyle(color: Colors.white54, fontSize: 14.sp)))
-                    : RefreshIndicator(
-                        onRefresh: () => rentalProvider.fetchBills(),
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          itemCount: bills.length,
-                          itemBuilder: (context, index) {
-                            final bill = bills[index];
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 12.h),
-                              child: _buildBillCard(context, bill),
-                            );
-                          },
-                        ),
-                      ),
-              ),
-              SizedBox(height: 100.h),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (widget.isSubView) {
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
-          title: Text(
-            LocalizationService.instance.translate("rent_billing"),
-            style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: content,
-      );
-    }
-
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
+    return ThemeConstants.buildScaffold(
       title: LocalizationService.instance.translate("rent_billing"),
-      body: content,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildFilters(context),
+            Expanded(
+              child: rentalProvider.isLoading && bills.isEmpty
+                ? ThemeConstants.buildLoadingWidget()
+                : bills.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_long_outlined, size: 56.sp, color: Colors.white24),
+                          SizedBox(height: 16.h),
+                          Text(LocalizationService.instance.translate("no_bills_found"), style: ThemeConstants.captionStyle),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => rentalProvider.fetchBills(),
+                      color: ThemeConstants.primaryOrange,
+                      child: ListView.builder(
+                        padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 100.h),
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        itemCount: bills.length,
+                        itemBuilder: (context, index) {
+                          final bill = bills[index];
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 12.h),
+                            child: _buildBillCard(context, bill),
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildFilters(BuildContext context) {
     final loc = LocalizationService.instance;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildFilterChip(loc.translate("all"), 'all'),
-          SizedBox(width: 8.w),
-          _buildFilterChip(loc.translate("unpaid"), 'unpaid'),
-          SizedBox(width: 8.w),
-          _buildFilterChip(loc.translate("overdue"), 'overdue'),
-          SizedBox(width: 8.w),
-          _buildFilterChip(loc.translate("paid"), 'paid'),
-        ],
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 16.h),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildFilterChip(loc.translate("all"), 'all'),
+            SizedBox(width: 8.w),
+            _buildFilterChip(loc.translate("unpaid"), 'unpaid'),
+            SizedBox(width: 8.w),
+            _buildFilterChip(loc.translate("overdue"), 'overdue'),
+            SizedBox(width: 8.w),
+            _buildFilterChip(loc.translate("paid"), 'paid'),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _filter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) setState(() => _filter = value);
-      },
-      selectedColor: ThemeConstants.primaryOrange,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.white70,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return GestureDetector(
+      onTap: () => setState(() => _filter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? ThemeConstants.primaryOrange
+              : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: isSelected ? [
+            BoxShadow(color: ThemeConstants.primaryOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+          ] : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 12.sp,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
-      backgroundColor: ThemeConstants.cardColor,
     );
   }
 
@@ -165,11 +159,14 @@ class _BillingListScreenState extends State<BillingListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    bill['tenant']['name'] ?? 'Tenant',
-                    style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold),
+                    (bill['tenant'] != null ? bill['tenant']['name'] : null) ?? 'Mteja',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "House ${bill['house']['house_number']}",
+                    "Nyumba ${(bill['house'] != null ? bill['house']['house_number'] : null) ?? '-'}",
                     style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                   ),
                 ],
@@ -263,7 +260,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  "Recording payment for ${bill['tenant']['name']} - House ${bill['house']['house_number']}",
+                  "Kurekodi malipo ya ${(bill['tenant'] != null ? bill['tenant']['name'] : null) ?? ''} - Nyumba ${(bill['house'] != null ? bill['house']['house_number'] : null) ?? ''}",
                   style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                 ),
                 SizedBox(height: 24.h),

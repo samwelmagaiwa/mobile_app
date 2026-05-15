@@ -1,11 +1,12 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../constants/theme_constants.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/api_service.dart';
-import '../../services/localization_service.dart';
+import 'package:boda_mapato/constants/theme_constants.dart';
+import 'package:boda_mapato/providers/auth_provider.dart';
+import 'package:boda_mapato/services/api_service.dart';
+import 'package:boda_mapato/services/localization_service.dart';
+import 'package:boda_mapato/screens/settings/user_permissions_management_screen.dart';
 
 // ignore_for_file: use_string_buffers, use_if_null_to_convert_nulls_to_bools, avoid_catches_without_on_clauses, control_flow_in_finally
 class UserManagementScreen extends StatefulWidget {
@@ -22,18 +23,54 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   bool _loading = true;
   bool _creating = false;
   List<Map<String, dynamic>> _users = <Map<String, dynamic>>[];
+  String _activeService = 'transport'; // default
 
   @override
   void initState() {
     super.initState();
     _api.initialize();
-    _loadMyUsers();
+    _detectActiveService();
   }
+
+  Future<void> _detectActiveService() async {
+    final prefs = await SharedPreferences.getInstance();
+    final service = prefs.getString('selected_service') ?? 'transport';
+    if (mounted) {
+      setState(() => _activeService = service);
+      _loadMyUsers();
+    }
+  }
+
+  bool get _isRental => _activeService == 'rental';
+
+  List<DropdownMenuItem<String>> get _roleDropdownItems {
+    if (_isRental) {
+      return const [
+        DropdownMenuItem(value: 'admin', child: Text('Admin')),
+        DropdownMenuItem(value: 'landlord', child: Text('Landlord')),
+        DropdownMenuItem(value: 'caretaker', child: Text('Caretaker')),
+        DropdownMenuItem(value: 'tenant', child: Text('Tenant')),
+        DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
+      ];
+    }
+    return const [
+      DropdownMenuItem(value: 'admin', child: Text('Admin')),
+      DropdownMenuItem(value: 'manager', child: Text('Manager')),
+      DropdownMenuItem(value: 'operator', child: Text('Operator')),
+      DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
+      DropdownMenuItem(value: 'driver', child: Text('Driver')),
+    ];
+  }
+
+  String get _defaultRole => _isRental ? 'tenant' : 'admin';
 
   Future<void> _loadMyUsers() async {
     setState(() => _loading = true);
     try {
-      final Map<String, dynamic> res = await _api.getMyUsers(limit: 100);
+      final isSuperAdmin = Provider.of<AuthProvider>(context, listen: false).user?.isSuperAdmin == true;
+      final Map<String, dynamic> res = isSuperAdmin
+          ? await _api.getUsers(limit: 100, serviceType: _activeService)
+          : await _api.getMyUsers(limit: 100, serviceType: _activeService);
       final List<Map<String, dynamic>> items = _extractUsers(res);
       setState(() {
         _users = items;
@@ -80,241 +117,265 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final TextEditingController name = TextEditingController();
     final TextEditingController email = TextEditingController();
     final TextEditingController phone = TextEditingController();
-    String role = 'admin';
+    String role = _defaultRole;
     bool isActive = true;
+    bool fullAccess = false;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => Dialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: AutoSizeText(
-          _loc.translate('create_user'),
-          style: const TextStyle(color: ThemeConstants.textPrimary),
-          maxLines: 1,
-          stepGranularity: 0.5,
-        ),
-        content: Form(
-          key: formKey,
-          child: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _loc.translate('create_user'),
+                style: const TextStyle(
+                    color: ThemeConstants.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: StatefulBuilder(
+                  builder: (context, setDialogState) {
+                    return Form(
+                      key: formKey,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextFormField(
+                              controller: name,
+                              style: const TextStyle(color: ThemeConstants.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: _loc.translate('full_name'),
+                                labelStyle:
+                                    const TextStyle(color: ThemeConstants.textSecondary),
+                                prefixIcon: const Icon(Icons.person,
+                                    color: ThemeConstants.textSecondary),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.white.withOpacity(0.3)),
+                                ),
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? (_loc.isSwahili
+                                      ? 'Ingiza jina kamili'
+                                      : 'Enter full name')
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: email,
+                              keyboardType: TextInputType.emailAddress,
+                              style: const TextStyle(color: ThemeConstants.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: _loc.translate('email'),
+                                labelStyle:
+                                    const TextStyle(color: ThemeConstants.textSecondary),
+                                prefixIcon: const Icon(Icons.email,
+                                    color: ThemeConstants.textSecondary),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.white.withOpacity(0.3)),
+                                ),
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? (_loc.isSwahili ? 'Ingiza barua pepe' : 'Enter email')
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: phone,
+                              keyboardType: TextInputType.phone,
+                              style: const TextStyle(color: ThemeConstants.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: _loc.translate('phone_number'),
+                                labelStyle:
+                                    const TextStyle(color: ThemeConstants.textSecondary),
+                                prefixIcon: const Icon(Icons.phone,
+                                    color: ThemeConstants.textSecondary),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.white.withOpacity(0.3)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: role,
+                              dropdownColor: ThemeConstants.primaryBlue,
+                              style: const TextStyle(color: ThemeConstants.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: _loc.translate('role'),
+                                labelStyle:
+                                    const TextStyle(color: ThemeConstants.textSecondary),
+                                prefixIcon: const Icon(Icons.verified_user,
+                                    color: ThemeConstants.textSecondary),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.white.withOpacity(0.3)),
+                                ),
+                              ),
+                              items: _roleDropdownItems,
+                              onChanged: (v) => setDialogState(() => role = v ?? _defaultRole),
+                            ),
+                            const SizedBox(height: 12),
+                            SwitchListTile.adaptive(
+                              value: isActive,
+                              onChanged: (v) => setDialogState(() => isActive = v ?? true),
+                              title: Text(
+                                _loc.translate('active'),
+                                style: const TextStyle(color: ThemeConstants.textPrimary),
+                              ),
+                              activeColor: ThemeConstants.primaryOrange,
+                            ),
+                            SwitchListTile.adaptive(
+                              value: fullAccess,
+                              onChanged: (v) => setDialogState(() => fullAccess = v ?? false),
+                              title: Text(
+                                _loc.isSwahili ? 'Ufikiaji Kamili' : 'Full Access',
+                                style: const TextStyle(color: ThemeConstants.textPrimary),
+                              ),
+                              activeColor: ThemeConstants.primaryOrange,
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _loc.translate('default_password_note'),
+                                style: const TextStyle(
+                                    color: ThemeConstants.textSecondary, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextFormField(
-                    controller: name,
-                    style: const TextStyle(color: ThemeConstants.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: _loc.translate('full_name'),
-                      labelStyle:
-                          const TextStyle(color: ThemeConstants.textSecondary),
-                      prefixIcon: const Icon(Icons.person,
-                          color: ThemeConstants.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.white.withOpacity(0.3)),
-                      ),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? (_loc.isSwahili
-                            ? 'Ingiza jina kamili'
-                            : 'Enter full name')
-                        : null,
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(_loc.translate('cancel'),
+                        style: const TextStyle(color: ThemeConstants.textSecondary)),
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: email,
-                    keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: ThemeConstants.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: _loc.translate('email'),
-                      labelStyle:
-                          const TextStyle(color: ThemeConstants.textSecondary),
-                      prefixIcon: const Icon(Icons.email,
-                          color: ThemeConstants.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.white.withOpacity(0.3)),
-                      ),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? (_loc.isSwahili ? 'Ingiza barua pepe' : 'Enter email')
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: phone,
-                    keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: ThemeConstants.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: _loc.translate('phone_number'),
-                      labelStyle:
-                          const TextStyle(color: ThemeConstants.textSecondary),
-                      prefixIcon: const Icon(Icons.phone,
-                          color: ThemeConstants.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.white.withOpacity(0.3)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: role,
-                    dropdownColor: ThemeConstants.primaryBlue,
-                    style: const TextStyle(color: ThemeConstants.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: _loc.translate('role'),
-                      labelStyle:
-                          const TextStyle(color: ThemeConstants.textSecondary),
-                      prefixIcon: const Icon(Icons.verified_user,
-                          color: ThemeConstants.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.white.withOpacity(0.3)),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                      DropdownMenuItem(
-                          value: 'manager', child: Text('Manager')),
-                      DropdownMenuItem(
-                          value: 'operator', child: Text('Operator')),
-                      DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
-                      DropdownMenuItem(value: 'driver', child: Text('Driver')),
-                    ],
-                    onChanged: (v) => role = v ?? 'admin',
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile.adaptive(
-                    value: isActive,
-                    onChanged: (v) => isActive = v,
-                    title: Text(
-                      _loc.translate('active'),
-                      style: const TextStyle(color: ThemeConstants.textPrimary),
-                    ),
-                    activeColor: ThemeConstants.primaryOrange,
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _loc.translate('default_password_note'),
-                      style: const TextStyle(
-                          color: ThemeConstants.textSecondary, fontSize: 12),
-                    ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _creating
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+
+                            // Check if email already exists in current users list
+                            final String emailToCheck = email.text.trim().toLowerCase();
+                            final bool emailExists = _users.any((u) =>
+                                (u['email']?.toString().toLowerCase() ?? '') ==
+                                emailToCheck);
+
+                            if (emailExists) {
+                              ThemeConstants.showErrorSnackBar(
+                                  context,
+                                  _loc.isSwahili
+                                      ? 'Barua pepe tayari ipo'
+                                      : 'Email already exists');
+                              return;
+                            }
+
+                            setState(() => _creating = true);
+                            try {
+                              final String password =
+                                  _defaultPasswordFromName(name.text);
+                              final Map<String, dynamic> payload = <String, dynamic>{
+                                'name': name.text.trim(),
+                                'email': email.text.trim(),
+                                'phone_number': phone.text.trim().isEmpty
+                                    ? null
+                                    : phone.text.trim(),
+                                'role': role,
+                                'is_active': isActive,
+                                'password': password,
+                                'password_confirmation': password,
+                                'service_type': _activeService,
+                                'full_access': fullAccess,
+                              }..removeWhere((key, value) => value == null);
+                              // Use admin users endpoint
+                              debugPrint(
+                                  'DEBUG: About to call createUser with payload: $payload');
+                              final Map<String, dynamic> res =
+                                  await _api.createUser(payload);
+                              debugPrint('DEBUG: createUser response: $res');
+                              if ((res['success'] == true) || res.containsKey('data')) {
+                                if (!mounted) return;
+                                // ignore: use_build_context_synchronously
+                                ThemeConstants.showSuccessSnackBar(context,
+                                    _loc.translate('user_created_successfully'));
+                                // ignore: use_build_context_synchronously
+                                Navigator.pop(ctx, true);
+                              } else {
+                                throw Exception(
+                                    res['message'] ?? 'Failed to create user');
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                String errorMsg = e.toString();
+                                // Extract specific validation error from API response
+                                if (errorMsg.contains('email has already been taken')) {
+                                  errorMsg = _loc.isSwahili
+                                      ? 'Barua pepe tayari inatumika. Tumia barua pepe nyingine.'
+                                      : 'Email already exists. Please use a different email.';
+                                } else if (errorMsg.contains('validation')) {
+                                  errorMsg = _loc.isSwahili
+                                      ? 'Taarifa za mtumiaji si sahihi. Angalia na ujaribu tena.'
+                                      : 'User information is invalid. Please check and try again.';
+                                }
+                                // ignore: use_build_context_synchronously
+                                ThemeConstants.showErrorSnackBar(context, errorMsg);
+                              }
+                            } finally {
+                              if (!mounted) return;
+                              setState(() => _creating = false);
+                              await _loadMyUsers();
+                            }
+                          },
+                    style: FilledButton.styleFrom(
+                        backgroundColor: ThemeConstants.primaryOrange,
+                        foregroundColor: Colors.white),
+                    child: _creating
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : Text(_loc.translate('create_user')),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_loc.translate('cancel'),
-                style: const TextStyle(color: ThemeConstants.textSecondary)),
-          ),
-          FilledButton(
-            onPressed: _creating
-                ? null
-                : () async {
-                    if (!formKey.currentState!.validate()) return;
-
-                    // Check if email already exists in current users list
-                    final String emailToCheck = email.text.trim().toLowerCase();
-                    final bool emailExists = _users.any((u) =>
-                        (u['email']?.toString().toLowerCase() ?? '') ==
-                        emailToCheck);
-
-                    if (emailExists) {
-                      ThemeConstants.showErrorSnackBar(
-                          context,
-                          _loc.isSwahili
-                              ? 'Barua pepe tayari ipo'
-                              : 'Email already exists');
-                      return;
-                    }
-
-                    setState(() => _creating = true);
-                    try {
-                      final String password =
-                          _defaultPasswordFromName(name.text);
-                      final Map<String, dynamic> payload = <String, dynamic>{
-                        'name': name.text.trim(),
-                        'email': email.text.trim(),
-                        'phone_number': phone.text.trim().isEmpty
-                            ? null
-                            : phone.text.trim(),
-                        'role': role,
-                        'is_active': isActive,
-                        'password': password,
-                        'password_confirmation': password,
-                      }..removeWhere((key, value) => value == null);
-                      // Use admin users endpoint
-                      debugPrint(
-                          'DEBUG: About to call createUser with payload: $payload');
-                      final Map<String, dynamic> res =
-                          await _api.createUser(payload);
-                      debugPrint('DEBUG: createUser response: $res');
-                      if ((res['success'] == true) || res.containsKey('data')) {
-                        if (!mounted) return;
-                        // ignore: use_build_context_synchronously
-                        ThemeConstants.showSuccessSnackBar(context,
-                            _loc.translate('user_created_successfully'));
-                        // ignore: use_build_context_synchronously
-                        Navigator.pop(context, true);
-                      } else {
-                        throw Exception(
-                            res['message'] ?? 'Failed to create user');
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        String errorMsg = e.toString();
-                        // Extract specific validation error from API response
-                        if (errorMsg.contains('email has already been taken')) {
-                          errorMsg = _loc.isSwahili
-                              ? 'Barua pepe tayari inatumika. Tumia barua pepe nyingine.'
-                              : 'Email already exists. Please use a different email.';
-                        } else if (errorMsg.contains('validation')) {
-                          errorMsg = _loc.isSwahili
-                              ? 'Taarifa za mtumiaji si sahihi. Angalia na ujaribu tena.'
-                              : 'User information is invalid. Please check and try again.';
-                        }
-                        // ignore: use_build_context_synchronously
-                        ThemeConstants.showErrorSnackBar(context, errorMsg);
-                      }
-                    } finally {
-                      if (!mounted) return;
-                      setState(() => _creating = false);
-                      await _loadMyUsers();
-                    }
-                  },
-            style: FilledButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryOrange,
-                foregroundColor: Colors.white),
-            child: _creating
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : Text(_loc.translate('create_user')),
-          ),
-        ],
       ),
     );
   }
@@ -361,6 +422,38 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ),
               const Divider(height: 1, color: Colors.white24),
               ListTile(
+                leading: const Icon(Icons.manage_accounts, color: ThemeConstants.primaryOrange),
+                title: const Text(
+                  'Change Role',
+                  style: TextStyle(color: ThemeConstants.primaryOrange),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _changeUserRole(user);
+                },
+              ),
+              const Divider(height: 1, color: Colors.white24),
+              ListTile(
+                leading: const Icon(Icons.security, color: Colors.green),
+                title: Text(
+                  _loc.isSwahili ? 'Weka/Ondoa Ruhusa' : 'Assign/Remove Permissions',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserPermissionsManagementScreen(
+                        user: user,
+                        serviceType: _activeService,
+                      ),
+                    ),
+                  ).then((_) => _loadMyUsers());
+                },
+              ),
+              const Divider(height: 1, color: Colors.white24),
+              ListTile(
                 leading: const Icon(Icons.delete, color: Colors.redAccent),
                 title: Text(
                   _loc.isSwahili ? 'Futa mtumiaji' : 'Delete user',
@@ -378,6 +471,96 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
+  Future<void> _changeUserRole(Map<String, dynamic> user) async {
+    String role = (user['role'] ?? _defaultRole).toString();
+    bool fullAccess = (user['full_access'] == true || user['full_access'] == 1);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: ThemeConstants.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Change Role', style: TextStyle(color: ThemeConstants.textPrimary)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _roleDropdownItems.any((e) => e.value == role) ? role : _defaultRole,
+                    dropdownColor: ThemeConstants.primaryBlue,
+                    style: const TextStyle(color: ThemeConstants.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: _loc.translate('role'),
+                      labelStyle: const TextStyle(color: ThemeConstants.textSecondary),
+                      prefixIcon: const Icon(Icons.verified_user, color: ThemeConstants.textSecondary),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      ),
+                    ),
+                    items: _roleDropdownItems,
+                    onChanged: (v) => setState(() => role = v ?? _defaultRole),
+                  ),
+                  const SizedBox(height: 16),
+                  StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      return SwitchListTile.adaptive(
+                        value: fullAccess,
+                        onChanged: (v) => setDialogState(() => fullAccess = v),
+                        title: Text(
+                          _loc.isSwahili ? 'Ufikiaji Kamili wa Moduli' : 'Full Module Access',
+                          style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          _loc.isSwahili ? 'Ruhusu kuona watumiaji wote wa huduma hii' : 'Allow seeing all users of this service',
+                          style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 12),
+                        ),
+                        activeColor: ThemeConstants.primaryOrange,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    }
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(_loc.translate('cancel'), style: const TextStyle(color: ThemeConstants.textSecondary)),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: FilledButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+                  child: Text(_loc.translate('yes'), style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+
+    if (ok != true) return;
+
+    try {
+      final String id = (user['id'] ?? user['user_id'] ?? '').toString();
+      await _api.updateUser(id, <String, dynamic>{
+        'role': role,
+        'service_type': _activeService,
+        'full_access': fullAccess,
+      });
+      await _loadMyUsers();
+      if (mounted) {
+        ThemeConstants.showSuccessSnackBar(
+            context, _loc.isSwahili ? 'Jukumu limesasishwa' : 'Role updated successfully');
+      }
+    } catch (e) {
+      if (mounted) ThemeConstants.showErrorSnackBar(context, e.toString());
+    }
+  }
+
   Future<void> _resetUserPassword(Map<String, dynamic> user) async {
     final String name = (user['name'] ?? '').toString();
     final String defaultPassword = _defaultPasswordFromName(name);
@@ -386,10 +569,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: AutoSizeText(_loc.translate('reset_password'),
+        title: Text(_loc.translate('reset_password'),
             style: const TextStyle(color: ThemeConstants.textPrimary),
-            maxLines: 1,
-            stepGranularity: 0.5),
+            overflow: TextOverflow.ellipsis),
         content: Text(
           _loc.isSwahili
               ? 'Utarejesha nywila ya ${user['name']} kuwa "$defaultPassword"?'
@@ -444,10 +626,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: AutoSizeText(_loc.isSwahili ? 'Thibitisha' : 'Confirm',
+        title: Text(_loc.isSwahili ? 'Thibitisha' : 'Confirm',
             style: const TextStyle(color: ThemeConstants.textPrimary),
-            maxLines: 1,
-            stepGranularity: 0.5),
+            overflow: TextOverflow.ellipsis),
         content: Text(
           _loc.isSwahili
               ? 'Una uhakika unataka kufuta mtumiaji huyu?'

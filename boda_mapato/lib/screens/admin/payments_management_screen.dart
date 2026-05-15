@@ -434,7 +434,6 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
                   if (selectedDays.isEmpty) return;
-                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(context);
                   try {
                     final Map<String, dynamic> payload = <String, dynamic>{
@@ -447,16 +446,12 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                     };
                     await _api.recordPayment(payload);
                     if (!mounted) return;
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Malipo yamehifadhiwa kikamilifu')),
-                    );
+                    ThemeConstants.showSuccessSnackBar(context, 'Malipo yamehifadhiwa kikamilifu');
                     await _loadSummary(_selectedDriverId!);
                     await _loadDrivers();
                   } on Exception catch (e) {
                     if (!mounted) return;
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Imeshindikana kuhifadhi: $e')),
-                    );
+                    ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuhifadhi: $e');
                   }
                 },
                 child: const Text('Hifadhi'),
@@ -1098,45 +1093,15 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final ScaffoldMessengerState messenger =
-                  ScaffoldMessenger.of(context);
-              final String paymentId = payment['id'].toString();
-              setState(() {
-                _rowActionLoading[paymentId] = 'mark_paid';
-              });
-              try {
-                await _apiService.markPaymentAsPaid(paymentId);
-                setState(() {
-                  payment["status"] = "paid";
-                  payment["paid_date"] = DateTime.now();
-                });
-                _filterPayments();
-                
-                // Emit events to notify other screens about payment updates
-                AppEvents.instance.emit(AppEventType.paymentsUpdated);
-                AppEvents.instance.emit(AppEventType.debtsUpdated);
-                AppEvents.instance.emit(AppEventType.receiptsUpdated);
-                AppEvents.instance.emit(AppEventType.dashboardShouldRefresh);
-                
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Malipo yamewekwa kuwa yaliyolipwa",
-                    ),
-                    backgroundColor: ThemeConstants.successGreen,
-                  ),
+                ThemeConstants.showSuccessSnackBar(
+                  context,
+                  "Malipo yamewekwa kuwa yaliyolipwa",
                 );
               } on ApiException catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        "Imeshindikana kuweka kuwa imelipwa: ${e.message}"),
-                  ),
-                );
+                ThemeConstants.showErrorSnackBar(
+                    context, "Imeshindikana kuweka kuwa imelipwa: ${e.message}");
               } on Exception catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text("Hitilafu: $e")),
-                );
+                ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
               } finally {
                 if (mounted) {
                   setState(() {
@@ -1156,7 +1121,6 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
   }
 
   Future<void> _showReceipt(final Map<String, dynamic> payment) async {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     try {
       final String paymentId = payment['id'].toString();
       final Map<String, dynamic> gen =
@@ -1224,8 +1188,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                           try {
                             final String contact = contactCtrl.text.trim();
                             if (method != 'system' && contact.isEmpty) {
-                              messenger.showSnackBar(const SnackBar(
-                                  content: Text('Weka mawasiliano sahihi')));
+                              ThemeConstants.showWarningSnackBar(ctx, 'Weka mawasiliano sahihi');
                               return;
                             }
                             await _apiService.sendPaymentReceipt(
@@ -1234,14 +1197,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                               contactInfo: contact,
                             );
                             if (ctx.mounted) Navigator.pop(ctx);
-                            messenger.showSnackBar(const SnackBar(
-                                content: Text('Risiti imetumwa kikamilifu')));
+                            ThemeConstants.showSuccessSnackBar(context, 'Risiti imetumwa kikamilifu');
                           } on ApiException catch (e) {
-                            messenger.showSnackBar(
-                                SnackBar(content: Text('Hitilafu: ${e.message}')));
+                            ThemeConstants.showErrorSnackBar(ctx, 'Hitilafu: ${e.message}');
                           } on Exception catch (e) {
-                            messenger.showSnackBar(
-                                SnackBar(content: Text('Hitilafu: $e')));
+                            ThemeConstants.showErrorSnackBar(ctx, 'Hitilafu: $e');
                           }
                         },
                         child: const Text('Tuma'),
@@ -1255,13 +1215,9 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
         },
       );
     } on ApiException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Imeshindikana kuandaa risiti: ${e.message}')),
-      );
+      ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuandaa risiti: ${e.message}');
     } on Exception catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Hitilafu: $e')),
-      );
+      ThemeConstants.showErrorSnackBar(context, 'Hitilafu: $e');
     }
   }
 
@@ -1329,13 +1285,9 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
               TextButton(
                 onPressed: () async {
                   final double? amt = double.tryParse(amountCtrl.text);
-                  final ScaffoldMessengerState messenger =
-                      ScaffoldMessenger.of(context);
                   final NavigatorState nav = Navigator.of(context);
                   if (amt == null || amt <= 0) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Weka kiasi sahihi')),
-                    );
+                    ThemeConstants.showWarningSnackBar(context, 'Weka kiasi sahihi');
                     return;
                   }
                   try {
@@ -1354,20 +1306,11 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                     });
                     _filterPayments();
                     nav.pop();
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Taarifa za malipo zimehifadhiwa'),
-                        backgroundColor: ThemeConstants.successGreen,
-                      ),
-                    );
+                    ThemeConstants.showSuccessSnackBar(context, 'Taarifa za malipo zimehifadhiwa');
                   } on ApiException catch (e) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Imeshindikana kuhariri: ${e.message}')),
-                    );
+                    ThemeConstants.showErrorSnackBar(context, 'Imeshindikana kuhariri: ${e.message}');
                   } on Exception catch (e) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Hitilafu: $e')),
-                    );
+                    ThemeConstants.showErrorSnackBar(context, 'Hitilafu: $e');
                   }
                 },
                 child: const Text("Hifadhi"),

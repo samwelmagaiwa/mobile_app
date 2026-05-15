@@ -294,6 +294,15 @@ class ThemeConstants {
     );
   }
 
+  static void showInfoSnackBar(BuildContext context, String message) {
+    _showTopSnackBar(
+      context,
+      message,
+      backgroundColor: Colors.blue[600],
+      icon: Icons.info_outline,
+    );
+  }
+
   // Responsive helper methods
   /// Get responsive glass card decoration with MediaQuery-based sizing
   static BoxDecoration responsiveGlassCardDecoration(BuildContext context) {

@@ -16,10 +16,19 @@ class UpdatePropertyRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'property_type' => ['sometimes', Rule::in([
-                'apartment', 'rental_compound', 'standalone_house', 
-                'hostel', 'commercial_building', 'mixed_use', 'office_space', 'shop_units'
-            ])],
+            'property_type' => [
+                'sometimes',
+                Rule::in([
+                    'apartment',
+                    'rental_compound',
+                    'standalone_house',
+                    'hostel',
+                    'commercial_building',
+                    'mixed_use',
+                    'office_space',
+                    'shop_units'
+                ])
+            ],
             'region' => ['sometimes', 'string', 'max:100'],
             'district' => ['sometimes', 'string', 'max:100'],
             'ward' => ['nullable', 'string', 'max:100'],
@@ -37,7 +46,7 @@ class UpdatePropertyRequest extends FormRequest
             'utility_billing_enabled' => ['sometimes', 'boolean'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'cover_image' => ['nullable', 'url'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5000'],
         ];
     }
 }

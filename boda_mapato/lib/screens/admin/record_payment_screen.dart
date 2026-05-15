@@ -270,27 +270,13 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
   void _showErrorSnackBar(final String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      ThemeConstants.showErrorSnackBar(context, message);
     }
   }
 
   void _showSuccessSnackBar(final String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: successGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      ThemeConstants.showSuccessSnackBar(context, message);
     }
   }
 

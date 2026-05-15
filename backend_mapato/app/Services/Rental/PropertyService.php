@@ -27,18 +27,18 @@ class PropertyService
     public function getAll(array $filters, int $perPage = 15)
     {
         $ownerId = $this->getOwnerId();
-        
+
         $query = Property::with(['blocks', 'houses', 'caretaker'])
             ->where('owner_id', $ownerId);
 
         // Search filter
         if (!empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('region', 'like', "%{$search}%")
-                  ->orWhere('district', 'like', "%{$search}%");
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhere('region', 'like', "%{$search}%")
+                    ->orWhere('district', 'like', "%{$search}%");
             });
         }
 
@@ -75,7 +75,13 @@ class PropertyService
      */
     public function create(array $data): Property
     {
-        return DB::transaction(function() use ($data) {
+        return DB::transaction(function () use ($data) {
+            // Handle cover image
+            if (isset($data['cover_image']) && $data['cover_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $path = $data['cover_image']->store('properties', 'public');
+                $data['cover_image'] = $path;
+            }
+
             $property = Property::create(array_merge($data, [
                 'owner_id' => $this->getOwnerId(),
                 'status' => $data['status'] ?? 'active',
@@ -95,6 +101,16 @@ class PropertyService
     public function update(string $id, array $data): Property
     {
         $property = $this->getById($id);
+
+        // Handle cover image update
+        if (isset($data['cover_image']) && $data['cover_image'] instanceof \Illuminate\Http\UploadedFile) {
+            // Delete old image if exists
+            if ($property->cover_image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($property->cover_image);
+            }
+            $path = $data['cover_image']->store('properties', 'public');
+            $data['cover_image'] = $path;
+        }
 
         $property->update($data);
 
@@ -129,16 +145,16 @@ class PropertyService
     public function getStatistics(): array
     {
         $properties = Property::where('owner_id', $this->getOwnerId())->get();
-        
+
         $totalProperties = $properties->count();
         $totalUnits = $properties->sum('total_units');
-        
-        $occupiedUnits = House::whereHas('property', function($query) {
+
+        $occupiedUnits = House::whereHas('property', function ($query) {
             $query->where('owner_id', $this->getOwnerId());
         })->where('status', 'occupied')->count();
 
         $vacantUnits = $totalUnits - $occupiedUnits;
-        
+
         $activeProperties = $properties->where('status', 'active')->count();
         $maintenanceProperties = $properties->where('status', 'under_maintenance')->count();
 

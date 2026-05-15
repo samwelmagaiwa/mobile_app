@@ -24,7 +24,7 @@ class RentalService
         return DB::transaction(function () use ($data) {
             // 1. Create User account if not exists
             $user = User::where('email', $data['email'])->orWhere('phone_number', $data['phone_number'])->first();
-            
+
             if (!$user) {
                 $user = User::create([
                     'name' => $data['name'],
@@ -32,6 +32,7 @@ class RentalService
                     'phone_number' => $data['phone_number'],
                     'password' => bcrypt($data['password'] ?? 'tenant123'),
                     'role' => 'tenant',
+                    'service_type' => 'rental',
                     'is_active' => true,
                 ]);
             }
@@ -91,12 +92,13 @@ class RentalService
     public function generateBillForAgreement(RentalAgreement $agreement, Carbon $date)
     {
         $monthYear = $date->format('m-Y');
-        
+
         // Avoid duplicate bills for same period
         $existing = RentBill::where('agreement_id', $agreement->id)
-                            ->where('month_year', $monthYear)
-                            ->first();
-        if ($existing) return $existing;
+            ->where('month_year', $monthYear)
+            ->first();
+        if ($existing)
+            return $existing;
 
         return RentBill::create([
             'agreement_id' => $agreement->id,
@@ -116,6 +118,11 @@ class RentalService
         return DB::transaction(function () use ($data) {
             $bill = RentBill::findOrFail($data['bill_id']);
             $amountPaid = $data['amount_paid'];
+
+            // Validate: prevent overpayment
+            if ($amountPaid > $bill->balance) {
+                throw new \Exception('Cannot pay more than the balance. Maximum allowed: ' . $bill->balance);
+            }
 
             // 1. Create Payment record
             $payment = RentalPayment::create([
@@ -163,9 +170,9 @@ class RentalService
     public function generateReceipt(RentalPayment $payment)
     {
         $payment->load('bill.agreement.house.property', 'tenant', 'collector');
-        
+
         $receiptNumber = 'RCP-' . strtoupper(Str::random(8));
-        
+
         $details = [
             'receipt_number' => $receiptNumber,
             'date' => $payment->payment_date->format('Y-m-d'),
@@ -197,7 +204,8 @@ class RentalService
 
         foreach ($agreements as $agreement) {
             $bill = $this->generateBillForAgreement($agreement, $date);
-            if ($bill->wasRecentlyCreated) $count++;
+            if ($bill->wasRecentlyCreated)
+                $count++;
         }
 
         return $count;
@@ -209,14 +217,14 @@ class RentalService
     public function processOverdueBills()
     {
         $bills = RentBill::where('status', '!=', 'paid')
-                        ->where('status', '!=', 'overdue')
-                        ->where('due_date', '<', now())
-                        ->with('agreement.tenant', 'agreement.house')
-                        ->get();
-        
+            ->where('status', '!=', 'overdue')
+            ->where('due_date', '<', now())
+            ->with('agreement.tenant', 'agreement.house')
+            ->get();
+
         foreach ($bills as $bill) {
             $bill->update(['status' => 'overdue']);
-            
+
             // Trigger SMS notification
             \App\Services\SmsService::sendOverdueAlert(
                 $bill->agreement->tenant->phone_number,

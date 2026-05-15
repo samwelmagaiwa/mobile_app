@@ -29,21 +29,21 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final content = LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 16.h),
+                SizedBox(height: 20.h),
                 _buildWelcomeSection(context),
                 SizedBox(height: 24.h),
                 _buildStatsGrid(context, constraints),
-                SizedBox(height: 24.h),
+                SizedBox(height: 30.h),
                 _buildQuickActions(context),
-                SizedBox(height: 24.h),
+                SizedBox(height: 30.h),
                 _buildRecentProperties(context),
-                SizedBox(height: 100.h), // Bottom padding
+                SizedBox(height: 120.h), // Bottom padding
               ],
             ),
           ),
@@ -105,7 +105,6 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final properties = rentalProvider.properties;
     final totalProperties = properties.length;
 
-    // Calculate total arrears and occupancy
     double totalArrears = 0;
     int totalHouses = 0;
     int occupiedHouses = 0;
@@ -123,47 +122,61 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
 
     final loc = LocalizationService.instance;
     final isTablet = constraints.maxWidth >= 600;
+    final user = context.watch<AuthProvider>().user;
+    final bool canViewProperties = user?.hasPermission('manage_properties_rental') ?? false;
+    final bool canViewArrears = user?.hasPermission('manage_debts_transport') ?? false;
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: isTablet ? 4 : 2,
-      mainAxisSpacing: 16.w,
-      crossAxisSpacing: 16.w,
-      childAspectRatio: isTablet ? 1.5 : 1.3,
+      mainAxisSpacing: 12.w,
+      crossAxisSpacing: 12.w,
+      childAspectRatio: isTablet ? 1.5 : 1.45,
       children: [
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, "/rental/properties"),
-          child: _buildStatCard(
-            context,
-            loc.translate("properties"),
-            totalProperties.toString(),
-            Icons.business,
-            ThemeConstants.footerBarColor,
+        if (canViewProperties)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, "/rental/properties"),
+            child: _buildStatCard(
+              context,
+              loc.translate("properties"),
+              totalProperties.toString(),
+              Icons.business_outlined,
+              ThemeConstants.footerBarColor,
+            ),
           ),
-        ),
-        _buildStatCard(
-          context,
-          loc.translate("houses"),
-          totalHouses.toString(),
-          Icons.home,
-          ThemeConstants.successGreen,
-        ),
-        _buildStatCard(
-          context,
-          loc.translate("occupancy"),
-          "${totalHouses > 0 ? ((occupiedHouses / totalHouses) * 100).toStringAsFixed(0) : 0}%",
-          Icons.people,
-          ThemeConstants.primaryOrange,
-        ),
-        _buildStatCard(
-          context,
-          loc.translate("arrears"),
-          "Tsh ${totalArrears.toStringAsFixed(0)}",
-          Icons.money_off,
-          ThemeConstants.errorRed,
-        ),
+        if (canViewProperties)
+          _buildStatCard(
+            context,
+            loc.translate("houses"),
+            totalHouses.toString(),
+            Icons.home_outlined,
+            ThemeConstants.successGreen,
+          ),
+        if (canViewProperties)
+          _buildStatCard(
+            context,
+            loc.translate("occupancy"),
+            "${totalHouses > 0 ? ((occupiedHouses / totalHouses) * 100).toStringAsFixed(0) : 0}%",
+            Icons.people_outline,
+            ThemeConstants.primaryOrange,
+          ),
+        if (canViewArrears)
+          _buildStatCard(
+            context,
+            loc.translate("arrears"),
+            "Tsh ${_formatArrears(totalArrears)}",
+            Icons.money_off_csred_outlined,
+            ThemeConstants.errorRed,
+          ),
       ],
     );
+  }
+
+  String _formatArrears(double value) {
+    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
+    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
+    return value.toStringAsFixed(0);
   }
 
   Widget _buildStatCard(BuildContext context, String title, String value,
@@ -173,7 +186,14 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 24.w),
+          Container(
+            padding: EdgeInsets.all(8.r),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20.sp),
+          ),
           SizedBox(height: 8.h),
           Text(
             value,
@@ -181,13 +201,16 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
               color: Colors.white,
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
           ),
+          SizedBox(height: 2.h),
           Text(
             title,
             style: TextStyle(
               color: Colors.white70,
               fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -197,6 +220,13 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
 
   Widget _buildQuickActions(BuildContext context) {
     final loc = LocalizationService.instance;
+    final user = context.watch<AuthProvider>().user;
+    final bool canAddProperty = user?.hasPermission('manage_properties_rental') ?? false;
+    final bool canViewBills = user?.hasPermission('manage_billing_rental') ?? false;
+    final bool canOnboardTenant = user?.hasPermission('onboard_tenants_rental') ?? false;
+
+    if (!canAddProperty && !canViewBills && !canOnboardTenant) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -207,35 +237,38 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(
-              child: _buildActionButton(
-                context,
-                loc.translate("add_property"),
-                Icons.add_business,
-                () => Navigator.pushNamed(context, "/rental/add-property"),
+            if (canAddProperty)
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  loc.translate("add_property"),
+                  Icons.add_business,
+                  () => Navigator.pushNamed(context, "/rental/add-property"),
+                ),
               ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: _buildActionButton(
-                context,
-                loc.translate("view_bills"),
-                Icons.receipt_long,
-                () => Navigator.pushNamed(context, "/rental/billing"),
+            if (canAddProperty && canViewBills) SizedBox(width: 12.w),
+            if (canViewBills)
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  loc.translate("view_bills"),
+                  Icons.receipt_long,
+                  () => Navigator.pushNamed(context, "/rental/billing"),
+                ),
               ),
-            ),
           ],
         ),
-        SizedBox(height: 12.h),
-        SizedBox(
-          width: double.infinity,
-          child: _buildActionButton(
-            context,
-            loc.translate("onboard_tenant"),
-            Icons.person_add,
-            () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
+        if (canOnboardTenant) SizedBox(height: 12.h),
+        if (canOnboardTenant)
+          SizedBox(
+            width: double.infinity,
+            child: _buildActionButton(
+              context,
+              loc.translate("onboard_tenant"),
+              Icons.person_add,
+              () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -247,15 +280,22 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Icon(icon, color: ThemeConstants.primaryOrange, size: 28.w),
-          SizedBox(height: 8.h),
+          Container(
+            padding: EdgeInsets.all(12.r),
+            decoration: BoxDecoration(
+              color: ThemeConstants.primaryOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Icon(icon, color: ThemeConstants.primaryOrange, size: 24.sp),
+          ),
+          SizedBox(height: 10.h),
           Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,
               fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -310,20 +350,18 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                     Navigator.pushNamed(
                       context,
                       "/rental/property-details",
-                      arguments: {'id': prop['id'].toString()},
+                      arguments: prop['id'].toString(), // Simplified arguments consistency
                     );
                   },
                   child: Row(
                     children: [
                       Container(
-                        width: 50.w,
-                        height: 50.w,
+                        padding: EdgeInsets.all(12.r),
                         decoration: BoxDecoration(
-                          color: ThemeConstants.footerBarColor.withOpacity(0.2),
+                          color: ThemeConstants.primaryOrange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12.r),
                         ),
-                        child: Icon(Icons.location_city,
-                            color: ThemeConstants.footerBarColor),
+                        child: Icon(Icons.business_outlined, color: ThemeConstants.primaryOrange, size: 24.sp),
                       ),
                       SizedBox(width: 16.w),
                       Expanded(
@@ -332,18 +370,22 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                           children: [
                             Text(
                               prop['name'] ?? 'Unnamed Property',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.bold, fontSize: 15.sp),
                             ),
-                            Text(
-                              prop['location'] ?? 'No location',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12.sp,
-                              ),
+                            SizedBox(height: 2.h),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_outlined, size: 12.sp, color: Colors.white54),
+                                SizedBox(width: 4.w),
+                                Expanded(
+                                  child: Text(
+                                    prop['full_address'] ?? prop['location'] ?? 'No location',
+                                    style: ThemeConstants.captionStyle.copyWith(fontSize: 11.sp),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -359,8 +401,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Icon(Icons.chevron_right,
-                              color: Colors.white54, size: 20.w),
+                          SizedBox(height: 4.h),
+                          Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 12.sp),
                         ],
                       ),
                     ],

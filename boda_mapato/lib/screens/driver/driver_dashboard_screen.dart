@@ -148,12 +148,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       });
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
       }
     } finally {
       if (mounted) {
@@ -706,22 +701,11 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text("Ombi la malipo limetumwa. Inasubiri idhini ya admin."),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ThemeConstants.showSuccessSnackBar(context, "Ombi la malipo limetumwa. Inasubiri idhini ya admin.");
       }
     } on Exception catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Hitilafu: $e"),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, "Hitilafu: $e");
       }
     } finally {
       if (mounted) {

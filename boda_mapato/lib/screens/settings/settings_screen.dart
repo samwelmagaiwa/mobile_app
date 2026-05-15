@@ -14,6 +14,7 @@ import "security_screen.dart";
 import "backup_screen.dart";
 import "help_screen.dart";
 import "user_management_screen.dart";
+import "permissions_management_screen.dart";
 
 // ignore_for_file: directives_ordering
 class SettingsScreen extends StatefulWidget {
@@ -157,6 +158,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _localizationService.translate('users_subtitle'),
                         () => _navigateToScreen(const UserManagementScreen()),
                       ),
+                      if (authProvider.user?.isSuperAdmin ?? false) ...[
+                        const Divider(color: Colors.white24, height: 1),
+                        _buildSettingsTile(
+                          Icons.admin_panel_settings,
+                          'Permissions',
+                          'Manage service module permissions',
+                          () => _navigateToScreen(const PermissionsScreen()),
+                        ),
+                      ],
                     ],
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
@@ -401,29 +411,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (file.bytes == null) return;
       if (!context.mounted) return;
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uploading image...')),
-      );
+      ThemeConstants.showInfoSnackBar(context, 'Uploading image...');
       final ok = await authProvider.uploadProfileImage(
         bytes: file.bytes!,
         filename: file.name,
       );
       if (!context.mounted) return;
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                ok ? 'Image uploaded successfully' : 'Failed to upload image')),
-      );
+      if (ok) {
+        ThemeConstants.showSuccessSnackBar(context, 'Image uploaded successfully');
+      } else {
+        ThemeConstants.showErrorSnackBar(context, 'Failed to upload image');
+      }
       if (ok && mounted) setState(() {});
     } on Exception catch (e) {
       if (!context.mounted) return;
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
+      ThemeConstants.showErrorSnackBar(context, 'Upload failed: $e');
     }
   }
 }
