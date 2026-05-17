@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/providers/auth_provider.dart';
-import 'package:boda_mapato/services/api_service.dart';
-import 'package:boda_mapato/services/localization_service.dart';
-import 'package:boda_mapato/screens/settings/user_permissions_management_screen.dart';
+import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
+import '../../services/localization_service.dart';
+import 'user_permissions_management_screen.dart';
 
 // ignore_for_file: use_string_buffers, use_if_null_to_convert_nulls_to_bools, avoid_catches_without_on_clauses, control_flow_in_finally
 class UserManagementScreen extends StatefulWidget {
@@ -218,7 +218,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
-                              value: role,
+                              initialValue: role,
                               dropdownColor: ThemeConstants.primaryBlue,
                               style: const TextStyle(color: ThemeConstants.textPrimary),
                               decoration: InputDecoration(
@@ -473,7 +473,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Future<void> _changeUserRole(Map<String, dynamic> user) async {
     String role = (user['role'] ?? _defaultRole).toString();
-    bool fullAccess = (user['full_access'] == true || user['full_access'] == 1);
+    bool fullAccess = user['full_access'] == true || user['full_access'] == 1;
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -487,7 +487,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _roleDropdownItems.any((e) => e.value == role) ? role : _defaultRole,
+                    initialValue: _roleDropdownItems.any((e) => e.value == role) ? role : _defaultRole,
                     dropdownColor: ThemeConstants.primaryBlue,
                     style: const TextStyle(color: ThemeConstants.textPrimary),
                     decoration: InputDecoration(

@@ -35,7 +35,7 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.receipt_long, size: 64, color: Colors.white38),
+                      const Icon(Icons.receipt_long, size: 64, color: Colors.white38),
                       SizedBox(height: 16.h),
                       Text("Hakuna risiti",
                           style: TextStyle(
@@ -159,7 +159,7 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
             _buildDetailRow("Nyumba", details['house_number'] ?? '-'),
             _buildDetailRow("Mali", details['property_name'] ?? '-'),
             _buildDetailRow("Muda", details['period'] ?? '-'),
-            Divider(color: Colors.white12),
+            const Divider(color: Colors.white12),
             _buildDetailRow("Kiasi Alicholipa",
                 "TSh ${_formatCurrency((details['amount_paid'] ?? 0).toDouble())}"),
             _buildDetailRow("Baki",

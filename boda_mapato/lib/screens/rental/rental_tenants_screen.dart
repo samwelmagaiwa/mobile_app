@@ -93,14 +93,14 @@ class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
           TextField(
             controller: _searchController,
             onChanged: _onSearchChanged,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: "Tafuta mwenyeji...",
-              hintStyle: TextStyle(color: Colors.white38),
-              prefixIcon: Icon(Icons.search, color: Colors.white38),
+              hintStyle: const TextStyle(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search, color: Colors.white38),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.white38),
+                      icon: const Icon(Icons.clear, color: Colors.white38),
                       onPressed: () {
                         setState(() {
                           _searchQuery = '';

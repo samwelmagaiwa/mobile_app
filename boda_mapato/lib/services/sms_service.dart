@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 
 class SmsService {
-  static final SmsService instance = SmsService._internal();
   SmsService._internal();
+  static final SmsService instance = SmsService._internal();
 
   final ApiService _api = ApiService();
 

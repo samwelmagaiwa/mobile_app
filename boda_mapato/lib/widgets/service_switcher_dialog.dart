@@ -22,13 +22,10 @@ class ServiceSwitcherDialog extends StatelessWidget {
     switch (service) {
       case 'inventory':
         Navigator.pushReplacementNamed(context, '/inventory');
-        break;
       case 'rental':
         Navigator.pushReplacementNamed(context, '/rental/dashboard');
-        break;
       case 'transport':
         Navigator.pushReplacementNamed(context, '/modern-dashboard');
-        break;
       default:
         break;
     }
@@ -93,15 +90,15 @@ class ServiceSwitcherDialog extends StatelessWidget {
 }
 
 class _ServiceOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
 
   const _ServiceOption({
     required this.icon,
     required this.label,
     required this.onTap,
   });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {

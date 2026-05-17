@@ -86,14 +86,14 @@ class RentalProvider extends ChangeNotifier {
       List<dynamic> items = [];
       
       // Greedy extraction: Collect ALL lists that look like they contain property-like objects
-      void collectLists(dynamic obj) {
+      void collectLists(obj) {
         if (obj is List) {
           if (obj.isNotEmpty && obj.first is Map && 
               (obj.first.containsKey('name') || obj.first.containsKey('house_number'))) {
             items.addAll(obj);
           }
         } else if (obj is Map) {
-          for (var v in obj.values) {
+          for (final v in obj.values) {
             collectLists(v);
           }
         }
@@ -103,7 +103,7 @@ class RentalProvider extends ChangeNotifier {
       
       // If nothing found via greedy collection, fallback to standard locations
       if (items.isEmpty) {
-        dynamic data = response['data'] ?? response['properties'] ?? response['result'];
+        final dynamic data = response['data'] ?? response['properties'] ?? response['result'];
         if (data is List) {
           items = data;
         } else if (data is Map && data.containsKey('data') && data['data'] is List) {
@@ -281,7 +281,7 @@ class RentalProvider extends ChangeNotifier {
   }
 
   Future<bool> sendSmsReminder(String billId) async {
-    return await SmsService.instance.sendBillReminder(billId);
+    return SmsService.instance.sendBillReminder(billId);
   }
 
   Future<bool> recordPayment(Map<String, dynamic> data) async {
@@ -363,7 +363,7 @@ class RentalProvider extends ChangeNotifier {
       Map<String, dynamic>? paginationMap;
 
       // 1. Deeply look for pagination metadata with verification
-      void findPagination(dynamic obj) {
+      void findPagination(obj) {
         if (obj is Map) {
           if (obj.containsKey('data') && obj['data'] is List && obj.containsKey('current_page')) {
             // Verify this list contains property-like objects
@@ -374,12 +374,12 @@ class RentalProvider extends ChangeNotifier {
               return;
             }
           }
-          for (var v in obj.values) {
+          for (final v in obj.values) {
             if (v is Map || v is List) findPagination(v);
             if (paginationMap != null) return;
           }
         } else if (obj is List) {
-          for (var v in obj) {
+          for (final v in obj) {
             findPagination(v);
             if (paginationMap != null) return;
           }
@@ -398,14 +398,14 @@ class RentalProvider extends ChangeNotifier {
       }
 
       // 2. Deeply look for ANY other lists and merge them (Greedy Collection)
-      void collectMoreItems(dynamic obj) {
+      void collectMoreItems(obj) {
         if (obj is List) {
           if (obj.isNotEmpty && obj.first is Map && 
               (obj.first.containsKey('name') || obj.first.containsKey('house_number'))) {
             items.addAll(obj);
           }
         } else if (obj is Map && obj != paginationMap) {
-          for (var v in obj.values) {
+          for (final v in obj.values) {
             collectMoreItems(v);
           }
         }
@@ -435,7 +435,7 @@ class RentalProvider extends ChangeNotifier {
       } else {
         final existingIds = _properties.map((p) => (p is Map) ? (p['id']?.toString() ?? p['name']?.toString() ?? '') : '').toSet();
         int addedCount = 0;
-        for (var item in uniqueItems) {
+        for (final item in uniqueItems) {
           final id = (item is Map) ? (item['id']?.toString() ?? item['name']?.toString() ?? '') : '';
           if (!existingIds.contains(id)) {
             _properties.add(item);

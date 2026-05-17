@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../models/login_response.dart";
-import "../../models/user_permissions.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
 import "../../services/app_events.dart";

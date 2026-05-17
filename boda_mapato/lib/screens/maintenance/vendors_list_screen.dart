@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/providers/maintenance_provider.dart';
+import '../../constants/theme_constants.dart';
+import '../../providers/maintenance_provider.dart';
 
 class VendorsListScreen extends StatefulWidget {
   const VendorsListScreen({super.key});
@@ -235,7 +235,7 @@ class _VendorsListScreenState extends State<VendorsListScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14.r),
-          borderSide: BorderSide(color: ThemeConstants.footerBarColor, width: 1.2),
+          borderSide: const BorderSide(color: ThemeConstants.footerBarColor, width: 1.2),
         ),
       ),
     );

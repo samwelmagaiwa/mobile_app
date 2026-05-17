@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'constants/colors.dart';
 import 'constants/styles.dart';
 import 'constants/theme_constants.dart';
@@ -15,6 +16,8 @@ import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/debts_provider.dart';
 import 'providers/device_provider.dart';
+import 'providers/maintenance_provider.dart';
+import 'providers/rental_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/communications_screen.dart';
@@ -30,39 +33,36 @@ import 'screens/driver/driver_dashboard_screen.dart';
 import 'screens/driver/driver_payment_history_screen.dart';
 import 'screens/driver/driver_receipts_screen.dart';
 import 'screens/driver/driver_reminders_screen.dart';
+import 'screens/maintenance/maintenance_details_screen.dart';
+import 'screens/maintenance/maintenance_list_screen.dart';
+import 'screens/maintenance/request_maintenance_screen.dart';
+import 'screens/maintenance/vendors_list_screen.dart';
 import 'screens/payments/payments_screen.dart';
 import 'screens/receipts/receipts_screen.dart';
 import 'screens/reminders/reminders_screen.dart';
+import 'screens/rental/billing_list_screen.dart';
+import 'screens/rental/blocks_management_screen.dart';
+import 'screens/rental/create_agreement_screen.dart';
+import 'screens/rental/create_property_screen.dart';
+import 'screens/rental/edit_property_screen.dart';
+import 'screens/rental/house_details_screen.dart';
+import 'screens/rental/house_management_screen.dart';
+import 'screens/rental/lease_agreements_screen.dart';
+import 'screens/rental/lease_details_screen.dart';
+import 'screens/rental/onboard_tenant_screen.dart';
+import 'screens/rental/properties_list_screen.dart';
+import 'screens/rental/property_details_screen.dart';
+import 'screens/rental/record_payment_screen.dart';
+import 'screens/rental/rental_arrears_screen.dart';
+import 'screens/rental/rental_main_screen.dart';
+import 'screens/rental/rental_payments_screen.dart';
+import 'screens/rental/rental_receipts_screen.dart';
+import 'screens/rental/rental_tenants_screen.dart';
+import 'screens/rental/tenant_details_screen.dart';
+import 'screens/rental/tenant_self_service_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'screens/settings/settings_screen.dart';
-import 'screens/rental/rental_dashboard_screen.dart';
-import 'screens/rental/properties_list_screen.dart';
-import 'screens/rental/rental_tenants_screen.dart';
-import 'screens/rental/rental_payments_screen.dart';
-import 'screens/rental/rental_receipts_screen.dart';
-import 'screens/rental/rental_arrears_screen.dart';
-import 'screens/rental/rental_main_screen.dart';
-import 'screens/rental/onboard_tenant_screen.dart';
-import 'screens/rental/billing_list_screen.dart';
-import 'screens/rental/property_details_screen.dart';
-import 'screens/rental/create_property_screen.dart';
-import 'screens/rental/edit_property_screen.dart';
-import 'screens/rental/record_payment_screen.dart';
-import 'screens/rental/tenant_details_screen.dart';
-import 'screens/rental/house_details_screen.dart';
-import 'screens/rental/tenant_self_service_screen.dart';
-import 'screens/rental/blocks_management_screen.dart';
-import 'screens/rental/house_management_screen.dart';
-import 'screens/rental/lease_agreements_screen.dart';
-import 'screens/rental/create_agreement_screen.dart';
-import 'screens/rental/lease_details_screen.dart';
-import 'package:boda_mapato/screens/maintenance/maintenance_list_screen.dart';
-import 'package:boda_mapato/screens/maintenance/maintenance_details_screen.dart';
-import 'package:boda_mapato/screens/maintenance/request_maintenance_screen.dart';
-import 'package:boda_mapato/screens/maintenance/vendors_list_screen.dart';
-import 'package:boda_mapato/providers/rental_provider.dart';
-import 'package:boda_mapato/providers/maintenance_provider.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
 import 'utils/web_keyboard_fix_stub.dart'
@@ -260,14 +260,14 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/tenants": (final BuildContext context) =>
                     const RentalTenantsScreen(),
                 "/rental/tenant-details": (final BuildContext context) {
-                  final tenant = ModalRoute.of(context)?.settings.arguments
+                  final tenant = ModalRoute.of(context)!.settings.arguments!
                       as Map<String, dynamic>;
                   return TenantDetailsScreen(tenant: tenant);
                 },
                 "/rental/onboard-tenant": (final BuildContext context) =>
                     const OnboardTenantScreen(),
                 "/rental/house-details": (final BuildContext context) {
-                  final house = ModalRoute.of(context)?.settings.arguments
+                  final house = ModalRoute.of(context)!.settings.arguments!
                       as Map<String, dynamic>;
                   return HouseDetailsScreen(house: house);
                 },
@@ -276,7 +276,7 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/maintenance": (final BuildContext context) =>
                     const MaintenanceListScreen(),
                 "/rental/maintenance-details": (final BuildContext context) {
-                  final request = ModalRoute.of(context)?.settings.arguments
+                  final request = ModalRoute.of(context)!.settings.arguments!
                       as Map<String, dynamic>;
                   return MaintenanceDetailsScreen(request: request);
                 },

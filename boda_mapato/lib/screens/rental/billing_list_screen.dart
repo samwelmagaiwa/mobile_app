@@ -7,8 +7,8 @@ import '../../services/localization_service.dart';
 import 'receipt_view_screen.dart';
 
 class BillingListScreen extends StatefulWidget {
-  final bool isSubView;
   const BillingListScreen({super.key, this.isSubView = false});
+  final bool isSubView;
 
   @override
   State<BillingListScreen> createState() => _BillingListScreenState();
@@ -30,7 +30,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
     final rentalProvider = context.watch<RentalProvider>();
     final bills = rentalProvider.bills.where((b) {
       if (_filter == 'all') return true;
-      if (_filter == 'unpaid') return (b['status'] == 'unpaid' || b['status'] == 'partial');
+      if (_filter == 'unpaid') return b['status'] == 'unpaid' || b['status'] == 'partial';
       if (_filter == 'paid') return b['status'] == 'paid';
       if (_filter == 'overdue') return b['is_overdue'] == 1 || b['is_overdue'] == true;
       return true;
@@ -57,7 +57,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                       ),
                     )
                   : RefreshIndicator(
-                      onRefresh: () => rentalProvider.fetchBills(),
+                      onRefresh: rentalProvider.fetchBills,
                       color: ThemeConstants.primaryOrange,
                       child: ListView.builder(
                         padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 100.h),
@@ -129,7 +129,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
     );
   }
 
-  Widget _buildBillCard(BuildContext context, dynamic bill) {
+  Widget _buildBillCard(BuildContext context, bill) {
     final status = bill['status'] as String;
     final isOverdue = bill['is_overdue'] == 1 || bill['is_overdue'] == true;
     
@@ -216,13 +216,13 @@ class _BillingListScreenState extends State<BillingListScreen> {
     );
   }
 
-  Widget _buildAmountItem(String label, dynamic value, {bool isBold = false}) {
+  Widget _buildAmountItem(String label, value, {bool isBold = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(color: Colors.white54, fontSize: 10.sp)),
         Text(
-          "Tsh ${value.toString()}",
+          "Tsh $value",
           style: TextStyle(
             color: isBold ? Colors.white : Colors.white70,
             fontSize: 12.sp,
@@ -233,7 +233,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
     );
   }
 
-  void _showPaymentModal(BuildContext context, dynamic bill) {
+  void _showPaymentModal(BuildContext context, bill) {
     final amountController = TextEditingController(text: bill['balance'].toString());
     bool isSaving = false;
 

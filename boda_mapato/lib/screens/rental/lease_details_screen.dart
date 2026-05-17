@@ -4,8 +4,8 @@ import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
 
 class LeaseDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic>? agreement;
   const LeaseDetailsScreen({super.key, this.agreement});
+  final Map<String, dynamic>? agreement;
 
   @override
   State<LeaseDetailsScreen> createState() => _LeaseDetailsScreenState();
@@ -74,15 +74,12 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
       case 'active':
         c = ThemeConstants.successGreen;
         l = 'Active';
-        break;
       case 'expiring_soon':
         c = ThemeConstants.warningAmber;
         l = 'Expiring';
-        break;
       case 'expired':
         c = ThemeConstants.errorRed;
         l = 'Expired';
-        break;
       default:
         c = Colors.white54;
         l = status;
@@ -181,11 +178,11 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {},
-              icon: Icon(Icons.warning, color: ThemeConstants.warningAmber),
-              label: Text("Terminate Early",
+              icon: const Icon(Icons.warning, color: ThemeConstants.warningAmber),
+              label: const Text("Terminate Early",
                   style: TextStyle(color: ThemeConstants.warningAmber)),
               style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: ThemeConstants.warningAmber),
+                  side: const BorderSide(color: ThemeConstants.warningAmber),
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r))),
@@ -211,7 +208,7 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
             icon: const Icon(Icons.upload_file, color: Colors.white70),
             label: const Text("Upload Document"),
             style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.white24),
+                side: const BorderSide(color: Colors.white24),
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r))),
@@ -250,7 +247,7 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
               style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
         ])),
         IconButton(
-            icon: Icon(Icons.download, color: Colors.white54),
+            icon: const Icon(Icons.download, color: Colors.white54),
             onPressed: () {}),
       ]),
     );

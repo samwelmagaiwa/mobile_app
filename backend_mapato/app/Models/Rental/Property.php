@@ -25,6 +25,7 @@ class Property extends Model
         'district',
         'ward',
         'street',
+        'place',
         'city',
         'description',
         'ownership_notes',
@@ -119,6 +120,7 @@ class Property extends Model
     public function getFullAddressAttribute(): string
     {
         $parts = array_filter([
+            $this->place,
             $this->street,
             $this->ward,
             $this->district,

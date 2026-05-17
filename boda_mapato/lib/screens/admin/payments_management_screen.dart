@@ -368,7 +368,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: channel,
+                      initialValue: channel,
                       decoration: _input('Njia ya Malipo'),
                       dropdownColor: ThemeConstants.primaryBlue,
                       style: const TextStyle(color: Colors.white),

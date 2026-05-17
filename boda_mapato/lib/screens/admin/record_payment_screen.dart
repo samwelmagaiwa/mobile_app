@@ -384,7 +384,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             const Center(child: CircularProgressIndicator())
                           else
                             DropdownButtonFormField<String>(
-                              value: _selectedDriverId,
+                              initialValue: _selectedDriverId,
                               decoration: InputDecoration(
                                 labelText: "Dereva",
                                 border: OutlineInputBorder(
@@ -447,7 +447,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                             const Center(child: CircularProgressIndicator())
                           else
                             DropdownButtonFormField<String>(
-                              value: _selectedVehicleId,
+                              initialValue: _selectedVehicleId,
                               decoration: InputDecoration(
                                 labelText: "Gari",
                                 border: OutlineInputBorder(
@@ -532,7 +532,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
                           // Category
                           DropdownButtonFormField<String>(
-                            value: _selectedCategory,
+                            initialValue: _selectedCategory,
                             decoration: InputDecoration(
                               labelText: "Aina ya Malipo",
                               border: OutlineInputBorder(
@@ -565,7 +565,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
                           // Payment Method
                           DropdownButtonFormField<String>(
-                            value: _selectedPaymentMethod,
+                            initialValue: _selectedPaymentMethod,
                             decoration: InputDecoration(
                               labelText: "Njia ya Malipo",
                               border: OutlineInputBorder(

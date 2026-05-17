@@ -127,7 +127,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
     final provider = context.watch<RentalProvider>();
     tenants = provider.tenants;
     houses = provider.properties
-        .expand((p) => (p['houses'] as List? ?? []))
+        .expand((p) => p['houses'] as List? ?? [])
         .toList();
 
     return SingleChildScrollView(
@@ -149,7 +149,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
             dropdownColor: ThemeConstants.primaryBlue,
             underline: const SizedBox(),
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
-            hint: Text("Chagua mteja", style: TextStyle(color: Colors.white38)),
+            hint: const Text("Chagua mteja", style: TextStyle(color: Colors.white38)),
             items: tenants
                 .map<DropdownMenuItem<String>>((t) => DropdownMenuItem<String>(
                     value: t['id'].toString(), child: Text(t['name'] ?? '')))
@@ -179,7 +179,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
             underline: const SizedBox(),
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
             hint:
-                Text("Chagua nyumba", style: TextStyle(color: Colors.white38)),
+                const Text("Chagua nyumba", style: TextStyle(color: Colors.white38)),
             items: houses
                 .where((h) => h['status'] == 'vacant')
                 .map<DropdownMenuItem<String>>((h) => DropdownMenuItem<String>(
@@ -272,7 +272,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
           Switch(
             value: _autoRenew,
             onChanged: (v) => setState(() => _autoRenew = v),
-            activeColor: ThemeConstants.primaryOrange,
+            activeThumbColor: ThemeConstants.primaryOrange,
           ),
         ]),
         SizedBox(height: 16.h),
@@ -316,7 +316,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
                 "Nyumba ${houses.firstWhere((h) => h['id'] == _selectedHouse, orElse: () => {
                       'house_number': ''
                     })['house_number']}",
-                style: TextStyle(color: Colors.white54)),
+                style: const TextStyle(color: Colors.white54)),
             Divider(color: Colors.white12, height: 24.h),
             _rw(
                 "Mteja",
@@ -387,7 +387,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
                     ? SizedBox(
                         height: 20.w,
                         width: 20.w,
-                        child: CircularProgressIndicator(
+                        child: const CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : Text("Hifadhi Mkataba",
                         style: TextStyle(
@@ -531,7 +531,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
   Widget _buildBottomNav() {
     return Container(
       padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
           color: ThemeConstants.primaryBlue,
           border: Border(top: BorderSide(color: Colors.white12))),
       child: Row(children: [
@@ -540,9 +540,9 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
             child: OutlinedButton(
               onPressed: () => setState(() => _currentStep--),
               style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.white24),
+                  side: const BorderSide(color: Colors.white24),
                   padding: EdgeInsets.symmetric(vertical: 14.h)),
-              child: Text("Nyuma", style: TextStyle(color: Colors.white)),
+              child: const Text("Nyuma", style: TextStyle(color: Colors.white)),
             ),
           ),
         if (_currentStep > 0) SizedBox(width: 12.w),
@@ -576,7 +576,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
                   borderRadius: BorderRadius.circular(12.r)),
             ),
             child: Text(_currentStep == 2 ? "Maliza" : "Mbele",
-                style: TextStyle(
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ),
@@ -592,16 +592,18 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
       lastDate: DateTime(2035),
       builder: (c, child) => Theme(
           data: Theme.of(c)
-              .copyWith(dialogBackgroundColor: ThemeConstants.primaryBlue),
+              .copyWith(dialogTheme: const DialogThemeData(backgroundColor: ThemeConstants.primaryBlue)),
           child: child!),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() {
-        if (isStart)
+        if (isStart) {
           _startDate = picked;
-        else
+        } else {
           _endDate = picked;
+        }
       });
+    }
   }
 
   String _fmt(num v) {

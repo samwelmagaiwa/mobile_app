@@ -1,15 +1,18 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/location_selector.dart';
 
 class EditPropertyScreen extends StatefulWidget {
+  const EditPropertyScreen({required this.property, super.key});
   final Map<String, dynamic> property;
-  const EditPropertyScreen({super.key, required this.property});
 
   @override
   State<EditPropertyScreen> createState() => _EditPropertyScreenState();
@@ -22,8 +25,6 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _addressController;
-  late final TextEditingController _wardController;
-  late final TextEditingController _streetController;
   late final TextEditingController _defaultRentController;
   late final TextEditingController _defaultDepositController;
   late final TextEditingController _ownershipNotesController;
@@ -33,6 +34,9 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   late String _propertyType;
   late String? _region;
   late String? _district;
+  late String? _ward;
+  late String? _street;
+  late String? _place;
   late String _billingCycle;
   late String _currency;
   late String _status;
@@ -62,8 +66,6 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _nameController = TextEditingController(text: p['name'] ?? '');
     _descriptionController = TextEditingController(text: p['description'] ?? '');
     _addressController = TextEditingController(text: p['address'] ?? '');
-    _wardController = TextEditingController(text: p['ward'] ?? '');
-    _streetController = TextEditingController(text: p['street'] ?? '');
     _latController = TextEditingController(text: (p['latitude'] ?? '').toString());
     _lngController = TextEditingController(text: (p['longitude'] ?? '').toString());
     _defaultRentController = TextEditingController(text: (p['default_rent_amount'] ?? '0').toString());
@@ -73,6 +75,9 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _propertyType = p['property_type'] ?? 'apartment';
     _region = p['region'];
     _district = p['district'];
+    _ward = p['ward'];
+    _street = p['street'];
+    _place = p['place'];
     _billingCycle = p['default_billing_cycle'] ?? p['billing_cycle'] ?? 'monthly';
     _currency = p['default_currency'] ?? p['currency'] ?? 'TZS';
     _status = p['status'] ?? 'active';
@@ -93,8 +98,6 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _addressController.dispose();
-    _wardController.dispose();
-    _streetController.dispose();
     super.dispose();
   }
 
@@ -109,8 +112,9 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       'description': _descriptionController.text.trim(),
       'region': _region ?? '',
       'district': _district ?? '',
-      'ward': _wardController.text.trim(),
-      'street': _streetController.text.trim(),
+      'ward': _ward,
+      'street': _street,
+      'place': _place,
       'address': _addressController.text.trim(),
       'latitude': _latController.text,
       'longitude': _lngController.text,
@@ -181,39 +185,14 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                   _loc.translate('location'),
                   Icons.location_on_outlined,
                   [
-                    _buildDropdownField(
-                      label: _loc.translate('region'),
-                      value: _region,
-                      items: _regions,
-                      formatter: (v) => v,
-                      onChanged: (v) => setState(() => _region = v),
-                    ),
-                    SizedBox(height: 14.h),
-                    _buildTextInput(
-                      label: _loc.translate('district'),
-                      icon: Icons.location_city,
-                      initialValue: _district,
-                      onChanged: (v) => _district = v,
-                    ),
-                    SizedBox(height: 14.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _wardController,
-                            label: _loc.translate('ward'),
-                            icon: Icons.map_outlined,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _streetController,
-                            label: _loc.translate('street'),
-                            icon: Icons.streetview_outlined,
-                          ),
-                        ),
-                      ],
+                    LocationSelector(
+                      onChanged: (region, district, ward, street, place) {
+                        _region = region;
+                        _district = district;
+                        _ward = ward;
+                        _street = street;
+                        _place = place;
+                      },
                     ),
                     SizedBox(height: 14.h),
                     _buildTextInput(
@@ -321,7 +300,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                           value: _utilityBillingEnabled,
                           onChanged: (v) =>
                               setState(() => _utilityBillingEnabled = v),
-                          activeColor: ThemeConstants.primaryOrange,
+                          activeThumbColor: ThemeConstants.primaryOrange,
                         ),
                       ],
                     ),
@@ -349,7 +328,6 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                           borderRadius: BorderRadius.circular(18.r),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.12),
-                            style: BorderStyle.solid,
                           ),
                         ),
                         child: _newCoverImage != null
@@ -438,8 +416,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   }
 
   Widget _buildTextInput({
-    TextEditingController? controller,
-    required String label,
+    required String label, TextEditingController? controller,
     IconData? icon,
     bool required = false,
     int maxLines = 1,
@@ -460,15 +437,15 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
         fillColor: Colors.white.withOpacity(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: ThemeConstants.primaryOrange),
+          borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -506,7 +483,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
             dropdownColor: ThemeConstants.primaryBlue,
             underline: const SizedBox(),
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
-            hint: Text(_loc.translate('select'), style: TextStyle(color: Colors.white38)),
+            hint: Text(_loc.translate('select'), style: const TextStyle(color: Colors.white38)),
             items: items
                 .map((item) => DropdownMenuItem(value: item, child: Text(formatter(item))))
                 .toList(),

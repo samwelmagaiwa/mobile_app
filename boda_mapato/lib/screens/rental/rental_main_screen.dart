@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
+import '../../config/navigation_config.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
-import '../../widgets/service_switcher_dialog.dart';
 import '../../services/navigation_builder.dart';
-import 'rental_dashboard_screen.dart';
+import '../../widgets/service_switcher_dialog.dart';
 import 'billing_list_screen.dart';
-import 'onboard_tenant_screen.dart';
-import '../../config/navigation_config.dart';
+import 'rental_dashboard_screen.dart';
 
 class RentalMainScreen extends StatefulWidget {
   const RentalMainScreen({super.key});
@@ -185,7 +184,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                     radius: 30,
                     backgroundColor: ThemeConstants.cardColor,
                     child: Text(
-                        user?.name?.substring(0, 1).toUpperCase() ?? "L",
+                        user?.name.substring(0, 1).toUpperCase() ?? "L",
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
@@ -255,17 +254,16 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
 }
 
 class _FooterIcon extends StatelessWidget {
+
+  const _FooterIcon({
+    required this.icon,
+    required this.onTap, this.isSelected = false,
+    this.isCenter = false,
+  });
   final IconData icon;
   final bool isSelected;
   final bool isCenter;
   final VoidCallback onTap;
-
-  const _FooterIcon({
-    required this.icon,
-    this.isSelected = false,
-    this.isCenter = false,
-    required this.onTap,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,10 +291,6 @@ class _FooterIcon extends StatelessWidget {
 }
 
 class _DrawerItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color color;
 
   const _DrawerItem({
     required this.icon,
@@ -304,6 +298,10 @@ class _DrawerItem extends StatelessWidget {
     required this.onTap,
     this.color = Colors.white,
   });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {

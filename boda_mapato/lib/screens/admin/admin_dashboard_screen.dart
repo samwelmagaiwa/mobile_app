@@ -6,16 +6,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/models/login_response.dart';
-import 'package:boda_mapato/providers/auth_provider.dart';
-import 'package:boda_mapato/services/api_service.dart';
-import 'package:boda_mapato/services/auth_service.dart';
-import 'package:boda_mapato/services/localization_service.dart';
-import 'package:boda_mapato/services/navigation_builder.dart';
-import 'package:boda_mapato/screens/settings/user_permissions_management_screen.dart';
+import '../../constants/theme_constants.dart';
+import '../../models/login_response.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/localization_service.dart';
+import '../../services/navigation_builder.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});

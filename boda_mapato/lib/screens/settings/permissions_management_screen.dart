@@ -212,7 +212,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: role,
+                          initialValue: role,
                           dropdownColor: ThemeConstants.primaryBlue,
                           style: const TextStyle(color: ThemeConstants.textPrimary),
                           decoration: InputDecoration(
@@ -443,7 +443,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   Future<void> _changeUserRole(Map<String, dynamic> user) async {
     String role = (user['role'] ?? _defaultRole).toString();
-    bool fullAccess = (user['full_access'] == true || user['full_access'] == 1);
+    bool fullAccess = user['full_access'] == true || user['full_access'] == 1;
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -457,7 +457,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _roleDropdownItems.any((e) => e.value == role) ? role : _defaultRole,
+                    initialValue: _roleDropdownItems.any((e) => e.value == role) ? role : _defaultRole,
                     dropdownColor: ThemeConstants.primaryBlue,
                     style: const TextStyle(color: ThemeConstants.textPrimary),
                     decoration: InputDecoration(
@@ -641,7 +641,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     return Scaffold(
       backgroundColor: ThemeConstants.primaryBlue,
       appBar: ThemeConstants.buildAppBar('Permissions Management'),
-      floatingActionButton: null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

@@ -939,7 +939,7 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
-                          value: _selectedPriority,
+                          initialValue: _selectedPriority,
                           style: ThemeConstants.bodyStyle,
                           dropdownColor: ThemeConstants.primaryBlue,
                           decoration: const InputDecoration(

@@ -17,6 +17,7 @@ import "debts_management_screen.dart";
 import "driver_agreement_screen.dart";
 import "driver_history_screen.dart";
 import "driver_prediction_screen.dart";
+import "../../widgets/location_selector.dart";
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -1927,7 +1928,7 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedVehicleType,
+                        initialValue: _selectedVehicleType,
                         dropdownColor: ThemeConstants.primaryBlue,
                         style:
                             const TextStyle(color: ThemeConstants.textPrimary),
@@ -1946,7 +1947,7 @@ class _EditDriverDialogState extends State<_EditDriverDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedStatus,
+                        initialValue: _selectedStatus,
                         dropdownColor: ThemeConstants.primaryBlue,
                         style:
                             const TextStyle(color: ThemeConstants.textPrimary),
@@ -2025,6 +2026,13 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
   bool _isLoading = false;
   String _selectedVehicleType = "bajaji";
   String _selectedStatus = "active";
+
+  // Location state
+  String? _locationRegion;
+  String? _locationDistrict;
+  String? _locationWard;
+  String? _locationStreet;
+  String? _locationPlace;
 
   // Vehicle types
   final Map<String, String> _vehicleTypes = <String, String>{
@@ -2110,6 +2118,11 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         "license_number": _licenseController.text.trim(),
         "license_expiry": _licenseExpiryController.text.trim(),
         "address": _addressController.text.trim(),
+        "region": _locationRegion,
+        "district": _locationDistrict,
+        "ward": _locationWard,
+        "street": _locationStreet,
+        "place": _locationPlace,
         "emergency_contact": _emergencyContactController.text.trim(),
         "national_id": _nationalIdController.text.trim().isNotEmpty
             ? _nationalIdController.text.trim()
@@ -2409,23 +2422,38 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
 
                         const SizedBox(height: 16),
 
+                        // Location dropdowns
+                        const SizedBox(height: 8),
+                        Text(
+                          LocalizationService.instance.translate('location'),
+                          style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        LocationSelector(
+                          onChanged: (region, district, ward, street, place) {
+                            setState(() {
+                              _locationRegion = region;
+                              _locationDistrict = district;
+                              _locationWard = ward;
+                              _locationStreet = street;
+                              _locationPlace = place;
+                            });
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
                         // Address field
                         TextFormField(
                           controller: _addressController,
-                          maxLines: 3,
+                          maxLines: 2,
                           style: const TextStyle(
                               color: ThemeConstants.textPrimary),
                           decoration: _getBlueInputDecoration(
-                            "Anwani *",
+                            LocalizationService.instance.translate('address'),
                             icon: Icons.location_on,
-                            hintText: "Ingiza anwani kamili",
+                            hintText: "Ingiza anuani kamili",
                           ),
-                          validator: (final String? value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return "Anwani ni lazima";
-                            }
-                            return null;
-                          },
                         ),
 
                         const SizedBox(height: 16),
@@ -2528,7 +2556,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
 
                         // Vehicle type dropdown
                         DropdownButtonFormField<String>(
-                          value: _selectedVehicleType,
+                          initialValue: _selectedVehicleType,
                           dropdownColor: ThemeConstants.primaryBlue,
                           style: const TextStyle(
                               color: ThemeConstants.textPrimary),
@@ -2560,7 +2588,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
 
                         // Status dropdown
                         DropdownButtonFormField<String>(
-                          value: _selectedStatus,
+                          initialValue: _selectedStatus,
                           dropdownColor: ThemeConstants.primaryBlue,
                           style: const TextStyle(
                               color: ThemeConstants.textPrimary),

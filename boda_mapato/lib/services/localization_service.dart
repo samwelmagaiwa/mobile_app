@@ -752,6 +752,22 @@ class AppLocalizations {
       'house': 'House',
       'retry': 'Retry',
       'select': 'Select',
+
+      // Location Hierarchy
+      'country': 'Country',
+      'region': 'Region',
+      'district': 'District',
+      'ward': 'Ward',
+      'street': 'Street / Village',
+      'place': 'Hamlet',
+      'location': 'Location',
+      'select_country': 'Select Country',
+      'select_region': 'Select Region',
+      'select_district': 'Select District',
+      'select_ward': 'Select Ward',
+      'select_street': 'Select Street/Village',
+      'select_place': 'Select Hamlet',
+      'update_property': 'Update Property',
     },
     'sw': {
       // General
@@ -1461,6 +1477,22 @@ class AppLocalizations {
       'house': 'Nyumba',
       'retry': 'Jaribu Tena',
       'select': 'Chagua',
+
+      // Location Hierarchy
+      'country': 'Nchi',
+      'region': 'Mkoa',
+      'district': 'Wilaya',
+      'ward': 'Kata',
+      'street': 'Mtaa / Kijiji',
+      'place': 'Kitongoji',
+      'location': 'Mahali',
+      'select_country': 'Chagua Nchi',
+      'select_region': 'Chagua Mkoa',
+      'select_district': 'Chagua Wilaya',
+      'select_ward': 'Chagua Kata',
+      'select_street': 'Chagua Mtaa/Kijiji',
+      'select_place': 'Chagua Kitongoji',
+      'update_property': 'Sasisha Jengo',
     },
   };
 

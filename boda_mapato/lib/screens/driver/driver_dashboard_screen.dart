@@ -766,7 +766,7 @@ class _PaymentRequestDialogState extends State<_PaymentRequestDialog> {
                     },
                   ),
                   DropdownButtonFormField<String>(
-                    value: _paymentMethod,
+                    initialValue: _paymentMethod,
                     style: AppStyles.bodyMediumResponsive(context),
                     decoration: AppStyles.inputDecoration(context).copyWith(
                       labelText: "Njia ya Malipo",

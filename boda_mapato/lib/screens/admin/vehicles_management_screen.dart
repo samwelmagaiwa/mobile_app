@@ -1320,7 +1320,7 @@ class _EditVehicleDialogState extends State<_EditVehicleDialog> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _vehicleType,
+                initialValue: _vehicleType,
                 dropdownColor: ThemeConstants.primaryBlue,
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 items: _vehicleTypes.entries
@@ -1450,7 +1450,7 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
           ? const SizedBox(
               height: 64, child: Center(child: CircularProgressIndicator()))
           : DropdownButtonFormField<String>(
-              value: _selectedDriverId,
+              initialValue: _selectedDriverId,
               dropdownColor: ThemeConstants.primaryBlue,
               style: const TextStyle(color: Colors.white),
               items: _drivers
@@ -1697,7 +1697,7 @@ class _AddVehicleDialogState extends State<_AddVehicleDialog> {
 
                         // Vehicle type dropdown
                         DropdownButtonFormField<String>(
-                          value: _selectedVehicleType,
+                          initialValue: _selectedVehicleType,
                           dropdownColor: ThemeConstants.primaryBlue,
                           style: const TextStyle(
                               color: ThemeConstants.textPrimary),

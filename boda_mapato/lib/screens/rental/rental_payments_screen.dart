@@ -35,7 +35,7 @@ class _RentalPaymentsScreenState extends State<RentalPaymentsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.payment, size: 64, color: Colors.white38),
+                      const Icon(Icons.payment, size: 64, color: Colors.white38),
                       SizedBox(height: 16.h),
                       Text("Hakuna malipo",
                           style: TextStyle(

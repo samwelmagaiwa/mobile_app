@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/providers/maintenance_provider.dart';
-import 'package:boda_mapato/providers/auth_provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/maintenance_provider.dart';
+
 class MaintenanceDetailsScreen extends StatefulWidget {
+  const MaintenanceDetailsScreen({required this.request, super.key});
   final Map<String, dynamic> request;
-  const MaintenanceDetailsScreen({super.key, required this.request});
 
   @override
   _MaintenanceDetailsScreenState createState() => _MaintenanceDetailsScreenState();
@@ -379,18 +380,18 @@ class _MaintenanceDetailsScreenState extends State<MaintenanceDetailsScreen> {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final String status;
   const _StatusBadge({required this.status});
+  final String status;
 
   @override
   Widget build(BuildContext context) {
     Color color;
     switch (status) {
-      case 'open': color = Colors.lightBlueAccent; break;
-      case 'pending': color = Colors.orangeAccent; break;
-      case 'in_progress': color = Colors.purpleAccent; break;
-      case 'resolved': color = Colors.greenAccent; break;
-      case 'cancelled': color = Colors.redAccent; break;
+      case 'open': color = Colors.lightBlueAccent;
+      case 'pending': color = Colors.orangeAccent;
+      case 'in_progress': color = Colors.purpleAccent;
+      case 'resolved': color = Colors.greenAccent;
+      case 'cancelled': color = Colors.redAccent;
       default: color = Colors.grey;
     }
 

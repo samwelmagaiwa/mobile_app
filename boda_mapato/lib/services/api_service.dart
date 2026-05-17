@@ -856,12 +856,12 @@ class ApiService {
     if (image != null) {
       debugPrint('Adding property with Multipart image. Fields: $fields');
       debugPrint('Image field name: cover_image, Path: ${image.path}');
-      return await postMultipart("/rental/properties", fields,
+      return postMultipart("/rental/properties", fields,
           fileField: 'cover_image', file: image);
     }
 
     debugPrint('Adding property WITHOUT image (JSON). Data: $data');
-    return await _post("/rental/properties", data);
+    return _post("/rental/properties", data);
   }
 
   Future<Map<String, dynamic>> addRentalPropertyWithImage(
@@ -896,12 +896,12 @@ class ApiService {
 
     if (image != null) {
       debugPrint('Updating property with Multipart image. Fields: $fields');
-      return await postMultipart("/rental/properties/$propertyId", fields,
+      return postMultipart("/rental/properties/$propertyId", fields,
           fileField: 'cover_image', file: image);
     }
 
     debugPrint('Updating property WITHOUT image (JSON). Data: $data');
-    return await _put("/rental/properties/$propertyId", data);
+    return _put("/rental/properties/$propertyId", data);
   }
 
   Future<Map<String, dynamic>> deleteRentalProperty(String propertyId) async =>
@@ -991,7 +991,7 @@ class ApiService {
     String endpoint,
     Map<String, dynamic> fields, {
     required String fileField,
-    required dynamic file,
+    required file,
   }) async {
     final headers = await _authHeaders;
     final uri = Uri.parse("$baseUrl$endpoint");
@@ -1079,10 +1079,12 @@ class ApiService {
       {String? period, DateTime? startDate, DateTime? endDate}) async {
     final queryParams = <String, String>{};
     if (period != null) queryParams['period'] = period;
-    if (startDate != null)
+    if (startDate != null) {
       queryParams['start_date'] = startDate.toIso8601String().split('T')[0];
-    if (endDate != null)
+    }
+    if (endDate != null) {
       queryParams['end_date'] = endDate.toIso8601String().split('T')[0];
+    }
     if (queryParams.isEmpty) return _get("/rental/reports/revenue");
     return _get("/rental/reports/revenue", queryParams: queryParams);
   }
@@ -1951,6 +1953,22 @@ class ApiService {
         dateFrom: dateFrom,
         dateTo: dateTo,
       );
+
+  // Location endpoints
+  Future<Map<String, dynamic>> getLocationsRegions() async =>
+      _get("/locations/regions", requireAuth: false);
+
+  Future<Map<String, dynamic>> getLocationsDistricts(String regionId) async =>
+      _get("/locations/districts?region_id=$regionId", requireAuth: false);
+
+  Future<Map<String, dynamic>> getLocationsWards(String districtId) async =>
+      _get("/locations/wards?district_id=$districtId", requireAuth: false);
+
+  Future<Map<String, dynamic>> getLocationsStreets(String wardId) async =>
+      _get("/locations/streets?ward_id=$wardId", requireAuth: false);
+
+  Future<Map<String, dynamic>> getLocationsPlaces(String streetId) async =>
+      _get("/locations/places?village_id=$streetId", requireAuth: false);
 
   // Health check
   Future<Map<String, dynamic>> healthCheck() async =>

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/providers/maintenance_provider.dart';
-import 'package:boda_mapato/providers/auth_provider.dart';
+
+import '../../constants/theme_constants.dart';
+import '../../providers/maintenance_provider.dart';
 
 class MaintenanceListScreen extends StatefulWidget {
   const MaintenanceListScreen({super.key});
@@ -179,8 +179,8 @@ class _MaintenanceListScreenState extends State<MaintenanceListScreen> {
 }
 
 class _StatusChip extends StatelessWidget {
-  final String status;
   const _StatusChip({required this.status});
+  final String status;
 
   @override
   Widget build(BuildContext context) {
@@ -191,23 +191,18 @@ class _StatusChip extends StatelessWidget {
       case 'open':
         color = Colors.lightBlueAccent;
         label = 'WAZI';
-        break;
       case 'pending':
         color = Colors.orangeAccent;
         label = 'INASUBIRI';
-        break;
       case 'in_progress':
         color = Colors.purpleAccent;
         label = 'INAFANYIWA KAZI';
-        break;
       case 'resolved':
         color = Colors.greenAccent;
         label = 'IMEISHA';
-        break;
       case 'cancelled':
         color = Colors.redAccent;
         label = 'IMEGHAIRIWA';
-        break;
       default:
         color = Colors.grey;
         label = status.toUpperCase();
@@ -229,15 +224,15 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _InfoTag extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
 
   const _InfoTag({
     required this.icon,
     required this.label,
     this.color = Colors.white70,
   });
+  final IconData icon;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {

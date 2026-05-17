@@ -1,18 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/services/api_service.dart';
-import 'package:boda_mapato/services/localization_service.dart';
+import '../../constants/theme_constants.dart';
+import '../../services/api_service.dart';
+import '../../services/localization_service.dart';
 
-class UserPermissionsManagementScreen extends StatefulWidget {
-  final Map<String, dynamic> user;
-  final String serviceType; // rental, transport, inventory
+class UserPermissionsManagementScreen extends StatefulWidget { // rental, transport, inventory
 
   const UserPermissionsManagementScreen({
-    super.key,
-    required this.user,
-    required this.serviceType,
+    required this.user, required this.serviceType, super.key,
   });
+  final Map<String, dynamic> user;
+  final String serviceType;
 
   @override
   State<UserPermissionsManagementScreen> createState() => _UserPermissionsManagementScreenState();

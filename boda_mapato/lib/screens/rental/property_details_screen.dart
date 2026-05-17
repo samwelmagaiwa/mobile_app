@@ -7,8 +7,8 @@ import '../../services/localization_service.dart';
 import 'edit_property_screen.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
+  const PropertyDetailsScreen({required this.propertyId, super.key});
   final String propertyId;
-  const PropertyDetailsScreen({super.key, required this.propertyId});
 
   @override
   State<PropertyDetailsScreen> createState() => _PropertyDetailsScreenState();
@@ -160,10 +160,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     switch (status) {
       case 'active':
         statusColor = ThemeConstants.successGreen;
-        break;
       case 'under_maintenance':
         statusColor = ThemeConstants.warningAmber;
-        break;
       default:
         statusColor = Colors.white38;
     }
@@ -231,7 +229,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               property['ownership_notes'] != null ||
               property['latitude'] != null) ...[
             SizedBox(height: 12.h),
-            Divider(color: Colors.white10),
+            const Divider(color: Colors.white10),
             SizedBox(height: 4.h),
             if (property['default_rent_amount'] != null)
               _configRow(Icons.home_work_outlined, "Kodi ya Msingi",
@@ -278,11 +276,13 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  String _formatNumber(dynamic value) {
+  String _formatNumber(value) {
     if (value == null) return '0';
     final num n = num.tryParse(value.toString()) ?? 0;
-    if (n == n.truncate()) return n.truncate().toString().replaceAllMapped(
+    if (n == n.truncate()) {
+      return n.truncate().toString().replaceAllMapped(
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    }
     return n.toStringAsFixed(2).replaceAllMapped(
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
@@ -323,7 +323,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  Widget _buildRevenueCard(dynamic totalCollected, String currency) {
+  Widget _buildRevenueCard(totalCollected, String currency) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
       child: Row(
@@ -512,15 +512,15 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
         fillColor: Colors.white.withOpacity(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: ThemeConstants.primaryOrange),
+          borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       ),
@@ -538,7 +538,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     final bathroomsController = TextEditingController();
     final sqmtrsController = TextEditingController();
     final descController = TextEditingController();
-    String selectedType = 'room';
+    const String selectedType = 'room';
 
     showModalBottomSheet(
       context: context,

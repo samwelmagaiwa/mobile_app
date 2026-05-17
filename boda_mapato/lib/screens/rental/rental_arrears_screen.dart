@@ -35,7 +35,7 @@ class _RentalArrearsScreenState extends State<RentalArrearsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle,
+                      const Icon(Icons.check_circle,
                           size: 64, color: ThemeConstants.successGreen),
                       SizedBox(height: 16.h),
                       Text("Hakuna deni!",

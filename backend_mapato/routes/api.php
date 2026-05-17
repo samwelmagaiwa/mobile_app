@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\LocationController;
 use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\AdminReportController;
 use App\Http\Controllers\API\DriverViewController;
@@ -42,6 +43,15 @@ use App\Http\Controllers\API\Rental\MaintenanceController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Location endpoints
+Route::prefix('locations')->group(function () {
+    Route::get('regions', [LocationController::class, 'getRegions']);
+    Route::get('districts', [LocationController::class, 'getDistricts']);
+    Route::get('wards', [LocationController::class, 'getWards']);
+    Route::get('streets', [LocationController::class, 'getStreets']);
+    Route::get('places', [LocationController::class, 'getPlaces']);
+});
 
 // Public routes (no authentication required)
 Route::prefix('auth')->group(function () {

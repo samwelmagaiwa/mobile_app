@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
-import 'property_details_screen.dart';
 import 'onboard_tenant_screen.dart';
+import 'property_details_screen.dart';
 
 class HouseDetailsScreen extends StatefulWidget {
+  const HouseDetailsScreen({required this.house, super.key});
   final Map<String, dynamic> house;
-  const HouseDetailsScreen({super.key, required this.house});
 
   @override
   State<HouseDetailsScreen> createState() => _HouseDetailsScreenState();
@@ -70,7 +71,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if ((confirmed ?? false) && mounted) {
       setState(() => _isVacating = true);
       final tenantId = widget.house['current_tenant_id']?.toString();
       if (tenantId != null) {
@@ -221,7 +222,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
     );
   }
 
-  String _formatAmount(dynamic amount) {
+  String _formatAmount(amount) {
     if (amount == null) return "0";
     if (amount is num) return amount.toInt().toString();
     if (amount is String) {
@@ -568,7 +569,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
               borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: ThemeConstants.primaryOrange)),
+              borderSide: const BorderSide(color: ThemeConstants.primaryOrange)),
         ),
       ),
     ]);
@@ -615,7 +616,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
           prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.white38, size: 18.sp) : null,
           hintText: hint,
           errorText: errorText,
-          hintStyle: TextStyle(color: Colors.white24),
+          hintStyle: const TextStyle(color: Colors.white24),
           filled: true,
           fillColor: Colors.white.withOpacity(0.05),
           border: OutlineInputBorder(

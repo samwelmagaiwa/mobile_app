@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:boda_mapato/models/login_response.dart';
-import 'package:boda_mapato/config/navigation_config.dart';
-import 'package:boda_mapato/services/localization_service.dart';
-import 'package:boda_mapato/providers/auth_provider.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/widgets/service_switcher_dialog.dart';
-import 'package:boda_mapato/screens/receipts/receipts_screen.dart';
+import '../models/login_response.dart';
+import '../config/navigation_config.dart';
+import 'localization_service.dart';
+import '../providers/auth_provider.dart';
+import '../constants/theme_constants.dart';
+import '../widgets/service_switcher_dialog.dart';
+import '../screens/receipts/receipts_screen.dart';
 
 // ignore_for_file: directives_ordering
 /// Service for building navigation UI components dynamically
@@ -555,8 +555,8 @@ class _MenuGridTile extends StatelessWidget {
             if (side < 32.w) side = 32.w;
             if (side > 56.w) side = 56.w;
 
-            double iconSize = side * 0.5;
-            double spacing = h * 0.08;
+            final double iconSize = side * 0.5;
+            final double spacing = h * 0.08;
             double fontSize = h * 0.14;
             if (fontSize < 10.sp) fontSize = 10.sp;
             if (fontSize > 12.sp) fontSize = 12.sp;
@@ -616,16 +616,16 @@ int _toInt(value) {
 
 /// A paginatable grid that splits items into pages of 9 (3x3) with swipe/dots
 class _PaginatableGrid extends StatefulWidget {
-  final List<NavigationItem> items;
-  final LocalizationService localization;
-  final void Function(NavigationItem) onItemTap;
-  static const int itemsPerPage = 9;
 
   const _PaginatableGrid({
     required this.items,
     required this.localization,
     required this.onItemTap,
   });
+  final List<NavigationItem> items;
+  final LocalizationService localization;
+  final void Function(NavigationItem) onItemTap;
+  static const int itemsPerPage = 9;
 
   @override
   State<_PaginatableGrid> createState() => _PaginatableGridState();

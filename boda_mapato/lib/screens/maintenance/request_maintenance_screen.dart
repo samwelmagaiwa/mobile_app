@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:boda_mapato/constants/theme_constants.dart';
-import 'package:boda_mapato/providers/maintenance_provider.dart';
-import 'package:boda_mapato/providers/rental_provider.dart';
+import '../../constants/theme_constants.dart';
+import '../../providers/maintenance_provider.dart';
+import '../../providers/rental_provider.dart';
 
 class RequestMaintenanceScreen extends StatefulWidget {
   const RequestMaintenanceScreen({super.key});
@@ -273,7 +273,7 @@ class _RequestMaintenanceScreenState extends State<RequestMaintenanceScreen> {
     required String label,
     required dynamic value,
     required List<DropdownMenuItem<dynamic>> items,
-    required Function(dynamic) onChanged,
+    required void Function(dynamic) onChanged,
   }) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w),
@@ -311,7 +311,7 @@ class _RequestMaintenanceScreenState extends State<RequestMaintenanceScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14.r),
-        borderSide: BorderSide(color: ThemeConstants.footerBarColor, width: 1.5),
+        borderSide: const BorderSide(color: ThemeConstants.footerBarColor, width: 1.5),
       ),
     );
   }

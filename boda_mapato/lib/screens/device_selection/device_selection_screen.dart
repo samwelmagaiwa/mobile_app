@@ -1,3 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import "../../constants/colors.dart";
+import "../../constants/strings.dart";
 import "../../constants/styles.dart";
 import "../../constants/theme_constants.dart";
 import "../../models/device.dart";

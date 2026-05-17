@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
-import 'record_payment_screen.dart';
-import 'house_details_screen.dart';
 import 'property_details_screen.dart';
+import 'record_payment_screen.dart';
 
 class TenantDetailsScreen extends StatefulWidget {
+  const TenantDetailsScreen({required this.tenant, super.key});
   final Map<String, dynamic> tenant;
-  const TenantDetailsScreen({super.key, required this.tenant});
 
   @override
   State<TenantDetailsScreen> createState() => _TenantDetailsScreenState();
@@ -42,7 +42,7 @@ class _TenantDetailsScreenState extends State<TenantDetailsScreen> {
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if ((confirmed ?? false) && mounted) {
       setState(() => _isTerminating = true);
       final success = await context
           .read<RentalProvider>()

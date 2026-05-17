@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../constants/theme_constants.dart';
 
-class ReceiptViewScreen extends StatelessWidget {
-  final dynamic payment; // Can be a payment record or derived from bill
+class ReceiptViewScreen extends StatelessWidget { // Can be a payment record or derived from bill
 
-  const ReceiptViewScreen({super.key, required this.payment});
+  const ReceiptViewScreen({required this.payment, super.key});
+  final dynamic payment;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +84,7 @@ class ReceiptViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReceiptBody(BuildContext context, dynamic payment) {
+  Widget _buildReceiptBody(BuildContext context, payment) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
       child: Column(

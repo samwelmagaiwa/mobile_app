@@ -1,11 +1,14 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/location_selector.dart';
 
 class CreatePropertyScreen extends StatefulWidget {
   const CreatePropertyScreen({super.key});
@@ -25,10 +28,11 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
 
   // Section 2 — Location
   final _addressController = TextEditingController();
-  final _wardController = TextEditingController();
-  final _streetController = TextEditingController();
   String? _region;
   String? _district;
+  String? _ward;
+  String? _street;
+  String? _place;
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
 
@@ -64,8 +68,6 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _addressController.dispose();
-    _wardController.dispose();
-    _streetController.dispose();
     super.dispose();
   }
 
@@ -88,8 +90,9 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
       'description': _descriptionController.text.trim(),
       'region': _region ?? 'Dar es Salaam',
       'district': _district ?? '',
-      'ward': _wardController.text.trim(),
-      'street': _streetController.text.trim(),
+      'ward': _ward,
+      'street': _street,
+      'place': _place,
       'address': _addressController.text.trim(),
       'latitude': _latController.text,
       'longitude': _lngController.text,
@@ -164,40 +167,14 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                   children: [
                     _buildSectionHeader(_loc.translate('location'), Icons.location_on),
                     SizedBox(height: 16.h),
-                    _buildDropdownField(
-                      label: _loc.translate('region'),
-                      value: _region,
-                      items: _regions,
-                      formatter: (v) => v,
-                      onChanged: (v) => setState(() => _region = v),
-                      required: true,
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildTextInput(
-                      label: _loc.translate('district'),
-                      icon: Icons.location_city,
-                      required: true,
-                      onChanged: (v) => _district = v,
-                    ),
-                    SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _wardController,
-                            label: _loc.translate('ward'),
-                            icon: Icons.map,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _streetController,
-                            label: _loc.translate('street'),
-                            icon: Icons.streetview,
-                          ),
-                        ),
-                      ],
+                    LocationSelector(
+                      onChanged: (region, district, ward, street, place) {
+                        _region = region;
+                        _district = district;
+                        _ward = ward;
+                        _street = street;
+                        _place = place;
+                      },
                     ),
                     SizedBox(height: 16.h),
                     _buildTextInput(
@@ -275,7 +252,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                         'under_maintenance',
                         'archived'
                       ],
-                      formatter: (v) => _formatType(v),
+                      formatter: _formatType,
                       onChanged: (v) => setState(() => _status = v!),
                     ),
                     SizedBox(height: 16.h),
@@ -309,7 +286,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                           value: _utilityBillingEnabled,
                           onChanged: (v) =>
                               setState(() => _utilityBillingEnabled = v),
-                          activeColor: ThemeConstants.primaryOrange,
+                          activeThumbColor: ThemeConstants.primaryOrange,
                         ),
                       ],
                     ),
@@ -433,8 +410,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
   }
 
   Widget _buildTextInput({
-    TextEditingController? controller,
-    required String label,
+    required String label, TextEditingController? controller,
     IconData? icon,
     bool required = false,
     int maxLines = 1,
@@ -455,15 +431,15 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
         fillColor: Colors.white.withOpacity(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: ThemeConstants.primaryOrange),
+          borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -472,7 +448,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
       ),
       validator: required
           ? (v) => (v == null || v.trim().isEmpty)
-              ? '${_loc.translate("field_required")}'
+              ? _loc.translate("field_required")
               : null
           : null,
     );
@@ -506,7 +482,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
             underline: const SizedBox(),
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
             hint: Text(_loc.translate('select'),
-                style: TextStyle(color: Colors.white38)),
+                style: const TextStyle(color: Colors.white38)),
             items: items
                 .map((item) => DropdownMenuItem(
                       value: item,

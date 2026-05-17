@@ -170,7 +170,6 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         final ThemeData base = Theme.of(context);
         return Theme(
           data: base.copyWith(
-            dialogBackgroundColor: ThemeConstants.primaryBlue,
             colorScheme: base.colorScheme.copyWith(
               primary: ThemeConstants.primaryOrange,
               onPrimary: Colors.white,
@@ -186,7 +185,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
               yearForegroundColor:
                   const WidgetStatePropertyAll<Color>(Colors.white),
               weekdayStyle: const TextStyle(color: Colors.white70),
-            ),
+            ), dialogTheme: const DialogThemeData(backgroundColor: ThemeConstants.primaryBlue),
           ),
           child: child!,
         );
@@ -214,7 +213,6 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
         final ThemeData base = Theme.of(context);
         return Theme(
           data: base.copyWith(
-            dialogBackgroundColor: ThemeConstants.primaryBlue,
             colorScheme: base.colorScheme.copyWith(
               primary: ThemeConstants.primaryOrange,
               onPrimary: Colors.white,
@@ -230,7 +228,7 @@ class _DriverAgreementScreenState extends State<DriverAgreementScreen> {
               yearForegroundColor:
                   const WidgetStatePropertyAll<Color>(Colors.white),
               weekdayStyle: const TextStyle(color: Colors.white70),
-            ),
+            ), dialogTheme: const DialogThemeData(backgroundColor: ThemeConstants.primaryBlue),
           ),
           child: child!,
         );

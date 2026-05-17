@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/location_selector.dart';
 
 class RentalPropertiesScreen extends StatefulWidget {
   const RentalPropertiesScreen({super.key});
@@ -128,14 +129,14 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
           TextField(
             controller: _searchController,
             onChanged: _onSearchChanged,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: "Tafuta mali...",
-              hintStyle: TextStyle(color: Colors.white38),
-              prefixIcon: Icon(Icons.search, color: Colors.white38),
+              hintStyle: const TextStyle(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search, color: Colors.white38),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.white38),
+                      icon: const Icon(Icons.clear, color: Colors.white38),
                       onPressed: _clearFilters)
                   : null,
               filled: true,
@@ -272,16 +273,12 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     switch (status) {
       case 'active':
         statusColor = ThemeConstants.successGreen;
-        break;
       case 'inactive':
         statusColor = Colors.white38;
-        break;
       case 'under_maintenance':
         statusColor = ThemeConstants.warningAmber;
-        break;
       case 'archived':
         statusColor = Colors.white24;
-        break;
       default:
         statusColor = Colors.white54;
     }
@@ -461,6 +458,9 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     final addressController = TextEditingController();
     String? selectedRegion;
     String? selectedDistrict;
+    String? selectedWard;
+    String? selectedStreet;
+    String? selectedPlace;
     String selectedType = 'apartment';
 
     showModalBottomSheet(
@@ -516,7 +516,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                           "Aina ya Mali *",
                           selectedType,
                           _propertyTypes,
-                          (v) => setState(() => selectedType = v!),
+                          (v) => setState(() => selectedType = v),
                           _formatPropertyType),
                       SizedBox(height: 16.h),
                       _buildTextField(addressController, "Anuani ya Makazi *",
@@ -525,35 +525,14 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       SizedBox(height: 24.h),
                       _buildSectionTitle("Location"),
                       SizedBox(height: 12.h),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildDropdown(
-                                  "Mkoa *",
-                                  selectedRegion,
-                                  _regions,
-                                  (v) => setState(() => selectedRegion = v),
-                                  (v) => v)),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                              child: _buildTextField(
-                                  null, "Wilaya *", Icons.location_city,
-                                  hint: "Jina la Wilaya")),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildTextField(
-                                  null, "Kata", Icons.location_on,
-                                  hint: "Jina la Kata")),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                              child: _buildTextField(
-                                  null, "Mtaa", Icons.streetview,
-                                  hint: "Jina la Mtaa")),
-                        ],
+                      LocationSelector(
+                        onChanged: (region, district, ward, street, place) {
+                          selectedRegion = region;
+                          selectedDistrict = district;
+                          selectedWard = ward;
+                          selectedStreet = street;
+                          selectedPlace = place;
+                        },
                       ),
                       SizedBox(height: 24.h),
                       _buildSectionTitle("Usimamizi"),
@@ -614,7 +593,10 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                 'property_type': selectedType,
                                 'address': addressController.text,
                                 'region': selectedRegion ?? 'Dar es Salaam',
-                                'district': 'Default',
+                                'district': selectedDistrict ?? 'Default',
+                                'ward': selectedWard,
+                                'street': selectedStreet,
+                                'place': selectedPlace,
                                 'billing_cycle': 'monthly',
                                 'currency': 'TZS',
                               });
@@ -671,13 +653,13 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
         fillColor: Colors.white.withOpacity(0.05),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: Colors.white12)),
+            borderSide: const BorderSide(color: Colors.white12)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: Colors.white12)),
+            borderSide: const BorderSide(color: Colors.white12)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: ThemeConstants.primaryOrange)),
+            borderSide: const BorderSide(color: ThemeConstants.primaryOrange)),
       ),
     );
   }
@@ -702,7 +684,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
             dropdownColor: ThemeConstants.primaryBlue,
             underline: const SizedBox(),
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
-            hint: Text("Chagua", style: TextStyle(color: Colors.white38)),
+            hint: const Text("Chagua", style: TextStyle(color: Colors.white38)),
             items: items
                 .map((item) => DropdownMenuItem(
                       value: item,
@@ -727,17 +709,17 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
           style: TextStyle(color: Colors.white, fontSize: 14.sp),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white24),
+            hintStyle: const TextStyle(color: Colors.white24),
             prefixText: prefix,
-            prefixStyle: TextStyle(color: Colors.white54),
+            prefixStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: Colors.white.withOpacity(0.05),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white12)),
+                borderSide: const BorderSide(color: Colors.white12)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white12)),
+                borderSide: const BorderSide(color: Colors.white12)),
           ),
         ),
       ],
@@ -812,7 +794,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                     'bedsitter',
                                     'one_bedroom'
                                   ],
-                                  (v) => setState(() => selectedType = v!),
+                                  (v) => setState(() => selectedType = v),
                                   (v) => v)),
                           SizedBox(width: 12.w),
                           Expanded(
@@ -820,7 +802,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                   "Hali",
                                   selectedStatus,
                                   ['vacant', 'occupied', 'maintenance'],
-                                  (v) => setState(() => selectedStatus = v!),
+                                  (v) => setState(() => selectedStatus = v),
                                   (v) => v == 'vacant'
                                       ? 'Wazi'
                                       : v == 'occupied'
@@ -959,6 +941,9 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                     SizedBox(height: 20.h),
                     _buildDetailRow("Mkoa", property['region'] ?? '-'),
                     _buildDetailRow("Wilaya", property['district'] ?? '-'),
+                    _buildDetailRow("Kata", property['ward'] ?? '-'),
+                    _buildDetailRow("Mtaa/Kijiji", property['street'] ?? '-'),
+                    _buildDetailRow("Kitongoji", property['place'] ?? '-'),
                     _buildDetailRow(
                         "Aina",
                         _formatPropertyType(
@@ -990,7 +975,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                           },
                           icon: Icon(Icons.add,
                               color: ThemeConstants.primaryOrange, size: 18.sp),
-                          label: Text("Ongeza",
+                          label: const Text("Ongeza",
                               style: TextStyle(
                                   color: ThemeConstants.primaryOrange)),
                         ),
@@ -1014,7 +999,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                         ),
                       )
                     else
-                      ...houses.map((house) => _buildHouseItem(house)),
+                      ...houses.map(_buildHouseItem),
                   ],
                 ),
               ),
@@ -1048,10 +1033,8 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     switch (status) {
       case 'occupied':
         statusColor = ThemeConstants.successGreen;
-        break;
       case 'maintenance':
         statusColor = ThemeConstants.warningAmber;
-        break;
       default:
         statusColor = Colors.white54;
     }

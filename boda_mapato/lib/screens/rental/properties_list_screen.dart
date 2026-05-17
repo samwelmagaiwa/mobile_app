@@ -258,10 +258,8 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
     switch (status) {
       case 'active':
         statusColor = ThemeConstants.successGreen;
-        break;
       case 'under_maintenance':
         statusColor = ThemeConstants.warningAmber;
-        break;
       default: statusColor = Colors.white54;
     }
 

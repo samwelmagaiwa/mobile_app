@@ -14,7 +14,7 @@ class LeaseAgreementsScreen extends StatefulWidget {
 class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<Map<String, dynamic>> _agreements = [];
+  final List<Map<String, dynamic>> _agreements = [];
   bool _isLoading = true;
 
   @override
@@ -159,15 +159,12 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
       case 'active':
         statusColor = ThemeConstants.successGreen;
         statusLabel = 'Active';
-        break;
       case 'expiring_soon':
         statusColor = ThemeConstants.warningAmber;
         statusLabel = 'Expiring';
-        break;
       case 'expired':
         statusColor = ThemeConstants.errorRed;
         statusLabel = 'Expired';
-        break;
       default:
         statusColor = Colors.white54;
         statusLabel = status;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:boda_mapato/services/api_service.dart';
-import 'package:boda_mapato/services/sms_service.dart';
+import '../services/api_service.dart';
+import '../services/sms_service.dart';
 
 class MaintenanceProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -39,10 +39,7 @@ class MaintenanceProvider with ChangeNotifier {
 
   Future<bool> submitRequest({
     required String propertyId,
-    String? houseId,
-    required String category,
-    required String priority,
-    required String description,
+    required String category, required String priority, required String description, String? houseId,
     File? photo,
   }) async {
     _isLoading = true;

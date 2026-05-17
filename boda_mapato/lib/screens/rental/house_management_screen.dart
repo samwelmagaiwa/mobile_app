@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 
 class HouseManagementScreen extends StatefulWidget {
+  const HouseManagementScreen(
+      {required this.propertyId, required this.propertyName, super.key});
   final String propertyId;
   final String propertyName;
-  const HouseManagementScreen(
-      {super.key, required this.propertyId, required this.propertyName});
 
   @override
   State<HouseManagementScreen> createState() => _HouseManagementScreenState();
@@ -35,17 +35,19 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
     try {
       final provider = context.read<RentalProvider>();
       final houses = await provider.fetchPropertyHouses(widget.propertyId);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _houses = houses;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -57,7 +59,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () => _showAddHouseDialog(),
+          onPressed: _showAddHouseDialog,
         ),
       ],
       body: _isLoading
@@ -89,14 +91,14 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
                 style: TextStyle(color: Colors.white38, fontSize: 14.sp)),
             SizedBox(height: 24.h),
             ElevatedButton.icon(
-              onPressed: () => _showAddHouseDialog(),
+              onPressed: _showAddHouseDialog,
               style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   padding:
                       EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h)),
               icon: const Icon(Icons.add, color: Colors.white),
               label:
-                  Text("Ongeza Nyumba", style: TextStyle(color: Colors.white)),
+                  const Text("Ongeza Nyumba", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -187,15 +189,12 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
       case 'occupied':
         statusColor = ThemeConstants.successGreen;
         statusLabel = 'Imekalia';
-        break;
       case 'maintenance':
         statusColor = ThemeConstants.warningAmber;
         statusLabel = 'Matengenezo';
-        break;
       case 'reserved':
         statusColor = ThemeConstants.primaryOrange;
         statusLabel = 'Hifadhi';
-        break;
       default:
         statusColor = Colors.white54;
         statusLabel = 'Wazi';
@@ -285,7 +284,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
                         Text(tenant['name'] ?? '',
                             style: TextStyle(
                                 color: Colors.white70, fontSize: 12.sp)),
-                        Spacer(),
+                        const Spacer(),
                         Text(tenant['phone'] ?? '',
                             style: TextStyle(
                                 color: Colors.white38, fontSize: 11.sp)),
@@ -301,7 +300,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
     );
   }
 
-  String _formatAmount(dynamic amount) {
+  String _formatAmount(amount) {
     if (amount == null) return "0";
     if (amount is num) return amount.toInt().toString();
     if (amount is String) {
@@ -435,7 +434,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
                                     bool success;
                                     if (isEdit) {
                                       success = await provider.updateHouse(
-                                          existing!['id'], data);
+                                          existing['id'], data);
                                     } else {
                                       success =
                                           await provider.createHouse(data);
@@ -495,7 +494,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
               borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: ThemeConstants.primaryOrange)),
+              borderSide: const BorderSide(color: ThemeConstants.primaryOrange)),
         ),
       ),
     ]);
@@ -541,7 +540,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
         decoration: InputDecoration(
           hintText: hint,
           errorText: errorText,
-          hintStyle: TextStyle(color: Colors.white24),
+          hintStyle: const TextStyle(color: Colors.white24),
           filled: true,
           fillColor: Colors.white.withOpacity(0.05),
           border: OutlineInputBorder(
@@ -562,10 +561,8 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
     switch (status) {
       case 'occupied':
         statusColor = ThemeConstants.successGreen;
-        break;
       case 'maintenance':
         statusColor = ThemeConstants.warningAmber;
-        break;
       default:
         statusColor = Colors.white54;
     }
@@ -726,7 +723,7 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
                                                           .errorRed))),
                                         ],
                                       ));
-                              if (confirm == true) {
+                              if (confirm ?? false) {
                                 final provider = context.read<RentalProvider>();
                                 await provider.deleteHouse(house['id']);
                                 _loadHouses();

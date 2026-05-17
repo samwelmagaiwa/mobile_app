@@ -5,10 +5,10 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 
 class BlocksManagementScreen extends StatefulWidget {
+  const BlocksManagementScreen(
+      {required this.propertyId, required this.propertyName, super.key});
   final String propertyId;
   final String propertyName;
-  const BlocksManagementScreen(
-      {super.key, required this.propertyId, required this.propertyName});
 
   @override
   State<BlocksManagementScreen> createState() => _BlocksManagementScreenState();
@@ -34,7 +34,7 @@ class _BlocksManagementScreenState extends State<BlocksManagementScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () => _showAddBlockDialog(),
+          onPressed: _showAddBlockDialog,
         ),
       ],
       body: provider.isLoading && blocks.isEmpty
@@ -70,7 +70,7 @@ class _BlocksManagementScreenState extends State<BlocksManagementScreen> {
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
             ),
             icon: const Icon(Icons.add, color: Colors.white),
-            label: Text("Ongeza Block", style: TextStyle(color: Colors.white)),
+            label: const Text("Ongeza Block", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -205,32 +205,32 @@ class _BlocksManagementScreenState extends State<BlocksManagementScreen> {
                   children: [
                     TextField(
                       controller: nameController,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: "Jina la Block *",
-                        labelStyle: TextStyle(color: Colors.white70),
+                        labelStyle: const TextStyle(color: Colors.white70),
                         prefixIcon:
-                            Icon(Icons.view_module, color: Colors.white38),
+                            const Icon(Icons.view_module, color: Colors.white38),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: Colors.white12)),
+                            borderSide: const BorderSide(color: Colors.white12)),
                       ),
                     ),
                     SizedBox(height: 16.h),
                     TextField(
                       controller: descController,
                       maxLines: 3,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: "Maelezo (Optional)",
-                        labelStyle: TextStyle(color: Colors.white70),
+                        labelStyle: const TextStyle(color: Colors.white70),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: Colors.white12)),
+                            borderSide: const BorderSide(color: Colors.white12)),
                       ),
                     ),
                     SizedBox(height: 32.h),
@@ -307,7 +307,7 @@ class _BlocksManagementScreenState extends State<BlocksManagementScreen> {
             ),
             Expanded(
               child: houses.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text("Hakuna vyumba katika block hii",
                           style: TextStyle(color: Colors.white54)))
                   : ListView.builder(
@@ -333,7 +333,7 @@ class _BlocksManagementScreenState extends State<BlocksManagementScreen> {
                               SizedBox(width: 12.w),
                               Expanded(
                                   child: Text(house['house_number'] ?? '',
-                                      style: TextStyle(color: Colors.white))),
+                                      style: const TextStyle(color: Colors.white))),
                               Text(
                                   "TSh ${_formatCurrency(house['rent_amount'])}",
                                   style: TextStyle(

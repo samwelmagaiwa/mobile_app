@@ -5,11 +5,10 @@ import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
-import '../../widgets/service_switcher_dialog.dart';
 
 class RentalDashboardScreen extends StatefulWidget {
-  final bool isSubView;
   const RentalDashboardScreen({super.key, this.isSubView = false});
+  final bool isSubView;
 
   @override
   State<RentalDashboardScreen> createState() => _RentalDashboardScreenState();
@@ -109,10 +108,10 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     int totalHouses = 0;
     int occupiedHouses = 0;
 
-    for (var prop in properties) {
+    for (final prop in properties) {
       final houses = prop['houses'] as List? ?? [];
       totalHouses += houses.length;
-      for (var house in houses) {
+      for (final house in houses) {
         if (house['is_occupied'] == 1 || house['is_occupied'] == true) {
           occupiedHouses++;
         }

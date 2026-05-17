@@ -18,7 +18,7 @@ class AppMessenger {
   }
 
   static void showSuccess(String message) {
-    show(message, isSuccess: true);
+    show(message);
   }
 
   static void showError(String message) {

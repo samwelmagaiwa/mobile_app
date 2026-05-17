@@ -5,8 +5,8 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 
 class RecordPaymentScreen extends StatefulWidget {
-  final Map<String, dynamic>? preSelectedTenant;
   const RecordPaymentScreen({super.key, this.preSelectedTenant});
+  final Map<String, dynamic>? preSelectedTenant;
 
   @override
   State<RecordPaymentScreen> createState() => _RecordPaymentScreenState();
@@ -151,9 +151,9 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
           if (provider.isLoading && tenants.isEmpty)
             const Center(child: CircularProgressIndicator(color: Colors.white))
           else if (tenants.isEmpty)
-            Text("Hakuna wapangaji", style: TextStyle(color: Colors.white54))
+            const Text("Hakuna wapangaji", style: TextStyle(color: Colors.white54))
           else
-            ...tenants.map((tenant) => _buildTenantItem(tenant)),
+            ...tenants.map((dynamic t) => _buildTenantItem(t as Map<String, dynamic>)),
         ],
       ),
     );
@@ -189,7 +189,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
               child: Text(
                 (tenant['name'] ?? '?')[0].toString().toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                     color: ThemeConstants.primaryOrange,
                     fontWeight: FontWeight.bold),
               ),
@@ -236,11 +236,11 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
           if (bills.isEmpty)
             Padding(
               padding: EdgeInsets.all(16.h),
-              child: Text("Hakuna bima zilizo kugawanyika",
+              child: const Text("Hakuna bima zilizo kugawanyika",
                   style: TextStyle(color: Colors.white54)),
             )
           else
-            ...bills.map((bill) => _buildBillItem(bill)),
+            ...bills.map((dynamic b) => _buildBillItem(b as Map<String, dynamic>)),
         ],
       ),
     );
@@ -532,7 +532,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold)),
             SizedBox(height: 8.h),
-            Text("Risiti itatumwa kwenye simu",
+            const Text("Risiti itatumwa kwenye simu",
                 style: TextStyle(color: Colors.white54)),
           ],
         ),
@@ -542,7 +542,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: Text("Sawa",
+            child: const Text("Sawa",
                 style: TextStyle(color: ThemeConstants.primaryOrange)),
           ),
         ],

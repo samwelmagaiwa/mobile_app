@@ -1,16 +1,18 @@
 import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 
 class OnboardTenantScreen extends StatefulWidget {
+  const OnboardTenantScreen({super.key, this.preSelectedProperty, this.preSelectedHouse});
   final Map<String, dynamic>? preSelectedProperty;
   final Map<String, dynamic>? preSelectedHouse;
-  const OnboardTenantScreen({super.key, this.preSelectedProperty, this.preSelectedHouse});
 
   @override
   State<OnboardTenantScreen> createState() => _OnboardTenantScreenState();
@@ -142,7 +144,6 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
-        allowMultiple: false,
       );
       if (result != null && result.files.single.path != null) {
         setState(() => _tenantPhotoPath = result.files.single.path);
@@ -210,8 +211,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         itemCount: steps.length,
         separatorBuilder: (context, index) => Icon(Icons.chevron_right, color: Colors.white24, size: 14.w),
         itemBuilder: (context, index) {
-          bool isCompleted = index < _currentStep;
-          bool isCurrent = index == _currentStep;
+          final bool isCompleted = index < _currentStep;
+          final bool isCurrent = index == _currentStep;
           return Center(
             child: AnimatedScale(
               duration: const Duration(milliseconds: 200),
@@ -264,7 +265,6 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           children: [
             if (_currentStep > 0)
               Expanded(
-                flex: 1,
                 child: ThemeConstants.buildResponsiveGlassCard(
                   context,
                   onTap: _prevStep,
@@ -597,7 +597,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
       child: DropdownButtonFormField<String>(
-        value: items.contains(value) ? value : null,
+        initialValue: items.contains(value) ? value : null,
         isExpanded: true,
         items: List.generate(items.length, (i) => DropdownMenuItem(
           value: items[i],
@@ -684,13 +684,13 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
       context,
       padding: EdgeInsets.zero,
       onTap: () async {
-        final result = await FilePicker.platform.pickFiles(type: FileType.any);
+        final result = await FilePicker.platform.pickFiles();
         if (result != null && result.files.single.path != null) {
           setState(() {
             _idDocPath = result.files.single.path;
             _idDocName = result.files.single.name;
           });
-          if (mounted) ThemeConstants.showSuccessSnackBar(context, "${LocalizationService.instance.translate('photo_attached')}: ${_idDocName}");
+          if (mounted) ThemeConstants.showSuccessSnackBar(context, "${LocalizationService.instance.translate('photo_attached')}: $_idDocName");
         }
       },
       child: Container(
