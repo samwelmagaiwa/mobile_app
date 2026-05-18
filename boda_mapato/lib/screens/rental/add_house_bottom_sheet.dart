@@ -47,6 +47,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
 
   String _type = 'room';
   String _status = 'vacant';
+  String? _blockId;
   DateTime? _maintenanceUntil;
 
   bool _hasFence = false;
@@ -69,6 +70,12 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
   void initState() {
     super.initState();
     _isEdit = widget.existingHouse != null;
+    
+    // Load blocks for this property
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RentalProvider>().fetchBlocks(widget.propertyId);
+    });
+
     if (_isEdit) {
       final h = widget.existingHouse!;
       _numberCtrl.text = h['house_number'] ?? '';
@@ -86,6 +93,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       _notesCtrl.text = h['description'] ?? '';
       _type = h['type'] ?? 'room';
       _status = h['status'] ?? 'vacant';
+      _blockId = h['block_id']?.toString();
       _hasFence = h['has_fence'] == true;
       _hasTiles = h['has_tiles'] == true;
       _hasSittingRoom = h['has_sitting_room'] == true;
@@ -614,7 +622,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
     );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> items, Function(String) onChange) {
+  Widget _buildDropdown(String label, String value, List<String> items, Function(String) onChange, {String Function(String)? displayValue}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
       SizedBox(height: 6.h),
@@ -633,7 +641,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
           style: TextStyle(color: Colors.white, fontSize: 14.sp),
           items: items.map((i) => DropdownMenuItem(
             value: i,
-            child: Text(_loc.translate(i)),
+            child: Text(displayValue != null ? displayValue(i) : _loc.translate(i)),
           )).toList(),
           onChanged: (v) => onChange(v ?? items.first),
         ),
