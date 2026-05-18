@@ -65,7 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
               LocalizationService.instance.translate('login_successful'),
               Colors.green);
         }
-        // Navigation will be handled by AuthWrapper
+        // Navigation will be handled by AuthWrapper poping current login screen
+        if (mounted) Navigator.of(context).pop();
       } else {
         // Show error message
         if (mounted) {

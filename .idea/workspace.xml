@@ -4,53 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e256aec2-792b-4fe8-9d09-0ac91277d6c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/mobile_app.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mobile_app.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/PaymentController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/PaymentController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/AgreementController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/AgreementController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/BillingController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/BillingController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/HouseController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/HouseController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/MaintenanceController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/MaintenanceController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/TenantController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Http/Controllers/API/Rental/TenantController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/House.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/House.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/RentalAgreement.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/RentalAgreement.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/RentalReceipt.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/RentalReceipt.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/Vendor.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Models/Rental/Vendor.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Models/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Models/User.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/app/Services/Rental/RentalService.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/app/Services/Rental/RentalService.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_mapato/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend_mapato/routes/api.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/android/settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/android/settings.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/config/app_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/config/app_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/config/navigation_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/config/navigation_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/constants/strings.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/constants/strings.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/constants/theme_constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/constants/theme_constants.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/models/login_response.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/models/login_response.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/providers/maintenance_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/providers/maintenance_provider.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/providers/rental_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/providers/rental_provider.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/maintenance/maintenance_details_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/maintenance/maintenance_details_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/maintenance/vendors_list_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/maintenance/vendors_list_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/billing_list_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/billing_list_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/house_details_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/house_details_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/house_management_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/house_management_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/lease_agreements_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/lease_agreements_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/lease_details_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/lease_details_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/onboard_tenant_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/onboard_tenant_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/properties_list_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/properties_list_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/property_details_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/property_details_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/receipt_view_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/receipt_view_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_dashboard_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_main_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_main_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_properties_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_properties_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/tenant_self_service_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/tenant_self_service_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/services/api_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/services/localization_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/services/localization_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/widgets/selectable_snackbar.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/widgets/selectable_snackbar.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/pubspec.yaml" afterDir="false" />
-    </list>
+    <list default="true" id="e256aec2-792b-4fe8-9d09-0ac91277d6c5" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
