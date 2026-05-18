@@ -777,6 +777,8 @@ class AppLocalizations {
       'step_review': 'Review',
       'complete': 'Complete',
       'rent_monthly': 'Monthly Rent',
+      'rent_amount': 'Rent Amount',
+      'deposit_amount': 'Security Deposit',
       'security_deposit': 'Security Deposit',
       'deposit_paid': 'Deposit Paid',
       'advance_months': 'Advance Rent (Months)',
