@@ -30,12 +30,12 @@ class TenantController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
-        $agreements = RentalAgreement::whereHas('house.property', function($query) use ($user) {
+
+        $agreements = RentalAgreement::whereHas('house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->with('tenant.profile', 'house.property', 'house.block')->get();
-        
-        $tenants = $agreements->map(function($agreement) {
+
+        $tenants = $agreements->map(function ($agreement) {
             return [
                 'id' => $agreement->tenant->id,
                 'name' => $agreement->tenant->name,
@@ -59,8 +59,25 @@ class TenantController extends Controller
                 ],
             ];
         });
-        
+
         return ResponseHelper::success($tenants);
+    }
+
+    /**
+     * Search available system tenants
+     */
+    public function availableSystemTenants(Request $request)
+    {
+        $search = $request->query('query');
+        $query = User::where('role', 'tenant');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%")
+                    ->orWhere('phone_number', 'like', "%$search%");
+            });
+        }
+        return ResponseHelper::success($query->limit(20)->get());
     }
 
     /**
@@ -68,12 +85,12 @@ class TenantController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($query) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
             $query->where('owner_id', $request->user()->id);
         })->where('tenant_id', $id)
-        ->with('tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')
-        ->firstOrFail();
-        
+            ->with('tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')
+            ->firstOrFail();
+
         return ResponseHelper::success([
             'tenant' => $agreement->tenant,
             'profile' => $agreement->tenant->profile,
@@ -111,7 +128,7 @@ class TenantController extends Controller
 
         try {
             $data = $request->all();
-            
+
             // Multipart sends JSON arrays as strings, so we must decode them
             $jsonFields = ['emergency_contact', 'id_details', 'employment', 'history', 'occupants', 'pets'];
             foreach ($jsonFields as $field) {
@@ -134,11 +151,11 @@ class TenantController extends Controller
                 $data['photo_url'] = $path;
             }
             $result = $this->rentalService->onboardTenant($data);
-            
+
             // Send welcome SMS
             $house = House::find($request->house_id);
             SmsService::sendTenantWelcome($result['user'], $house);
-            
+
             return ResponseHelper::success($result, 'Tenant onboarded successfully', 201);
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), 500);
@@ -154,17 +171,17 @@ class TenantController extends Controller
             'status' => 'required|in:active,notice,terminated,defaulter',
         ]);
 
-        $agreement = RentalAgreement::whereHas('house.property', function($query) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
             $query->where('owner_id', $request->user()->id);
         })->where('tenant_id', $id)->firstOrFail();
 
         $agreement->update(['status' => $request->status]);
-        
+
         // If terminated, free up the house
         if ($request->status === 'terminated') {
             $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
         }
-        
+
         return ResponseHelper::success($agreement, 'Tenant status updated');
     }
 
@@ -173,16 +190,16 @@ class TenantController extends Controller
      */
     public function terminate(Request $request, $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($query) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
             $query->where('owner_id', $request->user()->id);
         })->where('tenant_id', $id)->firstOrFail();
 
         // Free up the house
         $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
-        
+
         // Delete the agreement
         $agreement->delete();
-        
+
         return ResponseHelper::success(null, 'Tenant terminated successfully');
     }
 
@@ -193,10 +210,10 @@ class TenantController extends Controller
      */
     public function myBills(Request $request)
     {
-        $bills = RentBill::whereHas('agreement', function($query) use ($request) {
+        $bills = RentBill::whereHas('agreement', function ($query) use ($request) {
             $query->where('tenant_id', $request->user()->id);
         })->with('agreement.house.property')->get();
-        
+
         return ResponseHelper::success($bills);
     }
 
@@ -209,7 +226,7 @@ class TenantController extends Controller
             ->with('bill.agreement.house', 'receipt', 'collector')
             ->orderBy('payment_date', 'desc')
             ->get();
-        
+
         return ResponseHelper::success($payments);
     }
 
@@ -218,10 +235,11 @@ class TenantController extends Controller
      */
     public function myReceipts(Request $request)
     {
-        $receipts = RentalReceipt::whereHas('payment', function($query) use ($request) {
-            $query->where('tenant_id', $request->user()->id);
-        })->orderBy('created_at', 'desc')->get();
-        
+        $receipts = RentalReceipt::where('is_dispatched', true)
+            ->whereHas('payment', function ($query) use ($request) {
+                $query->where('tenant_id', $request->user()->id);
+            })->orderBy('created_at', 'desc')->get();
+
         return ResponseHelper::success($receipts);
     }
 }

@@ -10,6 +10,7 @@ import '../../services/navigation_builder.dart';
 import '../../widgets/service_switcher_dialog.dart';
 import 'billing_list_screen.dart';
 import 'rental_dashboard_screen.dart';
+import 'tenants_list_screen.dart';
 
 class RentalMainScreen extends StatefulWidget {
   const RentalMainScreen({super.key});
@@ -30,11 +31,8 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
         child: Text(
             LocalizationService.instance.translate("coming_soon_arrears"),
             style: const TextStyle(color: Colors.white))),
-    // Placeholder for Tenants List
-    Center(
-        child: Text(
-            LocalizationService.instance.translate("coming_soon_tenants"),
-            style: const TextStyle(color: Colors.white))),
+    // Tenants List Screen (Index 3)
+    const TenantsListScreen(isSubView: true),
     // Placeholder for Receipts List
     Center(
         child: Text(

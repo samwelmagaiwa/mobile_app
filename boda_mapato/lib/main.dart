@@ -25,7 +25,6 @@ import 'screens/admin/debts_management_screen.dart';
 import 'screens/admin/drivers_management_screen.dart';
 import 'screens/admin/vehicles_management_screen.dart';
 import 'screens/analytics/analytics_screen.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/coming_soon_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
 import 'screens/demo_language_screen.dart';
@@ -38,6 +37,7 @@ import 'screens/maintenance/maintenance_list_screen.dart';
 import 'screens/maintenance/request_maintenance_screen.dart';
 import 'screens/maintenance/vendors_list_screen.dart';
 import 'screens/payments/payments_screen.dart';
+import 'screens/public/public_landing_screen.dart';
 import 'screens/receipts/receipts_screen.dart';
 import 'screens/reminders/reminders_screen.dart';
 import 'screens/rental/billing_list_screen.dart';
@@ -60,6 +60,8 @@ import 'screens/rental/rental_receipts_screen.dart';
 import 'screens/rental/rental_tenants_screen.dart';
 import 'screens/rental/tenant_details_screen.dart';
 import 'screens/rental/tenant_self_service_screen.dart';
+import 'screens/rental/vendor_dashboard_screen.dart';
+import 'screens/rental/lease_agreement_wizard_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -203,6 +205,8 @@ class BodaMapatoApp extends StatelessWidget {
               home: const AuthWrapper(),
               debugShowCheckedModeBanner: false,
               routes: <String, WidgetBuilder>{
+                "/landing": (final BuildContext context) =>
+                    const PublicLandingScreen(),
                 "/receipts": (final BuildContext context) =>
                     const ReceiptsScreen(),
                 "/driver/receipts": (final BuildContext context) =>
@@ -246,9 +250,11 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/properties": (final BuildContext context) =>
                     const PropertiesListScreen(),
                 "/rental/property-details": (final BuildContext context) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, String>?;
-                  return PropertyDetailsScreen(propertyId: args?['id'] ?? '');
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map) {
+                    return PropertyDetailsScreen(propertyId: (args['id'] ?? args['propertyId'] ?? '').toString());
+                  }
+                  return PropertyDetailsScreen(propertyId: args?.toString() ?? '');
                 },
                 "/rental/add-property": (final BuildContext context) =>
                     const CreatePropertyScreen(),
@@ -260,16 +266,22 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/tenants": (final BuildContext context) =>
                     const RentalTenantsScreen(),
                 "/rental/tenant-details": (final BuildContext context) {
-                  final tenant = ModalRoute.of(context)!.settings.arguments!
-                      as Map<String, dynamic>;
-                  return TenantDetailsScreen(tenant: tenant);
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map<String, dynamic>) {
+                    return TenantDetailsScreen(tenant: args);
+                  }
+                  // If it's just an ID String, we might need a placeholder or fetch logic,
+                  // but for now, pass an empty map with the ID to avoid casting crashes.
+                  return TenantDetailsScreen(tenant: {'id': args?.toString() ?? ''});
                 },
                 "/rental/onboard-tenant": (final BuildContext context) =>
                     const OnboardTenantScreen(),
                 "/rental/house-details": (final BuildContext context) {
-                  final house = ModalRoute.of(context)!.settings.arguments!
-                      as Map<String, dynamic>;
-                  return HouseDetailsScreen(house: house);
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map<String, dynamic>) {
+                    return HouseDetailsScreen(house: args);
+                  }
+                  return HouseDetailsScreen(house: {'id': args?.toString() ?? ''});
                 },
                 "/rental/billing": (final BuildContext context) =>
                     const BillingListScreen(),
@@ -294,6 +306,8 @@ class BodaMapatoApp extends StatelessWidget {
                     const RecordPaymentScreen(),
                 "/rental/tenant-self-service": (final BuildContext context) =>
                     const TenantSelfServiceScreen(),
+                "/vendor-dashboard": (final BuildContext context) =>
+                    const VendorDashboardScreen(),
                 "/rental/blocks": (final BuildContext context) {
                   final args = ModalRoute.of(context)?.settings.arguments
                       as Map<String, String>?;
@@ -313,7 +327,7 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/agreements": (final BuildContext context) =>
                     const LeaseAgreementsScreen(),
                 "/rental/create-agreement": (final BuildContext context) =>
-                    const CreateAgreementScreen(),
+                    const LeaseAgreementWizardScreen(),
                 "/rental/agreement-details": (final BuildContext context) {
                   final args = ModalRoute.of(context)?.settings.arguments
                       as Map<String, dynamic>?;
@@ -546,12 +560,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     authProvider.user!.role == "super_admin") {
                   return const ModernDashboardScreen();
                 }
+                if (authProvider.user!.role == "vendor") {
+                  return const VendorDashboardScreen();
+                }
                 return const DriverDashboardScreen();
               },
             );
           } else {
-            // User is not authenticated, show login screen
-            return const LoginScreen();
+            // User is not authenticated, show public landing screen
+            return const PublicLandingScreen();
           }
         },
       );

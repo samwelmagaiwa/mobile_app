@@ -29,6 +29,21 @@ class House extends Model
         'bathrooms',
         'square_meters',
         'description',
+        'has_fence',
+        'has_tiles',
+        'has_sitting_room',
+        'has_master_bedroom',
+        'has_kitchen',
+        'kitchen_location',
+        'distance_from_road',
+        'electricity_type',
+        'electricity_sharing_count',
+        'water_type',
+        'water_sharing_count',
+        'landlord_lives_present',
+        'images',
+        'image_captions',
+        'maintenance_until',
     ];
 
     protected $casts = [
@@ -37,6 +52,15 @@ class House extends Model
         'bedrooms' => 'integer',
         'bathrooms' => 'integer',
         'square_meters' => 'integer',
+        'images' => 'array',
+        'image_captions' => 'array',
+        'has_fence' => 'boolean',
+        'has_tiles' => 'boolean',
+        'has_sitting_room' => 'boolean',
+        'has_master_bedroom' => 'boolean',
+        'has_kitchen' => 'boolean',
+        'landlord_lives_present' => 'boolean',
+        'maintenance_until' => 'date',
     ];
 
     /**

@@ -196,6 +196,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the profile associated with the user (alias for tenantProfile).
+     */
+    public function profile()
+    {
+        return $this->tenantProfile();
+    }
+
+    /**
      * Get the tenant profile associated with the user.
      */
     public function tenantProfile()
@@ -265,5 +273,13 @@ class User extends Authenticatable
     public function scopeAdmins($query)
     {
         return $query->whereIn('role', ['super_admin', 'admin']);
+    }
+
+    /**
+     * Get the external service vendors saved to this user's (landlord) roster.
+     */
+    public function savedVendors()
+    {
+        return $this->belongsToMany(\App\Models\Rental\Vendor::class, 'landlord_vendor', 'landlord_id', 'vendor_id')->withTimestamps();
     }
 }

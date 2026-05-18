@@ -113,12 +113,15 @@ class UserData {
 
   bool hasPermission(String permission) {
     if (isSuperAdmin || fullAccess) return true;
+    if (role == 'tenant' && (permission == 'view_maintenance' || permission == 'view_vendors')) return true;
+    if (role == 'vendor' && (permission == 'vendor_access' || permission == 'view_maintenance')) return true;
     return permissions?.contains(permission) ?? false;
   }
 
   bool get isSuperAdmin => role == "super_admin";
   bool get isAdmin => role == "admin";
   bool get isDriver => role == "driver";
+  bool get isVendor => role == "vendor";
   bool get canManageDrivers => isSuperAdmin || isAdmin;
 
   static String? _pickAvatarUrl(Map<String, dynamic> json) {

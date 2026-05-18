@@ -145,13 +145,13 @@ class NavigationConfig {
       key: 'maintenance',
       icon: Icons.handyman,
       route: '/rental/maintenance',
-      requiredPermissions: ['manage_maintenance_rental'],
+      requiredPermissions: ['view_maintenance'],
     ),
     NavigationItem(
       key: 'vendors',
       icon: Icons.person_search,
       route: '/rental/vendors',
-      requiredPermissions: ['manage_vendors'],
+      requiredPermissions: ['view_vendors'],
     ),
     NavigationItem(
       key: 'rent_payments',
@@ -188,18 +188,6 @@ class NavigationConfig {
       icon: Icons.file_copy,
       route: '/rental/lease-templates',
       requiredPermissions: ['manage_agreements_rental'],
-    ),
-    NavigationItem(
-      key: 'maintenance',
-      icon: Icons.handyman,
-      route: '/rental/maintenance',
-      requiredPermissions: ['view_maintenance'],
-    ),
-    NavigationItem(
-      key: 'vendors',
-      icon: Icons.person_search,
-      route: '/rental/vendors',
-      requiredPermissions: ['manage_vendors'],
     ),
     NavigationItem(
       key: 'switch_service',

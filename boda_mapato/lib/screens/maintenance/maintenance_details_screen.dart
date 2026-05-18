@@ -157,6 +157,7 @@ class _MaintenanceDetailsScreenState extends State<MaintenanceDetailsScreen> {
     final request = widget.request;
     final user = context.read<AuthProvider>().user;
     final isLandlord = user?.role == 'admin' || user?.role == 'landlord' || user?.role == 'super_admin';
+    final isVendor = user?.role == 'vendor';
     final workOrder = request['work_order'];
 
     return ThemeConstants.buildScaffold(
@@ -265,9 +266,14 @@ class _MaintenanceDetailsScreenState extends State<MaintenanceDetailsScreen> {
                   if (isLandlord && request['status'] == 'open')
                     _buildActionButton("PANGA FUNDI SASA", Icons.assignment_ind, _assignVendor),
                   if (isLandlord && request['status'] == 'pending')
-                    _buildActionButton("ANZA MATENGENEZO", Icons.play_circle_fill, () => _updateStatus('in_progress')),
+                    _buildActionButton("ANZA MATENGENEZO (LANDLORD)", Icons.play_circle_fill, () => _updateStatus('in_progress')),
                   if (isLandlord && request['status'] == 'in_progress')
-                    _buildActionButton("SULUHISHA / KAMILISHA", Icons.check_circle, () => _updateStatus('resolved'), color: ThemeConstants.successGreen),
+                    _buildActionButton("SULUHISHA / KAMILISHA (LANDLORD)", Icons.check_circle, () => _updateStatus('resolved'), color: ThemeConstants.successGreen),
+                    
+                  if (isVendor && request['status'] == 'pending')
+                    _buildActionButton("ANZA KAZI HII", Icons.play_circle_fill, () => _updateStatus('in_progress')),
+                  if (isVendor && request['status'] == 'in_progress')
+                    _buildActionButton("KAMILISHA KAZI (RESOLVE)", Icons.check_circle, () => _updateStatus('resolved'), color: ThemeConstants.successGreen),
                   SizedBox(height: 40.h),
                 ],
               ),

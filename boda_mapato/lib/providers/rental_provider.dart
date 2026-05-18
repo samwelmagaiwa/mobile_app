@@ -149,7 +149,17 @@ class RentalProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final response = await _api.getRentalBills();
-      _bills = response['data'] ?? [];
+      final List<dynamic> items = response['data'] ?? [];
+      
+      // Deduplicate by ID
+      final seenIds = <String>{};
+      _bills = items.where((item) {
+        final id = item['id']?.toString();
+        if (id == null) return true;
+        if (seenIds.contains(id)) return false;
+        seenIds.add(id);
+        return true;
+      }).toList();
     } catch (e) {
       debugPrint('Error fetching bills: $e');
     } finally {
@@ -180,6 +190,21 @@ class RentalProvider extends ChangeNotifier {
       _receipts = response['data'] ?? [];
     } catch (e) {
       debugPrint('Error fetching receipts: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> dispatchTenantReceipt(String receiptId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _api.dispatchTenantReceipt(receiptId);
+      return true;
+    } catch (e) {
+      debugPrint('Error dispatching receipt: $e');
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -504,11 +529,11 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createHouse(Map<String, dynamic> data) async {
+  Future<bool> createHouse(Map<String, dynamic> data, {List<dynamic>? images}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      await _api.createHouse(data);
+      await _api.createHouse(data, images: images);
       await fetchProperties();
       return true;
     } catch (e) {
@@ -520,11 +545,11 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateHouse(String houseId, Map<String, dynamic> data) async {
+  Future<bool> updateHouse(String houseId, Map<String, dynamic> data, {List<dynamic>? images}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      await _api.updateHouse(houseId, data);
+      await _api.updateHouse(houseId, data, images: images);
       return true;
     } catch (e) {
       debugPrint('Error updating house: $e');
@@ -632,7 +657,17 @@ class RentalProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final response = await _api.getAgreements(status: status, search: search);
-      _agreements = response['data'] ?? [];
+      final List<dynamic> items = response['data'] ?? [];
+      
+      // Deduplicate by ID
+      final seenIds = <String>{};
+      _agreements = items.where((item) {
+        final id = item['id']?.toString();
+        if (id == null) return true;
+        if (seenIds.contains(id)) return false;
+        seenIds.add(id);
+        return true;
+      }).toList();
     } catch (e) {
       debugPrint('Error fetching agreements: $e');
     } finally {
@@ -641,11 +676,27 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createAgreement(Map<String, dynamic> data) async {
+  Future<bool> createAgreement(Map<String, dynamic> data, {File? document}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      await _api.createAgreement(data);
+      final response = await _api.createAgreement(data);
+      
+      // Attempt to upload document if provided and agreement created
+      if (document != null) {
+        final agreementData = response['data'];
+        final agreementId = agreementData != null ? (agreementData['id']?.toString() ?? response['id']?.toString()) : response['id']?.toString();
+        
+        if (agreementId != null) {
+          try {
+            await _api.uploadAgreementDocument(agreementId, document, 'signed_contract');
+          } catch (e) {
+            debugPrint('Error uploading agreement document: $e');
+            // We don't fail the entire process if upload fails, but warn ideally
+          }
+        }
+      }
+
       await fetchAgreements();
       return true;
     } catch (e) {

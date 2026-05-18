@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import 'create_property_screen.dart';
@@ -61,16 +62,20 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+    final bool canAddProperty = user?.hasPermission('manage_properties_rental') ?? false;
+
     return ThemeConstants.buildScaffold(
       title: _loc.translate('properties'),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
-          ).then((_) => _loadProperties(refresh: true)),
-        ),
+        if (canAddProperty)
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
+            ).then((_) => _loadProperties(refresh: true)),
+          ),
       ],
       body: SafeArea(
         child: Column(
@@ -203,6 +208,9 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final user = context.watch<AuthProvider>().user;
+    final bool canAddProperty = user?.hasPermission('manage_properties_rental') ?? false;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -218,30 +226,32 @@ class _PropertiesListScreenState extends State<PropertiesListScreen> {
           SizedBox(height: 20.h),
           Text(_loc.translate('no_properties'),
               style: ThemeConstants.subHeadingStyle),
-          SizedBox(height: 8.h),
-          Text(_loc.translate('add_property_hint'),
-              style: ThemeConstants.captionStyle),
-          SizedBox(height: 24.h),
-          ElevatedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
-            ).then((_) => _loadProperties(refresh: true)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ThemeConstants.primaryOrange,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          if (canAddProperty) ...[
+            SizedBox(height: 8.h),
+            Text(_loc.translate('add_property_hint'),
+                style: ThemeConstants.captionStyle),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreatePropertyScreen()),
+              ).then((_) => _loadProperties(refresh: true)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeConstants.primaryOrange,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, color: Colors.white),
+                  SizedBox(width: 8.w),
+                  Text(_loc.translate('add_property'),
+                      style: TextStyle(color: Colors.white, fontSize: 14.sp)),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add, color: Colors.white),
-                SizedBox(width: 8.w),
-                Text(_loc.translate('add_property'),
-                    style: TextStyle(color: Colors.white, fontSize: 14.sp)),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );

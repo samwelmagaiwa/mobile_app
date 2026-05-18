@@ -100,12 +100,26 @@ class RentalService
         if ($existing)
             return $existing;
 
+        // Calculate total amount (Rent + Utilities if applicable)
+        $totalAmount = $agreement->rent_amount;
+
+        if ($agreement->utility_charges) {
+            foreach ($agreement->utility_charges as $utility) {
+                if (isset($utility['amount']) && isset($utility['billing_type']) && $utility['billing_type'] === 'fixed') {
+                    $totalAmount += $utility['amount'];
+                }
+            }
+        }
+
+        $dueDay = $agreement->due_day ?? 5;
+        $dueDate = $date->copy()->startOfMonth()->addDays($dueDay - 1);
+
         return RentBill::create([
             'agreement_id' => $agreement->id,
             'month_year' => $monthYear,
-            'amount_due' => $agreement->rent_amount,
-            'balance' => $agreement->rent_amount,
-            'due_date' => $date->copy()->startOfMonth()->addDays(5), // Default due date 5th of month
+            'amount_due' => $totalAmount,
+            'balance' => $totalAmount,
+            'due_date' => $dueDate,
             'status' => 'unpaid',
         ]);
     }
@@ -175,7 +189,7 @@ class RentalService
 
         $details = [
             'receipt_number' => $receiptNumber,
-            'date' => $payment->payment_date->format('Y-m-d'),
+            'date' => Carbon::parse($payment->payment_date)->format('Y-m-d'),
             'tenant_name' => $payment->tenant->name,
             'house_number' => $payment->bill->agreement->house->house_number,
             'property_name' => $payment->bill->agreement->house->property->name,
@@ -203,6 +217,7 @@ class RentalService
         $date = now()->addDays(7); // Look ahead 7 days to generate next month's bill early
 
         foreach ($agreements as $agreement) {
+            /** @var \App\Models\Rental\RentalAgreement $agreement */
             $bill = $this->generateBillForAgreement($agreement, $date);
             if ($bill->wasRecentlyCreated)
                 $count++;
@@ -223,6 +238,7 @@ class RentalService
             ->get();
 
         foreach ($bills as $bill) {
+            /** @var \App\Models\Rental\RentBill $bill */
             $bill->update(['status' => 'overdue']);
 
             // Trigger SMS notification

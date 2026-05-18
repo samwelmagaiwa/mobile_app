@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import 'add_house_bottom_sheet.dart';
 
 class HouseManagementScreen extends StatefulWidget {
   const HouseManagementScreen(
@@ -311,160 +312,14 @@ class _HouseManagementScreenState extends State<HouseManagementScreen> {
   }
 
   void _showAddHouseDialog({Map<String, dynamic>? existing}) {
-    bool attemptedSubmit = false;
-    final isEdit = existing != null;
-    final numberCtrl = TextEditingController(text: existing?['house_number']);
-    final rentCtrl =
-        TextEditingController(text: existing != null ? _formatAmount(existing['rent_amount']) : '');
-    final depositCtrl = TextEditingController(
-        text: existing != null ? _formatAmount(existing['deposit_amount']) : '0');
-    final meterCtrl =
-        TextEditingController(text: existing?['electricity_meter']);
-    final waterCtrl = TextEditingController(text: existing?['water_meter']);
-    String type = existing?['type'] ?? 'room';
-    String status = existing?['status'] ?? 'vacant';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: BoxDecoration(
-            color: ThemeConstants.primaryBlue,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24.r),
-                topRight: Radius.circular(24.r))),
-        child: Column(
-          children: [
-            Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2.r))),
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(isEdit ? "Hariri Nyumba" : "Ongeza Nyumba",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold)),
-                    IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close, color: Colors.white54)),
-                  ]),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: StatefulBuilder(
-                    builder: (ctx, setS) => Column(
-                          children: [
-                            _field(numberCtrl, "Namba ya Nyumba *", Icons.door_front_door,
-                                onChanged: (v) => setS(() {}),
-                                errorText: attemptedSubmit && numberCtrl.text.isEmpty
-                                    ? LocalizationService.instance.translate('field_required')
-                                    : null),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _dropdown("Aina", type, ['room', 'apartment', 'studio', 'commercial', 'bedsitter', 'one_bedroom', 'two_bedroom'], (v) => setS(() => type = v))),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _dropdown("Hali", status, ['vacant', 'occupied', 'maintenance', 'reserved'], (v) => setS(() => status = v))),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _numberField(rentCtrl, "Kodi (TSh) *",
-                                  onChanged: (v) => setS(() {}),
-                                  errorText: attemptedSubmit && rentCtrl.text.isEmpty
-                                      ? LocalizationService.instance.translate('field_required')
-                                      : (attemptedSubmit && double.tryParse(rentCtrl.text) == null
-                                          ? LocalizationService.instance.translate('invalid_amount')
-                                          : null))),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _numberField(depositCtrl, "${LocalizationService.instance.translate('deposit_amount')} (TSh)",
-                                  onChanged: (v) => setS(() {}),
-                                  errorText: (double.tryParse(depositCtrl.text) ?? 0) > (double.tryParse(rentCtrl.text) ?? 0)
-                                      ? LocalizationService.instance.translate('deposit_exceeds_rent')
-                                      : null)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _field(meterCtrl, "Namba ya Stima", Icons.bolt)),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _field(waterCtrl, "Namba ya Maji", Icons.water_drop)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _numberField(null, "Vyumba vya Kulala", hint: "0")),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _numberField(null, "Bafu", hint: "0")),
-                            ]),
-                            SizedBox(height: 32.h),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  setS(() => attemptedSubmit = true);
-                                  if (numberCtrl.text.isNotEmpty &&
-                                      rentCtrl.text.isNotEmpty) {
-                                    final double rentAmt = double.tryParse(rentCtrl.text) ?? 0;
-                                    final double depositAmt = double.tryParse(depositCtrl.text) ?? 0;
-                                    if (depositAmt > rentAmt) return;
-                                    
-                                    final provider =
-                                        context.read<RentalProvider>();
-                                    final data = {
-                                      'property_id': widget.propertyId,
-                                      'house_number': numberCtrl.text,
-                                      'rent_amount':
-                                          double.parse(rentCtrl.text),
-                                      'deposit_amount':
-                                          double.tryParse(depositCtrl.text) ??
-                                              0,
-                                      'type': type,
-                                      'status': status,
-                                      'electricity_meter': meterCtrl.text,
-                                      'water_meter': waterCtrl.text,
-                                    };
-                                    bool success;
-                                    if (isEdit) {
-                                      success = await provider.updateHouse(
-                                          existing['id'], data);
-                                    } else {
-                                      success =
-                                          await provider.createHouse(data);
-                                    }
-                                    if (ctx.mounted) Navigator.pop(ctx);
-                                    if (success) _loadHouses();
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        ThemeConstants.primaryOrange,
-                                    padding:
-                                        EdgeInsets.symmetric(vertical: 16.h),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12.r))),
-                                child: Text(isEdit ? "Sasisha" : "Hifadhi",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                            SizedBox(height: 20.h),
-                          ],
-                        )),
-              ),
-            ),
-          ],
-        ),
+      builder: (ctx) => AddHouseBottomSheet(
+        propertyId: widget.propertyId,
+        existingHouse: existing,
+        onSaved: () => _loadHouses(),
       ),
     );
   }

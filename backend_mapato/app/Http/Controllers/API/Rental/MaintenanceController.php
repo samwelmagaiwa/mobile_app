@@ -27,9 +27,19 @@ class MaintenanceController extends Controller
         $query = MaintenanceRequest::with(['property', 'house', 'tenant', 'workOrder.vendor']);
 
         // Landlord/Admin see their properties' requests
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'landlord', 'caretaker'])) {
             $query->whereHas('property', function ($q) use ($user) {
-                $q->where('owner_id', $user->id);
+                // If it's a caretaker, there might be a different linkage, but owner_id works for landlord
+                if ($user->role !== 'admin') {
+                    $q->where('owner_id', $user->id);
+                }
+            });
+        } elseif ($user->role === 'vendor') {
+            // Vendors see only requests properly assigned to their vendor profile
+            $query->whereHas('workOrder', function ($q) use ($user) {
+                $q->whereHas('vendor', function ($vQ) use ($user) {
+                    $vQ->where('user_id', $user->id);
+                });
             });
         } else {
             // Tenants see only their requests
@@ -134,6 +144,12 @@ class MaintenanceController extends Controller
     {
         $maintenanceRequest = MaintenanceRequest::findOrFail($id);
 
+        if ($request->user()->role === 'vendor') {
+            if (!$maintenanceRequest->workOrder || !$maintenanceRequest->workOrder->vendor || $maintenanceRequest->workOrder->vendor->user_id !== $request->user()->id) {
+                return ResponseHelper::error('Hauruhusiwi kubadilisha hali ya kazi hii.', 403);
+            }
+        }
+
         $request->validate([
             'status' => 'required|in:open,pending,in_progress,resolved,cancelled',
             'actual_cost' => 'nullable|numeric|min:0',
@@ -171,8 +187,52 @@ class MaintenanceController extends Controller
      */
     public function getVendors(Request $request)
     {
-        $vendors = Vendor::where('is_active', true)->get();
+        $user = $request->user();
+
+        if ($user->role === 'tenant') {
+            $landlordId = Property::whereHas('houses.rentalAgreements', function ($q) use ($user) {
+                $q->where('tenant_id', $user->id);
+            })->value('owner_id');
+
+            if (!$landlordId)
+                return ResponseHelper::success([]);
+
+            $vendors = Vendor::whereHas('landlords', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })->where('is_active', true)->get();
+
+            return ResponseHelper::success(VendorResource::collection($vendors));
+        }
+
+        if ($user->role === 'admin') {
+            $vendors = Vendor::where('is_active', true)->get();
+            return ResponseHelper::success(VendorResource::collection($vendors));
+        }
+
+        // For ordinary Landlords/Caretakers, return their saved roster
+        $vendors = $user->savedVendors()->where('is_active', true)->get();
         return ResponseHelper::success(VendorResource::collection($vendors));
+    }
+
+    public function getMarketplaceVendors(Request $request)
+    {
+        // Public marketplace returns global vendors
+        $vendors = Vendor::where('is_global', true)->where('is_active', true)->get();
+        return ResponseHelper::success(VendorResource::collection($vendors));
+    }
+
+    public function saveToRoster(Request $request, $id)
+    {
+        $vendor = Vendor::findOrFail($id);
+        $request->user()->savedVendors()->syncWithoutDetaching([$vendor->id]);
+        return ResponseHelper::success(null, 'Fundi ameongezwa kwenye orodha yako');
+    }
+
+    public function removeFromRoster(Request $request, $id)
+    {
+        $vendor = Vendor::findOrFail($id);
+        $request->user()->savedVendors()->detach($vendor->id);
+        return ResponseHelper::success(null, 'Fundi ameondolewa kwenye orodha yako');
     }
 
     public function storeVendor(Request $request)
@@ -181,10 +241,50 @@ class MaintenanceController extends Controller
             'name' => 'required|string',
             'phone' => 'required|string',
             'specialty' => 'nullable|string',
+            'experience' => 'nullable|string',
             'business_name' => 'nullable|string',
+            'email' => 'nullable|email',
         ]);
 
-        $vendor = Vendor::create($request->all());
+        $phone = $request->phone;
+
+        // Find existing user or create a new one
+        $user = \App\Models\User::where('phone_number', $phone)
+            ->orWhere(function ($query) use ($request) {
+                if ($request->email) {
+                    $query->where('email', $request->email);
+                }
+            })->first();
+
+        if (!$user) {
+            $dummyEmail = $request->email ?? strtolower(str_replace(' ', '', $request->name)) . rand(100, 999) . '@vendor.mapato.com';
+            $user = \App\Models\User::create([
+                'name' => $request->name,
+                'email' => $dummyEmail,
+                'phone_number' => $phone,
+                'password' => bcrypt('12345678'), // Default password
+                'role' => 'vendor',
+                'is_active' => true,
+            ]);
+        }
+
+        $data = $request->all();
+        $data['user_id'] = $user->id;
+        $data['is_active'] = true;
+
+        // Prevent duplicates: update existing vendor if they have the same phone
+        $vendor = Vendor::updateOrCreate(
+            ['phone' => $phone],
+            $data
+        );
+
+        // Assign authorship and automatically attach to the creator's saved roster
+        $vendor->created_by = $request->user()->id;
+        $vendor->is_global = true;
+        $vendor->save();
+
+        $request->user()->savedVendors()->syncWithoutDetaching([$vendor->id]);
+
         return ResponseHelper::success(new VendorResource($vendor), 'Fundi ameongezwa', 201);
     }
 

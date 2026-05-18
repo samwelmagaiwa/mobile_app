@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../services/api_service.dart';
 
 class OnboardTenantScreen extends StatefulWidget {
   const OnboardTenantScreen({super.key, this.preSelectedProperty, this.preSelectedHouse});
@@ -149,7 +150,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         setState(() => _tenantPhotoPath = result.files.single.path);
       }
     } catch (e) {
-      if (mounted) ThemeConstants.showErrorSnackBar(context, "Could not pick image");
+      if (mounted) ThemeConstants.showErrorSnackBar(context, LocalizationService.instance.translate("image_pick_error"));
     }
   }
 
@@ -312,6 +313,30 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     return _buildStepLayout(
       title: "${loc.translate('step')} 1: ${loc.translate('personal_info')}",
       children: [
+        ThemeConstants.buildResponsiveGlassCardStatic(
+          context,
+          padding: EdgeInsets.all(12.w),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Is this user already registered?",
+                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+              ),
+              ElevatedButton.icon(
+                onPressed: _showExistingTenantSearch,
+                icon: const Icon(Icons.search, size: 16),
+                label: const Text("Select User"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ThemeConstants.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 16.h),
         Row(
           children: [
             Expanded(child: _buildInputField(loc.translate("first_name"), _firstNameController, Icons.person)),
@@ -540,7 +565,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         SizedBox(height: 16.h),
         _buildPhotoUploadField(loc.translate("tenant_photo"), _tenantPhotoPath, _pickTenantPhoto),
         SizedBox(height: 16.h),
-        _buildInputField("Maelezo ya Ziada", _notesController, Icons.note_alt),
+        _buildInputField(loc.translate("additional_notes"), _notesController, Icons.note_alt),
         SizedBox(height: 20.h),
         _buildCheckboxRow(loc.translate("accept_terms"), _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
         _buildCheckboxRow(loc.translate("agree_privacy"), _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
@@ -616,6 +641,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildDatePickerField(String label, DateTime? date, Function(DateTime?) onSelected) {
+    final loc = LocalizationService.instance;
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       onTap: () async {
@@ -638,7 +664,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
               children: [
                 Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
                 Text(
-                  date != null ? "${date.day}/${date.month}/${date.year}" : "Select",
+                  date != null ? "${date.day}/${date.month}/${date.year}" : loc.translate("select"),
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               ],
@@ -680,6 +706,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildUploadField(String label) {
+    final loc = LocalizationService.instance;
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       padding: EdgeInsets.zero,
@@ -720,6 +747,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
   Widget _buildPhotoUploadField(String label, String? path, VoidCallback onTap) {
+    final loc = LocalizationService.instance;
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       padding: EdgeInsets.zero,
@@ -780,6 +808,128 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   }
 
 
+
+  void _showExistingTenantSearch() {
+    final apiService = context.read<ApiService>();
+    String searchQuery = '';
+    List<dynamic> results = [];
+    bool isSearching = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setStateSheet) {
+            void performSearch() async {
+              setStateSheet(() => isSearching = true);
+              try {
+                final data = await apiService.getSystemTenants(query: searchQuery);
+                setStateSheet(() {
+                  results = data;
+                  isSearching = false;
+                });
+              } catch (e) {
+                setStateSheet(() => isSearching = false);
+              }
+            }
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: BoxDecoration(
+                color: ThemeConstants.bgMid,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 12.h, bottom: 16.h),
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Text(
+                      "Search Existing Users",
+                      style: ThemeConstants.subHeadingStyle,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Search name, email, or phone...",
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        searchQuery = val;
+                      },
+                      onSubmitted: (_) => performSearch(),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+                        onPressed: performSearch,
+                        child: const Text("Search", style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: isSearching
+                        ? const Center(child: CircularProgressIndicator())
+                        : results.isEmpty
+                            ? Center(
+                                child: Text("No users found", style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                                itemCount: results.length,
+                                itemBuilder: (context, index) {
+                                  final user = results[index];
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                                      child: const Icon(Icons.person, color: ThemeConstants.primaryOrange),
+                                    ),
+                                    title: Text(user['name'] ?? '', style: const TextStyle(color: Colors.white)),
+                                    subtitle: Text("${user['email']} • ${user['phone_number'] ?? ''}", style: const TextStyle(color: Colors.white54)),
+                                    onTap: () {
+                                      final nameParts = (user['name'] ?? '').toString().split(' ');
+                                      _firstNameController.text = nameParts.first;
+                                      if (nameParts.length > 1) {
+                                        _lastNameController.text = nameParts.sublist(1).join(' ');
+                                      }
+                                      _emailController.text = user['email'] ?? '';
+                                      _phoneController.text = user['phone_number'] ?? '';
+                                      Navigator.pop(ctx);
+                                    },
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _handleSave() async {
     final loc = LocalizationService.instance;

@@ -10,6 +10,7 @@ use App\Services\Rental\RentalService;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AgreementController extends Controller
 {
@@ -25,7 +26,7 @@ class AgreementController extends Controller
      */
     public function index(Request $request)
     {
-        $query = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $query = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->with('tenant', 'house.property', 'house.block');
 
@@ -37,10 +38,10 @@ class AgreementController extends Controller
         // Search by tenant name or house number
         if ($request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->whereHas('tenant', function($sq) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('tenant', function ($sq) use ($search) {
                     $sq->where('name', 'like', "%{$search}%");
-                })->orWhereHas('house', function($sq) use ($search) {
+                })->orWhereHas('house', function ($sq) use ($search) {
                     $sq->where('house_number', 'like', "%{$search}%");
                 });
             });
@@ -49,8 +50,8 @@ class AgreementController extends Controller
         // Expiring soon filter
         if ($request->expiring_soon) {
             $query->where('status', 'active')
-                  ->where('end_date', '>=', now())
-                  ->where('end_date', '<=', now()->addDays(30));
+                ->where('end_date', '>=', now())
+                ->where('end_date', '<=', now()->addDays(30));
         }
 
         $perPage = $request->get('per_page', 15);
@@ -62,7 +63,7 @@ class AgreementController extends Controller
      */
     public function show(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->with('tenant', 'tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')->findOrFail($id);
 
@@ -76,43 +77,62 @@ class AgreementController extends Controller
     {
         $request->validate([
             'tenant_id' => 'required|exists:users,id',
+            'property_id' => 'required|exists:rental_properties,id',
             'house_id' => 'required|exists:rental_houses,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'rent_amount' => 'required|numeric|min:0',
+            'deposit_amount' => 'sometimes|numeric|min:0',
             'deposit_paid' => 'sometimes|numeric|min:0',
-            'rent_cycle' => 'sometimes|in:monthly,quarterly,yearly',
+            'rent_cycle' => 'sometimes|in:monthly,quarterly,semi_annual,annual',
+            'due_day' => 'sometimes|integer|min:1|max:31',
+            'grace_period_days' => 'sometimes|integer|min:0',
+            'late_fee_type' => 'sometimes|in:percentage,fixed,none',
+            'late_fee_amount' => 'sometimes|numeric|min:0',
+            'utility_charges' => 'nullable|array',
+            'rules' => 'nullable|array',
             'terms' => 'nullable|string|max:2000',
             'notes' => 'nullable|string|max:1000',
             'notice_period_days' => 'sometimes|integer|min:0',
             'auto_renew' => 'sometimes|boolean',
-            'penalty_per_day' => 'sometimes|numeric|min:0',
         ]);
 
         // Verify property ownership
-        $house = House::whereHas('property', function($q) use ($request) {
+        $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($request->house_id);
 
-        if ($house->status !== 'vacant') {
+        if ($house->status !== 'vacant' && $request->get('force') != true) {
             return ResponseHelper::error('House is not vacant', 400);
         }
 
         $agreement = DB::transaction(function () use ($request, $house) {
+            // Generate agreement number if not provided
+            $agreementNumber = $request->agreement_number ?? 'AGR-' . strtoupper(Str::random(10));
+
             $agreement = RentalAgreement::create([
+                'agreement_number' => $agreementNumber,
                 'tenant_id' => $request->tenant_id,
+                'property_id' => $request->property_id,
                 'house_id' => $request->house_id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'rent_amount' => $request->rent_amount,
+                'deposit_amount' => $request->deposit_amount ?? $house->deposit_amount ?? 0,
                 'deposit_paid' => $request->deposit_paid ?? 0,
                 'rent_cycle' => $request->rent_cycle ?? 'monthly',
+                'due_day' => $request->due_day ?? 5,
+                'grace_period_days' => $request->grace_period_days ?? 0,
+                'late_fee_type' => $request->late_fee_type ?? 'none',
+                'late_fee_amount' => $request->late_fee_amount ?? 0,
+                'utility_charges' => $request->utility_charges,
+                'rules' => $request->rules,
                 'status' => 'active',
                 'terms' => $request->terms,
                 'notes' => $request->notes,
                 'notice_period_days' => $request->notice_period_days ?? 30,
                 'auto_renew' => $request->auto_renew ?? false,
-                'penalty_per_day' => $request->penalty_per_day ?? 0,
+                'created_by' => $request->user()->id,
             ]);
 
             // Mark house as occupied
@@ -122,12 +142,12 @@ class AgreementController extends Controller
             ]);
 
             // Generate first bill
-            $this->rentalService->generateBillForAgreement($agreement);
+            $this->rentalService->generateBillForAgreement($agreement, \Carbon\Carbon::parse($agreement->start_date));
 
             return $agreement;
         });
 
-        return ResponseHelper::success($agreement->load('tenant', 'house'), 'Agreement created', 201);
+        return ResponseHelper::success($agreement->load('tenant', 'house', 'property'), 'Agreement created successfully', 201);
     }
 
     /**
@@ -135,7 +155,7 @@ class AgreementController extends Controller
      */
     public function renew(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($id);
 
@@ -159,7 +179,7 @@ class AgreementController extends Controller
      */
     public function terminate(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($id);
 
@@ -188,7 +208,7 @@ class AgreementController extends Controller
      */
     public function uploadDocument(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($id);
 
@@ -218,13 +238,13 @@ class AgreementController extends Controller
      */
     public function getExpiring(Request $request)
     {
-        $agreements = RentalAgreement::whereHas('house.property', function($q) use ($request) {
+        $agreements = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->where('status', 'active')
-          ->where('end_date', '>=', now())
-          ->where('end_date', '<=', now()->addDays(30))
-          ->with('tenant', 'house')
-          ->get();
+            ->where('end_date', '>=', now())
+            ->where('end_date', '<=', now()->addDays(30))
+            ->with('tenant', 'house')
+            ->get();
 
         return ResponseHelper::success($agreements);
     }

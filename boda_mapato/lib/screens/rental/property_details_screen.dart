@@ -5,6 +5,7 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import 'edit_property_screen.dart';
+import 'add_house_bottom_sheet.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
   const PropertyDetailsScreen({required this.propertyId, super.key});
@@ -32,16 +33,45 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       actions: [
         Consumer<RentalProvider>(
           builder: (_, p, __) => p.selectedProperty != null
-              ? IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditPropertyScreen(property: p.selectedProperty!),
+              ? PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  color: ThemeConstants.bgMid,
+                  offset: const Offset(0, 40),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditPropertyScreen(property: p.selectedProperty!),
+                        ),
+                      ).then((_) => context.read<RentalProvider>().fetchPropertyDetails(widget.propertyId));
+                    } else if (value == 'delete') {
+                      _showDeleteConfirmation(context, p.selectedProperty!);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
+                          SizedBox(width: 12.w),
+                          Text(_loc.translate('edit'), style: const TextStyle(color: Colors.white)),
+                        ],
+                      ),
                     ),
-                  ).then((_) => context
-                      .read<RentalProvider>()
-                      .fetchPropertyDetails(widget.propertyId)),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                          SizedBox(width: 12.w),
+                          Text(_loc.translate('delete'), style: const TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
+                  ],
                 )
               : const SizedBox.shrink(),
         ),
@@ -98,16 +128,35 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Property Info Header
-              _buildInfoHeader(property),
-              SizedBox(height: 20.h),
-
               // Stats Cards Row
               _buildStatsRow(totalUnits, occupied, vacant, occupancyRate),
               SizedBox(height: 20.h),
 
-              // Revenue Card
-              _buildRevenueCard(totalCollected, property['currency'] ?? 'TZS'),
+              // Property Info Header
+              _buildInfoHeader(property),
+              SizedBox(height: 20.h),
+
+              // Financial Summary Row
+              Row(
+                children: [
+                   Expanded(child: _buildFinancialCard(
+                     _loc.translate('total_revenue'),
+                     '${property['currency'] ?? 'TZS'} ${_formatNumber(totalCollected)}',
+                     Icons.account_balance_wallet_outlined,
+                     ThemeConstants.successGreen,
+                   )),
+                   SizedBox(width: 12.w),
+                   Expanded(child: _buildFinancialCard(
+                     _loc.translate('recent_payments'),
+                     recentPayments.isNotEmpty 
+                        ? 'TZS ${_formatNumber(recentPayments.first['amount'] ?? 0)}'
+                        : _loc.translate('no_payments'),
+                     Icons.history,
+                     ThemeConstants.primaryOrange,
+                     subtitle: recentPayments.isNotEmpty ? recentPayments.first['date'] : null,
+                   )),
+                ],
+              ),
               SizedBox(height: 24.h),
 
               // Blocks Section
@@ -232,25 +281,25 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             const Divider(color: Colors.white10),
             SizedBox(height: 4.h),
             if (property['default_rent_amount'] != null)
-              _configRow(Icons.home_work_outlined, "Kodi ya Msingi",
+              _configRow(Icons.home_work_outlined, _loc.translate("base_rent"),
                   "Tsh ${_formatNumber(property['default_rent_amount'])}"),
             if (property['default_deposit_amount'] != null)
-              _configRow(Icons.savings_outlined, "Amana ya Msingi",
+              _configRow(Icons.savings_outlined, _loc.translate("base_deposit"),
                   "Tsh ${_formatNumber(property['default_deposit_amount'])}"),
             if (property['utility_billing_enabled'] != null)
               _configRow(
                   Icons.electrical_services_outlined,
-                  "Bili za Huduma",
+                  _loc.translate("utility_billing"),
                   (property['utility_billing_enabled'] == true ||
                           property['utility_billing_enabled'] == 1)
-                      ? "Imewezeshwa"
-                      : "Haijawezeshwa"),
+                      ? _loc.translate("enabled")
+                      : _loc.translate("disabled")),
             if (property['latitude'] != null)
-              _configRow(Icons.gps_fixed, "Mahali (GPS)",
+              _configRow(Icons.gps_fixed, _loc.translate("gps_location"),
                   "${property['latitude']}, ${property['longitude']}"),
             if (property['ownership_notes'] != null &&
                 (property['ownership_notes'] ?? '').toString().isNotEmpty)
-              _configRow(Icons.notes_outlined, "Maelezo ya Umiliki",
+              _configRow(Icons.notes_outlined, _loc.translate("ownership_details"),
                   property['ownership_notes'].toString()),
           ],
         ],
@@ -323,34 +372,34 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  Widget _buildRevenueCard(totalCollected, String currency) {
+  Widget _buildFinancialCard(String title, String value, IconData icon, Color color, {String? subtitle}) {
     return ThemeConstants.buildResponsiveGlassCardStatic(
       context,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: ThemeConstants.successGreen.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.account_balance_wallet_outlined, color: ThemeConstants.successGreen, size: 24.sp),
-          ),
-          SizedBox(width: 16.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(_loc.translate('total_revenue'),
-                  style: ThemeConstants.captionStyle),
-              SizedBox(height: 4.h),
-              Text(
-                '$currency ${_formatNumber(totalCollected)}',
-                style: TextStyle(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              Icon(icon, color: color, size: 16.sp),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(title,
+                    style: ThemeConstants.captionStyle.copyWith(fontSize: 10.sp),
+                    overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
-          const Spacer(),
-          Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14.sp),
+          SizedBox(height: 8.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value,
+                style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
+          ),
+          if (subtitle != null) ...[
+            SizedBox(height: 4.h),
+            Text(subtitle,
+                style: TextStyle(color: Colors.white38, fontSize: 9.sp)),
+          ],
         ],
       ),
     );
@@ -492,225 +541,60 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  Widget _buildLocalTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData prefixIcon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      style: TextStyle(color: Colors.white, fontSize: 15.sp),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white70, fontSize: 13.sp),
-        prefixIcon: Icon(prefixIcon, color: ThemeConstants.primaryOrange, size: 20.sp),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: Colors.white12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: Colors.white12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: ThemeConstants.primaryOrange),
-        ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-      ),
-    );
-  }
-
   void _showAddHouseDialog(BuildContext context, String propertyId) {
-    final houseNumberController = TextEditingController();
-    final rentController = TextEditingController();
-    final depositController = TextEditingController(text: "0");
-    final meterController = TextEditingController();
-    final waterController = TextEditingController();
-    final floorController = TextEditingController();
-    final bedroomsController = TextEditingController();
-    final bathroomsController = TextEditingController();
-    final sqmtrsController = TextEditingController();
-    final descController = TextEditingController();
-    const String selectedType = 'room';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: ThemeConstants.bgMid,
-          borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24.r), topRight: Radius.circular(24.r)),
-        ),
-        child: Column(
+      builder: (ctx) => AddHouseBottomSheet(
+        propertyId: propertyId,
+        onSaved: () => context.read<RentalProvider>().fetchPropertyDetails(propertyId),
+      ),
+    );
+  }
+  void _showDeleteConfirmation(BuildContext context, Map<String, dynamic> property) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.bgMid,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Row(
           children: [
-            Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2.r)),
-            ),
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_loc.translate("add_house"),
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold)),
-                  IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: Colors.white54)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: StatefulBuilder(
-                  builder: (context, setState) => Column(
-                    children: [
-                      _buildLocalTextField(
-                        controller: houseNumberController,
-                        label: _loc.translate("house_number"),
-                        prefixIcon: Icons.door_front_door,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildLocalTextField(
-                        controller: rentController,
-                        label: _loc.translate("rent_amount"),
-                        prefixIcon: Icons.payments,
-                        keyboardType: TextInputType.number,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildLocalTextField(
-                        controller: depositController,
-                        label: _loc.translate("deposit_amount"),
-                        prefixIcon: Icons.account_balance_wallet,
-                        keyboardType: TextInputType.number,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildLocalTextField(
-                        controller: meterController,
-                        label: _loc.translate("electricity_meter"),
-                        prefixIcon: Icons.bolt,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildLocalTextField(
-                        controller: waterController,
-                        label: _loc.translate("water_meter"),
-                        prefixIcon: Icons.water_drop,
-                      ),
-                      SizedBox(height: 16.h),
-                      Row(children: [
-                        Expanded(
-                          child: _buildLocalTextField(
-                            controller: floorController,
-                            label: "Ghorofa",
-                            prefixIcon: Icons.layers,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildLocalTextField(
-                            controller: sqmtrsController,
-                            label: "Eneo (sqm)",
-                            prefixIcon: Icons.square_foot,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ]),
-                      SizedBox(height: 16.h),
-                      Row(children: [
-                        Expanded(
-                          child: _buildLocalTextField(
-                            controller: bedroomsController,
-                            label: _loc.translate("bedrooms"),
-                            prefixIcon: Icons.bed,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildLocalTextField(
-                            controller: bathroomsController,
-                            label: _loc.translate("bathrooms"),
-                            prefixIcon: Icons.bathtub,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ]),
-                      SizedBox(height: 16.h),
-                      _buildLocalTextField(
-                        controller: descController,
-                        label: "Maelezo",
-                        prefixIcon: Icons.description,
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 32.h),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (houseNumberController.text.isNotEmpty &&
-                                rentController.text.isNotEmpty) {
-                              final success = await context
-                                  .read<RentalProvider>()
-                                  .addHouse(propertyId, {
-                                'house_number': houseNumberController.text,
-                                'rent_amount': rentController.text,
-                                'deposit_amount': depositController.text,
-                                'electricity_meter': meterController.text,
-                                'water_meter': waterController.text,
-                                'floor': floorController.text,
-                                'bedrooms': bedroomsController.text,
-                                'bathrooms': bathroomsController.text,
-                                'square_meters': sqmtrsController.text,
-                                'description': descController.text,
-                                'type': selectedType,
-                                'status': 'vacant',
-                              });
-                              if (mounted && success) {
-                                Navigator.pop(context);
-                                context
-                                    .read<RentalProvider>()
-                                    .fetchPropertyDetails(propertyId);
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ThemeConstants.primaryOrange,
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r)),
-                          ),
-                          child: Text(_loc.translate("save"),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 10.w),
+            Text(_loc.translate("confirm_delete_property"), style: TextStyle(color: Colors.white, fontSize: 18.sp)),
           ],
         ),
+        content: Text(
+          "${_loc.translate("confirm_delete")} '${property['name']}'? ${_loc.translate("cannot_be_undone")}",
+          style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(_loc.translate("no"), style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog
+              final provider = context.read<RentalProvider>();
+              final success = await provider.deleteProperty(property['id'].toString());
+              if (mounted) {
+                if (success) {
+                  ThemeConstants.showSuccessSnackBar(context, _loc.translate("property_delete_success"));
+                  Navigator.pop(context); // Go back to properties list
+                } else {
+                  ThemeConstants.showErrorSnackBar(context, _loc.translate("property_delete_failed"));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+            ),
+            child: Text("Futa", style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

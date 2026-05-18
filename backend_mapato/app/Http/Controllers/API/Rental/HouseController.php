@@ -16,7 +16,7 @@ class HouseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = House::query()->whereHas('property', function($q) use ($request) {
+        $query = House::query()->whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         });
 
@@ -69,7 +69,6 @@ class HouseController extends Controller
      */
     public function store(Request $request)
     {
-        // Verify property belongs to user
         Property::where('owner_id', $request->user()->id)->findOrFail($request->property_id);
 
         $request->validate([
@@ -86,13 +85,42 @@ class HouseController extends Controller
             'floor' => 'nullable|integer|min:0',
             'square_meters' => 'nullable|integer|min:0',
             'description' => 'nullable|string|max:500',
+            'images.*' => 'nullable|image',
+            'kitchen_location' => 'nullable|string',
+            'distance_from_road' => 'nullable|string',
+            'electricity_type' => 'nullable|string',
+            'electricity_sharing_count' => 'nullable|integer',
+            'water_type' => 'nullable|string',
+            'water_sharing_count' => 'nullable|integer',
+            'maintenance_until' => 'nullable|date|after_or_equal:today',
         ]);
 
-        $house = House::create(array_merge($request->all(), [
-            'status' => 'vacant',
-        ]));
+        $data = $request->except('images');
 
-        // Update property total_units
+        $booleanFields = ['has_fence', 'has_tiles', 'has_sitting_room', 'has_master_bedroom', 'has_kitchen', 'landlord_lives_present'];
+        foreach ($booleanFields as $field) {
+            if ($request->has($field)) {
+                $data[$field] = filter_var($request->get($field), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $imagePaths[] = $image->store('houses', 'public');
+            }
+        }
+        $data['images'] = $imagePaths;
+
+        // Parse image captions (double-pipe separated string from frontend)
+        if ($request->has('image_captions') && !empty($request->image_captions)) {
+            $data['image_captions'] = explode('||', $request->image_captions);
+        }
+
+        $data['status'] = 'vacant';
+
+        $house = House::create($data);
+
         Property::find($request->property_id)->increment('total_units');
 
         return ResponseHelper::success($house, 'House created successfully', 201);
@@ -104,7 +132,7 @@ class HouseController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $house = House::whereHas('property', function($q) use ($request) {
+        $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->with('property', 'block', 'currentTenant', 'agreements.tenant', 'bills')->findOrFail($id);
 
@@ -117,7 +145,7 @@ class HouseController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $house = House::whereHas('property', function($q) use ($request) {
+        $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($id);
 
@@ -134,13 +162,58 @@ class HouseController extends Controller
             'square_meters' => 'nullable|integer|min:0',
             'status' => 'sometimes|in:vacant,occupied,maintenance,reserved',
             'description' => 'nullable|string|max:500',
+            'images.*' => 'nullable|image',
+            'kitchen_location' => 'nullable|string',
+            'distance_from_road' => 'nullable|string',
+            'electricity_type' => 'nullable|string',
+            'electricity_sharing_count' => 'nullable|integer',
+            'water_type' => 'nullable|string',
+            'water_sharing_count' => 'nullable|integer',
+            'maintenance_until' => 'nullable|date|after_or_equal:today',
         ]);
 
-        $house->update($request->only([
-            'house_number', 'type', 'rent_amount', 'deposit_amount',
-            'electricity_meter', 'water_meter', 'bedrooms', 'bathrooms',
-            'floor', 'square_meters', 'status', 'description'
-        ]));
+        $data = $request->except('images');
+
+        $booleanFields = ['has_fence', 'has_tiles', 'has_sitting_room', 'has_master_bedroom', 'has_kitchen', 'landlord_lives_present'];
+        foreach ($booleanFields as $field) {
+            if ($request->has($field)) {
+                $data[$field] = filter_var($request->get($field), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        // Handle image management (deletions/reordering/re-captioning)
+        $currentImages = is_array($house->images) ? $house->images : [];
+        $currentCaptions = is_array($house->image_captions) ? $house->image_captions : [];
+
+        if ($request->has('existing_images')) {
+            $currentImages = is_array($request->existing_images) ? $request->existing_images : explode('||', $request->existing_images);
+            // Ensure we filter out empty strings if any
+            $currentImages = array_values(array_filter($currentImages));
+            $data['images'] = $currentImages;
+        }
+
+        if ($request->has('existing_captions')) {
+            $currentCaptions = is_array($request->existing_captions) ? $request->existing_captions : explode('||', $request->existing_captions);
+            // We don't filter captions as they might be empty intentionally, but we align them
+            $data['image_captions'] = $currentCaptions;
+        }
+
+        // Handle new uploads
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $currentImages[] = $image->store('houses', 'public');
+            }
+            $data['images'] = $currentImages;
+
+            // Handle new captions if provided alongside new files
+            if ($request->has('image_captions')) {
+                $newCaptions = explode('||', $request->image_captions);
+                $currentCaptions = array_merge($currentCaptions, $newCaptions);
+                $data['image_captions'] = $currentCaptions;
+            }
+        }
+
+        $house->update($data);
 
         return ResponseHelper::success($house, 'House updated successfully');
     }
@@ -151,7 +224,7 @@ class HouseController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $house = House::whereHas('property', function($q) use ($request) {
+        $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
         })->findOrFail($id);
 
@@ -170,5 +243,84 @@ class HouseController extends Controller
         Property::find($propertyId)->decrement('total_units');
 
         return ResponseHelper::success(null, 'House deleted successfully');
+    }
+
+    /**
+     * Public listing – no auth required.
+     * Returns houses with images & features, excluding private meter data.
+     * GET /api/public/houses
+     */
+    public function publicListing(Request $request)
+    {
+        $query = House::with('property:id,name,property_type,address,region,district,ward,street');
+
+        // Filter by status (Default: Exclude occupied)
+        if ($request->status) {
+            $query->where('status', $request->status);
+        } else {
+            $query->whereIn('status', ['vacant', 'maintenance', 'reserved']);
+        }
+
+        // Filter by type
+        if ($request->type) {
+            $query->where('type', $request->type);
+        }
+
+        // Search
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('house_number', 'like', "%{$request->search}%")
+                    ->orWhereHas('property', function ($pq) use ($request) {
+                        $pq->where('name', 'like', "%{$request->search}%")
+                            ->orWhere('address', 'like', "%{$request->search}%")
+                            ->orWhere('region', 'like', "%{$request->search}%")
+                            ->orWhere('district', 'like', "%{$request->search}%")
+                            ->orWhere('ward', 'like', "%{$request->search}%")
+                            ->orWhere('street', 'like', "%{$request->search}%");
+                    });
+            });
+        }
+
+        // Advanced Filters
+        if ($request->bedrooms) {
+            $query->where('bedrooms', '>=', $request->bedrooms);
+        }
+        if ($request->bathrooms) {
+            $query->where('bathrooms', '>=', $request->bathrooms);
+        }
+        if ($request->max_distance) {
+            $query->where('distance_from_road', '<=', $request->max_distance);
+        }
+        if ($request->has_fence !== null) {
+            $query->where('has_fence', $request->boolean('has_fence'));
+        }
+        if ($request->has_tiles !== null) {
+            $query->where('has_tiles', $request->boolean('has_tiles'));
+        }
+        if ($request->has_kitchen !== null) {
+            $query->where('has_kitchen', $request->boolean('has_kitchen'));
+        }
+        if ($request->has_master_bedroom !== null) {
+            $query->where('has_master_bedroom', $request->boolean('has_master_bedroom'));
+        }
+        if ($request->has_sitting_room !== null) {
+            $query->where('has_sitting_room', $request->boolean('has_sitting_room'));
+        }
+
+        $perPage = $request->get('per_page', 20);
+        $houses = $query->latest()->paginate($perPage);
+
+        // Strip private meter data from each house
+        $houses->getCollection()->transform(function ($house) {
+            $house->makeHidden([
+                'electricity_meter',
+                'water_meter',
+                'electricity_sharing_count',
+                'water_sharing_count',
+            ]);
+            return $house;
+        });
+
+        return ResponseHelper::paginate($houses);
     }
 }

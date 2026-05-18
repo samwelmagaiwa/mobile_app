@@ -62,6 +62,9 @@ Route::prefix('auth')->group(function () {
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 });
 
+// Public house listings (no authentication required)
+Route::get('public/houses', [HouseController::class, 'publicListing']);
+
 // Payment Receipt routes - PROTECTED
 Route::middleware(['auth:sanctum'])->prefix('payment-receipts')->group(function () {
     Route::get('pending', [PaymentReceiptController::class, 'getPendingReceipts']);
@@ -340,6 +343,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Tenants
             Route::prefix('tenants')->group(function () {
                 Route::get('', [TenantController::class, 'index']);
+                Route::get('system', [TenantController::class, 'availableSystemTenants']);
                 Route::get('{id}', [TenantController::class, 'show']);
                 Route::post('onboard', [TenantController::class, 'onboard']);
                 Route::put('{id}/status', [TenantController::class, 'updateStatus']);
@@ -356,6 +360,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::prefix('receipts')->group(function () {
                 Route::get('', [BillingController::class, 'getReceipts']);
                 Route::get('{id}', [BillingController::class, 'getReceipt']);
+                Route::post('{id}/dispatch', [BillingController::class, 'dispatchReceipt']);
             });
 
             // Reports
@@ -384,16 +389,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::post('{id}/terminate', [AgreementController::class, 'terminate']);
                 Route::post('{id}/documents', [AgreementController::class, 'uploadDocument']);
             });
+        });
 
-            // Maintenance
-            Route::prefix('maintenance')->group(function () {
-                Route::get('requests', [MaintenanceController::class, 'index']);
-                Route::post('requests', [MaintenanceController::class, 'store']);
-                Route::get('requests/{id}', [MaintenanceController::class, 'show']);
-                Route::put('requests/{id}/status', [MaintenanceController::class, 'updateStatus']);
+        // Shared Maintenance Routes (Landlords, Tenants, Caretakers, Vendors)
+        Route::middleware(['role:admin,landlord,caretaker,tenant,vendor'])->prefix('maintenance')->group(function () {
+            // View/Create Requests & Vendors
+            Route::get('requests', [MaintenanceController::class, 'index']);
+            Route::post('requests', [MaintenanceController::class, 'store']);
+            Route::get('requests/{id}', [MaintenanceController::class, 'show']);
+            Route::get('vendors', [MaintenanceController::class, 'getVendors']);
+
+            // Vendors and management can update status
+            Route::put('requests/{id}/status', [MaintenanceController::class, 'updateStatus'])->middleware('role:admin,landlord,vendor');
+
+            // Marketplace and Roster functionality (Landlords only)
+            Route::middleware(['role:admin,landlord,caretaker'])->group(function () {
+                Route::get('marketplace/vendors', [MaintenanceController::class, 'getMarketplaceVendors']);
+                Route::post('vendors/{id}/save', [MaintenanceController::class, 'saveToRoster']);
+                Route::post('vendors/{id}/remove', [MaintenanceController::class, 'removeFromRoster']);
+            });
+
+            // Strictly restricted management routes
+            Route::middleware(['role:admin,landlord'])->group(function () {
                 Route::post('requests/{id}/assign', [MaintenanceController::class, 'assign']);
 
-                Route::get('vendors', [MaintenanceController::class, 'getVendors']);
                 Route::post('vendors', [MaintenanceController::class, 'storeVendor']);
 
                 Route::get('preventive', [MaintenanceController::class, 'getPreventive']);

@@ -44,7 +44,7 @@ class ThemeConstants {
   static BoxDecoration glassCardDecoration = BoxDecoration(
     color: cardColor,
     borderRadius: BorderRadius.circular(20.r),
-    border: Border.all(color: Colors.white.withOpacity(0.18)),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
     boxShadow: const <BoxShadow>[],
   );
 
@@ -226,7 +226,7 @@ class ThemeConstants {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -310,10 +310,10 @@ class ThemeConstants {
     return BoxDecoration(
       color: cardColor,
       borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-      border: Border.all(color: Colors.white.withOpacity(0.12)), // Subtler border
+      border: Border.all(color: Colors.white.withValues(alpha: 0.12)), // Subtler border
       boxShadow: <BoxShadow>[
         BoxShadow(
-          color: Colors.black.withOpacity(0.1),
+          color: Colors.black.withValues(alpha: 0.1),
           blurRadius: ResponsiveHelper.elevation * 5,
           offset: Offset(0, ResponsiveHelper.elevation * 2.5),
         ),

@@ -16,6 +16,7 @@ class RentalReceipt extends Model
         'payment_id',
         'receipt_number',
         'details',
+        'is_dispatched',
     ];
 
     protected $casts = [

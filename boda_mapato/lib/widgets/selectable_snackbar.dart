@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../constants/theme_constants.dart';
 
 /// A utility class for creating SnackBars with selectable text content

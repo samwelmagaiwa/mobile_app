@@ -104,9 +104,40 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
       context,
       title: "${loc.translate('house')} ${h['house_number']}",
       actions: [
-        IconButton(
-          icon: const Icon(Icons.edit, color: Colors.white),
-          onPressed: _showEditHouseDialog,
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          color: ThemeConstants.bgMid,
+          offset: const Offset(0, 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showEditHouseDialog();
+            } else if (value == 'delete') {
+              _showDeleteConfirmation();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                   const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
+                   SizedBox(width: 12.w),
+                   Text(loc.translate('edit'), style: const TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                   const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                   SizedBox(width: 12.w),
+                   Text(loc.translate('delete'), style: const TextStyle(color: Colors.redAccent)),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
       body: SingleChildScrollView(
@@ -191,12 +222,12 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(h['property_name'] ?? h['property']?['name'] ?? 'Property',
+                Text(h['property_name'] ?? h['property']?['name'] ?? loc.translate('property'),
                     style: TextStyle(
                         color: ThemeConstants.primaryOrange,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600)),
-                Text(h['type']?.toString().toUpperCase() ?? 'UNIT',
+                Text(loc.translate(h['type']?.toString().toLowerCase() ?? 'room').toUpperCase(),
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 18.sp,
@@ -418,7 +449,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
               child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("Hariri Nyumba",
+                    Text(loc.translate("edit_house"),
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 20.sp,
@@ -434,20 +465,20 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
                 child: StatefulBuilder(
                     builder: (ctx, setS) => Column(
                           children: [
-                            _field(numberCtrl, "Namba ya Nyumba *", Icons.door_front_door,
+                            _field(numberCtrl, loc.translate("house_number") + " *", Icons.door_front_door,
                                 onChanged: (v) => setS(() {}),
                                 errorText: attemptedSubmit && numberCtrl.text.isEmpty
                                     ? loc.translate('field_required')
                                     : null),
                             SizedBox(height: 16.h),
                             Row(children: [
-                              Expanded(child: _dropdown("Aina", type, ['room', 'apartment', 'studio', 'commercial', 'bedsitter', 'one_bedroom', 'two_bedroom'], (v) => setS(() => type = v))),
+                              Expanded(child: _dropdown(loc.translate("type"), type, ['room', 'apartment', 'studio', 'commercial', 'bedsitter', 'one_bedroom', 'two_bedroom'], (v) => setS(() => type = v))),
                               SizedBox(width: 12.w),
-                              Expanded(child: _dropdown("Hali", status, ['vacant', 'occupied', 'maintenance', 'reserved'], (v) => setS(() => status = v))),
+                              Expanded(child: _dropdown(loc.translate("status"), status, ['vacant', 'occupied', 'maintenance', 'reserved'], (v) => setS(() => status = v))),
                             ]),
                             SizedBox(height: 16.h),
                             Row(children: [
-                              Expanded(child: _numberField(rentCtrl, "Kodi (TSh) *",
+                              Expanded(child: _numberField(rentCtrl, loc.translate("rent") + " (TSh) *",
                                   onChanged: (v) => setS(() {}),
                                   errorText: attemptedSubmit && rentCtrl.text.isEmpty
                                       ? loc.translate('field_required')
@@ -463,24 +494,24 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
                             ]),
                             SizedBox(height: 16.h),
                             Row(children: [
-                              Expanded(child: _field(meterCtrl, "Namba ya Stima", Icons.bolt)),
+                              Expanded(child: _field(meterCtrl, loc.translate("electricity_meter"), Icons.bolt)),
                               SizedBox(width: 12.w),
-                              Expanded(child: _field(waterCtrl, "Namba ya Maji", Icons.water_drop)),
+                              Expanded(child: _field(waterCtrl, loc.translate("water_meter"), Icons.water_drop)),
                             ]),
                             SizedBox(height: 16.h),
                             Row(children: [
-                              Expanded(child: _numberField(floorCtrl, "Ghorofa", prefixIcon: Icons.layers)),
+                              Expanded(child: _numberField(floorCtrl, loc.translate("floor"), prefixIcon: Icons.layers)),
                               SizedBox(width: 12.w),
-                              Expanded(child: _numberField(sqmtrsCtrl, "Eneo (sqm)", prefixIcon: Icons.square_foot)),
+                              Expanded(child: _numberField(sqmtrsCtrl, loc.translate("area_sqm"), prefixIcon: Icons.square_foot)),
                             ]),
                             SizedBox(height: 16.h),
                             Row(children: [
-                              Expanded(child: _numberField(bedroomsCtrl, "Vyumba", prefixIcon: Icons.bed)),
+                              Expanded(child: _numberField(bedroomsCtrl, loc.translate("bedrooms"), prefixIcon: Icons.bed)),
                               SizedBox(width: 12.w),
-                              Expanded(child: _numberField(bathroomsCtrl, "Vyoo/Mali", prefixIcon: Icons.bathtub)),
+                              Expanded(child: _numberField(bathroomsCtrl, loc.translate("bathrooms"), prefixIcon: Icons.bathtub)),
                             ]),
                             SizedBox(height: 16.h),
-                            _field(descCtrl, "Maelezo", Icons.description, max: 3),
+                            _field(descCtrl, loc.translate("notes"), Icons.description, max: 3),
                             SizedBox(height: 32.h),
                             SizedBox(
                               width: double.infinity,
@@ -526,7 +557,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
                                     padding: EdgeInsets.symmetric(vertical: 16.h),
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12.r))),
-                                child: Text("Sasisha",
+                                child: Text(loc.translate("update"),
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 16.sp,
@@ -601,7 +632,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
       ),
     ]);
   }
-
+ 
   Widget _numberField(TextEditingController? ctrl, String label,
       {IconData? prefixIcon, String? hint, String? errorText, void Function(String)? onChanged}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -628,5 +659,54 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
         ),
       ),
     ]);
+  }
+
+  void _showDeleteConfirmation() {
+    final loc = LocalizationService.instance;
+    final h = _houseData!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.bgMid,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 10.w),
+            Text(loc.translate("confirm_delete_house"), style: TextStyle(color: Colors.white, fontSize: 18.sp)),
+          ],
+        ),
+        content: Text(
+          "${loc.translate("confirm_delete")} '${h['house_number']}'? ${loc.translate("cannot_be_undone")}",
+          style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(loc.translate("cancel"), style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final provider = context.read<RentalProvider>();
+              final success = await provider.deleteHouse(h['id'].toString());
+              if (mounted) {
+                if (success) {
+                  ThemeConstants.showSuccessSnackBar(context, loc.translate("house_delete_success"));
+                  Navigator.pop(context);
+                } else {
+                  ThemeConstants.showErrorSnackBar(context, loc.translate("house_delete_failed"));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+            ),
+            child: Text(loc.translate("delete"), style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }

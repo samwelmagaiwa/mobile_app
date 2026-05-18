@@ -15,12 +15,12 @@ mixin AppConfig {
   static const String appVersion = "1.0.0";
 
   // App name
-  static const String appName = "Boda Mapato";
+  static const String appName = "All In One";
 
   // Company info
-  static const String companyName = "Boda Mapato Ltd";
+  static const String companyName = "All In One Ltd";
   static const String companyPhone = "+255 123 456 789";
-  static const String companyEmail = "info@bodamapato.com";
+  static const String companyEmail = "info@allinone.com";
 
   // API configuration based on mode
   static bool get useRealApi => !useMockData;

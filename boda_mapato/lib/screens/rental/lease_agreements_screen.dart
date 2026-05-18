@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../services/localization_service.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 
@@ -14,7 +16,6 @@ class LeaseAgreementsScreen extends StatefulWidget {
 class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<Map<String, dynamic>> _agreements = [];
   bool _isLoading = true;
 
   @override
@@ -31,16 +32,23 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
   }
 
   Future<void> _loadData() async {
-    await context.read<RentalProvider>().fetchTenants();
-    // In production, fetch from dedicated agreements endpoint
+    final provider = context.read<RentalProvider>();
+    await Future.wait([
+      provider.fetchTenants(),
+      provider.fetchAgreements(),
+    ]);
     if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final rentalProvider = context.watch<RentalProvider>();
+    final agreements = rentalProvider.agreements;
+    final loc = LocalizationService.instance;
+
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Mikataba",
+      title: loc.translate('lease_agreements'),
       actions: [
         IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
@@ -49,8 +57,9 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
       ],
       body: Column(
         children: [
+          _buildSummaryStats(agreements),
           Container(
-            margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+            margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
             decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12.r)),
@@ -64,81 +73,62 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
               unselectedLabelColor: Colors.white54,
               labelStyle:
                   TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-              tabs: const [
-                Tab(text: "Active"),
-                Tab(text: "Expiring"),
-                Tab(text: "Mikataba")
+              tabs: [
+                Tab(text: loc.translate('active_leases')),
+                Tab(text: loc.translate('expiring_leases')),
+                Tab(text: loc.translate('all_leases'))
               ],
             ),
           ),
           Expanded(
               child: TabBarView(controller: _tabController, children: [
-            _buildActiveTab(),
-            _buildExpiringTab(),
-            _buildAllTab(),
+            _buildAgreementList(agreements.where((a) => a['status'] == 'active').toList()),
+            _buildAgreementList(agreements.where((a) => a['status'] == 'expiring_soon' || a['status'] == 'notice').toList()),
+            _buildAgreementList(agreements),
           ])),
         ],
       ),
     );
   }
 
-  Widget _buildActiveTab() => _isLoading
+  Widget _buildAgreementList(List<dynamic> list) {
+    final loc = LocalizationService.instance;
+    return _isLoading
       ? const Center(child: CircularProgressIndicator(color: Colors.white))
-      : ListView.builder(
-          padding: EdgeInsets.all(16.w),
-          itemCount: _mockActiveAgreements().length,
-          itemBuilder: (_, i) =>
-              _buildAgreementCard(_mockActiveAgreements()[i]));
+      : list.isEmpty 
+        ? Center(child: Text(loc.translate('no_leases_found'), style: TextStyle(color: Colors.white54, fontSize: 14.sp)))
+        : RefreshIndicator(
+            onRefresh: _loadData,
+            child: ListView.builder(
+              padding: EdgeInsets.all(16.w),
+              itemCount: list.length,
+              itemBuilder: (_, i) => _buildAgreementCard(list[i]),
+            ),
+          );
+  }
 
-  Widget _buildExpiringTab() => Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                  color: ThemeConstants.warningAmber.withOpacity(0.15),
-                  shape: BoxShape.circle),
-              child: Icon(Icons.event_note,
-                  size: 48.sp, color: ThemeConstants.warningAmber)),
-          SizedBox(height: 16.h),
-          Text("Hakuna mikataba inayoisha",
-              style: TextStyle(color: Colors.white54, fontSize: 16.sp)),
-        ]),
-      );
-
-  Widget _buildAllTab() => _isLoading
-      ? const Center(child: CircularProgressIndicator(color: Colors.white))
-      : RefreshIndicator(
-          onRefresh: _loadData,
-          child: ListView.builder(
-            padding: EdgeInsets.all(16.w),
-            itemCount: _mockAllAgreements().length + 1,
-            itemBuilder: (_, i) => i == 0
-                ? _buildStatsHeader()
-                : _buildAgreementCard(_mockAllAgreements()[i - 1]),
-          ),
-        );
-
-  Widget _buildStatsHeader() {
-    final active =
-        _mockAllAgreements().where((a) => a['status'] == 'active').length;
-    final expired =
-        _mockAllAgreements().where((a) => a['status'] == 'expired').length;
-    final expiring = _mockAllAgreements()
-        .where((a) => a['status'] == 'expiring_soon')
+  Widget _buildSummaryStats(List<dynamic> agreements) {
+    final active = agreements.where((a) => a['status'] == 'active').length;
+    final expired = agreements.where((a) => a['status'] == 'expired').length;
+    final expiring = agreements
+        .where((a) => a['status'] == 'expiring_soon' || a['status'] == 'notice')
         .length;
 
+    final loc = LocalizationService.instance;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16.r)),
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: Colors.white.withOpacity(0.05))),
       child: Row(children: [
-        _miniStat("Active", active.toString(), ThemeConstants.successGreen),
+        _miniStat(loc.translate("active"), active.toString(), ThemeConstants.successGreen),
         Container(width: 1, height: 30.h, color: Colors.white12),
-        _miniStat("Expiring", expiring.toString(), ThemeConstants.warningAmber),
+        _miniStat(loc.translate("expiring"), expiring.toString(), ThemeConstants.warningAmber),
         Container(width: 1, height: 30.h, color: Colors.white12),
-        _miniStat("Expired", expired.toString(), ThemeConstants.errorRed),
+        _miniStat(loc.translate("expired"), expired.toString(), ThemeConstants.errorRed),
       ]),
     );
   }
@@ -155,111 +145,135 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
     final status = agreement['status'] ?? 'active';
     Color statusColor;
     String statusLabel;
+    final loc = LocalizationService.instance;
+    
     switch (status) {
       case 'active':
         statusColor = ThemeConstants.successGreen;
-        statusLabel = 'Active';
+        statusLabel = loc.translate('active');
+        break;
       case 'expiring_soon':
         statusColor = ThemeConstants.warningAmber;
-        statusLabel = 'Expiring';
+        statusLabel = loc.translate('expiring');
+        break;
       case 'expired':
         statusColor = ThemeConstants.errorRed;
-        statusLabel = 'Expired';
+        statusLabel = loc.translate('expired');
+        break;
       default:
         statusColor = Colors.white54;
         statusLabel = status;
     }
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: Colors.white.withOpacity(0.15))),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => Navigator.pushNamed(context, "/rental/agreement-details",
-              arguments: agreement),
-          borderRadius: BorderRadius.circular(20.r),
-          child: Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
+    String formatDate(String? dateStr) {
+      if (dateStr == null || dateStr.isEmpty) return '-';
+      try {
+        final date = DateTime.parse(dateStr);
+        return DateFormat('dd MMM yyyy').format(date);
+      } catch (e) {
+        return dateStr.split('T')[0];
+      }
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16.h),
+      child: ThemeConstants.buildResponsiveGlassCard(
+        context,
+        onTap: () => Navigator.pushNamed(context, "/rental/lease-details",
+            arguments: agreement),
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [
-                          statusColor.withOpacity(0.3),
-                          statusColor.withOpacity(0.1)
-                        ]),
-                        borderRadius: BorderRadius.circular(14.r)),
+                      gradient: LinearGradient(colors: [
+                        statusColor.withOpacity(0.3),
+                        statusColor.withOpacity(0.1)
+                      ]),
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
                     child: Icon(Icons.description,
                         color: statusColor, size: 24.sp),
                   ),
                   SizedBox(width: 14.w),
                   Expanded(
                     child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                              agreement['tenant_name'] ??
-                                  agreement['house_number'] ??
-                                  '',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          Text(
-                              "${agreement['house_number'] ?? ''} - ${agreement['property_name'] ?? ''}",
-                              style: TextStyle(
-                                  color: Colors.white54, fontSize: 12.sp),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        ]),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          agreement['tenant_name'] ?? 
+                          agreement['tenant']?['name'] ?? 
+                          loc.translate('tenant'),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          "${loc.translate('house')} ${agreement['house_number'] ?? ''}",
+                          style: TextStyle(
+                              color: Colors.white60, fontSize: 13.sp),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   Container(
                     padding:
                         EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                     decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20.r)),
+                        borderRadius: BorderRadius.circular(12.r)),
                     child: Text(statusLabel,
                         style: TextStyle(
                             color: statusColor,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold)),
                   ),
-                ]),
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    _infoChip(
+                ],
+              ),
+              SizedBox(height: 16.h),
+              Divider(color: Colors.white.withOpacity(0.05), height: 1),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: _infoChip(
                         Icons.calendar_today,
-                        "Start: ${agreement['start_date'] ?? '-'}",
+                        formatDate(agreement['start_date']),
                         Colors.white54),
-                    SizedBox(width: 8.w),
-                    _infoChip(
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: _infoChip(
                         Icons.event,
-                        "End: ${agreement['end_date'] ?? '-'}",
+                        formatDate(agreement['end_date']),
                         status == 'expired'
                             ? ThemeConstants.errorRed
                             : status == 'expiring_soon'
                                 ? ThemeConstants.warningAmber
                                 : Colors.white54),
-                    SizedBox(width: 8.w),
-                    _infoChip(
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: _infoChip(
                         Icons.monetization_on,
-                        "TSh ${_fmt(agreement['rent_amount'] ?? 0)}",
+                        "TZS ${_fmt(agreement['rent_amount'] ?? 0)}",
                         ThemeConstants.successGreen),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -268,66 +282,29 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
 
   Widget _infoChip(IconData icon, String label, Color color) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8.r)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12.sp, color: color),
-        SizedBox(width: 4.w),
-        Text(label, style: TextStyle(color: color, fontSize: 10.sp)),
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: color.withOpacity(0.12))),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(icon, size: 13.sp, color: color),
+        SizedBox(width: 6.w),
+        Flexible(
+          child: Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 10.sp, fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ),
       ]),
     );
   }
 
-  String _fmt(num v) {
+  String _fmt(dynamic val) {
+    final num v = num.tryParse(val.toString()) ?? 0;
     if (v >= 1000000) return "${(v / 1000000).toStringAsFixed(1)}M";
     if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
     return v.toString();
   }
-
-  List<Map<String, dynamic>> _mockActiveAgreements() => [
-        {
-          'tenant_name': 'John Mkomagi',
-          'house_number': 'A-101',
-          'property_name': 'Mikocheni',
-          'rent_amount': 300000,
-          'start_date': '01-01-2026',
-          'end_date': '31-12-2026',
-          'status': 'active',
-          'cycle': 'monthly'
-        },
-        {
-          'tenant_name': 'Anna Mwita',
-          'house_number': 'B-202',
-          'property_name': 'Mikocheni',
-          'rent_amount': 250000,
-          'start_date': '01-03-2026',
-          'end_date': '28-02-2027',
-          'status': 'active',
-          'cycle': 'monthly'
-        },
-        {
-          'tenant_name': 'Peter Juma',
-          'house_number': 'C-303',
-          'property_name': 'Posta',
-          'rent_amount': 500000,
-          'start_date': '15-02-2026',
-          'end_date': '14-08-2026',
-          'status': 'expiring_soon',
-          'cycle': 'monthly'
-        },
-        {
-          'tenant_name': 'Mariam Juma',
-          'house_number': 'D-404',
-          'property_name': 'Upanga',
-          'rent_amount': 350000,
-          'start_date': '01-05-2025',
-          'end_date': '30-04-2026',
-          'status': 'expired',
-          'cycle': 'monthly'
-        },
-      ];
-
-  List<Map<String, dynamic>> _mockAllAgreements() => _mockActiveAgreements();
 }

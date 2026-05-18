@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
@@ -16,6 +17,12 @@ class BillingListScreen extends StatefulWidget {
 
 class _BillingListScreenState extends State<BillingListScreen> {
   String _filter = 'all'; // all, unpaid, paid, overdue
+
+  String _formatAmount(dynamic value) {
+    if (value == null) return '0.00';
+    final num n = num.tryParse(value.toString()) ?? 0;
+    return n.toStringAsFixed(2);
+  }
 
   @override
   void initState() {
@@ -143,11 +150,34 @@ class _BillingListScreenState extends State<BillingListScreen> {
       statusColor = Colors.lightBlueAccent;
     }
 
+    final agreement = bill['agreement'] ?? {};
+    final tenant = agreement['tenant'] ?? {};
+    final house = agreement['house'] ?? {};
+
     return ThemeConstants.buildResponsiveGlassCard(
       context,
       onTap: () {
         if (status != 'paid') {
           _showPaymentModal(context, bill);
+        } else {
+          // Find the payment associated with this bill that has a receipt
+          final payments = bill['payments'] as List? ?? [];
+          dynamic validPayment;
+          for (var p in payments) {
+             if (p['receipt'] != null) {
+               validPayment = p;
+               validPayment['bill'] = bill; // Ensure payment has the bill attached to pass down
+               break;
+             }
+          }
+          
+          if (validPayment != null) {
+             Navigator.push(context, MaterialPageRoute(
+               builder: (ctx) => ReceiptViewScreen(payment: validPayment)
+             ));
+          } else {
+             ThemeConstants.showErrorSnackBar(context, loc.translate("receipt_not_found") ?? "No receipt found");
+          }
         }
       },
       child: Column(
@@ -158,15 +188,15 @@ class _BillingListScreenState extends State<BillingListScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    (bill['tenant'] != null ? bill['tenant']['name'] : null) ?? 'Mteja',
+                   Text(
+                    tenant['name'] ?? loc.translate('tenant'),
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14.sp,
                         fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "Nyumba ${(bill['house'] != null ? bill['house']['house_number'] : null) ?? '-'}",
+                    "${loc.translate('house')} ${house['house_number'] ?? '-'}",
                     style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                   ),
                 ],
@@ -200,7 +230,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
               Icon(Icons.calendar_today, color: Colors.white54, size: 14.w),
               SizedBox(width: 4.w),
               Text(
-                "${loc.translate('due')}: ${bill['due_date']}",
+                "${loc.translate('due')}: ${bill['due_date'] != null ? DateFormat('dd/MM/yyyy').format(DateTime.parse(bill['due_date'].toString())) : '-'}",
                 style: TextStyle(color: Colors.white54, fontSize: 11.sp),
               ),
               const Spacer(),
@@ -222,7 +252,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
       children: [
         Text(label, style: TextStyle(color: Colors.white54, fontSize: 10.sp)),
         Text(
-          "Tsh $value",
+          "Tsh ${_formatAmount(value)}",
           style: TextStyle(
             color: isBold ? Colors.white : Colors.white70,
             fontSize: 12.sp,
@@ -234,6 +264,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
   }
 
   void _showPaymentModal(BuildContext context, bill) {
+    final loc = LocalizationService.instance;
     final amountController = TextEditingController(text: bill['balance'].toString());
     bool isSaving = false;
 
@@ -260,7 +291,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  "Kurekodi malipo ya ${(bill['tenant'] != null ? bill['tenant']['name'] : null) ?? ''} - Nyumba ${(bill['house'] != null ? bill['house']['house_number'] : null) ?? ''}",
+                  "${loc.translate('recording_payment_for')} ${(bill['tenant'] != null ? bill['tenant']['name'] : null) ?? ''} - ${loc.translate('house')} ${(bill['house'] != null ? bill['house']['house_number'] : null) ?? ''}",
                   style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                 ),
                 SizedBox(height: 24.h),
@@ -282,8 +313,8 @@ class _BillingListScreenState extends State<BillingListScreen> {
                     onPressed: isSaving ? null : () async {
                       setModalState(() => isSaving = true);
                       final success = await context.read<RentalProvider>().recordPayment({
-                        "rental_bill_id": bill['id'].toString(),
-                        "amount": amountController.text,
+                        "bill_id": bill['id'].toString(),
+                        "amount_paid": amountController.text,
                         "payment_method": "cash", // Default for MVP
                       });
                       if (mounted) {

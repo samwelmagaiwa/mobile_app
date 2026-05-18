@@ -115,7 +115,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         if (house['is_occupied'] == 1 || house['is_occupied'] == true) {
           occupiedHouses++;
         }
-        totalArrears += (house['current_balance'] ?? 0).toDouble();
+        totalArrears += double.tryParse((house['current_balance'] ?? 0).toString()) ?? 0.0;
       }
     }
 
@@ -124,6 +124,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final user = context.watch<AuthProvider>().user;
     final bool canViewProperties = user?.hasPermission('manage_properties_rental') ?? false;
     final bool canViewArrears = user?.hasPermission('manage_debts_transport') ?? false;
+    final bool canViewMaintenance = user?.hasPermission('view_maintenance') ?? false;
+    final bool canViewVendors = user?.hasPermission('view_vendors') ?? false;
 
     return GridView.count(
       shrinkWrap: true,
@@ -168,11 +170,41 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             Icons.money_off_csred_outlined,
             ThemeConstants.errorRed,
           ),
+        _buildStatCard(
+          context,
+          loc.translate("lease_agreements"),
+          rentalProvider.agreements.where((a) => a['status'] == 'active').length.toString(),
+          Icons.description_outlined,
+          ThemeConstants.primaryBlue,
+        ),
+        if (canViewMaintenance)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, "/rental/maintenance"),
+            child: _buildStatCard(
+              context,
+              loc.translate("maintenance"), // Make sure we have translation, or hardcode generic
+              "Matengenezo", // Title display
+              Icons.handyman_outlined,
+              ThemeConstants.warningAmber,
+            ),
+          ),
+        if (canViewVendors)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, "/rental/vendors"),
+            child: _buildStatCard(
+              context,
+              loc.translate("vendors") ?? "Mafundi",
+              "Watoa Huduma", 
+              Icons.person_search_outlined,
+              Colors.teal,
+            ),
+          ),
       ],
     );
   }
 
-  String _formatArrears(double value) {
+  String _formatArrears(dynamic val) {
+    final double value = double.tryParse(val.toString()) ?? 0.0;
     if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
     if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
     return value.toStringAsFixed(0);
@@ -257,17 +289,30 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
               ),
           ],
         ),
-        if (canOnboardTenant) SizedBox(height: 12.h),
-        if (canOnboardTenant)
-          SizedBox(
-            width: double.infinity,
-            child: _buildActionButton(
-              context,
-              loc.translate("onboard_tenant"),
-              Icons.person_add,
-              () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
-            ),
+        if (canOnboardTenant) ...[
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  loc.translate("onboard_tenant"),
+                  Icons.person_add,
+                  () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  loc.translate("lease_agreements"),
+                  Icons.description,
+                  () => Navigator.pushNamed(context, "/rental/agreements"),
+                ),
+              ),
+            ],
           ),
+        ],
       ],
     );
   }
@@ -349,7 +394,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                     Navigator.pushNamed(
                       context,
                       "/rental/property-details",
-                      arguments: prop['id'].toString(), // Simplified arguments consistency
+                      arguments: {'id': prop['id'].toString()},
                     );
                   },
                   child: Row(

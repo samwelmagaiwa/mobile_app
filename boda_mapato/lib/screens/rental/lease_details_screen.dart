@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import '../../constants/theme_constants.dart';
 import '../../services/localization_service.dart';
 
@@ -31,9 +32,10 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Mkataba Details",
+      title: loc.translate("lease_details"),
       body: Column(children: [
         _buildHeader(),
         Container(
@@ -49,10 +51,10 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
             indicatorSize: TabBarIndicatorSize.tab,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white54,
-            tabs: const [
-              Tab(text: "Details"),
-              Tab(text: "Nyaraka"),
-              Tab(text: "Malipo")
+            tabs: [
+              Tab(text: loc.translate("details")),
+              Tab(text: loc.translate("documents")),
+              Tab(text: loc.translate("payments"))
             ],
           ),
         ),
@@ -67,19 +69,23 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
   }
 
   Widget _buildHeader() {
+    final loc = LocalizationService.instance;
     final status = _agreement['status'] ?? 'active';
     Color c;
     String l;
     switch (status) {
       case 'active':
         c = ThemeConstants.successGreen;
-        l = 'Active';
+        l = loc.translate('active');
+        break;
       case 'expiring_soon':
         c = ThemeConstants.warningAmber;
-        l = 'Expiring';
+        l = loc.translate('expiring_soon');
+        break;
       case 'expired':
         c = ThemeConstants.errorRed;
-        l = 'Expired';
+        l = loc.translate('expired');
+        break;
       default:
         c = Colors.white54;
         l = status;
@@ -106,7 +112,7 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
         Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(_agreement['tenant_name'] ?? 'N/A',
+          Text(_agreement['tenant_name'] ?? loc.translate('not_available'),
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 20.sp,
@@ -128,35 +134,34 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
   }
 
   Widget _buildDetailsTab() {
+    final loc = LocalizationService.instance;
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(children: [
-        _card("Mkataba", [
-          _rw("Nyumba", _agreement['house_number'] ?? '-'),
-          _rw("Mali", _agreement['property_name'] ?? '-'),
-          _rw("Kodi", "TSh ${_fmt(_agreement['rent_amount'] ?? 0)}"),
-          _rw(LocalizationService.instance.translate('deposit'), "TSh ${_fmt(_agreement['deposit_amount'] ?? 0)}"),
+        _card(loc.translate("lease_agreement"), [
+          _rw(loc.translate("house"), _agreement['house_number'] ?? '-'),
+          _rw(loc.translate("property"), _agreement['property_name'] ?? '-'),
+          _rw(loc.translate("rent"), "TSh ${_fmt(_agreement['rent_amount'] ?? 0)}"),
+          _rw(loc.translate('deposit'), "TSh ${_fmt(_agreement['deposit_amount'] ?? 0)}"),
           _rw(
-              "Kipindi",
-              (_agreement['cycle'] ?? 'monthly')
-                  .toString()
-                  .replaceAll('_', ' ')),
-          _rw("Hali", (_agreement['status'] ?? 'active').toString().toUpperCase()),
+              loc.translate("billing_cycle"),
+              loc.translate(_agreement['cycle'] ?? 'monthly')),
+          _rw(loc.translate("status"), loc.translate(_agreement['status'] ?? 'active').toUpperCase()),
         ]),
         SizedBox(height: 16.h),
-        _card("Masharti ya Mkataba", [
-          _rw("Siku za Notisi", "${_agreement['notice_period_days'] ?? 30} siku"),
-          _rw("Faini / Siku", "TSh ${_fmt(_agreement['penalty_per_day'] ?? 0)}"),
-          _rw("Upya Otomatiki", (_agreement['auto_renew'] == 1 || _agreement['auto_renew'] == true) ? "Ndiyo" : "Hapana"),
+        _card(loc.translate("lease_terms"), [
+          _rw(loc.translate("notice_period"), "${_agreement['notice_period_days'] ?? 30} ${loc.translate('days')}"),
+          _rw(loc.translate("penalty_per_day"), "TSh ${_fmt(_agreement['penalty_per_day'] ?? 0)}"),
+          _rw(loc.translate("auto_renew"), (_agreement['auto_renew'] == 1 || _agreement['auto_renew'] == true) ? loc.translate("yes") : loc.translate("no")),
           if (_agreement['renewal_date'] != null)
-            _rw("Tarehe ya Upya", _agreement['renewal_date'].toString()),
+            _rw(loc.translate("renewal_date"), _formatDate(_agreement['renewal_date'].toString())),
           if (_agreement['notes'] != null && (_agreement['notes'] ?? '').isNotEmpty)
-            _rw("Maelezo", _agreement['notes'].toString()),
+            _rw(loc.translate("notes"), _agreement['notes'].toString()),
         ]),
         SizedBox(height: 16.h),
-        _card("Tarehe", [
-          _rw("Kuanzia", _agreement['start_date'] ?? '-'),
-          _rw("Mpaka", _agreement['end_date'] ?? '-'),
+        _card(loc.translate("dates"), [
+          _rw(loc.translate("start_date"), _formatDate(_agreement['start_date'])),
+          _rw(loc.translate("end_date"), _formatDate(_agreement['end_date'])),
         ]),
         SizedBox(height: 24.h),
         if (_agreement['status'] == 'expiring_soon')
@@ -165,7 +170,7 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
             child: ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text("Renew Lease"),
+              label: Text(loc.translate("renew_lease")),
               style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeConstants.primaryOrange,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -179,8 +184,8 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
             child: OutlinedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.warning, color: ThemeConstants.warningAmber),
-              label: const Text("Terminate Early",
-                  style: TextStyle(color: ThemeConstants.warningAmber)),
+              label: Text(loc.translate("terminate_early"),
+                  style: const TextStyle(color: ThemeConstants.warningAmber)),
               style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: ThemeConstants.warningAmber),
                   padding: EdgeInsets.symmetric(vertical: 14.h),
@@ -193,20 +198,21 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
   }
 
   Widget _buildDocumentsTab() {
+    final loc = LocalizationService.instance;
     return ListView(
       padding: EdgeInsets.all(16.w),
       children: [
-        _docTile(Icons.picture_as_pdf, "Signed Contract", "2.3 MB",
-            "Uploaded 12-05-2026"),
+        _docTile(Icons.picture_as_pdf, loc.translate("contract_signed"), "2.3 MB",
+            "${loc.translate('uploaded')} 12-05-2026"),
         _docTile(
-            Icons.image, "Tenant ID Card", "0.5 MB", "Uploaded 12-05-2026"),
+            Icons.image, loc.translate("tenant_id_card"), "0.5 MB", "${loc.translate('uploaded')} 12-05-2026"),
         SizedBox(height: 24.h),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () {},
             icon: const Icon(Icons.upload_file, color: Colors.white70),
-            label: const Text("Upload Document"),
+            label: Text(loc.translate("upload_document")),
             style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white24),
                 padding: EdgeInsets.symmetric(vertical: 14.h),
@@ -254,11 +260,12 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
   }
 
   Widget _buildPaymentsTab() {
+    final loc = LocalizationService.instance;
     return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.payment, size: 48.sp, color: Colors.white24),
       SizedBox(height: 16.h),
-      Text("Malipo yataonekana hapa",
+      Text(loc.translate("payments_will_appear_here"),
           style: TextStyle(color: Colors.white54, fontSize: 16.sp)),
     ]));
   }
@@ -295,7 +302,18 @@ class _LeaseDetailsScreenState extends State<LeaseDetailsScreen>
         ]),
       );
 
-  String _fmt(num v) {
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('dd MMM yyyy').format(date);
+    } catch (e) {
+      return dateStr.split('T')[0];
+    }
+  }
+
+  String _fmt(dynamic val) {
+    final num v = num.tryParse(val.toString()) ?? 0;
     if (v >= 1000000) return "${(v / 1000000).toStringAsFixed(0)}M";
     if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
     return v.toInt().toString();

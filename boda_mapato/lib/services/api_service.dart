@@ -1009,6 +1009,31 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> postMultipartMultiFiles(
+      String endpoint, Map<String, dynamic> data,
+      {required String fileField, required List<dynamic> files}) async {
+    final headers = await _authHeaders;
+
+    final url = Uri.parse("$baseUrl$endpoint");
+    final request = http.MultipartRequest("POST", url);
+
+    final h = Map<String, String>.of(headers);
+    h.remove('Content-Type');
+    request.headers.addAll(h);
+
+    for (var file in files) {
+       final path = file is String ? file : file.path;
+       request.files.add(await http.MultipartFile.fromPath(fileField, path));
+    }
+
+    data.forEach((key, value) {
+      if (value != null) request.fields[key] = value.toString();
+    });
+
+    final response = await http.Response.fromStream(await request.send());
+    return _handleResponse(response);
+  }
+
   Future<Map<String, dynamic>> sendSmsReminder(String billId) async =>
       _post("/rental/billing/$billId/reminder", {'type': 'sms'});
 
@@ -1036,6 +1061,23 @@ class ApiService {
           Map<String, dynamic> data) async =>
       _post("/rental/agreements", data);
 
+  Future<Map<String, dynamic>> uploadAgreementDocument(
+          String agreementId, dynamic file, String documentType) async =>
+      postMultipart("/rental/agreements/$agreementId/documents", {'document_type': documentType}, fileField: 'document', file: file);
+
+  Future<Map<String, dynamic>> dispatchTenantReceipt(String id) async =>
+      _post("/rental/receipts/$id/dispatch", {});
+
+  Future<Map<String, dynamic>> getTenantReceipts() async =>
+      _get("/tenant/receipts");
+
+  Future<List<dynamic>> getSystemTenants({String? query}) async {
+    final params = <String, dynamic>{};
+    if (query != null && query.isNotEmpty) params['query'] = query;
+    final res = await _get("/rental/tenants/system", queryParams: params);
+    return (res['data'] as List?) ?? [];
+  }
+
   Future<Map<String, dynamic>> renewAgreement(
           String id, Map<String, dynamic> data) async =>
       _post("/rental/agreements/$id/renew", data);
@@ -1061,12 +1103,20 @@ class ApiService {
   Future<Map<String, dynamic>> getHouseDetails(String houseId) async =>
       _get("/rental/houses/$houseId");
 
-  Future<Map<String, dynamic>> createHouse(Map<String, dynamic> data) async =>
-      _post("/rental/houses", data);
+  Future<Map<String, dynamic>> createHouse(Map<String, dynamic> data, {List<dynamic>? images}) async {
+    if (images != null && images.isNotEmpty) {
+      return postMultipartMultiFiles("/rental/houses", data, fileField: 'images[]', files: images);
+    }
+    return _post("/rental/houses", data);
+  }
 
-  Future<Map<String, dynamic>> updateHouse(
-          String houseId, Map<String, dynamic> data) async =>
-      _put("/rental/houses/$houseId", data);
+  Future<Map<String, dynamic>> updateHouse(String houseId, Map<String, dynamic> data, {List<dynamic>? images}) async {
+    if (images != null && images.isNotEmpty) {
+      data['_method'] = 'PUT';
+      return postMultipartMultiFiles("/rental/houses/$houseId", data, fileField: 'images[]', files: images);
+    }
+    return _put("/rental/houses/$houseId", data);
+  }
 
   Future<Map<String, dynamic>> deleteHouse(String houseId) async =>
       _delete("/rental/houses/$houseId");
@@ -1980,6 +2030,47 @@ class ApiService {
 
   Future<Map<String, dynamic>> getSystemStatus() async =>
       _get("/test/system-status", requireAuth: false);
+
+  // ── Public House Listings (no auth) ──
+
+  Future<Map<String, dynamic>> getPublicHouses({
+    int page = 1,
+    String? search,
+    String? type,
+    String? status,
+    int? bedrooms,
+    int? bathrooms,
+    int? maxDistance,
+    bool? hasFence,
+    bool? hasTiles,
+    bool? hasKitchen,
+    bool? hasMasterBedroom,
+    bool? hasSittingRoom,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'per_page': '20',
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (type != null) 'type': type,
+      if (status != null) 'status': status,
+      if (bedrooms != null) 'bedrooms': bedrooms.toString(),
+      if (bathrooms != null) 'bathrooms': bathrooms.toString(),
+      if (maxDistance != null) 'max_distance': maxDistance.toString(),
+      if (hasFence != null) 'has_fence': hasFence.toString(),
+      if (hasTiles != null) 'has_tiles': hasTiles.toString(),
+      if (hasKitchen != null) 'has_kitchen': hasKitchen.toString(),
+      if (hasMasterBedroom != null) 'has_master_bedroom': hasMasterBedroom.toString(),
+      if (hasSittingRoom != null) 'has_sitting_room': hasSittingRoom.toString(),
+    };
+    final uri = Uri.parse('$baseUrl/public/houses').replace(queryParameters: params);
+    try {
+      final response = await http.get(uri, headers: _headers).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return {'success': false, 'data': []};
+  }
 }
 
 // Custom exception class for API errors

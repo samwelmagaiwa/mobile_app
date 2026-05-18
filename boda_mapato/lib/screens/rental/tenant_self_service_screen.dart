@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
+import 'tenant_receipt_repository_screen.dart';
 
 class TenantSelfServiceScreen extends StatefulWidget {
   const TenantSelfServiceScreen({super.key});
@@ -343,56 +344,46 @@ class _TenantSelfServiceScreenState extends State<TenantSelfServiceScreen>
   }
 
   Widget _buildReceiptsTab() {
-    final payments = _tenantData!['payments'] as List;
-
-    return ListView.builder(
-      padding: EdgeInsets.all(16.w),
-      itemCount: payments.length,
-      itemBuilder: (context, index) {
-        final payment = payments[index];
-
-        return Container(
-          margin: EdgeInsets.only(bottom: 12.h),
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: Colors.white.withOpacity(0.15)),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2_outlined, color: Colors.white24, size: 64.sp),
+          SizedBox(height: 16.h),
+          Text(
+            "Receipt Repository",
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                    color: ThemeConstants.primaryOrange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12.r)),
-                child: Icon(Icons.receipt,
-                    color: ThemeConstants.primaryOrange, size: 24.sp),
-              ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Receipt: ${payment['receipt']}",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600)),
-                    Text(payment['date'],
-                        style:
-                            TextStyle(color: Colors.white54, fontSize: 12.sp)),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.share, color: Colors.white54, size: 20.sp),
-                onPressed: () {},
-              ),
-            ],
+          SizedBox(height: 8.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40.w),
+            child: Text(
+              "Access all your dispatched electronic receipts, search by month or year, and print copies.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+            ),
           ),
-        );
-      },
+          SizedBox(height: 24.h),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.open_in_new),
+            label: const Text("Open Repository"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeConstants.primaryOrange,
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const TenantReceiptRepositoryScreen())
+              );
+            },
+          )
+        ],
+      ),
     );
   }
 

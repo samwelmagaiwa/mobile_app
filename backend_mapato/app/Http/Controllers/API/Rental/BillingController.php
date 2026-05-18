@@ -28,20 +28,20 @@ class BillingController extends Controller
     public function getBills(Request $request)
     {
         $user = $request->user();
-        
+
         if ($user->isLandlord() || $user->role === 'admin') {
-            $bills = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+            $bills = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
                 $query->where('owner_id', $user->id);
-            })->with('agreement.tenant', 'agreement.house.property')->get();
+            })->with('agreement.tenant', 'agreement.house.property', 'payments.receipt')->get();
         } elseif ($user->role === 'tenant') {
-            $bills = RentBill::whereHas('agreement', function($query) use ($user) {
+            $bills = RentBill::whereHas('agreement', function ($query) use ($user) {
                 $query->where('tenant_id', $user->id);
-            })->with('agreement.house.property')->get();
+            })->with('agreement.house.property', 'payments.receipt')->get();
         } else {
             // Caretaker - show all bills for assigned properties
-            $bills = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+            $bills = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
                 $query->where('owner_id', $user->id);
-            })->with('agreement.tenant', 'agreement.house.property')->get();
+            })->with('agreement.tenant', 'agreement.house.property', 'payments.receipt')->get();
         }
 
         return ResponseHelper::success($bills);
@@ -53,13 +53,13 @@ class BillingController extends Controller
     public function getPayments(Request $request)
     {
         $user = $request->user();
-        
-        $payments = RentalPayment::whereHas('bill.agreement.house.property', function($query) use ($user) {
+
+        $payments = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->with('bill.agreement.house', 'tenant', 'collector', 'receipt')
-        ->orderBy('payment_date', 'desc')
-        ->get();
-        
+            ->orderBy('payment_date', 'desc')
+            ->get();
+
         return ResponseHelper::success($payments);
     }
 
@@ -69,13 +69,13 @@ class BillingController extends Controller
     public function getReceipts(Request $request)
     {
         $user = $request->user();
-        
-        $receipts = RentalReceipt::whereHas('payment.bill.agreement.house.property', function($query) use ($user) {
+
+        $receipts = RentalReceipt::whereHas('payment.bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->with('payment.tenant', 'payment.bill.agreement.house')
-        ->orderBy('created_at', 'desc')
-        ->get();
-        
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return ResponseHelper::success($receipts);
     }
 
@@ -86,7 +86,7 @@ class BillingController extends Controller
     {
         $receipt = RentalReceipt::with('payment.tenant', 'payment.bill.agreement.house.property', 'payment.collector')
             ->findOrFail($id);
-        
+
         return ResponseHelper::success($receipt);
     }
 
@@ -107,10 +107,10 @@ class BillingController extends Controller
         try {
             $data = $request->all();
             $data['collector_id'] = $request->user()->id;
-            
+
             $payment = $this->rentalService->recordPayment($data);
             $payment->load('bill.agreement.house.property', 'tenant', 'receipt');
-            
+
             // Send SMS confirmation
             SmsService::sendPaymentReceipt(
                 $payment->tenant->phone_number,
@@ -118,11 +118,35 @@ class BillingController extends Controller
                 $payment->receipt->receipt_number,
                 $payment->bill->balance
             );
-            
+
             return ResponseHelper::success($payment, 'Payment recorded successfully');
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Dispatch receipt to tenant repository.
+     */
+    public function dispatchReceipt(Request $request, $id)
+    {
+        $receipt = RentalReceipt::findOrFail($id);
+
+        // Ensure user owns property associated with this receipt
+        $user = $request->user();
+        if ($user->role !== 'admin') {
+            $ownerCheck = RentalReceipt::where('id', $id)->whereHas('payment.bill.agreement.house.property', function ($query) use ($user) {
+                $query->where('owner_id', $user->id);
+            })->exists();
+
+            if (!$ownerCheck) {
+                return ResponseHelper::error('Unauthorized', 403);
+            }
+        }
+
+        $receipt->update(['is_dispatched' => true]);
+
+        return ResponseHelper::success($receipt, 'Receipt sent to tenant successfully');
     }
 
     /**
@@ -131,53 +155,53 @@ class BillingController extends Controller
     public function getDashboard(Request $request)
     {
         $user = $request->user();
-        
+
         // Total properties
         $totalProperties = \App\Models\Rental\Property::where('owner_id', $user->id)->count();
-        
+
         // Total houses
-        $totalHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+        $totalHouses = \App\Models\Rental\House::whereHas('property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->count();
-        
+
         // Occupied houses
-        $occupiedHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+        $occupiedHouses = \App\Models\Rental\House::whereHas('property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->where('status', 'occupied')->count();
-        
+
         // Active tenants
-        $activeTenants = RentalAgreement::whereHas('house.property', function($query) use ($user) {
+        $activeTenants = RentalAgreement::whereHas('house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->where('status', 'active')->count();
-        
+
         // Monthly revenue this month
         $thisMonth = Carbon::now()->format('m-Y');
-        $monthlyRevenue = RentalPayment::whereHas('bill.agreement.house.property', function($query) use ($user) {
+        $monthlyRevenue = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
-        })->whereHas('bill', function($query) use ($thisMonth) {
+        })->whereHas('bill', function ($query) use ($thisMonth) {
             $query->where('month_year', $thisMonth);
         })->sum('amount_paid');
-        
+
         // Pending bills (unpaid + partial)
-        $pendingBills = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+        $pendingBills = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->whereIn('status', ['unpaid', 'partial'])->count();
-        
+
         // Overdue bills
-        $overdueBills = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+        $overdueBills = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->where('status', 'overdue')->count();
-        
+
         // Total arrears amount
-        $totalArrears = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+        $totalArrears = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->whereIn('status', ['unpaid', 'partial', 'overdue'])->sum('balance');
-        
+
         // Recent payments
-        $recentPayments = RentalPayment::whereHas('bill.agreement.house.property', function($query) use ($user) {
+        $recentPayments = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->with('tenant', 'bill.agreement.house')->orderBy('payment_date', 'desc')->limit(5)->get();
-        
+
         return ResponseHelper::success([
             'total_properties' => $totalProperties,
             'total_houses' => $totalHouses,
@@ -198,21 +222,21 @@ class BillingController extends Controller
     public function getArrears(Request $request)
     {
         $user = $request->user();
-        
-        $arrears = RentBill::whereHas('agreement.house.property', function($query) use ($user) {
+
+        $arrears = RentBill::whereHas('agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->whereIn('status', ['unpaid', 'partial', 'overdue'])
-        ->with('agreement.tenant.user', 'agreement.house.property')
-        ->orderBy('due_date', 'asc')
-        ->get();
-        
+            ->with('agreement.tenant.user', 'agreement.house.property')
+            ->orderBy('due_date', 'asc')
+            ->get();
+
         // Group by status
         $byStatus = [
             'overdue' => $arrears->where('status', 'overdue'),
             'unpaid' => $arrears->where('status', 'unpaid'),
             'partial' => $arrears->where('status', 'partial'),
         ];
-        
+
         return ResponseHelper::success([
             'arrears' => $arrears,
             'by_status' => $byStatus,
@@ -228,35 +252,35 @@ class BillingController extends Controller
     {
         $user = $request->user();
         $period = $request->get('period', 'monthly'); // monthly or yearly
-        
+
         if ($period === 'yearly') {
             // Last 12 months
-            $payments = RentalPayment::whereHas('bill.agreement.house.property', function($query) use ($user) {
+            $payments = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
                 $query->where('owner_id', $user->id);
             })->where('payment_date', '>=', now()->subMonths(12))
-            ->get();
-            
+                ->get();
+
             // Group by month
-            $revenue = $payments->groupBy(function($p) {
+            $revenue = $payments->groupBy(function ($p) {
                 return $p->payment_date->format('m-Y');
-            })->map(function($group) {
+            })->map(function ($group) {
                 return $group->sum('amount_paid');
             });
         } else {
             // Last 30 days
-            $payments = RentalPayment::whereHas('bill.agreement.house.property', function($query) use ($user) {
+            $payments = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
                 $query->where('owner_id', $user->id);
             })->where('payment_date', '>=', now()->subDays(30))
-            ->get();
-            
+                ->get();
+
             // Group by date
-            $revenue = $payments->groupBy(function($p) {
+            $revenue = $payments->groupBy(function ($p) {
                 return $p->payment_date->format('d-m');
-            })->map(function($group) {
+            })->map(function ($group) {
                 return $group->sum('amount_paid');
             });
         }
-        
+
         return ResponseHelper::success([
             'period' => $period,
             'revenue' => $revenue,
@@ -271,24 +295,24 @@ class BillingController extends Controller
     public function getOccupancy(Request $request)
     {
         $user = $request->user();
-        
+
         // Get all properties with house counts
         $properties = \App\Models\Rental\Property::where('owner_id', $user->id)
             ->withCount('houses')
             ->get();
-        
+
         $totalHouses = $properties->sum('houses_count');
-        $occupiedHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+        $occupiedHouses = \App\Models\Rental\House::whereHas('property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->where('status', 'occupied')->count();
-        
+
         $vacantHouses = $totalHouses - $occupiedHouses;
-        $maintenanceHouses = \App\Models\Rental\House::whereHas('property', function($query) use ($user) {
+        $maintenanceHouses = \App\Models\Rental\House::whereHas('property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
         })->where('status', 'maintenance')->count();
-        
+
         // Per property occupancy
-        $byProperty = $properties->map(function($property) {
+        $byProperty = $properties->map(function ($property) {
             $occupied = $property->houses()->where('status', 'occupied')->count();
             $total = $property->houses()->count();
             return [
@@ -300,7 +324,7 @@ class BillingController extends Controller
                 'occupancy_rate' => $total > 0 ? round(($occupied / $total) * 100, 1) : 0,
             ];
         });
-        
+
         return ResponseHelper::success([
             'summary' => [
                 'total_units' => $totalHouses,

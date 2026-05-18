@@ -26,19 +26,6 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     'shop_units'
   ];
 
-  final List<String> _regions = [
-    'Dar es Salaam',
-    'Arusha',
-    'Mwanza',
-    'Dodoma',
-    'Mbeya',
-    'Morogoro',
-    'Tanga',
-    'Kilimanjaro',
-    'Pwani',
-    'Kigoma'
-  ];
-
   final TextEditingController _searchController = TextEditingController();
   String? _selectedStatus;
   String? _selectedType;
@@ -140,7 +127,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       onPressed: _clearFilters)
                   : null,
               filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
+              fillColor: Colors.white.withValues(alpha: 0.1),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide.none),
@@ -194,7 +181,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? ThemeConstants.primaryOrange
-              : Colors.white.withOpacity(0.1),
+              : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
               color:
@@ -217,7 +204,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
           Container(
             padding: EdgeInsets.all(24.w),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.apartment, size: 64.sp, color: Colors.white38),
@@ -266,7 +253,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
 
   Widget _buildPropertyCard(Map<String, dynamic> property) {
     final houses = property['houses'] as List? ?? [];
-    final occupiedCount = houses.where((h) => h['status'] == 'occupied').length;
+    final occupiedCount = houses.where((h) => (h as Map<String, dynamic>)['status'] == 'occupied').length;
     final status = property['status'] ?? 'active';
 
     Color statusColor;
@@ -286,9 +273,9 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -307,8 +294,8 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            ThemeConstants.primaryOrange.withOpacity(0.3),
-                            ThemeConstants.primaryOrange.withOpacity(0.1)
+                            ThemeConstants.primaryOrange.withValues(alpha: 0.3),
+                            ThemeConstants.primaryOrange.withValues(alpha: 0.1)
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -356,7 +343,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       padding:
                           EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.15),
+                        color: statusColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
@@ -436,7 +423,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: (color ?? Colors.white).withOpacity(0.1),
+        color: (color ?? Colors.white).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Text(label,
@@ -456,12 +443,19 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
   void _showAddPropertyDialog(BuildContext context) {
     final nameController = TextEditingController();
     final addressController = TextEditingController();
+    final blocksController = TextEditingController(text: "1");
+    final housesController = TextEditingController(text: "0");
+    final rentController = TextEditingController(text: "0");
+    final depositController = TextEditingController(text: "0");
+
     String? selectedRegion;
     String? selectedDistrict;
     String? selectedWard;
     String? selectedStreet;
     String? selectedPlace;
     String selectedType = 'apartment';
+    String selectedBillingCycle = 'monthly';
+    String selectedCurrency = 'TZS';
 
     showModalBottomSheet(
       context: context,
@@ -523,7 +517,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                           Icons.location_on,
                           maxLines: 2),
                       SizedBox(height: 24.h),
-                      _buildSectionTitle("Location"),
+                      _buildSectionTitle(LocalizationService.instance.translate('location')),
                       SizedBox(height: 12.h),
                       LocationSelector(
                         onChanged: (region, district, ward, street, place) {
@@ -540,10 +534,14 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       Row(
                         children: [
                           Expanded(
-                              child: _buildNumberField("Idadi ya Blocks", "1")),
+                              child: _buildTextField(blocksController,
+                                  "Idadi ya Blocks", Icons.grid_view,
+                                  keyboardType: TextInputType.number)),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField("Jumla ya Vyumba", "0")),
+                              child: _buildTextField(housesController,
+                                  "Jumla ya Vyumba", Icons.home,
+                                  keyboardType: TextInputType.number)),
                         ],
                       ),
                       SizedBox(height: 16.h),
@@ -552,9 +550,9 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                           Expanded(
                               child: _buildDropdown(
                                   "Kipindi cha Kodi",
-                                  "monthly",
+                                  selectedBillingCycle,
                                   ["monthly", "quarterly", "yearly"],
-                                  (v) {},
+                                  (v) => setState(() => selectedBillingCycle = v),
                                   (v) => v == 'monthly'
                                       ? "Mwezi"
                                       : v == 'quarterly'
@@ -562,8 +560,12 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                           : "Mwaka")),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildDropdown("Sarafu", "TZS",
-                                  ["TZS", "USD"], (v) {}, (v) => v)),
+                              child: _buildDropdown(
+                                  "Sarafu",
+                                  selectedCurrency,
+                                  ["TZS", "USD"],
+                                  (v) => setState(() => selectedCurrency = v),
+                                  (v) => v)),
                         ],
                       ),
                       SizedBox(height: 24.h),
@@ -572,12 +574,18 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       Row(
                         children: [
                           Expanded(
-                              child: _buildNumberField("Kodi Default", "0",
-                                  prefix: "TSh ")),
+                              child: _buildTextField(
+                                  rentController, "Kodi Default", Icons.payments,
+                                  hint: "0",
+                                  keyboardType: TextInputType.number)),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField("${LocalizationService.instance.translate('deposit')} Default", "0",
-                                  prefix: "TSh ")),
+                              child: _buildTextField(
+                                  depositController,
+                                  "${LocalizationService.instance.translate('deposit')} Default",
+                                  Icons.account_balance_wallet,
+                                  hint: "0",
+                                  keyboardType: TextInputType.number)),
                         ],
                       ),
                       SizedBox(height: 32.h),
@@ -585,20 +593,28 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (nameController.text.isNotEmpty &&
-                                addressController.text.isNotEmpty) {
+                            if (nameController.text.isNotEmpty) {
                               final provider = context.read<RentalProvider>();
                               await provider.addProperty({
                                 'name': nameController.text,
                                 'property_type': selectedType,
-                                'address': addressController.text,
-                                'region': selectedRegion ?? 'Dar es Salaam',
-                                'district': selectedDistrict ?? 'Default',
+                                'address': addressController.text.trim(),
+                                'region': selectedRegion,
+                                'district': selectedDistrict,
                                 'ward': selectedWard,
                                 'street': selectedStreet,
                                 'place': selectedPlace,
-                                'billing_cycle': 'monthly',
-                                'currency': 'TZS',
+                                'total_blocks':
+                                    int.tryParse(blocksController.text) ?? 1,
+                                'total_units':
+                                    int.tryParse(housesController.text) ?? 0,
+                                'default_billing_cycle': selectedBillingCycle,
+                                'currency': selectedCurrency,
+                                'default_rent_amount':
+                                    double.tryParse(rentController.text) ?? 0.0,
+                                'default_deposit_amount':
+                                    double.tryParse(depositController.text) ??
+                                        0.0,
                               });
                               if (context.mounted) Navigator.pop(context);
                             }
@@ -638,10 +654,13 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
 
   Widget _buildTextField(
       TextEditingController? controller, String label, IconData icon,
-      {int maxLines = 1, String? hint}) {
+      {int maxLines = 1,
+      String? hint,
+      TextInputType keyboardType = TextInputType.text}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       style: TextStyle(color: Colors.white, fontSize: 14.sp),
       decoration: InputDecoration(
         labelText: label,
@@ -650,7 +669,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
         labelStyle: TextStyle(color: Colors.white70, fontSize: 12.sp),
         prefixIcon: Icon(icon, color: Colors.white38, size: 20.sp),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
             borderSide: const BorderSide(color: Colors.white12)),
@@ -674,7 +693,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: Colors.white12),
           ),
@@ -698,38 +717,13 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     );
   }
 
-  Widget _buildNumberField(String label, String hint, {String prefix = ""}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
-        SizedBox(height: 6.h),
-        TextField(
-          keyboardType: TextInputType.number,
-          style: TextStyle(color: Colors.white, fontSize: 14.sp),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white24),
-            prefixText: prefix,
-            prefixStyle: const TextStyle(color: Colors.white54),
-            filled: true,
-            fillColor: Colors.white.withOpacity(0.05),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: const BorderSide(color: Colors.white12)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: const BorderSide(color: Colors.white12)),
-          ),
-        ),
-      ],
-    );
-  }
 
   void _showAddHouseDialog(BuildContext context, String propertyId) {
     final houseNumberController = TextEditingController();
     final rentController = TextEditingController();
     final depositController = TextEditingController(text: "0");
+    final electricityController = TextEditingController();
+    final waterController = TextEditingController();
     String selectedType = 'room';
     String selectedStatus = 'vacant';
 
@@ -814,22 +808,27 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       Row(
                         children: [
                           Expanded(
-                              child: _buildNumberField("Kodi ya Mwezi *", "0",
-                                  prefix: "TSh ")),
+                              child: _buildTextField(rentController, "Kodi ya Mwezi *", Icons.payments,
+                                  hint: "0", keyboardType: TextInputType.number)),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField(LocalizationService.instance.translate('deposit'), "0",
-                                  prefix: "TSh ")),
+                              child: _buildTextField(depositController,
+                                  LocalizationService.instance.translate('deposit'), Icons.account_balance_wallet,
+                                  hint: "0", keyboardType: TextInputType.number)),
                         ],
                       ),
                       SizedBox(height: 16.h),
                       Row(
                         children: [
                           Expanded(
-                              child: _buildNumberField("Namba ya Stima", "")),
+                              child: _buildTextField(
+                                  electricityController, "Namba ya Stima", Icons.electric_bolt,
+                                  keyboardType: TextInputType.number)),
                           SizedBox(width: 12.w),
                           Expanded(
-                              child: _buildNumberField("Namba ya Maji", "")),
+                              child: _buildTextField(
+                                  waterController, "Namba ya Maji", Icons.water_drop,
+                                  keyboardType: TextInputType.number)),
                         ],
                       ),
                       SizedBox(height: 32.h),
@@ -914,7 +913,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                           padding: EdgeInsets.all(16.w),
                           decoration: BoxDecoration(
                             color:
-                                ThemeConstants.primaryOrange.withOpacity(0.15),
+                                ThemeConstants.primaryOrange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16.r),
                           ),
                           child: Icon(Icons.apartment,
@@ -950,14 +949,14 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                             property['property_type'] ?? 'N/A')),
                     _buildDetailRow(
                         "Kipindi",
-                        property['default_billing_cycle']
+                        (property['default_billing_cycle'] as String?)
                                 ?.replaceAll('_', ' ') ??
                             '-'),
                     _buildDetailRow("Kodi Default",
                         "TSh ${property['default_rent_amount'] ?? 0}"),
                     _buildDetailRow(
                         "Status",
-                        property['status']?.toString().replaceAll('_', ' ') ??
+                        (property['status'] as String?)?.replaceAll('_', ' ') ??
                             'active'),
                     SizedBox(height: 24.h),
                     Row(
@@ -999,7 +998,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                         ),
                       )
                     else
-                      ...houses.map(_buildHouseItem),
+                      ...houses.map((h) => _buildHouseItem(h as Map<String, dynamic>)),
                   ],
                 ),
               ),
@@ -1043,16 +1042,16 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10.r),
             ),
             child: Icon(Icons.door_front_door, color: statusColor, size: 20.sp),
@@ -1075,7 +1074,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(

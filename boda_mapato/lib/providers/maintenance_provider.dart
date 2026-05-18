@@ -8,11 +8,13 @@ class MaintenanceProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> _requests = [];
   List<Map<String, dynamic>> _vendors = [];
+  List<Map<String, dynamic>> _marketplaceVendors = [];
   List<Map<String, dynamic>> _preventiveSchedules = [];
   bool _isLoading = false;
 
   List<Map<String, dynamic>> get requests => _requests;
   List<Map<String, dynamic>> get vendors => _vendors;
+  List<Map<String, dynamic>> get marketplaceVendors => _marketplaceVendors;
   List<Map<String, dynamic>> get preventiveSchedules => _preventiveSchedules;
   bool get isLoading => _isLoading;
 
@@ -89,13 +91,54 @@ class MaintenanceProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> addVendor({
+  Future<void> fetchMarketplaceVendors() async {
+    try {
+      final response = await _apiService.get("/rental/maintenance/marketplace/vendors");
+      if (response['status'] == 'success') {
+        _marketplaceVendors = List<Map<String, dynamic>>.from(response['data']);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error fetching marketplace vendors: $e");
+    }
+  }
+
+  Future<bool> saveToRoster(String vendorId) async {
+    try {
+      final response = await _apiService.post("/rental/maintenance/vendors/$vendorId/save", {});
+      if (response['status'] == 'success') {
+        await fetchVendors(); 
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error saving to roster: $e");
+      return false;
+    }
+  }
+
+  Future<bool> removeFromRoster(String vendorId) async {
+    try {
+      final response = await _apiService.post("/rental/maintenance/vendors/$vendorId/remove", {});
+      if (response['status'] == 'success') {
+        await fetchVendors(); 
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error removing from roster: $e");
+      return false;
+    }
+  }
+
+  Future<String?> addVendor({
     required String name,
     required String phone,
     String? specialty,
     String? email,
     String? address,
     String? businessName,
+    String? experience,
   }) async {
     try {
       final response = await _apiService.post("/rental/maintenance/vendors", {
@@ -105,15 +148,19 @@ class MaintenanceProvider with ChangeNotifier {
         'email': email,
         'address': address,
         'business_name': businessName,
+        'experience': experience,
       });
       if (response['status'] == 'success' || response['status'] == 201) {
         await fetchVendors();
-        return true;
+        return null;
       }
-      return false;
+      return response['message']?.toString() ?? "Imeshindikana kuongeza fundi";
     } catch (e) {
       debugPrint("Error adding vendor: $e");
-      return false;
+      if (e.toString().contains("ApiException")) {
+         return e.toString().replaceAll("Exception: ApiException: ", "");
+      }
+      return e.toString();
     }
   }
 

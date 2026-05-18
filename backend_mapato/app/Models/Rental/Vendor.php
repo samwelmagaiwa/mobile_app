@@ -20,6 +20,7 @@ class Vendor extends Model
         'phone',
         'email',
         'specialty',
+        'experience',
         'address',
         'is_active',
     ];
@@ -32,5 +33,10 @@ class Vendor extends Model
     public function workOrders()
     {
         return $this->hasMany(WorkOrder::class);
+    }
+
+    public function landlords()
+    {
+        return $this->belongsToMany(User::class, 'landlord_vendor', 'vendor_id', 'landlord_id')->withTimestamps();
     }
 }

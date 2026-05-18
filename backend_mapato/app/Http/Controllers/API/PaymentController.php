@@ -27,10 +27,13 @@ class PaymentController extends Controller
             $onlyWithDebts = $request->boolean('only_with_debts', false);
 
             // Load all drivers with their unpaid debt records and user relation for name/phone
-            $driversQuery = Driver::with(['user', 'debtRecords' => function ($query) {
-                $query->where('is_paid', false)
-                      ->orderBy('earning_date', 'desc');
-            }]);
+            $driversQuery = Driver::with([
+                'user',
+                'debtRecords' => function ($query) {
+                    $query->where('is_paid', false)
+                        ->orderBy('earning_date', 'desc');
+                }
+            ]);
 
             $drivers = $driversQuery->get();
 
@@ -61,7 +64,7 @@ class PaymentController extends Controller
 
             // Optionally filter to only those with debts
             if ($onlyWithDebts) {
-                $formatted = $formatted->filter(fn ($d) => $d['has_debt']);
+                $formatted = $formatted->filter(fn($d) => $d['has_debt']);
             }
 
             // Sort: drivers with debts first, then by total debt desc, then by name asc
@@ -93,7 +96,7 @@ class PaymentController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error fetching drivers with debts: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch drivers',
@@ -105,13 +108,13 @@ class PaymentController extends Controller
     /**
      * Get debt summary for a specific driver
      */
-public function getDriverDebtSummary(string $driverId): JsonResponse
+    public function getDriverDebtSummary(string $driverId): JsonResponse
     {
         try {
             // Accept either drivers.id or users.id and normalize to drivers.id
-$driver = Driver::where('id', $driverId)
-                            ->orWhere('user_id', $driverId)
-                            ->first();
+            $driver = Driver::where('id', $driverId)
+                ->orWhere('user_id', $driverId)
+                ->first();
             $summary = DebtRecord::getSummaryForDriver($driver?->id ?? $driverId);
 
             return response()->json([
@@ -124,7 +127,7 @@ $driver = Driver::where('id', $driverId)
 
         } catch (\Exception $e) {
             Log::error('Error fetching driver debt summary: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch driver debt summary',
@@ -136,20 +139,20 @@ $driver = Driver::where('id', $driverId)
     /**
      * Get debt records for a specific driver
      */
-public function getDriverDebtRecords(string $driverId, Request $request): JsonResponse
+    public function getDriverDebtRecords(string $driverId, Request $request): JsonResponse
     {
         try {
             $unpaidOnly = $request->boolean('unpaid_only', true);
             $limit = min($request->get('limit', 100), 500);
 
             // Normalize driver id
-$driver = Driver::where('id', $driverId)
-                            ->orWhere('user_id', $driverId)
-                            ->first();
+            $driver = Driver::where('id', $driverId)
+                ->orWhere('user_id', $driverId)
+                ->first();
 
             $query = DebtRecord::byDriver($driver?->id ?? $driverId)
-                               ->with('payment')
-                               ->orderBy('earning_date', 'desc');
+                ->with('payment')
+                ->orderBy('earning_date', 'desc');
 
             if ($unpaidOnly) {
                 $query->unpaid();
@@ -168,7 +171,7 @@ $driver = Driver::where('id', $driverId)
 
         } catch (\Exception $e) {
             Log::error('Error fetching driver debt records: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch driver debt records',
@@ -183,7 +186,7 @@ $driver = Driver::where('id', $driverId)
     public function recordPayment(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => 'required|exists:drivers,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_channel' => 'required|in:cash,mpesa,bank,mobile,other',
             'covers_days' => 'required|array|min:1',
@@ -200,16 +203,16 @@ $driver = Driver::where('id', $driverId)
         }
 
         DB::beginTransaction();
-        
+
         try {
             $driverId = $request->driver_id;
             $amount = $request->amount;
             $coversDays = $request->covers_days;
-            
+
             // Get or create debt records for the specified days
             $debtRecords = collect();
             $totalExpectedAmount = 0;
-            
+
             foreach ($coversDays as $date) {
                 // Find existing debt record or create a new one
                 $debtRecord = DebtRecord::firstOrCreate(
@@ -223,7 +226,7 @@ $driver = Driver::where('id', $driverId)
                         'is_paid' => false,
                     ]
                 );
-                
+
                 // Only include unpaid debt records
                 if (!$debtRecord->is_paid) {
                     $debtRecords->push($debtRecord);
@@ -255,15 +258,16 @@ $driver = Driver::where('id', $driverId)
             // Update debt records as paid
             $remainingAmount = $amount;
             $paidDays = [];
-            
+
             foreach ($debtRecords as $debtRecord) {
-                if ($remainingAmount <= 0) break;
-                
+                if ($remainingAmount <= 0)
+                    break;
+
                 $amountToPay = min($remainingAmount, $debtRecord->remaining_amount);
-                
+
                 // Mark debt record as paid
                 $debtRecord->markAsPaid($payment, $debtRecord->paid_amount + $amountToPay);
-                
+
                 $paidDays[] = $debtRecord->earning_date->format('d/m/Y');
                 $remainingAmount -= $amountToPay;
             }
@@ -301,7 +305,7 @@ $driver = Driver::where('id', $driverId)
                 'amount' => $request->amount,
                 'covers_days' => $request->covers_days
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record payment',
@@ -323,13 +327,13 @@ $driver = Driver::where('id', $driverId)
             $endDate = $request->get('end_date');
 
             $query = Payment::with(['driver', 'recordedBy'])
-                           ->orderBy('payment_date', 'desc');
+                ->orderBy('payment_date', 'desc');
 
             if ($driverId) {
                 // Normalize driver id if a user id was passed
-$driver = Driver::where('id', $driverId)
-                                ->orWhere('user_id', $driverId)
-                                ->first();
+                $driver = Driver::where('id', $driverId)
+                    ->orWhere('user_id', $driverId)
+                    ->first();
                 $query->byDriver($driver?->id ?? $driverId);
             }
 
@@ -337,7 +341,7 @@ $driver = Driver::where('id', $driverId)
                 $query->dateRange($startDate, $endDate);
             }
 
-$payments = $query->paginate($limit, ['*'], 'page', $page);
+            $payments = $query->paginate($limit, ['*'], 'page', $page);
 
             $items = collect($payments->items())->map(function ($p) {
                 return method_exists($p, 'toApiResponse') ? $p->toApiResponse() : $p;
@@ -359,7 +363,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
 
         } catch (\Exception $e) {
             Log::error('Error fetching payment history: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch payment history',
@@ -413,20 +417,20 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
     public function deletePayment(int $paymentId): JsonResponse
     {
         DB::beginTransaction();
-        
+
         try {
             $payment = Payment::findOrFail($paymentId);
-            
+
             // Reset associated debt records
             DebtRecord::where('payment_id', $paymentId)
-                      ->update([
-                          'is_paid' => false,
-                          'payment_id' => null,
-                          'paid_at' => null,
-                      ]);
+                ->update([
+                    'is_paid' => false,
+                    'payment_id' => null,
+                    'paid_at' => null,
+                ]);
 
             $payment->delete();
-            
+
             DB::commit();
 
             return response()->json([
@@ -437,7 +441,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error deleting payment: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete payment',
@@ -508,7 +512,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
             Log::error('Error fetching payment summary: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch payment summary',
@@ -547,7 +551,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
 
         } catch (\Exception $e) {
             Log::error('Error marking debt as paid: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to mark debt as paid',
@@ -559,9 +563,9 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
     /**
      * Store a new monthly payment (not tied to debt clearance)
      */
-    public function storeNewPayment(\Illuminate\Http\Request $request): JsonResponse
+    public function storeNewPayment(Request $request): JsonResponse
     {
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'driver_id' => 'required',
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -578,21 +582,21 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
         }
 
         try {
-            $payment = new \App\Models\Payment();
+            $payment = new Payment();
             $payment->driver_id = $request->driver_id;
             $payment->amount = $request->amount;
             $payment->payment_channel = $request->get('payment_channel', 'cash');
             $payment->remarks = $request->notes;
             $payment->covers_days = null;
             $payment->status = 'completed';
-            $payment->payment_date = \Carbon\Carbon::parse($request->payment_date);
+            $payment->payment_date = Carbon::parse($request->payment_date);
             // Optional classification
             if (Schema::hasColumn('payments', 'payment_type')) {
                 $payment->payment_type = 'new_payment';
             }
             // Store optional month_for inside remarks JSON-ish if column does not exist
             if ($request->filled('month_for')) {
-                $payment->remarks = trim(($payment->remarks ? $payment->remarks.' ' : '').'(month_for: '.$request->month_for.')');
+                $payment->remarks = trim(($payment->remarks ? $payment->remarks . ' ' : '') . '(month_for: ' . $request->month_for . ')');
             }
             // recorded_by if available
             if ($request->user()) {
@@ -606,7 +610,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
                 'data' => $payment->toApiResponse(),
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('Error saving new payment: '.$e->getMessage());
+            Log::error('Error saving new payment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record payment',
@@ -618,7 +622,7 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
      * Map of drivers who have new payments in a given month
      * GET /admin/payments/new-payments-map?month=YYYY-MM
      */
-    public function getNewPaymentsMap(\Illuminate\Http\Request $request): JsonResponse
+    public function getNewPaymentsMap(Request $request): JsonResponse
     {
         $month = $request->get('month');
         try {
@@ -633,12 +637,12 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
                 ]);
             }
 
-            $start = $month ? \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth() : now()->startOfMonth();
+            $start = $month ? Carbon::createFromFormat('Y-m', $month)->startOfMonth() : now()->startOfMonth();
             $end = (clone $start)->endOfMonth();
 
-            $rows = \App\Models\Payment::where('payment_type', 'new_payment')
+            $rows = Payment::where('payment_type', 'new_payment')
                 ->whereBetween('payment_date', [$start, $end])
-                ->select('driver_id', \DB::raw('COUNT(*) as count'))
+                ->select('driver_id', DB::raw('COUNT(*) as count'))
                 ->groupBy('driver_id')
                 ->get()
                 ->map(function ($r) {
@@ -659,23 +663,29 @@ $payments = $query->paginate($limit, ['*'], 'page', $page);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch map: '.$e->getMessage(),
+                'message' => 'Failed to fetch map: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     private function formatPeriod(int $days): string
     {
-        if ($days <= 0) return '';
-        if ($days === 1) return 'Siku 1';
-        if ($days < 7) return $days . ' siku';
-        if ($days < 14) return 'Wiki 1';
-        if ($days < 21) return 'Wiki 2';
-        if ($days < 30) return 'Wiki ' . round($days / 7);
+        if ($days <= 0)
+            return '';
+        if ($days === 1)
+            return 'Siku 1';
+        if ($days < 7)
+            return $days . ' siku';
+        if ($days < 14)
+            return 'Wiki 1';
+        if ($days < 21)
+            return 'Wiki 2';
+        if ($days < 30)
+            return 'Wiki ' . round($days / 7);
         return 'Mwezi ' . round($days / 30);
     }
 
-    private function buildReceiptDataForPayment(\App\Models\Payment $payment, array $paidDays): array
+    private function buildReceiptDataForPayment(Payment $payment, array $paidDays): array
     {
         $driver = $payment->driver;
         return [
