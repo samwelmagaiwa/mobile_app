@@ -1730,6 +1730,8 @@ class AppLocalizations {
       'add_photos': 'Ongeza Picha',
       'save_house': 'Hifadhi Nyumba',
       'update_house': 'Sasisha Nyumba',
+      'rent_amount': 'Kodi',
+      'deposit_amount': 'Amana',
       'invalid_amount': 'Kiasi si sahihi',
       'find_dream_home': 'Tafuta Makazi ya Ndoto Yako',
       'explore_houses_hint': 'Vinjari na upate nyumba bora kulingana na mahitaji yako.',

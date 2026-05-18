@@ -281,10 +281,28 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                   // ── Section 1: Basic Info ──
                   _sectionHeader(_loc.translate('basic_info'), Icons.info_outline),
                   SizedBox(height: 12.h),
-                  _buildTextField(_numberCtrl, _loc.translate('house_number'), Icons.door_front_door,
-                      errorText: _attemptedSubmit && _numberCtrl.text.isEmpty
-                          ? _loc.translate('field_required')
-                          : null),
+                  Row(children: [
+                    Expanded(child: _buildTextField(_numberCtrl, _loc.translate('house_number'), Icons.door_front_door,
+                        errorText: _attemptedSubmit && _numberCtrl.text.isEmpty
+                            ? _loc.translate('field_required')
+                            : null)),
+                    if (_isEdit) ...[
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Consumer<RentalProvider>(builder: (context, rental, _) {
+                          if (rental.blocks.isEmpty) return const SizedBox();
+                          return _buildDropdown(_loc.translate('blocks'), _blockId ?? 'none',
+                              ['none', ...rental.blocks.map((e) => e['id'].toString())],
+                              (v) => setState(() => _blockId = (v == 'none' ? null : v)),
+                              displayValue: (v) {
+                                if (v == 'none') return "-- ${_loc.translate('none')} --";
+                                final b = rental.blocks.firstWhere((e) => e['id'].toString() == v, orElse: () => null);
+                                return b != null ? b['name'] : v;
+                              });
+                        }),
+                      ),
+                    ],
+                  ]),
                   SizedBox(height: 16.h),
                   Row(children: [
                     Expanded(child: _buildDropdown(_loc.translate('house_type'), _type,
