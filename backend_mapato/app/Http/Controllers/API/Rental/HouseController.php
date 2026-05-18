@@ -151,6 +151,7 @@ class HouseController extends Controller
 
         $request->validate([
             'house_number' => 'sometimes|string|max:50',
+            'block_id' => 'nullable|exists:rental_blocks,id',
             'type' => 'sometimes|in:apartment,room,commercial,studio,bedsitter,one_bedroom,two_bedroom,three_bedroom',
             'rent_amount' => 'sometimes|numeric|min:0',
             'deposit_amount' => 'sometimes|numeric|min:0',
