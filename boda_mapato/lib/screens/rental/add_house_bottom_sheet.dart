@@ -710,6 +710,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       'deposit_amount': depositAmt,
       'type': _type,
       'status': _status,
+      'block_id': _blockId,
       'has_fence': _hasFence,
       'has_tiles': _hasTiles,
       'has_sitting_room': _hasSittingRoom,
