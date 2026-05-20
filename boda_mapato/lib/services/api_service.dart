@@ -1069,7 +1069,13 @@ class ApiService {
       _post("/rental/receipts/$id/dispatch", {});
 
   Future<Map<String, dynamic>> getTenantReceipts() async =>
-      _get("/tenant/receipts");
+      _get("/rental/tenant/receipts");
+
+  Future<Map<String, dynamic>> getTenantBills() async =>
+      _get("/rental/tenant/bills");
+
+  Future<Map<String, dynamic>> getTenantPayments() async =>
+      _get("/rental/tenant/payments");
 
   Future<List<dynamic>> getSystemTenants({String? query}) async {
     final params = <String, dynamic>{};

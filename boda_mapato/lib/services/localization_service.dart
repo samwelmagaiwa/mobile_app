@@ -639,6 +639,7 @@ class AppLocalizations {
       'sms_history': 'SMS History',
       'lease_agreements': 'Lease Agreements',
       'lease_templates': 'Lease Templates',
+      'tenant_self_service': 'My Account',
 
       // Rental Onboarding
       'register_tenant': 'Register Tenant',
@@ -1503,6 +1504,7 @@ class AppLocalizations {
       'sms_history': 'Historia ya SMS',
       'lease_agreements': 'Mikataba ya Kukodi',
       'lease_templates': 'Sampuli za Mikataba',
+      'tenant_self_service': 'Akaunti Yangu',
 
       // Rental Onboarding (Swahili)
       'register_tenant': 'Sajili Mpangaji',

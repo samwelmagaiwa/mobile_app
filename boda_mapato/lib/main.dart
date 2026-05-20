@@ -302,6 +302,8 @@ class BodaMapatoApp extends StatelessWidget {
                     const RentalReceiptsScreen(),
                 "/rental/arrears": (final BuildContext context) =>
                     const RentalArrearsScreen(),
+                "/rental/reports": (final BuildContext context) =>
+                    const RentalArrearsScreen(),
                 "/rental/record-payment": (final BuildContext context) =>
                     const RecordPaymentScreen(),
                 "/rental/tenant-self-service": (final BuildContext context) =>

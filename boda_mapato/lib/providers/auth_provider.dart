@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/app_messenger.dart';
 import '../services/auth_events.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider() {
@@ -26,6 +27,10 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
 
   late final StreamSubscription<AuthEvent> _authSub;
+  Timer? _refreshTimer;
+
+  // Background refresh interval
+  static const Duration _refreshInterval = Duration(minutes: 1);
 
   // Getters
   UserData? get user => _user;
@@ -36,8 +41,23 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stopRefreshTimer();
     _authSub.cancel();
     super.dispose();
+  }
+
+  void _startRefreshTimer() {
+    _stopRefreshTimer();
+    if (_isAuthenticated && !kIsWeb) {
+      _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+        refreshUser();
+      });
+    }
+  }
+
+  void _stopRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   // Initialize auth state
@@ -50,11 +70,9 @@ class AuthProvider extends ChangeNotifier {
         if (userData != null) {
           _user = UserData.fromJson(userData);
         }
-        // Validate token (non-destructive: avoid forced logout on transient errors)
         final bool isValid = await AuthService.validateToken();
-        if (!isValid) {
-          // Keep local session; real 401s from API calls will trigger a global unauthorized event
-          // which clears auth safely via AuthEvents listener.
+        if (isValid) {
+          _startRefreshTimer();
         }
       }
     } on Exception catch (e) {
@@ -112,6 +130,7 @@ class AuthProvider extends ChangeNotifier {
       _user = UserData.fromJson(freshUser);
 
       _isAuthenticated = true;
+      _startRefreshTimer();
 
       // Force service selection after every successful login by clearing any previous choice
       try {
@@ -175,6 +194,7 @@ class AuthProvider extends ChangeNotifier {
       // Continue with logout even if server request fails
       debugPrint("Logout error: $e");
     } finally {
+      _stopRefreshTimer();
       // Clear any persisted service choice so next login requires selection
       try {
         final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -207,6 +227,7 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = false;
     _error = null;
     _errorMessage = null;
+    _stopRefreshTimer();
     notifyListeners();
     // Inform the user globally
     AppMessenger.show('Muda wa kikao umeisha, tafadhali ingia tena.');
@@ -219,15 +240,79 @@ class AuthProvider extends ChangeNotifier {
     }
 
     try {
+      final oldPermissions = _user?.permissions?.join(',') ?? '';
+      final oldActive = _user?.isActive ?? true;
+
       final Map<String, dynamic>? userData = await AuthService.getCurrentUser();
       if (userData != null) {
-        _user = UserData.fromJson(userData);
+        final newUser = UserData.fromJson(userData);
+
+        // Check if user is now inactive
+        if (!newUser.isActive && oldActive) {
+          AppMessenger.show(
+              'Akaunti yako imezimwa. Tafadhali wasiliana na msimamizi.');
+          await logout();
+          return;
+        }
+
+        final newPermissions = newUser.permissions?.join(',') ?? '';
+
+        // Check if permissions changed
+        if (oldPermissions != newPermissions) {
+          _user = newUser;
+          await _checkServiceAccess(newUser);
+          notifyListeners();
+          
+          // Inform the user
+          AppMessenger.show(
+              localization.isSwahili 
+              ? 'Ruhusa zako zimebadilika. Ukurasa umevifanywa upya.' 
+              : 'Your permissions have been updated. Page refreshed.');
+        } else {
+          _user = newUser;
+          notifyListeners();
+        }
       }
-      notifyListeners();
     } on Exception catch (e) {
-      _setError("Failed to refresh user data: $e");
+      debugPrint("Failed to refresh user data: $e");
     }
   }
+
+  // Check if user still has access to the selected service module
+  Future<void> _checkServiceAccess(UserData user) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? selectedService = prefs.getString('selected_service');
+      if (selectedService == null) return;
+
+      bool hasAccess = true;
+      if (selectedService == 'rental') {
+        // Basic check for rental module access
+        hasAccess = user.hasPermission('manage_properties_rental') || 
+                   user.hasPermission('view_maintenance') ||
+                   user.role == 'tenant' || 
+                   user.role == 'landlord' ||
+                   user.isSuperAdmin;
+      } else if (selectedService == 'inventory') {
+        hasAccess = user.hasPermission('view_inventory') || user.isAdmin || user.isSuperAdmin;
+      } else if (selectedService == 'transport') {
+        hasAccess = user.hasPermission('view_transport') || user.isAdmin || user.isSuperAdmin;
+      }
+
+      if (!hasAccess) {
+        await prefs.remove('selected_service');
+        AppMessenger.show(
+            localization.isSwahili
+            ? 'Huna ruhusa ya kufikia moduli hii tena.'
+            : 'You no longer have access to this module.');
+        // Navigator will automatically show ServiceSelectionScreen due to AuthWrapper logic
+      }
+    } catch (e) {
+      debugPrint("Error checking service access: $e");
+    }
+  }
+
+  LocalizationService get localization => LocalizationService.instance;
 
   // Update user profile
   Future<bool> updateProfile({

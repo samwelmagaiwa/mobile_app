@@ -130,6 +130,12 @@ class NavigationConfig {
       isSystemItem: true,
     ),
     NavigationItem(
+      key: 'tenant_self_service',
+      icon: Icons.account_circle,
+      route: '/rental/tenant-self-service',
+      requiredPermissions: ['tenant_self_service'],
+    ),
+    NavigationItem(
       key: 'tenants',
       icon: Icons.people_alt,
       route: '/rental/tenants',
@@ -157,19 +163,19 @@ class NavigationConfig {
       key: 'rent_payments',
       icon: Icons.payments,
       route: '/rental/billing',
-      requiredPermissions: ['manage_billing_rental'],
+      requiredPermissions: ['manage_properties_rental'], // Landlord only
     ),
     NavigationItem(
       key: 'arrears',
       icon: Icons.pending_actions,
       route: '/rental/arrears',
-      requiredPermissions: ['manage_debts_transport'], // Shared or specific
+      requiredPermissions: ['manage_properties_rental'], // Changed to landlord-only
     ),
     NavigationItem(
       key: 'billing_reports',
       icon: Icons.receipt_long,
       route: '/rental/reports',
-      requiredPermissions: ['view_reports_rental'],
+      requiredPermissions: ['manage_properties_rental'], // Landlord only
     ),
     NavigationItem(
       key: 'sms_history',

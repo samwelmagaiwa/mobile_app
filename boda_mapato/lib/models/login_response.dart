@@ -113,7 +113,7 @@ class UserData {
 
   bool hasPermission(String permission) {
     if (isSuperAdmin || fullAccess) return true;
-    if (role == 'tenant' && (permission == 'view_maintenance' || permission == 'view_vendors')) return true;
+    if (role == 'tenant' && (permission == 'view_maintenance' || permission == 'view_vendors' || permission == 'tenant_self_service')) return true;
     if (role == 'vendor' && (permission == 'vendor_access' || permission == 'view_maintenance')) return true;
     return permissions?.contains(permission) ?? false;
   }

@@ -204,21 +204,30 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
               padding: EdgeInsets.zero,
               children: [
                 for (final item in NavigationConfig.rentalDrawerItems)
-                  if (item.isSystemItem || (item.requiredPermissions?.any((p) => user?.hasPermission(p) ?? false) ?? true))
+                  if ((item.isSystemItem || (item.requiredPermissions?.any((p) => user?.hasPermission(p) ?? false) ?? true)) && 
+                      (user?.role != 'tenant' || ['rental_dashboard', 'tenant_self_service', 'maintenance', 'vendors', 'switch_service'].contains(item.key)))
                     _DrawerItem(
                     icon: item.icon,
                     label: LocalizationService.instance.translate(item.key),
                     onTap: () {
+                      final isTenant = user?.role == 'tenant';
+                      
                       if (item.key == 'rental_dashboard') {
                         _onItemTapped(0);
-                      } else if (item.key == 'rent_payments') {
-                        _onItemTapped(1);
+                      } else if (item.key == 'rent_payments' || item.key == 'tenant_self_service' || item.key == 'billing_reports') {
+                        if (isTenant) {
+                          Navigator.pushNamed(context, '/rental/tenant-self-service');
+                        } else if (item.key == 'rent_payments') {
+                          _onItemTapped(1);
+                        } else if (item.key == 'billing_reports') {
+                          Navigator.pushNamed(context, item.route);
+                        }
                       } else if (item.key == 'arrears') {
                         _onItemTapped(2);
                       } else if (item.key == 'tenants') {
                         _onItemTapped(3);
                       } else if (item.key == 'lease_agreements') {
-                        Navigator.pushNamed(context, '/rental/agreements');
+                        Navigator.pushNamed(context, isTenant ? '/rental/tenant-self-service' : '/rental/agreements');
                       } else if (item.key == 'lease_templates') {
                         Navigator.pushNamed(context, '/rental/lease-templates');
                       } else if (item.key == 'switch_service') {
