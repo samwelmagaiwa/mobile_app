@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -25,85 +26,124 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final content = LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
+    return Scaffold(
+      backgroundColor: ThemeConstants.bgTop,
+      body: Stack(
+        children: [
+          _buildPremiumBackground(),
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 20.h),
-                _buildWelcomeSection(context),
-                SizedBox(height: 24.h),
-                _buildStatsGrid(context, constraints),
-                SizedBox(height: 30.h),
-                _buildQuickActions(context),
-                SizedBox(height: 30.h),
-                _buildRecentProperties(context),
-                SizedBox(height: 120.h), // Bottom padding
+                if (widget.isSubView) _buildModernAppBar(),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => context.read<RentalProvider>().fetchDashboard(),
+                    color: ThemeConstants.primaryOrange,
+                    backgroundColor: Colors.white10,
+                    child: _buildScrollableContent(),
+                  ),
+                ),
               ],
             ),
           ),
-        );
-      },
-    );
-
-    if (widget.isSubView) {
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
-          title: Text(
-            LocalizationService.instance.translate("rental_dashboard"),
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: content,
-      );
-    }
-
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: LocalizationService.instance.translate("rental_dashboard"),
-      body: content,
+        ],
+      ),
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
-    final loc = LocalizationService.instance;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPremiumBackground() {
+    return Stack(
       children: [
-        Text(
-          "${loc.translate('welcome')}, ${user?.name ?? loc.translate('welcome_landlord')}",
-          style: ThemeConstants.responsiveHeadingStyle(context),
-        ),
-        Text(
-          loc.translate("select_service_subtitle"),
-          style: ThemeConstants.responsiveCaptionStyle(context),
+        Container(decoration: ThemeConstants.dashboardBackground),
+        Positioned(
+          top: -150.h,
+          right: -100.w,
+          child: Container(
+            width: 450.w,
+            height: 450.h,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  ThemeConstants.primaryOrange.withOpacity(0.15),
+                  ThemeConstants.primaryOrange.withOpacity(0),
+                ],
+              ),
+            ),
+          ).withBlur(100),
         ),
       ],
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context, BoxConstraints constraints) {
+  Widget _buildModernAppBar() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: const Icon(Icons.menu_open, color: Colors.white, size: 26),
+              ),
+              SizedBox(width: 2.w),
+              Text(
+                "Mapato",
+                style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.w900, letterSpacing: -0.8),
+              ),
+              Text(
+                " Rental",
+                style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 20.sp, fontWeight: FontWeight.w300, letterSpacing: -0.8),
+              ),
+            ],
+          ),
+          Icon(Icons.notifications_none, color: Colors.white60, size: 20.sp),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScrollableContent() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 6.h),
+          _buildPremiumWelcome(),
+          SizedBox(height: 16.h),
+          _buildBentoStats(),
+          SizedBox(height: 20.h),
+          _buildModernActions(),
+          SizedBox(height: 20.h),
+          _buildCompactProperties(),
+          SizedBox(height: 100.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumWelcome() {
+    final user = context.watch<AuthProvider>().user;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Karibu,", style: TextStyle(color: Colors.white60, fontSize: 13.sp)),
+        Text(
+          user?.name ?? "Landlord",
+          style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBentoStats() {
     final rentalProvider = context.watch<RentalProvider>();
     final properties = rentalProvider.properties;
-    final totalProperties = properties.length;
-
+    
     double totalArrears = 0;
     int totalHouses = 0;
     int occupiedHouses = 0;
@@ -118,344 +158,305 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         totalArrears += double.tryParse((house['current_balance'] ?? 0).toString()) ?? 0.0;
       }
     }
-
-    final loc = LocalizationService.instance;
-    final isTablet = constraints.maxWidth >= 600;
+    
+    final occupancyRate = totalHouses > 0 ? (occupiedHouses / totalHouses) : 0.0;
     final user = context.watch<AuthProvider>().user;
-    final bool canViewProperties = user?.hasPermission('manage_properties_rental') ?? false;
     final bool canViewArrears = user?.hasPermission('manage_debts_transport') ?? false;
-    final bool canViewMaintenance = user?.hasPermission('view_maintenance') ?? false;
-    final bool canViewVendors = user?.hasPermission('view_vendors') ?? false;
 
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: isTablet ? 4 : 2,
-      mainAxisSpacing: 12.w,
-      crossAxisSpacing: 12.w,
-      childAspectRatio: isTablet ? 1.5 : 1.45,
+    return Column(
       children: [
-        if (canViewProperties)
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, "/rental/properties"),
-            child: _buildStatCard(
-              context,
-              loc.translate("properties"),
-              totalProperties.toString(),
-              Icons.business_outlined,
-              ThemeConstants.footerBarColor,
-            ),
-          ),
-        if (canViewProperties)
-          _buildStatCard(
-            context,
-            loc.translate("houses"),
-            totalHouses.toString(),
-            Icons.home_outlined,
-            ThemeConstants.successGreen,
-          ),
-        if (canViewProperties)
-          _buildStatCard(
-            context,
-            loc.translate("occupancy"),
-            "${totalHouses > 0 ? ((occupiedHouses / totalHouses) * 100).toStringAsFixed(0) : 0}%",
-            Icons.people_outline,
-            ThemeConstants.primaryOrange,
-          ),
-        if (canViewArrears)
-          _buildStatCard(
-            context,
-            loc.translate("arrears"),
-            "Tsh ${_formatArrears(totalArrears)}",
-            Icons.money_off_csred_outlined,
-            ThemeConstants.errorRed,
-          ),
-        _buildStatCard(
-          context,
-          loc.translate("lease_agreements"),
-          rentalProvider.agreements.where((a) => a['status'] == 'active').length.toString(),
-          Icons.description_outlined,
-          ThemeConstants.primaryBlue,
+        // Ultra-Compact Hero Card
+        _buildHeroBentoHorizontal(
+          "Ukaazi Wote",
+          "${(occupancyRate * 100).toStringAsFixed(0)}%",
+          occupancyRate,
+          Icons.donut_large,
+          ThemeConstants.primaryOrange,
         ),
-        if (canViewMaintenance)
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, "/rental/maintenance"),
-            child: _buildStatCard(
-              context,
-              loc.translate("maintenance"), // Make sure we have translation, or hardcode generic
-              "Matengenezo", // Title display
-              Icons.handyman_outlined,
-              ThemeConstants.warningAmber,
+        SizedBox(height: 10.h),
+        // Wider Secondary Grid
+        Row(
+          children: [
+            Expanded(
+              child: _buildStandardBentoHorizontal(
+                "Mali",
+                properties.length.toString(),
+                Icons.business_center,
+                ThemeConstants.primaryBlue,
+              ),
             ),
-          ),
-        if (canViewVendors)
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, "/rental/vendors"),
-            child: _buildStatCard(
-              context,
-              loc.translate("vendors") ?? "Mafundi",
-              "Watoa Huduma", 
-              Icons.person_search_outlined,
-              Colors.teal,
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildStandardBentoHorizontal(
+                "Nyumba",
+                totalHouses.toString(),
+                Icons.grid_view,
+                ThemeConstants.successGreen,
+              ),
             ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        if (canViewArrears)
+          _buildWideBentoHorizontal(
+            "Malimbikizo",
+            "TSh ${_formatAmount(totalArrears)}",
+            Icons.account_balance_wallet,
+            ThemeConstants.errorRed,
+          )
+        else
+          _buildWideBentoHorizontal(
+            "Mikataba Hai",
+            rentalProvider.agreements.where((a) => a['status'] == 'active').length.toString(),
+            Icons.verified_user,
+            const Color(0xFF6366F1),
           ),
       ],
     );
   }
 
-  String _formatArrears(dynamic val) {
+  Widget _buildHeroBentoHorizontal(String title, String value, double progress, IconData icon, Color accent) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24.r),
+        color: Colors.white.withOpacity(0.04),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Padding(
+            padding: EdgeInsets.all(16.w), 
+            child: Row(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 52.w,
+                      height: 52.w,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 6,
+                        backgroundColor: Colors.white.withOpacity(0.05),
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                    Icon(icon, color: Colors.white, size: 20.sp),
+                  ],
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: TextStyle(color: Colors.white60, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                      Text(value, style: TextStyle(color: Colors.white, fontSize: 30.sp, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(color: accent.withOpacity(0.12), borderRadius: BorderRadius.circular(10.r)),
+                  child: Text("Active", style: TextStyle(color: accent, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardBentoHorizontal(String title, String value, IconData icon, Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        color: Colors.white.withOpacity(0.03),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: 16.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(value, style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w900)),
+                      Text(title, style: TextStyle(color: Colors.white38, fontSize: 12.sp, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWideBentoHorizontal(String title, String value, IconData icon, Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        color: Colors.white.withOpacity(0.03),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Padding(
+            padding: EdgeInsets.all(14.w),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(title, style: TextStyle(color: Colors.white54, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                      Text(value, style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Icon(Icons.chevron_right, color: Colors.white24, size: 20.sp),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Huduma", style: TextStyle(color: Colors.white70, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+        SizedBox(height: 12.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildActionIcon("Lipisha", Icons.send, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/billing")),
+            _buildActionIcon("Mali", Icons.add, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/add-property")),
+            _buildActionIcon("Mkataba", Icons.edit, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/agreements")),
+            _buildActionIcon("Zaidi", Icons.grid_view, ThemeConstants.primaryOrange, () {}),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionIcon(String label, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 58.w,
+            height: 58.w,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.9), // More vibrant solid-like color
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(child: Icon(icon, color: Colors.white, size: 24.sp)),
+          ),
+          SizedBox(height: 6.h),
+          Text(label, style: TextStyle(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactProperties() {
+    final rentalProvider = context.watch<RentalProvider>();
+    final properties = rentalProvider.properties;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Mali Zako", style: TextStyle(color: Colors.white70, fontSize: 15.sp, fontWeight: FontWeight.w800)),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, "/rental/properties"),
+              child: Text("Zote >", style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 12.sp)),
+            ),
+          ],
+        ),
+        ...properties.take(3).map((prop) => _buildModernPropertyTile(prop)),
+      ],
+    );
+  }
+
+  Widget _buildModernPropertyTile(Map<String, dynamic> prop) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+        color: Colors.white.withOpacity(0.03),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14.r,
+            backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.1),
+            child: Icon(Icons.business, color: ThemeConstants.primaryOrange, size: 14.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(prop['name'] ?? 'Property', style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
+                Text(prop['location'] ?? 'Unknown', style: TextStyle(color: Colors.white38, fontSize: 10.sp)),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 10.sp),
+        ],
+      ),
+    );
+  }
+
+  String _formatAmount(dynamic val) {
     final double value = double.tryParse(val.toString()) ?? 0.0;
     if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
     if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
     return value.toStringAsFixed(0);
   }
+}
 
-  Widget _buildStatCard(BuildContext context, String title, String value,
-      IconData icon, Color color) {
-    return ThemeConstants.buildResponsiveGlassCardStatic(
-      context,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20.sp),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context) {
-    final loc = LocalizationService.instance;
-    final user = context.watch<AuthProvider>().user;
-    final bool canAddProperty = user?.hasPermission('manage_properties_rental') ?? false;
-    final bool canViewBills = user?.hasPermission('manage_billing_rental') ?? false;
-    final bool canOnboardTenant = user?.hasPermission('onboard_tenants_rental') ?? false;
-
-    if (!canAddProperty && !canViewBills && !canOnboardTenant) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          loc.translate("quick_actions"),
-          style: ThemeConstants.responsiveSubHeadingStyle(context),
-        ),
-        SizedBox(height: 12.h),
-        Row(
-          children: [
-            if (canAddProperty)
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  loc.translate("add_property"),
-                  Icons.add_business,
-                  () => Navigator.pushNamed(context, "/rental/add-property"),
-                ),
-              ),
-            if (canAddProperty && canViewBills) SizedBox(width: 12.w),
-            if (canViewBills)
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  loc.translate("view_bills"),
-                  Icons.receipt_long,
-                  () => Navigator.pushNamed(context, "/rental/billing"),
-                ),
-              ),
-          ],
-        ),
-        if (canOnboardTenant) ...[
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  loc.translate("onboard_tenant"),
-                  Icons.person_add,
-                  () => Navigator.pushNamed(context, "/rental/onboard-tenant"),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  loc.translate("lease_agreements"),
-                  Icons.description,
-                  () => Navigator.pushNamed(context, "/rental/agreements"),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-      BuildContext context, String label, IconData icon, VoidCallback onTap) {
-    return ThemeConstants.buildResponsiveGlassCard(
-      context,
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: ThemeConstants.primaryOrange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(icon, color: ThemeConstants.primaryOrange, size: 24.sp),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentProperties(BuildContext context) {
-    final rentalProvider = context.watch<RentalProvider>();
-    final properties = rentalProvider.properties;
-
-    final loc = LocalizationService.instance;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              loc.translate("my_properties"),
-              style: ThemeConstants.responsiveSubHeadingStyle(context),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, "/rental/properties"),
-              child: Text(loc.translate("see_all"),
-                  style: const TextStyle(color: ThemeConstants.footerBarColor)),
-            ),
-          ],
-        ),
-        if (rentalProvider.isLoading && properties.isEmpty)
-          const Center(child: CircularProgressIndicator(color: Colors.white))
-        else if (properties.isEmpty)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: Text(loc.translate("no_properties_found"),
-                  style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
-            ),
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: properties.length,
-            itemBuilder: (context, index) {
-              final prop = properties[index];
-              return Padding(
-                padding: EdgeInsets.only(bottom: 12.h),
-                child: ThemeConstants.buildResponsiveGlassCard(
-                  context,
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      "/rental/property-details",
-                      arguments: {'id': prop['id'].toString()},
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(12.r),
-                        decoration: BoxDecoration(
-                          color: ThemeConstants.primaryOrange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Icon(Icons.business_outlined, color: ThemeConstants.primaryOrange, size: 24.sp),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              prop['name'] ?? 'Unnamed Property',
-                              style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.bold, fontSize: 15.sp),
-                            ),
-                            SizedBox(height: 2.h),
-                            Row(
-                              children: [
-                                Icon(Icons.location_on_outlined, size: 12.sp, color: Colors.white54),
-                                SizedBox(width: 4.w),
-                                Expanded(
-                                  child: Text(
-                                    prop['full_address'] ?? prop['location'] ?? 'No location',
-                                    style: ThemeConstants.captionStyle.copyWith(fontSize: 11.sp),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            "${(prop['houses'] as List? ?? []).length} ${loc.translate('houses')}",
-                            style: TextStyle(
-                              color: ThemeConstants.primaryOrange,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 12.sp),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-      ],
-    );
-  }
+extension BlurExtension on Widget {
+  Widget withBlur(double sigma) => ClipRRect(
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+      child: this,
+    ),
+  );
 }

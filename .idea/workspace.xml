@@ -5,16 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e256aec2-792b-4fe8-9d09-0ac91277d6c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/config/navigation_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/config/navigation_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/models/login_response.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/models/login_response.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/providers/auth_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/providers/auth_provider.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_main_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_main_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/tenant_self_service_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/tenant_self_service_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/services/api_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/services/localization_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/services/localization_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/boda_mapato/lib/screens/rental/rental_dashboard_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
