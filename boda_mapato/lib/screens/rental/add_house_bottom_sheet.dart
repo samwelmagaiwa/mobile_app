@@ -8,6 +8,7 @@ import '../../config/api_config.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import 'lease_agreement_wizard_screen.dart';
 
 class AddHouseBottomSheet extends StatefulWidget {
   final String propertyId;
@@ -44,6 +45,8 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
   final _elecCountCtrl = TextEditingController();
   final _waterCountCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+  final _unitsCountCtrl = TextEditingController();
+  final List<TextEditingController> _unitNameCtrls = [];
 
   String _type = 'room';
   String _status = 'vacant';
@@ -56,6 +59,10 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
   bool _hasMasterBedroom = false;
   bool _hasKitchen = false;
   bool _landlordLivesHere = false;
+
+  double _targetRent = 0;
+  double _currentHousesSum = 0;
+  bool _isLoadingStats = true;
 
   String _kitchenLocation = 'inside';
   String _elecType = 'independent';
@@ -72,8 +79,23 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
     _isEdit = widget.existingHouse != null;
     
     // Load blocks for this property
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<RentalProvider>().fetchBlocks(widget.propertyId);
+      final stats = await context.read<RentalProvider>().getPropertyRentStats(
+        widget.propertyId,
+        excludeHouseId: _isEdit ? widget.existingHouse!['id'].toString() : null
+      );
+      if (mounted) {
+        setState(() {
+          _targetRent = stats['target'] ?? 0;
+          _currentHousesSum = stats['sum'] ?? 0;
+          _isLoadingStats = false;
+        });
+      }
+    });
+
+    _rentCtrl.addListener(() {
+      setState(() {});
     });
 
     if (_isEdit) {
@@ -83,7 +105,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       _depositCtrl.text = _fmtAmt(h['deposit_amount']);
       _meterCtrl.text = h['electricity_meter'] ?? '';
       _waterCtrl.text = h['water_meter'] ?? '';
-      _distanceCtrl.text = h['distance_from_road'] ?? '';
+      _distanceCtrl.text = (h['distance_from_road'] ?? '').toString().replaceAll(RegExp(r'[a-zA-Z\s]'), '');
       _bedroomsCtrl.text = h['bedrooms']?.toString() ?? '';
       _bathroomsCtrl.text = h['bathrooms']?.toString() ?? '';
       _sqmCtrl.text = h['square_meters']?.toString() ?? '';
@@ -114,6 +136,12 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
           'caption': (caps.length > i) ? caps[i].toString() : '',
           'isRemote': true,
         });
+      }
+      
+      _unitsCountCtrl.text = h['units_count']?.toString() ?? '0';
+      final uNames = (h['unit_names'] ?? []) as List;
+      for (final name in uNames) {
+        _unitNameCtrls.add(TextEditingController(text: name.toString()));
       }
     }
   }
@@ -286,22 +314,23 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                         errorText: _attemptedSubmit && _numberCtrl.text.isEmpty
                             ? _loc.translate('field_required')
                             : null)),
-                    if (_isEdit) ...[
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Consumer<RentalProvider>(builder: (context, rental, _) {
-                          if (rental.blocks.isEmpty) return const SizedBox();
-                          return _buildDropdown(_loc.translate('blocks'), _blockId ?? 'none',
-                              ['none', ...rental.blocks.map((e) => e['id'].toString())],
-                              (v) => setState(() => _blockId = (v == 'none' ? null : v)),
-                              displayValue: (v) {
-                                if (v == 'none') return "-- ${_loc.translate('none')} --";
-                                final b = rental.blocks.firstWhere((e) => e['id'].toString() == v, orElse: () => null);
-                                return b != null ? b['name'] : v;
-                              });
-                        }),
-                      ),
-                    ],
+                    Consumer<RentalProvider>(builder: (context, rental, _) {
+                      if (rental.blocks.isEmpty) return const SizedBox();
+                      return SizedBox(width: 12.w);
+                    }),
+                    Expanded(
+                      child: Consumer<RentalProvider>(builder: (context, rental, _) {
+                        if (rental.blocks.isEmpty) return const SizedBox();
+                        return _buildDropdown(_loc.translate('blocks'), _blockId ?? 'none',
+                            ['none', ...rental.blocks.map((e) => e['id'].toString())],
+                            (v) => setState(() => _blockId = (v == 'none' ? null : v)),
+                            displayValue: (v) {
+                              if (v == 'none') return "-- ${_loc.translate('none')} --";
+                              final b = rental.blocks.firstWhere((e) => e['id'].toString() == v, orElse: () => null);
+                              return b != null ? b['name'] : v;
+                            });
+                      }),
+                    ),
                   ]),
                   SizedBox(height: 16.h),
                   Row(children: [
@@ -322,14 +351,41 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                     ),
                   ],
                   SizedBox(height: 16.h),
-                  Row(children: [
-                    Expanded(child: _buildTextField(_rentCtrl, '${_loc.translate('rent_amount')} *', Icons.payments,
-                        keyboard: TextInputType.number,
-                        errorText: _attemptedSubmit && _rentCtrl.text.isEmpty
-                            ? _loc.translate('field_required')
-                            : (_attemptedSubmit && double.tryParse(_rentCtrl.text) == null
-                                ? _loc.translate('invalid_amount')
-                                : null))),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextField(_rentCtrl, '${_loc.translate('rent_amount')} *', Icons.payments,
+                              keyboard: TextInputType.number,
+                              errorText: _attemptedSubmit && _rentCtrl.text.isEmpty
+                                  ? _loc.translate('field_required')
+                                  : (_attemptedSubmit && double.tryParse(_rentCtrl.text) == null
+                                      ? _loc.translate('invalid_amount')
+                                      : (_targetRent > 0 && (double.tryParse(_rentCtrl.text) ?? 0) > (_targetRent - _currentHousesSum)
+                                          ? "Kiasi kinazidi lengo la mali"
+                                          : null))),
+                          if (!_isLoadingStats && _targetRent > 0) ...[
+                            SizedBox(height: 6.h),
+                            Builder(builder: (context) {
+                              double entered = double.tryParse(_rentCtrl.text) ?? 0;
+                              double remaining = _targetRent - _currentHousesSum - entered;
+                              bool isExceeded = remaining < 0;
+                              return Text(
+                                isExceeded 
+                                  ? "Kiasi kinazidi lengo kwa TZS ${remaining.abs().toStringAsFixed(0)}"
+                                  : "Baki la Lengo: TZS ${remaining.toStringAsFixed(0)}",
+                                style: TextStyle(
+                                  color: isExceeded ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              );
+                            })
+                          ]
+                        ]
+                      )
+                    ),
                     SizedBox(width: 12.w),
                     Expanded(child: _buildTextField(_depositCtrl, _loc.translate('deposit_amount'), Icons.account_balance_wallet,
                         keyboard: TextInputType.number,
@@ -349,6 +405,44 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                     SizedBox(width: 12.w),
                     Expanded(child: _buildTextField(_bathroomsCtrl, _loc.translate('bathrooms'), Icons.bathtub, keyboard: TextInputType.number)),
                   ]),
+
+                  SizedBox(height: 28.h),
+                  _divider(),
+
+                  // ── Section 1.5: Multi-Unit Units ──
+                  SizedBox(height: 16.h),
+                  _sectionHeader(_loc.translate('units_section'), Icons.door_front_door),
+                  SizedBox(height: 12.h),
+                  _buildTextField(
+                    _unitsCountCtrl,
+                    _loc.translate('total_units_label'),
+                    Icons.numbers,
+                    keyboard: TextInputType.number,
+                    onChanged: (v) {
+                      final count = int.tryParse(v) ?? 0;
+                      if (count > 20) return; // Safety limit
+                      setState(() {
+                        if (count > _unitNameCtrls.length) {
+                          for (int i = _unitNameCtrls.length; i < count; i++) {
+                            _unitNameCtrls.add(TextEditingController(text: '${_loc.translate('unit')} ${i + 1}'));
+                          }
+                        } else if (count < _unitNameCtrls.length) {
+                          _unitNameCtrls.removeRange(count, _unitNameCtrls.length);
+                        }
+                      });
+                    },
+                  ),
+                  if (_unitNameCtrls.isNotEmpty) ...[
+                    SizedBox(height: 16.h),
+                    Text(_loc.translate('name_units_hint'), style: TextStyle(color: Colors.white38, fontSize: 11.sp)),
+                    SizedBox(height: 8.h),
+                    ..._unitNameCtrls.asMap().entries.map((e) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: _buildTextField(e.value, '${_loc.translate('unit')} ${e.key + 1}', Icons.label),
+                      );
+                    }),
+                  ],
 
                   SizedBox(height: 28.h),
                   _divider(),
@@ -375,7 +469,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                     ),
                   ],
                   SizedBox(height: 8.h),
-                  _buildTextField(_distanceCtrl, _loc.translate('distance_from_road'), Icons.add_road),
+                  _buildTextField(_distanceCtrl, '${_loc.translate('distance_from_road')} (km)', Icons.add_road, keyboard: TextInputType.number),
 
                   SizedBox(height: 28.h),
                   _divider(),
@@ -609,10 +703,13 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
   }
 
   Widget _buildTextField(TextEditingController ctrl, String label, IconData icon,
-      {TextInputType? keyboard, String? errorText, int maxLines = 1}) {
+      {TextInputType? keyboard, String? errorText, int maxLines = 1, ValueChanged<String>? onChanged}) {
     return TextField(
       controller: ctrl,
-      onChanged: (_) => setState(() {}),
+      onChanged: (v) {
+        if (onChanged != null) onChanged(v);
+        setState(() {});
+      },
       keyboardType: keyboard,
       maxLines: maxLines,
       style: TextStyle(color: Colors.white, fontSize: 15.sp),
@@ -718,6 +815,20 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
     final double depositAmt = double.tryParse(_depositCtrl.text) ?? 0;
     if (depositAmt > rentAmt) return;
 
+    if (_targetRent > 0) {
+      final remaining = _targetRent - _currentHousesSum - rentAmt;
+      if (remaining < 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Kiasi cha kodi kinazidi lengo la jengo."),
+            backgroundColor: ThemeConstants.errorRed,
+          ));
+        }
+        setState(() => _attemptedSubmit = false);
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     final provider = context.read<RentalProvider>();
@@ -736,7 +847,7 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       'has_kitchen': _hasKitchen,
       'landlord_lives_present': _landlordLivesHere,
       if (_hasKitchen) 'kitchen_location': _kitchenLocation,
-      'distance_from_road': _distanceCtrl.text,
+      'distance_from_road': _distanceCtrl.text.trim().isNotEmpty ? '${_distanceCtrl.text.trim()}km' : '',
       'electricity_type': _elecType,
       if (_elecType == 'shared') 'electricity_sharing_count': _elecCountCtrl.text,
       if (_elecType == 'independent') 'electricity_meter': _meterCtrl.text,
@@ -750,6 +861,8 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       'description': _notesCtrl.text,
       if (_status == 'maintenance' && _maintenanceUntil != null)
         'maintenance_until': "${_maintenanceUntil!.year}-${_maintenanceUntil!.month.toString().padLeft(2, '0')}-${_maintenanceUntil!.day.toString().padLeft(2, '0')}",
+      'units_count': int.tryParse(_unitsCountCtrl.text) ?? 0,
+      'unit_names': _unitNameCtrls.map((e) => e.text).join(','),
     };
 
     final Map<String, dynamic> payload = {};
@@ -777,17 +890,65 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       payload['image_captions'] = newItems.map((e) => e['caption'] as String).toList().join('||');
     }
 
-    bool success;
+    String? houseId;
+    bool updateSuccess = false;
+
     if (_isEdit) {
-      success = await provider.updateHouse(widget.existingHouse!['id'].toString(), payload, images: imageFiles);
+      updateSuccess = await provider.updateHouse(widget.existingHouse!['id'].toString(), payload, images: imageFiles);
     } else {
-      success = await provider.createHouse(payload, images: imageFiles);
+      houseId = await provider.createHouse(payload, images: imageFiles);
     }
 
     if (mounted) {
       setState(() => _isSaving = false);
-      Navigator.pop(context);
-      if (success) widget.onSaved();
+      
+      if (_isEdit) {
+        Navigator.pop(context);
+        if (updateSuccess) widget.onSaved();
+      } else if (houseId != null) {
+        if (houseId == 'success') {
+           Navigator.pop(context);
+           widget.onSaved();
+           return;
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: ThemeConstants.bgMid,
+            title: Text('House Created', style: const TextStyle(color: Colors.white)),
+            content: Text('Do you want to onboard a tenant or create a lease agreement for this house now?', style: const TextStyle(color: Colors.white70)),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // dialog
+                  nav.pop(); // bottom sheet
+                  widget.onSaved();
+                },
+                child: Text('Not Now', style: const TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // dialog
+                  nav.pop(); // bottom sheet
+                  widget.onSaved();
+                  nav.push(MaterialPageRoute(
+                    builder: (_) => LeaseAgreementWizardScreen(
+                      preSelectedProperty: {'id': widget.propertyId},
+                      preSelectedHouse: {'id': houseId},
+                    )
+                  ));
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+                child: Text('Yes, Onboard Tenant', style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 }

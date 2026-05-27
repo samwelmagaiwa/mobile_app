@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../providers/maintenance_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class MaintenanceListScreen extends StatefulWidget {
   const MaintenanceListScreen({super.key});
@@ -55,16 +56,18 @@ class _MaintenanceListScreenState extends State<MaintenanceListScreen> {
           );
         },
       ),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: 20.h),
-        child: FloatingActionButton.extended(
-          onPressed: () => Navigator.pushNamed(context, "/rental/maintenance-request"),
-          backgroundColor: ThemeConstants.footerBarColor,
-          elevation: 6,
-          icon: Icon(Icons.add_circle, color: Colors.white, size: 24.sp),
-          label: Text("Omba Huduma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
-        ),
-      ),
+      floatingActionButton: context.watch<AuthProvider>().user?.role == 'tenant' 
+        ? Padding(
+            padding: EdgeInsets.only(bottom: 20.h),
+            child: FloatingActionButton.extended(
+              onPressed: () => Navigator.pushNamed(context, "/rental/maintenance-request"),
+              backgroundColor: ThemeConstants.footerBarColor,
+              elevation: 6,
+              icon: Icon(Icons.add_circle, color: Colors.white, size: 24.sp),
+              label: Text("Omba Huduma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+            ),
+          )
+        : null,
     );
   }
 

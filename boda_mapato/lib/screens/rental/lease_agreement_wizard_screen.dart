@@ -6,7 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/localization_service.dart';
+import '../../utils/rental_flow_validator.dart';
+import 'onboard_tenant_screen.dart';
+import 'record_payment_screen.dart';
 
 class LeaseAgreementWizardScreen extends StatefulWidget {
   final Map<String, dynamic>? preSelectedTenant;
@@ -74,6 +78,10 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
   final _tenantObligationsController = TextEditingController();
   final _terminationPolicyController = TextEditingController();
 
+  // --- Step 5: Beautiful 12 Clauses ---
+  late final List<_LeaseClause> _leaseClauses;
+  String _activeCategory = 'tenant'; // 'tenant', 'maintenance', 'legal'
+
   bool _isSaving = false;
 
   @override
@@ -127,14 +135,135 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchTenants();
-      context.read<RentalProvider>().fetchProperties();
-      
-      // Initialize obligations from localization
-      _landlordObligationsController.text = LocalizationService.instance.translate('default_landlord_obligations');
-      _tenantObligationsController.text = LocalizationService.instance.translate('default_tenant_obligations');
-      _terminationPolicyController.text = LocalizationService.instance.translate('default_termination_policy');
+      // Validate tenants exist
+      RentalFlowValidator.validateStep(
+        context: context,
+        fetchData: (p) => p.fetchTenants(),
+        condition: (p) => p.tenants.isNotEmpty,
+        title: "No Tenants Found",
+        message: "You need to onboard a tenant before creating a lease agreement.",
+        actionLabel: "Onboard Tenant",
+        onAction: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OnboardTenantScreen())),
+      ).then((_) {
+        if (!mounted) return;
+        // Validate houses exist
+        RentalFlowValidator.validateStep(
+          context: context,
+          fetchData: (p) => p.fetchProperties(),
+          condition: (p) => RentalFlowValidator.hasHouses(p),
+          title: "No Houses Found",
+          message: "You need to have a property with a house to create an agreement.",
+          actionLabel: "Add Property",
+          onAction: () => Navigator.pushReplacementNamed(context, '/rental/add-property'),
+        );
+      });
     });
+
+    // Initialize default obligations from our new clauses
+    final isSw = LocalizationService.instance.isSwahili;
+    final lang = isSw ? 'sw' : 'en';
+    
+    _leaseClauses = [
+      _LeaseClause(
+        id: 'security_deposit',
+        title: _clauseDefaults[lang]!['security_deposit_title']!,
+        icon: Icons.shield_outlined,
+        defaultText: _clauseDefaults[lang]!['security_deposit_text']!,
+        text: _clauseDefaults[lang]!['security_deposit_text']!,
+        category: 'legal',
+      ),
+      _LeaseClause(
+        id: 'late_payment',
+        title: _clauseDefaults[lang]!['late_payment_title']!,
+        icon: Icons.hourglass_empty_rounded,
+        defaultText: _clauseDefaults[lang]!['late_payment_text']!,
+        text: _clauseDefaults[lang]!['late_payment_text']!,
+        category: 'tenant',
+      ),
+      _LeaseClause(
+        id: 'maintenance',
+        title: _clauseDefaults[lang]!['maintenance_title']!,
+        icon: Icons.build_outlined,
+        defaultText: _clauseDefaults[lang]!['maintenance_text']!,
+        text: _clauseDefaults[lang]!['maintenance_text']!,
+        category: 'maintenance',
+      ),
+      _LeaseClause(
+        id: 'utilities',
+        title: _clauseDefaults[lang]!['utilities_title']!,
+        icon: Icons.power_outlined,
+        defaultText: _clauseDefaults[lang]!['utilities_text']!,
+        text: _clauseDefaults[lang]!['utilities_text']!,
+        category: 'tenant',
+      ),
+      _LeaseClause(
+        id: 'inspection',
+        title: _clauseDefaults[lang]!['inspection_title']!,
+        icon: Icons.visibility_outlined,
+        defaultText: _clauseDefaults[lang]!['inspection_text']!,
+        text: _clauseDefaults[lang]!['inspection_text']!,
+        category: 'maintenance',
+      ),
+      _LeaseClause(
+        id: 'subleasing',
+        title: _clauseDefaults[lang]!['subleasing_title']!,
+        icon: Icons.people_outline_rounded,
+        defaultText: _clauseDefaults[lang]!['subleasing_text']!,
+        text: _clauseDefaults[lang]!['subleasing_text']!,
+        category: 'legal',
+      ),
+      _LeaseClause(
+        id: 'use_of_premises',
+        title: _clauseDefaults[lang]!['use_of_premises_title']!,
+        icon: Icons.home_work_outlined,
+        defaultText: _clauseDefaults[lang]!['use_of_premises_text']!,
+        text: _clauseDefaults[lang]!['use_of_premises_text']!,
+        category: 'tenant',
+      ),
+      _LeaseClause(
+        id: 'damages_repairs',
+        title: _clauseDefaults[lang]!['damages_repairs_title']!,
+        icon: Icons.handyman_outlined,
+        defaultText: _clauseDefaults[lang]!['damages_repairs_text']!,
+        text: _clauseDefaults[lang]!['damages_repairs_text']!,
+        category: 'tenant',
+      ),
+      _LeaseClause(
+        id: 'pets_policy',
+        title: _clauseDefaults[lang]!['pets_policy_title']!,
+        icon: Icons.pets_outlined,
+        defaultText: _clauseDefaults[lang]!['pets_policy_text']!,
+        text: _clauseDefaults[lang]!['pets_policy_text']!,
+        category: 'tenant',
+        isEnabled: false, // Optional by default
+      ),
+      _LeaseClause(
+        id: 'insurance',
+        title: _clauseDefaults[lang]!['insurance_title']!,
+        icon: Icons.admin_panel_settings_outlined,
+        defaultText: _clauseDefaults[lang]!['insurance_text']!,
+        text: _clauseDefaults[lang]!['insurance_text']!,
+        category: 'legal',
+      ),
+      _LeaseClause(
+        id: 'termination_conditions',
+        title: _clauseDefaults[lang]!['termination_conditions_title']!,
+        icon: Icons.gavel_outlined,
+        defaultText: _clauseDefaults[lang]!['termination_conditions_text']!,
+        text: _clauseDefaults[lang]!['termination_conditions_text']!,
+        category: 'legal',
+      ),
+      _LeaseClause(
+        id: 'governing_law',
+        title: _clauseDefaults[lang]!['governing_law_title']!,
+        icon: Icons.gavel_rounded,
+        defaultText: _clauseDefaults[lang]!['governing_law_text']!,
+        text: _clauseDefaults[lang]!['governing_law_text']!,
+        category: 'legal',
+      ),
+    ];
+
+    _syncLegacyObligations();
   }
 
   @override
@@ -173,7 +302,18 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
     final loc = LocalizationService.instance;
+
+    // Fail-safe: Redirect tenants who somehow reach this management wizard
+    if (user?.role == 'tenant') {
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+         Navigator.pushReplacementNamed(context, '/rental/tenant-self-service');
+       });
+       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: loc.translate('lease_wizard'),
@@ -534,16 +674,263 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
   // --- Step 5: Rules ---
   Widget _buildStep5() {
     final loc = LocalizationService.instance;
+    final isSw = loc.isSwahili;
+    final tenantLabel = isSw ? 'Wapangaji & Matumizi' : 'Tenant & Use';
+    final maintenanceLabel = isSw ? 'Matengenezo & Ukaazi' : 'Maintenance & Access';
+    final legalLabel = isSw ? 'Sheria & Dhamana' : 'Legal & Financial';
+
+    final activeClauses = _leaseClauses.where((c) => c.category == _activeCategory).toList();
+
     return _buildStepLayout(
       title: loc.translate("step_rules"),
       children: [
-        _buildMultiLineField(loc.translate("tenant_obligations"), _tenantObligationsController),
-        SizedBox(height: 16.h),
-        _buildMultiLineField(loc.translate("landlord_obligations"), _landlordObligationsController),
-        SizedBox(height: 16.h),
-        _buildMultiLineField(loc.translate("termination_policy"), _terminationPolicyController),
+        // Category chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              _buildCategoryTab('tenant', tenantLabel, Icons.person_outline),
+              SizedBox(width: 8.w),
+              _buildCategoryTab('maintenance', maintenanceLabel, Icons.build_outlined),
+              SizedBox(width: 8.w),
+              _buildCategoryTab('legal', legalLabel, Icons.gavel_outlined),
+            ],
+          ),
+        ),
+        SizedBox(height: 20.h),
+        // Active category cards
+        ...activeClauses.map((clause) => _buildClauseCard(clause)),
       ],
     );
+  }
+
+  Widget _buildCategoryTab(String category, String label, IconData icon) {
+    final isActive = _activeCategory == category;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _activeCategory = category),
+        borderRadius: BorderRadius.circular(30.r),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: isActive 
+                ? ThemeConstants.primaryOrange.withOpacity(0.2) 
+                : Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(30.r),
+            border: Border.all(
+              color: isActive 
+                  ? ThemeConstants.primaryOrange 
+                  : Colors.white.withOpacity(0.1),
+              width: isActive ? 1.5 : 1.0,
+            ),
+            boxShadow: isActive ? [
+              BoxShadow(
+                color: ThemeConstants.primaryOrange.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ] : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: isActive ? ThemeConstants.primaryOrange : Colors.white54, size: 16.w),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.white60,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 12.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClauseCard(_LeaseClause clause) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: EdgeInsets.only(bottom: 14.h),
+      decoration: BoxDecoration(
+        color: clause.isEnabled 
+            ? Colors.white.withOpacity(0.06) 
+            : Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: clause.isEnabled 
+              ? ThemeConstants.primaryOrange.withOpacity(0.4) 
+              : Colors.white.withOpacity(0.08),
+          width: clause.isEnabled ? 1.2 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          InkWell(
+            onTap: () {
+              if (clause.isEnabled) {
+                setState(() => clause.isExpanded = !clause.isExpanded);
+              }
+            },
+            borderRadius: BorderRadius.circular(16.r),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+              child: Row(
+                children: [
+                  // Icon container
+                  Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: clause.isEnabled 
+                          ? ThemeConstants.primaryOrange.withOpacity(0.15) 
+                          : Colors.white.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      clause.icon, 
+                      color: clause.isEnabled ? ThemeConstants.primaryOrange : Colors.white30, 
+                      size: 18.w
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  // Title text
+                  Expanded(
+                    child: Text(
+                      clause.title,
+                      style: TextStyle(
+                        color: clause.isEnabled ? Colors.white : Colors.white30,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.sp,
+                        decoration: clause.isEnabled ? null : TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                  // Toggle switch
+                  Transform.scale(
+                    scale: 0.8,
+                    child: Switch(
+                      value: clause.isEnabled,
+                      onChanged: (val) {
+                        setState(() {
+                          clause.isEnabled = val;
+                          if (!val) {
+                            clause.isExpanded = false;
+                          } else {
+                            clause.isExpanded = true;
+                          }
+                          _syncLegacyObligations();
+                        });
+                      },
+                      activeColor: ThemeConstants.primaryOrange,
+                      activeTrackColor: ThemeConstants.primaryOrange.withOpacity(0.3),
+                      inactiveThumbColor: Colors.white24,
+                      inactiveTrackColor: Colors.white10,
+                    ),
+                  ),
+                  if (clause.isEnabled) ...[
+                    SizedBox(width: 4.w),
+                    Icon(
+                      clause.isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      color: Colors.white54,
+                      size: 16.w,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          // Expanded Content (Text Editor)
+          if (clause.isEnabled && clause.isExpanded)
+            Padding(
+              padding: EdgeInsets.only(left: 14.w, right: 14.w, bottom: 16.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(color: Colors.white10, height: 1),
+                  SizedBox(height: 12.h),
+                  TextFormField(
+                    initialValue: clause.text,
+                    maxLines: null,
+                    style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.4),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.2),
+                      contentPadding: EdgeInsets.all(12.w),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                        borderSide: const BorderSide(color: ThemeConstants.primaryOrange, width: 1.2),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      clause.text = val;
+                      _syncLegacyObligations();
+                    },
+                  ),
+                  SizedBox(height: 8.h),
+                  // Reset button if changed
+                  if (clause.text != clause.defaultText)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            clause.text = clause.defaultText;
+                            _syncLegacyObligations();
+                          });
+                        },
+                        icon: const Icon(Icons.undo, size: 12, color: ThemeConstants.primaryOrange),
+                        label: Text(
+                          LocalizationService.instance.isSwahili ? 'Rejesha Chaguomsingi' : 'Reset to Default',
+                          style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 10.sp),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _syncLegacyObligations() {
+    final tenantClauses = _leaseClauses.where((c) => c.isEnabled && (
+      c.id == 'late_payment' || 
+      c.id == 'maintenance' || 
+      c.id == 'utilities' || 
+      c.id == 'use_of_premises' || 
+      c.id == 'damages_repairs' || 
+      c.id == 'pets_policy' || 
+      c.id == 'insurance'
+    ));
+    final landlordClauses = _leaseClauses.where((c) => c.isEnabled && (
+      c.id == 'maintenance' || 
+      c.id == 'inspection'
+    ));
+    final terminationClauses = _leaseClauses.where((c) => c.isEnabled && (
+      c.id == 'late_payment' || 
+      c.id == 'termination_conditions'
+    ));
+
+    _tenantObligationsController.text = tenantClauses.map((c) => c.text).join('\n\n');
+    _landlordObligationsController.text = landlordClauses.map((c) => c.text).join('\n\n');
+    _terminationPolicyController.text = terminationClauses.map((c) => c.text).join('\n\n');
   }
 
   // --- Step 6: Review ---
@@ -892,6 +1279,8 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
       'landlord_obligations': _landlordObligationsController.text,
       'tenant_obligations': _tenantObligationsController.text,
       'termination_policy': _terminationPolicyController.text,
+      // Add individual clauses
+      ...Map.fromEntries(_leaseClauses.where((c) => c.isEnabled).map((c) => MapEntry(c.id, c.text))),
     };
 
     final payload = {
@@ -916,16 +1305,152 @@ class _LeaseAgreementWizardScreenState extends State<LeaseAgreementWizardScreen>
       'paid_until': DateFormat('yyyy-MM-dd').format(DateTime(_startDate.year, _startDate.month + _advanceMonths, _startDate.day)),
     };
 
-    final success = await context.read<RentalProvider>().createAgreement(payload, document: _signatureFile);
+    final agreementId = await context.read<RentalProvider>().createAgreement(payload, document: _signatureFile);
     
     if (mounted) {
       setState(() => _isSaving = false);
-      if (success) {
-        ThemeConstants.showSuccessSnackBar(context, loc.translate("lease_created_success"));
-        Navigator.pop(context);
+      if (agreementId != null) {
+        if (agreementId == 'success') {
+          ThemeConstants.showSuccessSnackBar(context, loc.translate("lease_created_success"));
+          Navigator.pop(context);
+          return;
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: ThemeConstants.bgMid,
+            title: Text('Lease Created', style: const TextStyle(color: Colors.white)),
+            content: Text('Do you want to record the first payment for this tenant now?', style: const TextStyle(color: Colors.white70)),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // close dialog
+                  nav.pop(); // close wizard
+                },
+                child: Text('Not Now', style: const TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // close dialog
+                  nav.pop(); // close wizard
+                  nav.push(MaterialPageRoute(
+                    builder: (_) => RecordPaymentScreen(
+                      preSelectedTenant: {'id': _selectedTenantId},
+                    )
+                  ));
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+                child: Text('Yes, Record Payment', style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
       } else {
         ThemeConstants.showErrorSnackBar(context, loc.translate("lease_creation_failed"));
       }
     }
   }
 }
+
+class _LeaseClause {
+  final String id;
+  final String title;
+  final IconData icon;
+  final String defaultText;
+  final String category; // 'tenant', 'maintenance', 'legal'
+  String text;
+  bool isEnabled;
+  bool isExpanded;
+
+  _LeaseClause({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.defaultText,
+    required this.category,
+    required this.text,
+    this.isEnabled = true,
+    this.isExpanded = false,
+  });
+}
+
+const Map<String, Map<String, String>> _clauseDefaults = {
+  'en': {
+    'security_deposit_title': '1. Security Deposit',
+    'security_deposit_text': 'Tenant shall pay a refundable security deposit before moving in. The deposit will be used to cover damages, unpaid rent, or cleaning costs beyond normal wear and tear. Refund will be processed within 14–30 days after lease termination.',
+    
+    'late_payment_title': '2. Late Payment Policy',
+    'late_payment_text': 'Rent not paid within the agreed due date will incur a late fee. Continuous delay in payment may lead to termination of the agreement.',
+    
+    'maintenance_title': '3. Maintenance Responsibilities',
+    'maintenance_text': 'Tenant is responsible for minor repairs and cleanliness inside the premises. Landlord is responsible for major structural repairs, plumbing systems, and electrical faults not caused by tenant negligence.',
+    
+    'utilities_title': '4. Utilities',
+    'utilities_text': 'Tenant shall be responsible for payment of utilities including water, electricity, internet, and waste disposal unless otherwise stated in the agreement.',
+    
+    'inspection_title': '5. Property Inspection',
+    'inspection_text': 'Landlord reserves the right to inspect the property after providing reasonable notice (e.g. 24–48 hours), except in emergency situations.',
+    
+    'subleasing_title': '6. Subleasing Policy',
+    'subleasing_text': 'Tenant shall not sublease, assign, or transfer the property without prior written consent from the landlord.',
+    
+    'use_of_premises_title': '7. Use of Premises',
+    'use_of_premises_text': 'The property shall be used strictly for residential purposes only and not for illegal or unauthorized activities.',
+    
+    'damages_repairs_title': '8. Damages & Repairs',
+    'damages_repairs_text': 'Any damage caused by the tenant or their visitors shall be repaired at the tenant’s expense.',
+    
+    'pets_policy_title': '9. Pets Policy (optional)',
+    'pets_policy_text': 'Pets are only allowed with prior approval from the landlord. Any damage caused by pets remains the tenant’s responsibility.',
+    
+    'insurance_title': '10. Insurance',
+    'insurance_text': 'Tenant is encouraged to obtain personal contents insurance for protection against theft, fire, or damage.',
+    
+    'termination_conditions_title': '11. Termination Conditions',
+    'termination_conditions_text': 'Either party may terminate the agreement with 30 days written notice. Immediate termination may occur in case of serious breach of contract.',
+    
+    'governing_law_title': '12. Governing Law',
+    'governing_law_text': 'This agreement shall be governed by the applicable laws of the jurisdiction where the property is located.',
+  },
+  'sw': {
+    'security_deposit_title': '1. Dhamana ya Usalama (Security Deposit)',
+    'security_deposit_text': 'Mpangaji atalipa dhamana ya usalama inayorejeshwa kabla ya kuhamia. Dhamana itatumika kulipia uharibifu, kodi isiyolipwa, au gharama za usafi zinazozidi uchakavu wa kawaida. Urejeshaji utafanyika ndani ya siku 14–30 baada ya mkataba kuisha.',
+    
+    'late_payment_title': '2. Sera ya Malipo ya Chelewe',
+    'late_payment_text': 'Kodi isiyolipwa ndani ya tarehe iliyokubaliwa itatozwa faini ya kuchelewa. Kuchelewa kwa malipo mara kwa mara kunaweza kusababisha kusitishwa kwa mkataba.',
+    
+    'maintenance_title': '3. Wajibu wa Matengenezo',
+    'maintenance_text': 'Mpangaji anajibika kwa matengenezo madogo na usafi ndani ya eneo lake. Mwenye nyumba anajibika kwa matengenezo makubwa ya miundo, mifumo ya mabomba, na hitilafu za umeme ambazo hazijasababishwa na uzembe wa mpangaji.',
+    
+    'utilities_title': '4. Huduma za Pamoja (Bili)',
+    'utilities_text': 'Mpangaji atawajibika kulipia huduma ikiwa ni pamoja na maji, umeme, mtandao, na uzoaji wa taka isipokuwa kama imeelezwa vinginevyo kwenye mkataba.',
+    
+    'inspection_title': '5. Ukaguzi wa Mali',
+    'inspection_text': 'Mwenye nyumba ana haki ya kukagua mali baada ya kutoa notisi ya kuridhisha (mfano siku 1-2 au saa 24-48), isipokuwa katika dharura kubwa.',
+    
+    'subleasing_title': '6. Sera ya Kupangisha Mtu Mwingine',
+    'subleasing_text': 'Mpangaji hataruhusiwa kupangisha mtu mwingine, kuhamisha au kupeana eneo bila idhini ya maandishi kutoka kwa mwenye nyumba.',
+    
+    'use_of_premises_title': '7. Matumizi ya Eneo',
+    'use_of_premises_text': 'Mali hii itatumika kwa madhumuni ya makazi tu na si kwa shughuli zisizoidhinishwa au haramu.',
+    
+    'damages_repairs_title': '8. Uharibifu & Matengenezo',
+    'damages_repairs_text': 'Uharibifu wowote uliosababishwa na mpangaji au wageni wake utarekebishwa kwa gharama ya mpangaji.',
+    
+    'pets_policy_title': '9. Sera ya Wanyama (Si lazima)',
+    'pets_policy_text': 'Wanyama wa kufugwa wanaruhusiwa tu kwa idhini ya awali kutoka kwa mwenye nyumba. Uharibifu wowote unaosababishwa na wanyama unabaki kuwa wajibu wa mpangaji.',
+    
+    'insurance_title': '10. Bima ya Vyombo',
+    'insurance_text': 'Mpangaji anashauriwa kukata bima ya mali zake binafsi kwa ajili ya ulinzi dhidi ya wizi, moto, au uharibifu wowote.',
+    
+    'termination_conditions_title': '11. Masharti ya Kusitisha',
+    'termination_conditions_text': 'Upande wowote unaweza kusitisha mkataba huu kwa kutoa notisi ya maandishi ya siku 30. Kusitishwa kwa haraka kunaweza kutokea ikiwa kuna ukiukwaji mkubwa wa mkataba.',
+    
+    'governing_law_title': '12. Sheria Inayoongoza',
+    'governing_law_text': 'Mkataba huu utaongozwa na sheria zinazohusika za eneo ambalo mali hiyo ipo.',
+  }
+};

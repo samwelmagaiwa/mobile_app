@@ -297,6 +297,8 @@ class ApiService {
       throw ApiException("Hitilafu ya seva: ${e.message}");
     } on FormatException catch (e) {
       throw ApiException("Jibu la seva halieleweki: ${e.message}");
+    } on ApiException {
+      rethrow;
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -334,6 +336,8 @@ class ApiService {
       throw ApiException("Hitilafu ya seva: ${e.message}");
     } on FormatException catch (e) {
       throw ApiException("Jibu la seva halieleweki: ${e.message}");
+    } on ApiException {
+      rethrow;
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -363,6 +367,8 @@ class ApiService {
       throw ApiException("Hitilafu ya seva: ${e.message}");
     } on FormatException catch (e) {
       throw ApiException("Jibu la seva halieleweki: ${e.message}");
+    } on ApiException {
+      rethrow;
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -388,6 +394,8 @@ class ApiService {
       throw ApiException("Hitilafu ya seva: ${e.message}");
     } on FormatException catch (e) {
       throw ApiException("Jibu la seva halieleweki: ${e.message}");
+    } on ApiException {
+      rethrow;
     } on Exception catch (e) {
       throw ApiException("Hitilafu isiyojulikana: $e");
     }
@@ -916,6 +924,9 @@ class ApiService {
 
   Future<Map<String, dynamic>> getRentalTenants() async =>
       _get("/rental/tenants");
+
+  Future<Map<String, dynamic>> getRentalTenantDetails(String tenantId) async =>
+      _get("/rental/tenants/$tenantId");
 
   Future<Map<String, dynamic>> onboardTenant(Map<String, dynamic> data) async {
     final Map<String, String> headers = await _authHeaders;

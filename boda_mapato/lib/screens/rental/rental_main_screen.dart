@@ -204,8 +204,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
               padding: EdgeInsets.zero,
               children: [
                 for (final item in NavigationConfig.rentalDrawerItems)
-                  if ((item.isSystemItem || (item.requiredPermissions?.any((p) => user?.hasPermission(p) ?? false) ?? true)) && 
-                      (user?.role != 'tenant' || ['rental_dashboard', 'tenant_self_service', 'maintenance', 'vendors', 'switch_service'].contains(item.key)))
+                  if (item.isSystemItem || NavigationBuilder.getAvailableNavigationItems(user).any((i) => i.key == item.key))
                     _DrawerItem(
                     icon: item.icon,
                     label: LocalizationService.instance.translate(item.key),

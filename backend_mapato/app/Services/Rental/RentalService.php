@@ -35,6 +35,9 @@ class RentalService
                     'service_type' => 'rental',
                     'is_active' => true,
                 ]);
+            } else {
+                // Ensure existing user is promoted to tenant role if onboarding as one
+                $user->update(['role' => 'tenant']);
             }
 
             // 2. Create Tenant Profile
@@ -62,6 +65,7 @@ class RentalService
             $agreement = RentalAgreement::create([
                 'tenant_id' => $user->id,
                 'house_id' => $data['house_id'],
+                'selected_units' => $data['selected_units'] ?? null,
                 'start_date' => $data['start_date'] ?? now(),
                 'rent_cycle' => $data['rent_cycle'] ?? 'monthly',
                 'rent_amount' => $data['rent_amount'],

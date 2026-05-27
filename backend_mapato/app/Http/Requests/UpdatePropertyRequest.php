@@ -41,11 +41,22 @@ class UpdatePropertyRequest extends FormRequest
             'total_units' => ['sometimes', 'integer', 'min:0'],
             'number_of_blocks' => ['sometimes', 'integer', 'min:1'],
             'caretaker_id' => ['nullable', 'exists:users,id'],
-            'default_rent_amount' => ['nullable', 'numeric', 'min:0'],
+            'default_rent_amount' => [
+                'nullable', 
+                'numeric', 
+                'min:0',
+                function ($attribute, $value, $fail) {
+                    $propertyId = $this->route('id');
+                    if ($propertyId) {
+                        $currentSum = \App\Models\Rental\House::where('property_id', $propertyId)->sum('rent_amount');
+                        if ($value < $currentSum) {
+                            $fail("The property rent target cannot be less than the sum of existing houses' rent (" . number_format($currentSum, 2) . ").");
+                        }
+                    }
+                }
+            ],
             'default_deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'utility_billing_enabled' => ['sometimes', 'boolean'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5000'],
         ];
     }

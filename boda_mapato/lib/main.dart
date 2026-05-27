@@ -65,6 +65,7 @@ import 'screens/rental/lease_agreement_wizard_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'services/api_service.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
 import 'utils/web_keyboard_fix_stub.dart'
@@ -154,6 +155,9 @@ class BodaMapatoApp extends StatelessWidget {
         builder: (final BuildContext context, final Widget? child) =>
             MultiProvider(
           providers: <SingleChildWidget>[
+            Provider<ApiService>(
+              create: (final BuildContext _) => ApiService(),
+            ),
             ChangeNotifierProvider<LocalizationService>.value(
               value: LocalizationService.instance,
             ),
@@ -177,9 +181,7 @@ class BodaMapatoApp extends StatelessWidget {
                   InventoryProvider()..bootstrap(),
             ),
             ChangeNotifierProvider<RentalProvider>(
-              create: (final BuildContext _) => RentalProvider()
-                ..fetchProperties()
-                ..fetchBills(),
+              create: (final BuildContext _) => RentalProvider(),
             ),
             ChangeNotifierProvider<MaintenanceProvider>(
               create: (final BuildContext _) =>
@@ -259,27 +261,28 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/add-property": (final BuildContext context) =>
                     const CreatePropertyScreen(),
                 "/rental/edit-property": (final BuildContext context) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, dynamic>?;
-                  return EditPropertyScreen(property: args?['property'] ?? {});
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map) {
+                     final map = Map<String, dynamic>.from(args);
+                     return EditPropertyScreen(property: map['property'] ?? map);
+                  }
+                  return const EditPropertyScreen(property: {});
                 },
                 "/rental/tenants": (final BuildContext context) =>
                     const RentalTenantsScreen(),
                 "/rental/tenant-details": (final BuildContext context) {
                   final args = ModalRoute.of(context)?.settings.arguments;
-                  if (args is Map<String, dynamic>) {
-                    return TenantDetailsScreen(tenant: args);
+                  if (args is Map) {
+                    return TenantDetailsScreen(tenant: Map<dynamic, dynamic>.from(args));
                   }
-                  // If it's just an ID String, we might need a placeholder or fetch logic,
-                  // but for now, pass an empty map with the ID to avoid casting crashes.
                   return TenantDetailsScreen(tenant: {'id': args?.toString() ?? ''});
                 },
                 "/rental/onboard-tenant": (final BuildContext context) =>
                     const OnboardTenantScreen(),
                 "/rental/house-details": (final BuildContext context) {
                   final args = ModalRoute.of(context)?.settings.arguments;
-                  if (args is Map<String, dynamic>) {
-                    return HouseDetailsScreen(house: args);
+                  if (args is Map) {
+                    return HouseDetailsScreen(house: Map<String, dynamic>.from(args));
                   }
                   return HouseDetailsScreen(house: {'id': args?.toString() ?? ''});
                 },
@@ -288,9 +291,11 @@ class BodaMapatoApp extends StatelessWidget {
                 "/rental/maintenance": (final BuildContext context) =>
                     const MaintenanceListScreen(),
                 "/rental/maintenance-details": (final BuildContext context) {
-                  final request = ModalRoute.of(context)!.settings.arguments!
-                      as Map<String, dynamic>;
-                  return MaintenanceDetailsScreen(request: request);
+                  final args = ModalRoute.of(context)!.settings.arguments;
+                  if (args is Map) {
+                    return MaintenanceDetailsScreen(request: Map<String, dynamic>.from(args));
+                  }
+                  return const ComingSoonScreen();
                 },
                 "/rental/maintenance-request": (final BuildContext context) =>
                     const RequestMaintenanceScreen(),
@@ -311,29 +316,35 @@ class BodaMapatoApp extends StatelessWidget {
                 "/vendor-dashboard": (final BuildContext context) =>
                     const VendorDashboardScreen(),
                 "/rental/blocks": (final BuildContext context) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, String>?;
-                  return BlocksManagementScreen(
-                    propertyId: args?['propertyId'] ?? '',
-                    propertyName: args?['propertyName'] ?? '',
-                  );
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map) {
+                    return BlocksManagementScreen(
+                      propertyId: (args['propertyId'] ?? '').toString(),
+                      propertyName: (args['propertyName'] ?? '').toString(),
+                    );
+                  }
+                  return const BlocksManagementScreen(propertyId: '', propertyName: '');
                 },
                 "/rental/houses": (final BuildContext context) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, String>?;
-                  return HouseManagementScreen(
-                    propertyId: args?['propertyId'] ?? '',
-                    propertyName: args?['propertyName'] ?? '',
-                  );
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map) {
+                    return HouseManagementScreen(
+                      propertyId: (args['propertyId'] ?? '').toString(),
+                      propertyName: (args['propertyName'] ?? '').toString(),
+                    );
+                  }
+                  return const HouseManagementScreen(propertyId: '', propertyName: '');
                 },
                 "/rental/agreements": (final BuildContext context) =>
                     const LeaseAgreementsScreen(),
                 "/rental/create-agreement": (final BuildContext context) =>
                     const LeaseAgreementWizardScreen(),
                 "/rental/agreement-details": (final BuildContext context) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, dynamic>?;
-                  return LeaseDetailsScreen(agreement: args);
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map) {
+                    return LeaseDetailsScreen(agreement: Map<String, dynamic>.from(args));
+                  }
+                  return const ComingSoonScreen();
                 },
                 "/rental/lease-templates": (final BuildContext context) =>
                     const LeaseAgreementsScreen(), // Placeholder for templates

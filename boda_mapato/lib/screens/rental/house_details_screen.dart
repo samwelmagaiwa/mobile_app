@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -6,8 +7,20 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import 'onboard_tenant_screen.dart';
-import 'property_details_screen.dart';
+import 'add_house_bottom_sheet.dart';
 
+// ─────────────────────────────────────────────
+// Color palette (consistent with tenant details)
+// ─────────────────────────────────────────────
+const _kGradientTop    = Color(0xFF04121A);
+const _kGradientMid    = Color(0xFF092D3A);
+const _kGradientBottom = Color(0xFF0D485A);
+const _kOrange         = Color(0xFFF97316);
+const _kGreen          = Color(0xFF10B981);
+const _kAmber          = Color(0xFFF59E0B);
+const _kRed            = Color(0xFFEF4444);
+
+// ─────────────────────────────────────────────
 class HouseDetailsScreen extends StatefulWidget {
   const HouseDetailsScreen({required this.house, super.key});
   final Map<String, dynamic> house;
@@ -53,19 +66,20 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: ThemeConstants.bgMid,
+        backgroundColor: _kGradientMid.withOpacity(0.95),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(loc.translate("confirm_vacate"),
-            style: const TextStyle(color: Colors.white)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Text(loc.translate("vacate_message"),
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(loc.translate("cancel"))),
+              child: Text(loc.translate("cancel"), style: const TextStyle(color: Colors.white54))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(loc.translate("confirm"),
-                style: const TextStyle(color: Colors.redAccent)),
+                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -99,566 +113,624 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
     final h = _houseData!;
     final loc = LocalizationService.instance;
     final isOccupied = h['status'] == 'occupied';
+    final status = h['status']?.toString() ?? 'vacant';
 
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "${loc.translate('house')} ${h['house_number']}",
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
-          color: ThemeConstants.bgMid,
-          offset: const Offset(0, 40),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-          onSelected: (value) {
-            if (value == 'edit') {
-              _showEditHouseDialog();
-            } else if (value == 'delete') {
-              _showDeleteConfirmation();
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                   const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
-                   SizedBox(width: 12.w),
-                   Text(loc.translate('edit'), style: const TextStyle(color: Colors.white)),
-                ],
-              ),
+    return Scaffold(
+      backgroundColor: _kGradientTop,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
-            PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                   const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                   SizedBox(width: 12.w),
-                   Text(loc.translate('delete'), style: const TextStyle(color: Colors.redAccent)),
-                ],
-              ),
-            ),
-          ],
+            child: Icon(Icons.arrow_back_ios_new_rounded,
+                color: Colors.white, size: 14.sp),
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
-      ],
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            _buildStatusHeader(h),
-            SizedBox(height: 16.h),
-            _buildQuickStats(h),
-            SizedBox(height: 16.h),
-            if (isOccupied) _buildTenantSection(h),
-            SizedBox(height: 16.h),
-            _buildDetailsSection(h),
-            SizedBox(height: 24.h),
-            if (isOccupied)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isVacating ? null : _handleVacate,
-                  icon: const Icon(Icons.exit_to_app, color: Colors.white),
-                  label: Text(loc.translate("vacate_house")),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent.withOpacity(0.8),
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r)),
-                  ),
+        title: Text(
+          "${loc.translate('house')} ${h['house_number']}",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            color: _kGradientMid,
+            offset: const Offset(0, 40),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showEditHouseDialog();
+              } else if (value == 'delete') {
+                _showDeleteConfirmation();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                     const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
+                     SizedBox(width: 12.w),
+                     Text(loc.translate('edit'), style: const TextStyle(color: Colors.white)),
+                  ],
                 ),
-              )
-            else if (h['status'] == 'vacant')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OnboardTenantScreen(
-                        preSelectedProperty: h['property'],
-                        preSelectedHouse: _houseData,
-                      ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                     const Icon(Icons.delete_outline, color: _kRed, size: 20),
+                     SizedBox(width: 12.w),
+                     Text(loc.translate('delete'), style: const TextStyle(color: _kRed)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // ── Background gradient
+          const _AnimatedBackground(),
+
+          // ── Main scrollable content
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(12.w, 16.h, 12.w, 100.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildStatusHeader(h),
+                  SizedBox(height: 16.h),
+                  _GlassCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: _buildJoinedSections(context, h, loc, isOccupied),
                     ),
-                  ).then((_) {
-                    context.read<RentalProvider>().fetchPropertyDetails(
-                        h['property_id']?.toString() ?? '');
-                  }),
-                  icon: const Icon(Icons.person_add, color: Colors.white),
-                  label: Text(loc.translate("onboard_tenant")),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ThemeConstants.primaryOrange,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Bottom action button
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: _BottomActionBar(
+              isOccupied: isOccupied,
+              status: status,
+              isVacating: _isVacating,
+              onVacate: _handleVacate,
+              onOnboard: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OnboardTenantScreen(
+                    preSelectedProperty: h['property'],
+                    preSelectedHouse: _houseData,
                   ),
                 ),
-              ),
-          ],
-        ),
+              ).then((_) {
+                context.read<RentalProvider>().fetchPropertyDetails(
+                    h['property_id']?.toString() ?? '');
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  List<Widget> _buildJoinedSections(
+    BuildContext context,
+    Map<String, dynamic> h,
+    LocalizationService loc,
+    bool isOccupied,
+  ) {
+    final list = <Widget>[];
+
+    Widget wrapSection(Widget child) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+        child: child,
+      );
+    }
+
+    // 1. Quick Stats
+    list.add(wrapSection(_buildQuickStats(h)));
+
+    // 2. Current Tenant (if occupied)
+    if (isOccupied) {
+      list.add(wrapSection(_buildTenantSection(h)));
+    }
+
+    // 3. Unit Details
+    list.add(wrapSection(_buildDetailsSection(h)));
+
+    // Join with dividers
+    final joined = <Widget>[];
+    for (int i = 0; i < list.length; i++) {
+      joined.add(list[i]);
+      if (i < list.length - 1) {
+        joined.add(const _SectionDivider());
+      }
+    }
+    return joined;
+  }
+
   Widget _buildStatusHeader(Map<String, dynamic> h) {
     final loc = LocalizationService.instance;
-    final status = h['status'] as String;
-    Color color = ThemeConstants.successGreen;
-    if (status == 'occupied') color = Colors.orange;
-    if (status == 'maintenance') color = Colors.redAccent;
+    final status = h['status'] as String? ?? 'vacant';
+    
+    Color statusColor = _kGreen;
+    if (status == 'occupied') statusColor = _kOrange;
+    if (status == 'maintenance') statusColor = _kRed;
 
-    return ThemeConstants.buildResponsiveGlassCardStatic(
-      context,
+    final String propertyName = h['property']?['name'] ?? h['property_name'] ?? 'Mali ya Upangaji';
+    final String type = loc.translate(h['type']?.toString().toLowerCase() ?? 'room').toUpperCase();
+    final String houseNumber = h['house_number'] ?? '';
+
+    return _GlassCard(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          InkWell(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PropertyDetailsScreen(
-                    propertyId: h['property_id']?.toString() ?? ''),
-              ),
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: _kOrange.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: _kOrange.withOpacity(0.25)),
             ),
+            child: Icon(Icons.home_work_rounded, color: _kOrange, size: 24.sp),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(h['property_name'] ?? h['property']?['name'] ?? loc.translate('property'),
-                    style: TextStyle(
-                        color: ThemeConstants.primaryOrange,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600)),
-                Text(loc.translate(h['type']?.toString().toLowerCase() ?? 'room').toUpperCase(),
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  propertyName,
+                  style: TextStyle(
+                    color: _kOrange,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  "${loc.translate('house')} $houseNumber",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  type,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: statusColor.withOpacity(0.18),
               borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: color.withOpacity(0.5)),
+              border: Border.all(color: statusColor.withOpacity(0.55)),
+              boxShadow: [
+                BoxShadow(
+                    color: statusColor.withOpacity(0.2),
+                    blurRadius: 8)
+              ],
             ),
-            child: Text(loc.translate(status).toUpperCase(),
-                style: TextStyle(
-                    color: color,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              loc.translate(status).toUpperCase(),
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 8.sp,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _formatAmount(amount) {
-    if (amount == null) return "0";
-    if (amount is num) return amount.toInt().toString();
-    if (amount is String) {
-      final double? parsed = double.tryParse(amount);
-      if (parsed != null) return parsed.toInt().toString();
-    }
-    return amount.toString();
+  String _formatCurrency(dynamic value) {
+    if (value == null) return '0';
+    final String cleanVal = value.toString().split('.').first;
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return cleanVal.replaceAllMapped(reg, (Match match) => '${match[1]},');
   }
 
   Widget _buildQuickStats(Map<String, dynamic> h) {
+    final loc = LocalizationService.instance;
     return Row(
       children: [
         Expanded(
-            child: _buildStatItem(
-                LocalizationService.instance.translate("rent"),
-                "Tsh ${_formatAmount(h['rent_amount'])}",
-                Icons.payments)),
-        SizedBox(width: 12.w),
+          child: _buildPriceStatItem(
+            loc.translate("rent"),
+            "Tsh ${_formatCurrency(h['rent_amount'])}",
+            "/ mwezi",
+            Icons.payments_outlined,
+            _kOrange,
+          ),
+        ),
+        Container(
+          width: 1.5,
+          height: 52.h,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+          ),
+        ),
         Expanded(
-            child: _buildStatItem(
-                LocalizationService.instance.translate("deposit"),
-                "Tsh ${_formatAmount(h['deposit_amount'])}",
-                Icons.account_balance_wallet)),
+          child: _buildPriceStatItem(
+            loc.translate("deposit"),
+            "Tsh ${_formatCurrency(h['deposit_amount'])}",
+            " refundable",
+            Icons.savings_outlined,
+            Colors.tealAccent,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return ThemeConstants.buildResponsiveGlassCardStatic(
-      context,
+  Widget _buildPriceStatItem(String label, String value, String subtitle, IconData icon, Color color) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: ThemeConstants.primaryOrange, size: 16.sp),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Icon(icon, color: color.withOpacity(0.8), size: 16.sp),
+            ],
+          ),
           SizedBox(height: 8.h),
-          Text(label, style: TextStyle(color: Colors.white54, fontSize: 11.sp)),
-          Text(value,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 9.sp,
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  String _resolveTenantPhone(dynamic tenant) {
+    if (tenant == null || tenant is! Map) return 'Hakuna Namba ya Simu';
+    const phoneKeys = ['phone_number', 'phone', 'mobile', 'telephone'];
+
+    String? _extract(Map m) {
+      for (final k in phoneKeys) {
+        final v = m[k];
+        if (v != null && v.toString().trim().isNotEmpty && v.toString().trim() != 'N/A') {
+          return v.toString().trim();
+        }
+      }
+      return null;
+    }
+
+    final direct = _extract(tenant as Map);
+    if (direct != null) return direct;
+
+    for (final nestedKey in ['profile', 'tenant_profile', 'user']) {
+      final nested = tenant[nestedKey];
+      if (nested is Map) {
+        final found = _extract(nested);
+        if (found != null) return found;
+      }
+    }
+    return 'Hakuna Namba ya Simu';
   }
 
   Widget _buildTenantSection(Map<String, dynamic> h) {
     final tenant = h['current_tenant'];
     final loc = LocalizationService.instance;
-    return ThemeConstants.buildResponsiveGlassCard(
-      context,
-      onTap: () {
-        if (tenant != null) {
-          Navigator.pushNamed(context, '/rental/tenant-details',
-              arguments: tenant);
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.person,
-                  color: ThemeConstants.primaryOrange, size: 16.sp),
-              SizedBox(width: 8.w),
-              Text(loc.translate("current_tenant"),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold)),
-              const Spacer(),
-              const Icon(Icons.chevron_right, color: Colors.white38),
-            ],
-          ),
-          Divider(color: Colors.white10, height: 24.h),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20.r,
-                backgroundColor: Colors.white10,
-                child: Text(tenant?['name']?[0] ?? '?',
-                    style: const TextStyle(color: Colors.white)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.person_outline_rounded,
+          label: loc.translate("current_tenant").toUpperCase(),
+          trailing: tenant != null ? Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 11.sp) : null,
+        ),
+        SizedBox(height: 12.h),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              if (tenant != null) {
+                Navigator.pushNamed(context, '/rental/tenant-details',
+                    arguments: tenant);
+              }
+            },
+            borderRadius: BorderRadius.circular(12.r),
+            child: Ink(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
               ),
-              SizedBox(width: 12.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(tenant?['name'] ?? 'N/A',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600)),
-                  Text(tenant?['phone_number'] ?? 'N/A',
-                      style: TextStyle(color: Colors.white54, fontSize: 11.sp)),
+                  Container(
+                    width: 44.w,
+                    height: 44.w,
+                    decoration: BoxDecoration(
+                      color: _kOrange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _kOrange.withOpacity(0.2)),
+                      image: tenant?['photo_url'] != null
+                          ? DecorationImage(
+                              image: NetworkImage(tenant['photo_url']),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: tenant?['photo_url'] == null
+                        ? Center(
+                            child: Text(
+                              (tenant?['name'] ?? '?')[0].toString().toUpperCase(),
+                              style: TextStyle(
+                                color: _kOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tenant?['name'] ?? 'N/A',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Row(
+                          children: [
+                            Icon(Icons.phone_outlined, color: Colors.white38, size: 12.sp),
+                            SizedBox(width: 4.w),
+                            Text(
+                              _resolveTenantPhone(tenant),
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildDetailsSection(Map<String, dynamic> h) {
     final loc = LocalizationService.instance;
-    return ThemeConstants.buildResponsiveGlassCardStatic(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(loc.translate("unit_details"),
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold)),
-          Divider(color: Colors.white10, height: 24.h),
-          _buildInfoRow(loc.translate("electricity_meter"),
-              h['electricity_meter'] ?? '-'),
-          _buildInfoRow(loc.translate("water_meter"), h['water_meter'] ?? '-'),
-          _buildInfoRow(
-              loc.translate("bedrooms"), (h['bedrooms'] ?? 0).toString()),
-          _buildInfoRow(
-              loc.translate("bathrooms"), (h['bathrooms'] ?? 0).toString()),
-          if (h['description'] != null) ...[
-            SizedBox(height: 8.h),
-            Text(loc.translate("notes"),
-                style: TextStyle(color: Colors.white54, fontSize: 11.sp)),
-            Text(h['description'],
-                style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
+    
+    final bool hasFence = h['has_fence'] == true || h['has_fence'] == 1 || h['has_fence'] == '1';
+    final bool hasTiles = h['has_tiles'] == true || h['has_tiles'] == 1 || h['has_tiles'] == '1';
+    final bool hasSittingRoom = h['has_sitting_room'] == true || h['has_sitting_room'] == 1 || h['has_sitting_room'] == '1';
+    final bool hasMasterBedroom = h['has_master_bedroom'] == true || h['has_master_bedroom'] == 1 || h['has_master_bedroom'] == '1';
+    final bool hasKitchen = h['has_kitchen'] == true || h['has_kitchen'] == 1 || h['has_kitchen'] == '1';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.info_outline_rounded,
+          label: loc.translate("unit_details").toUpperCase(),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
+          ),
+          child: Column(
+            children: [
+              _buildInfoRow(loc.translate("electricity_meter"), h['electricity_meter'] ?? '-', Icons.electric_bolt_outlined, showBorder: true),
+              _buildInfoRow(loc.translate("water_meter"), h['water_meter'] ?? '-', Icons.water_drop_outlined, showBorder: true),
+              _buildInfoRow(loc.translate("bedrooms"), (h['bedrooms'] ?? 0).toString(), Icons.bed_outlined, showBorder: true),
+              _buildInfoRow(loc.translate("bathrooms"), (h['bathrooms'] ?? 0).toString(), Icons.shower_outlined, showBorder: h['floor'] != null && h['floor'].toString() != '0' || h['square_meters'] != null && h['square_meters'].toString() != '0'),
+              if (h['floor'] != null && h['floor'].toString() != '0')
+                _buildInfoRow("Floor", h['floor'].toString(), Icons.layers_outlined, showBorder: h['square_meters'] != null && h['square_meters'].toString() != '0'),
+              if (h['square_meters'] != null && h['square_meters'].toString() != '0')
+                _buildInfoRow("Square Meters", "${h['square_meters']} m²", Icons.square_foot_outlined, showBorder: false),
+            ],
+          ),
+        ),
+        
+        SizedBox(height: 16.h),
+        Text(
+          "SIFA ZA NYUMBA",
+          style: TextStyle(
+            color: Colors.white38,
+            fontSize: 9.sp,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Wrap(
+          spacing: 8.w,
+          runSpacing: 8.h,
+          children: [
+            _buildFeatureChip("Vigae (Tiles)", hasTiles, Icons.grid_view_rounded),
+            _buildFeatureChip("Uzio (Fence)", hasFence, Icons.fence_outlined),
+            _buildFeatureChip("Jiko (Kitchen)", hasKitchen, Icons.kitchen_outlined),
+            _buildFeatureChip("Sebule (Sitting Room)", hasSittingRoom, Icons.chair_outlined),
+            _buildFeatureChip("Master Bedroom", hasMasterBedroom, Icons.king_bed_outlined),
           ],
+        ),
+        
+        if (h['description'] != null && h['description'].toString().trim().isNotEmpty) ...[
+          Divider(color: Colors.white10, height: 28.h),
+          Text(
+            loc.translate("notes").toUpperCase(),
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 9.sp,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            h['description'],
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 12.sp,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon, {bool showBorder = true}) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        border: showBorder
+            ? Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))
+            : null,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _kOrange.withOpacity(0.7), size: 15.sp),
+          SizedBox(width: 12.w),
+          Expanded(
+            flex: 3,
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
+  Widget _buildFeatureChip(String label, bool active, IconData icon) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: active ? _kOrange.withOpacity(0.08) : Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: active ? _kOrange.withOpacity(0.3) : Colors.white10,
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
-          Text(value,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500)),
+          Icon(icon, size: 12.sp, color: active ? _kOrange : Colors.white24),
+          SizedBox(width: 4.w),
+          Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.white30,
+              fontSize: 10.sp,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ],
       ),
     );
   }
 
   void _showEditHouseDialog() {
-    bool attemptedSubmit = false;
-    final loc = LocalizationService.instance;
-    final existing = _houseData!;
-    final numberCtrl = TextEditingController(text: existing['house_number']);
-    final rentCtrl = TextEditingController(text: _formatAmount(existing['rent_amount']));
-    final depositCtrl = TextEditingController(text: _formatAmount(existing['deposit_amount']));
-    final meterCtrl = TextEditingController(text: existing['electricity_meter']);
-    final waterCtrl = TextEditingController(text: existing['water_meter']);
-    final floorCtrl = TextEditingController(text: (existing['floor'] ?? '').toString());
-    final sqmtrsCtrl = TextEditingController(text: (existing['square_meters'] ?? '').toString());
-    final bedroomsCtrl = TextEditingController(text: (existing['bedrooms'] ?? '').toString());
-    final bathroomsCtrl = TextEditingController(text: (existing['bathrooms'] ?? '').toString());
-    final descCtrl = TextEditingController(text: existing['description'] ?? '');
-
-    String type = existing['type'] ?? 'room';
-    String status = existing['status'] ?? 'vacant';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: BoxDecoration(
-            color: ThemeConstants.primaryBlue,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24.r),
-                topRight: Radius.circular(24.r))),
-        child: Column(
-          children: [
-            Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2.r))),
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(loc.translate("edit_house"),
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold)),
-                    IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close, color: Colors.white54)),
-                  ]),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: StatefulBuilder(
-                    builder: (ctx, setS) => Column(
-                          children: [
-                            _field(numberCtrl, loc.translate("house_number") + " *", Icons.door_front_door,
-                                onChanged: (v) => setS(() {}),
-                                errorText: attemptedSubmit && numberCtrl.text.isEmpty
-                                    ? loc.translate('field_required')
-                                    : null),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _dropdown(loc.translate("type"), type, ['room', 'apartment', 'studio', 'commercial', 'bedsitter', 'one_bedroom', 'two_bedroom'], (v) => setS(() => type = v))),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _dropdown(loc.translate("status"), status, ['vacant', 'occupied', 'maintenance', 'reserved'], (v) => setS(() => status = v))),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _numberField(rentCtrl, loc.translate("rent") + " (TSh) *",
-                                  onChanged: (v) => setS(() {}),
-                                  errorText: attemptedSubmit && rentCtrl.text.isEmpty
-                                      ? loc.translate('field_required')
-                                      : (attemptedSubmit && double.tryParse(rentCtrl.text) == null
-                                          ? loc.translate('invalid_amount')
-                                          : null))),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _numberField(depositCtrl, "${loc.translate('deposit_amount')} (TSh)",
-                                  onChanged: (v) => setS(() {}),
-                                  errorText: (double.tryParse(depositCtrl.text) ?? 0) > (double.tryParse(rentCtrl.text) ?? 0)
-                                      ? loc.translate('deposit_exceeds_rent')
-                                      : null)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _field(meterCtrl, loc.translate("electricity_meter"), Icons.bolt)),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _field(waterCtrl, loc.translate("water_meter"), Icons.water_drop)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _numberField(floorCtrl, loc.translate("floor"), prefixIcon: Icons.layers)),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _numberField(sqmtrsCtrl, loc.translate("area_sqm"), prefixIcon: Icons.square_foot)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            Row(children: [
-                              Expanded(child: _numberField(bedroomsCtrl, loc.translate("bedrooms"), prefixIcon: Icons.bed)),
-                              SizedBox(width: 12.w),
-                              Expanded(child: _numberField(bathroomsCtrl, loc.translate("bathrooms"), prefixIcon: Icons.bathtub)),
-                            ]),
-                            SizedBox(height: 16.h),
-                            _field(descCtrl, loc.translate("notes"), Icons.description, max: 3),
-                            SizedBox(height: 32.h),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  setS(() => attemptedSubmit = true);
-                                  if (numberCtrl.text.isNotEmpty &&
-                                      rentCtrl.text.isNotEmpty) {
-                                    final double rentAmt = double.tryParse(rentCtrl.text) ?? 0;
-                                    final double depositAmt = double.tryParse(depositCtrl.text) ?? 0;
-                                    if (depositAmt > rentAmt) return;
-                                    
-                                    final provider =
-                                        context.read<RentalProvider>();
-                                    final data = {
-                                      'property_id': existing['property_id'],
-                                      'house_number': numberCtrl.text,
-                                      'rent_amount': double.parse(rentCtrl.text),
-                                      'deposit_amount':
-                                          double.tryParse(depositCtrl.text) ?? 0,
-                                      'type': type,
-                                      'status': status,
-                                      'electricity_meter': meterCtrl.text,
-                                      'water_meter': waterCtrl.text,
-                                      'bedrooms': int.tryParse(bedroomsCtrl.text),
-                                      'bathrooms': int.tryParse(bathroomsCtrl.text),
-                                      'floor': int.tryParse(floorCtrl.text),
-                                      'square_meters': int.tryParse(sqmtrsCtrl.text),
-                                      'description': descCtrl.text,
-                                    };
-                                    final success = await provider.updateHouse(
-                                        existing['id'], data);
-                                    if (ctx.mounted) Navigator.pop(ctx);
-                                    if (success && mounted) {
-                                      setState(() {
-                                        _houseData = {..._houseData!, ...data};
-                                      });
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: ThemeConstants.primaryOrange,
-                                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12.r))),
-                                child: Text(loc.translate("update"),
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                            SizedBox(height: 20.h),
-                          ],
-                        )),
-              ),
-            ),
-          ],
-        ),
+      builder: (ctx) => AddHouseBottomSheet(
+        propertyId: _houseData!['property_id']?.toString() ?? '',
+        existingHouse: _houseData,
+        onSaved: _loadFullDetails,
       ),
     );
-  }
-
-  Widget _field(TextEditingController? ctrl, String label, IconData icon,
-      {int? max, String? errorText, void Function(String)? onChanged}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(color: errorText != null ? Colors.redAccent : Colors.white70, fontSize: 12.sp)),
-      SizedBox(height: 6.h),
-      TextField(
-        controller: ctrl,
-        onChanged: onChanged,
-        maxLines: max,
-        style: TextStyle(color: Colors.white, fontSize: 14.sp),
-        decoration: InputDecoration(
-          labelText: label,
-          errorText: errorText,
-          labelStyle: TextStyle(color: Colors.white70, fontSize: 12.sp),
-          prefixIcon: Icon(icon, color: Colors.white38, size: 20.sp),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
-          focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(color: ThemeConstants.primaryOrange)),
-        ),
-      ),
-    ]);
-  }
-
-  Widget _dropdown(String label, String value, List<String> items,
-      Function(String) onChange) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
-      SizedBox(height: 6.h),
-      Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.white12)),
-        child: DropdownButton<String>(
-          value: items.contains(value) ? value : (items.isNotEmpty ? items.first : null),
-          isExpanded: true,
-          dropdownColor: ThemeConstants.primaryBlue,
-          underline: const SizedBox(),
-          style: TextStyle(color: Colors.white, fontSize: 14.sp),
-          items: items
-              .map((i) => DropdownMenuItem(
-                  value: i, child: Text(i.replaceAll('_', ' '))))
-              .toList(),
-          onChanged: (v) => onChange(v ?? items.first),
-        ),
-      ),
-    ]);
-  }
- 
-  Widget _numberField(TextEditingController? ctrl, String label,
-      {IconData? prefixIcon, String? hint, String? errorText, void Function(String)? onChanged}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(color: errorText != null ? Colors.redAccent : Colors.white70, fontSize: 12.sp)),
-      SizedBox(height: 6.h),
-      TextField(
-        controller: ctrl,
-        onChanged: onChanged,
-        keyboardType: TextInputType.number,
-        style: TextStyle(color: Colors.white, fontSize: 14.sp),
-        decoration: InputDecoration(
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.white38, size: 18.sp) : null,
-          hintText: hint,
-          errorText: errorText,
-          hintStyle: const TextStyle(color: Colors.white24),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: errorText != null ? Colors.redAccent : Colors.white12)),
-        ),
-      ),
-    ]);
   }
 
   void _showDeleteConfirmation() {
@@ -667,7 +739,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ThemeConstants.bgMid,
+        backgroundColor: _kGradientMid.withOpacity(0.95),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Row(
           children: [
@@ -706,6 +778,281 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
             child: Text(loc.translate("delete"), style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Animated gradient background
+// ─────────────────────────────────────────────
+class _AnimatedBackground extends StatefulWidget {
+  const _AnimatedBackground();
+  @override
+  State<_AnimatedBackground> createState() => _AnimatedBackgroundState();
+}
+
+class _AnimatedBackgroundState extends State<_AnimatedBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 8))
+      ..repeat(reverse: true);
+  }
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final t = _ctrl.value;
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _kGradientTop,
+                Color.lerp(_kGradientMid,
+                    const Color(0xFF0A3A4A), t)!,
+                _kGradientBottom,
+              ],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Glass card base
+// ─────────────────────────────────────────────
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.padding});
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: Colors.white.withOpacity(0.13)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: padding ?? EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section title row
+// ─────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.label, this.trailing});
+  final IconData icon;
+  final String   label;
+  final Widget?  trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(7.w),
+          decoration: BoxDecoration(
+            color: _kOrange.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: _kOrange.withOpacity(0.25)),
+          ),
+          child: Icon(icon, color: _kOrange, size: 14.sp),
+        ),
+        SizedBox(width: 10.w),
+        Text(label,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold)),
+        if (trailing != null) ...[const Spacer(), trailing!],
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section divider widget (premium gradient line)
+// ─────────────────────────────────────────────
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1.5,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.0),
+            Colors.white.withOpacity(0.08),
+            _kOrange.withOpacity(0.35),
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.15, 0.5, 0.85, 1.0],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Bottom action bar
+// ─────────────────────────────────────────────
+class _BottomActionBar extends StatelessWidget {
+  const _BottomActionBar({
+    required this.isOccupied,
+    required this.status,
+    required this.isVacating,
+    required this.onVacate,
+    required this.onOnboard,
+  });
+  final bool isOccupied;
+  final String status;
+  final bool isVacating;
+  final VoidCallback onVacate;
+  final VoidCallback onOnboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
+    
+    Widget button;
+    if (isOccupied) {
+      button = InkWell(
+        onTap: isVacating ? null : onVacate,
+        borderRadius: BorderRadius.circular(14.r),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _kRed.withOpacity(0.85),
+                const Color(0xFFC62828).withOpacity(0.9),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [
+              BoxShadow(
+                  color: _kRed.withOpacity(0.4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4))
+            ],
+          ),
+          child: Center(
+            child: isVacating
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.exit_to_app_rounded, color: Colors.white),
+                      SizedBox(width: 10.w),
+                      Text(loc.translate("vacate_house"),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+          ),
+        ),
+      );
+    } else if (status == 'vacant') {
+      button = InkWell(
+        onTap: onOnboard,
+        borderRadius: BorderRadius.circular(14.r),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF97316), Color(0xFFFF6B35)],
+            ),
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [
+              BoxShadow(
+                  color: _kOrange.withOpacity(0.4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4))
+            ],
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+                SizedBox(width: 10.w),
+                Text(loc.translate("onboard_tenant"),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      return const SizedBox();
+    }
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(12.w, 16.h,
+              12.w, MediaQuery.of(context).padding.bottom + 16.h),
+          decoration: BoxDecoration(
+            color: _kGradientTop.withOpacity(0.75),
+            border: Border(
+              top: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52.h,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(14.r),
+              child: button,
+            ),
+          ),
+        ),
       ),
     );
   }

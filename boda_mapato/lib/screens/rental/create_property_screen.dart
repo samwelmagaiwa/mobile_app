@@ -9,6 +9,7 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/location_selector.dart';
+import 'add_house_bottom_sheet.dart';
 
 class CreatePropertyScreen extends StatefulWidget {
   const CreatePropertyScreen({super.key});
@@ -33,12 +34,10 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
   String? _ward;
   String? _street;
   String? _place;
-  final _latController = TextEditingController();
-  final _lngController = TextEditingController();
+
 
   // Section 3 — Configuration
   final _defaultRentController = TextEditingController(text: "0");
-  final _defaultDepositController = TextEditingController(text: "0");
   final _ownershipNotesController = TextEditingController();
   bool _utilityBillingEnabled = false;
   String _billingCycle = 'monthly';
@@ -94,24 +93,64 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
       'street': _street,
       'place': _place,
       'address': _addressController.text.trim(),
-      'latitude': _latController.text,
-      'longitude': _lngController.text,
-      'default_billing_cycle': _billingCycle,
-      'default_currency': _currency,
+
+      'billing_cycle': _billingCycle,
+      'currency': _currency,
       'status': _status,
       'default_rent_amount': _defaultRentController.text,
-      'default_deposit_amount': _defaultDepositController.text,
+      'default_deposit_amount': '0',
       'ownership_notes': _ownershipNotesController.text,
       'utility_billing_enabled': _utilityBillingEnabled ? 1 : 0,
     };
 
-    final success = await context.read<RentalProvider>().addProperty(data, image: _coverImage);
+    final propertyId = await context.read<RentalProvider>().addProperty(data, image: _coverImage);
 
     setState(() => _isSubmitting = false);
 
-    if (success && mounted) {
+    if (propertyId != null && mounted) {
       ThemeConstants.showSuccessSnackBar(context, _loc.translate('property_created'));
-      Navigator.pop(context);
+      
+      if (propertyId == 'success') {
+         Navigator.pop(context);
+         return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: ThemeConstants.bgMid,
+          title: Text('Property Created', style: const TextStyle(color: Colors.white)),
+          content: Text('Do you want to add a house to this property now?', style: const TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              },
+              child: Text('Not Now', style: const TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => AddHouseBottomSheet(
+                    propertyId: propertyId,
+                    onSaved: () {},
+                  ),
+                ).then((_) {
+                  if (mounted) Navigator.pop(context);
+                });
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+              child: Text('Yes, Add House', style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
     } else if (mounted) {
       ThemeConstants.showErrorSnackBar(context, _loc.translate('error_occurred'));
     }
@@ -185,25 +224,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                       maxLines: 2,
                     ),
                     SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _latController,
-                            label: "Latitudo (Mf. -6.7)",
-                            icon: Icons.location_on_outlined,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _lngController,
-                            label: "Longitudo (Mf. 39.2)",
-                            icon: Icons.location_on_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
+
                   ],
                 ),
               ),
@@ -255,26 +276,11 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                       formatter: _formatType,
                       onChanged: (v) => setState(() => _status = v!),
                     ),
-                    SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _defaultRentController,
-                            label: "Kodi ya Msingi (TSh)",
-                            icon: Icons.monetization_on,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _defaultDepositController,
-                            label: "Amana ya Msingi (TSh)",
-                            icon: Icons.savings,
-                          ),
-                        ),
-                      ],
-                    ),
+                     _buildTextInput(
+                       controller: _defaultRentController,
+                       label: "Kodi ya Msingi (TSh)",
+                       icon: Icons.monetization_on,
+                     ),
                     SizedBox(height: 16.h),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

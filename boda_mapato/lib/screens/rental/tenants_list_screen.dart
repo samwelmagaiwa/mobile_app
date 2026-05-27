@@ -21,7 +21,10 @@ class _TenantsListScreenState extends State<TenantsListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchTenants();
+      final user = context.read<AuthProvider>().user;
+      if (user?.hasPermission('onboard_tenants_rental') ?? false) {
+        context.read<RentalProvider>().fetchTenants();
+      }
     });
   }
 

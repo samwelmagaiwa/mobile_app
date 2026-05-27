@@ -9,6 +9,9 @@ import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import '../../services/api_service.dart';
+import '../../utils/rental_flow_validator.dart';
+import 'create_property_screen.dart';
+import 'record_payment_screen.dart';
 
 class OnboardTenantScreen extends StatefulWidget {
   const OnboardTenantScreen({super.key, this.preSelectedProperty, this.preSelectedHouse});
@@ -22,7 +25,7 @@ class OnboardTenantScreen extends StatefulWidget {
 class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  final int _totalSteps = 7;
+  final int _totalSteps = 4;
   final _formKey = GlobalKey<FormState>();
 
   // Step 1: Personal Information
@@ -79,6 +82,9 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   String? _tenantPhotoPath;
   bool _acceptedTerms = false;
   bool _acceptedPrivacy = false;
+  
+  bool _rentWholeHouse = true;
+  List<String> _selectedUnits = [];
 
   bool _isSaving = false;
 
@@ -86,7 +92,25 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchProperties();
+      if (widget.preSelectedProperty != null) {
+        _selectedPropertyId = widget.preSelectedProperty!['id']?.toString();
+      }
+      if (widget.preSelectedHouse != null) {
+        _selectedHouseId = widget.preSelectedHouse!['id']?.toString();
+        final rent = (widget.preSelectedHouse!['rent_amount'] ?? widget.preSelectedHouse!['rent'] ?? '').toString();
+        _amountController.text = rent;
+      }
+      
+      // Enforce wizard flow
+      RentalFlowValidator.validateStep(
+        context: context,
+        fetchData: (p) => p.fetchProperties(),
+        condition: (p) => RentalFlowValidator.hasHouses(p),
+        title: "No Houses Found",
+        message: "You need to create a property and add a house before you can onboard a tenant.",
+        actionLabel: "Add Property",
+        onAction: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CreatePropertyScreen())),
+      );
       context.read<RentalProvider>().fetchTenants();
     });
   }
@@ -172,12 +196,9 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 onPageChanged: (i) => setState(() => _currentStep = i),
                 children: [
                   _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(),
-                  _buildStep4(),
-                  _buildStep5(),
-                  _buildStep6(),
-                  _buildStep7(),
+                  _buildMergedStep2(), // Contact & Identity
+                  _buildMergedStep3(), // Employment & History
+                  _buildMergedStep4(), // Living & Property
                 ],
               ),
             ),
@@ -192,12 +213,9 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     final loc = LocalizationService.instance;
     final steps = [
       loc.translate("personal"),
-      loc.translate("contact"),
-      loc.translate("identity"),
-      loc.translate("job"),
-      loc.translate("history"),
-      loc.translate("peeps"),
-      loc.translate("terms"),
+      loc.translate("contact_identity"),
+      loc.translate("employment_history"),
+      loc.translate("living_property"),
     ];
     return Container(
       height: 64.h,
@@ -319,9 +337,11 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Is this user already registered?",
-                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+              Expanded(
+                child: Text(
+                  "Is this user already registered?",
+                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                ),
               ),
               ElevatedButton.icon(
                 onPressed: _showExistingTenantSearch,
@@ -361,16 +381,18 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           ],
         ),
         SizedBox(height: 12.h),
-        _buildInputField(loc.translate("email_address"), _emailController, Icons.email, keyboardType: TextInputType.emailAddress),
+          _buildInputField(loc.translate("email_address"), _emailController, Icons.email, keyboardType: TextInputType.emailAddress),
       ],
     );
   }
 
-  Widget _buildStep2() {
+  Widget _buildMergedStep2() {
     final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "${loc.translate('step')} 2: ${loc.translate('emergency_contact')}",
+      title: "${loc.translate('step')} 2: ${loc.translate('contact_identity')}",
       children: [
+        // Section: Emergency Contact
+        _buildSectionHeader(loc.translate("emergency_contact")),
         Row(
           children: [
             Expanded(child: _buildInputField(loc.translate("contact_name"), _emergencyNameController, Icons.person_outline)),
@@ -386,15 +408,10 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
             Expanded(child: _buildInputField(loc.translate("email_address"), _emergencyEmailController, Icons.alternate_email, keyboardType: TextInputType.emailAddress)),
           ],
         ),
-      ],
-    );
-  }
+        SizedBox(height: 24.h),
 
-  Widget _buildStep3() {
-    final loc = LocalizationService.instance;
-    return _buildStepLayout(
-      title: "${loc.translate('step')} 3: ${loc.translate('identification')}",
-      children: [
+        // Section: Identity
+        _buildSectionHeader(loc.translate("identification")),
         Row(
           children: [
             Expanded(child: _buildInputField(loc.translate("id_number"), _idNumberController, Icons.fingerprint)),
@@ -414,11 +431,13 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     );
   }
 
-  Widget _buildStep4() {
+  Widget _buildMergedStep3() {
     final loc = LocalizationService.instance;
     return _buildStepLayout(
-      title: "${loc.translate('step')} 4: ${loc.translate('employment')}",
+      title: "${loc.translate('step')} 3: ${loc.translate('employment_history')}",
       children: [
+        // Section: Employment
+        _buildSectionHeader(loc.translate("employment")),
         Row(
           children: [
             Expanded(child: _buildInputField(loc.translate("employer"), _employerController, Icons.business)),
@@ -434,17 +453,12 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
             Expanded(child: _buildInputField(loc.translate("work_no"), _workPhoneController, Icons.phone, keyboardType: TextInputType.phone)),
           ],
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 8.h),
         _buildCheckboxRow(loc.translate("currently_employed"), _isEmployed, (v) => setState(() => _isEmployed = v!)),
-      ],
-    );
-  }
+        SizedBox(height: 24.h),
 
-  Widget _buildStep5() {
-    final loc = LocalizationService.instance;
-    return _buildStepLayout(
-      title: "${loc.translate('step')} 5: ${loc.translate('rental_history')}",
-      children: [
+        // Section: Rental History
+        _buildSectionHeader(loc.translate("history")),
         Row(
           children: [
             Expanded(child: _buildInputField(loc.translate("prev_address"), _prevAddressController, Icons.home_work)),
@@ -466,11 +480,28 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     );
   }
 
-  Widget _buildStep6() {
+  Widget _buildMergedStep4() {
     final loc = LocalizationService.instance;
+    final rentalProvider = context.watch<RentalProvider>();
+    final properties = rentalProvider.properties;
+
+    List<dynamic> houses = [];
+    if (_selectedPropertyId != null) {
+      final prop = properties.firstWhere((p) => p['id'].toString() == _selectedPropertyId, orElse: () => null);
+      if (prop != null) {
+        houses = (prop['houses'] as List? ?? []).where((h) => 
+          h['status'] == 'vacant' || 
+          h['is_occupied'] == 0 || 
+          h['is_occupied'] == false
+        ).toList();
+      }
+    }
+
     return _buildStepLayout(
-      title: "${loc.translate('step')} 6: ${loc.translate('occupants')}",
+      title: "${loc.translate('step')} 4: ${loc.translate('living_property')}",
       children: [
+        // Section: Occupants & Pets
+        _buildSectionHeader(loc.translate("peeps")),
         Row(
           children: [
             Expanded(child: _buildNumberField(loc.translate("adults_count"), _adultsCount, (v) => setState(() => _adultsCount = v))),
@@ -498,30 +529,10 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
           SizedBox(height: 12.h),
           _buildInputField(loc.translate("pet_weight"), _petWeightController, Icons.scale, keyboardType: TextInputType.number),
         ],
-      ],
-    );
-  }
+        SizedBox(height: 24.h),
 
-  Widget _buildStep7() {
-    final loc = LocalizationService.instance;
-    final rentalProvider = context.watch<RentalProvider>();
-    final properties = rentalProvider.properties;
-
-    List<dynamic> houses = [];
-    if (_selectedPropertyId != null) {
-      final prop = properties.firstWhere((p) => p['id'].toString() == _selectedPropertyId, orElse: () => null);
-      if (prop != null) {
-        houses = (prop['houses'] as List? ?? []).where((h) => 
-          h['status'] == 'vacant' || 
-          h['is_occupied'] == 0 || 
-          h['is_occupied'] == false
-        ).toList();
-      }
-    }
-
-    return _buildStepLayout(
-      title: "${loc.translate('step')} 7: ${loc.translate('terms_conditions')}",
-      children: [
+        // Section: Property & House Selection
+        _buildSectionHeader(loc.translate("terms")),
         Row(
           children: [
             Expanded(
@@ -539,8 +550,8 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                 loc.translate("house"), 
                 _selectedHouseId, 
                 houses.map((h) => h['id'].toString()).toList(),
-                (v) => setState(() {
-                  _selectedHouseId = v;
+                (v) => setState(() { 
+                  _selectedHouseId = v; 
                   final house = houses.firstWhere((h) => h['id'].toString() == v, orElse: () => null);
                   if (house != null) {
                     final rent = house['rent'] ?? house['rent_amount'];
@@ -549,27 +560,130 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                     }
                   }
                 }),
-                labels: houses.map((h) => "${h['house_number']}").toList(),
+                labels: houses.map((h) => h['house_number'].toString()).toList(),
               ),
             ),
           ],
         ),
+        if (_selectedHouseId != null) ...[
+          Builder(builder: (context) {
+            final house = houses.firstWhere((h) => h['id'].toString() == _selectedHouseId, orElse: () => null);
+            if (house == null || (house['units_count'] ?? 0) == 0) return const SizedBox();
+            
+            final List<String> allUnits = (house['unit_names'] as List? ?? []).map((e) => e.toString()).toList();
+            if (allUnits.isEmpty) return const SizedBox();
+
+            // Calculate occupied units from active agreements if available
+            // For now, we'll assume the house object might have 'occupied_units' if we updated the backend to return it
+            // or we'll just show all and handle busy units on the backend response
+            final occupiedUnits = (house['occupied_units'] as List? ?? []).map((e) => e.toString()).toList();
+            final availableUnits = allUnits.where((u) => !occupiedUnits.contains(u)).toList();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 12.h),
+                _buildCheckboxRow(loc.translate("rent_whole_house"), _rentWholeHouse, (v) {
+                  setState(() {
+                    _rentWholeHouse = v ?? true;
+                    if (_rentWholeHouse) {
+                      _selectedUnits = List.from(allUnits);
+                    } else {
+                      _selectedUnits = [];
+                    }
+                  });
+                }),
+                if (!_rentWholeHouse) ...[
+                  SizedBox(height: 8.h),
+                  Text(loc.translate("select_units_prompt"), style: TextStyle(color: Colors.white70, fontSize: 11.sp)),
+                  SizedBox(height: 8.h),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: availableUnits.map((u) {
+                      final isSelected = _selectedUnits.contains(u);
+                      return FilterChip(
+                        label: Text(u, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontSize: 12.sp)),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedUnits.add(u);
+                            } else {
+                              _selectedUnits.remove(u);
+                            }
+                            if (_selectedUnits.length == allUnits.length) {
+                              _rentWholeHouse = true;
+                            } else {
+                              _rentWholeHouse = false;
+                            }
+                          });
+                        },
+                        selectedColor: ThemeConstants.primaryOrange,
+                        backgroundColor: Colors.white.withOpacity(0.05),
+                        checkmarkColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+            );
+          }),
+        ],
         SizedBox(height: 12.h),
         Row(
           children: [
-            Expanded(child: _buildDatePickerField(loc.translate("start_date"), _startDate, (d) => setState(() => _startDate = d!))),
-            SizedBox(width: 8.w),
             Expanded(child: _buildInputField(loc.translate("rent_amount"), _amountController, Icons.payments, keyboardType: TextInputType.number)),
+            SizedBox(width: 8.w),
+            Expanded(child: _buildDatePickerField(loc.translate("start_date"), _startDate, (d) => setState(() { if (d != null) _startDate = d; }))),
           ],
         ),
         SizedBox(height: 16.h),
-        _buildPhotoUploadField(loc.translate("tenant_photo"), _tenantPhotoPath, _pickTenantPhoto),
-        SizedBox(height: 16.h),
+        _buildPhotoUploadField(loc.translate("capture_tenant_photo"), _tenantPhotoPath, _pickTenantPhoto),
+        SizedBox(height: 12.h),
         _buildInputField(loc.translate("additional_notes"), _notesController, Icons.note_alt),
-        SizedBox(height: 20.h),
-        _buildCheckboxRow(loc.translate("accept_terms"), _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
-        _buildCheckboxRow(loc.translate("agree_privacy"), _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
+        SizedBox(height: 16.h),
+        
+        ThemeConstants.buildResponsiveGlassCardStatic(
+          context,
+          padding: EdgeInsets.all(12.w),
+          child: Column(
+            children: [
+              _buildCheckboxRow(loc.translate("accept_terms"), _acceptedTerms, (v) => setState(() => _acceptedTerms = v!)),
+              _buildCheckboxRow(loc.translate("agree_privacy"), _acceptedPrivacy, (v) => setState(() => _acceptedPrivacy = v!)),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h, top: 4.h),
+      child: Row(
+        children: [
+          Container(
+            width: 4.w,
+            height: 16.h,
+            decoration: BoxDecoration(
+              color: ThemeConstants.primaryBlue,
+              borderRadius: BorderRadius.circular(2.r),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -815,6 +929,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
     List<dynamic> results = [];
     bool isSearching = false;
 
+    bool didInitialSearch = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -833,6 +948,12 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
               } catch (e) {
                 setStateSheet(() => isSearching = false);
               }
+            }
+
+            // Trigger initial search on open if not already searching/searched
+            if (!isSearching && !didInitialSearch && searchQuery.isEmpty) {
+              didInitialSearch = true;
+              Future.microtask(() => performSearch());
             }
 
             return Container(
@@ -873,7 +994,7 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
                       ),
                       onChanged: (val) {
-                        searchQuery = val;
+                        searchQuery = val.trim();
                       },
                       onSubmitted: (_) => performSearch(),
                     ),
@@ -1002,15 +1123,49 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
       "start_date": _startDate.toIso8601String().split('T')[0],
       "tenant_photo": _tenantPhotoPath,
       "id_document": _idDocPath,
+      "selected_units": _selectedUnits,
     };
 
     final success = await context.read<RentalProvider>().onboardTenant(data);
 
     if (mounted) {
       setState(() => _isSaving = false);
-      if (success) {
+      if (success != null) {
         ThemeConstants.showSuccessSnackBar(context, loc.translate("tenant_onboarded_success"));
-        Navigator.pop(context);
+        
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: ThemeConstants.bgMid,
+            title: Text('Tenant Onboarded', style: const TextStyle(color: Colors.white)),
+            content: Text('Do you want to record the first payment for this tenant now?', style: const TextStyle(color: Colors.white70)),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // close dialog
+                  nav.pop(); // close onboard screen
+                },
+                child: Text('Not Now', style: const TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop(); // close dialog
+                  nav.pop(); // close onboard screen
+                  nav.push(MaterialPageRoute(
+                    builder: (_) => RecordPaymentScreen(
+                      preSelectedTenant: {'id': success == 'success' ? null : success},
+                    )
+                  ));
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+                child: Text('Yes, Record Payment', style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
       } else {
         ThemeConstants.showErrorSnackBar(context, loc.translate("failed_to_onboard"));
       }

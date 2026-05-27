@@ -37,8 +37,6 @@ class Property extends Model
         'default_rent_amount',
         'default_deposit_amount',
         'utility_billing_enabled',
-        'latitude',
-        'longitude',
         'cover_image',
     ];
 
@@ -48,8 +46,6 @@ class Property extends Model
         'default_rent_amount' => 'decimal:2',
         'default_deposit_amount' => 'decimal:2',
         'utility_billing_enabled' => 'boolean',
-        'latitude' => 'decimal:8',
-        'longitude' => 'decimal:8',
     ];
 
     /**

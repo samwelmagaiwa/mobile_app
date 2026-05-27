@@ -69,14 +69,26 @@ class HouseController extends Controller
      */
     public function store(Request $request)
     {
-        Property::where('owner_id', $request->user()->id)->findOrFail($request->property_id);
+        $property = Property::where('owner_id', $request->user()->id)->findOrFail($request->property_id);
+
+        $currentSum = House::where('property_id', $request->property_id)->sum('rent_amount');
+        $remainingAllowed = max(0, $property->default_rent_amount - $currentSum);
 
         $request->validate([
             'property_id' => 'required|exists:rental_properties,id',
             'block_id' => 'nullable|exists:rental_blocks,id',
             'house_number' => 'required|string|max:50',
             'type' => 'required|in:apartment,room,commercial,studio,bedsitter,one_bedroom,two_bedroom,three_bedroom',
-            'rent_amount' => 'required|numeric|min:0',
+            'rent_amount' => [
+                'required',
+                'numeric',
+                'min:0',
+                function ($attribute, $value, $fail) use ($remainingAllowed) {
+                    if ($value > $remainingAllowed) {
+                        $fail("The house rent amount cannot exceed the remaining property target of " . number_format($remainingAllowed, 2));
+                    }
+                },
+            ],
             'deposit_amount' => 'nullable|numeric|min:0',
             'electricity_meter' => 'nullable|string|max:50',
             'water_meter' => 'nullable|string|max:50',
@@ -93,6 +105,8 @@ class HouseController extends Controller
             'water_type' => 'nullable|string',
             'water_sharing_count' => 'nullable|integer',
             'maintenance_until' => 'nullable|date|after_or_equal:today',
+            'units_count' => 'nullable|integer|min:0',
+            'unit_names' => 'nullable|string',
         ]);
 
         $data = $request->except('images');
@@ -117,6 +131,13 @@ class HouseController extends Controller
             $data['image_captions'] = explode('||', $request->image_captions);
         }
 
+        // Handle unit names
+        if ($request->has('unit_names') && !empty($request->unit_names)) {
+            $data['unit_names'] = is_array($request->unit_names)
+                ? $request->unit_names
+                : explode(',', $request->unit_names);
+        }
+
         $data['status'] = 'vacant';
 
         $house = House::create($data);
@@ -134,7 +155,7 @@ class HouseController extends Controller
     {
         $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
-        })->with('property', 'block', 'currentTenant', 'agreements.tenant', 'bills')->findOrFail($id);
+        })->with('property', 'block', 'currentTenant.tenantProfile', 'agreements.tenant', 'bills')->findOrFail($id);
 
         return ResponseHelper::success($house);
     }
@@ -147,13 +168,27 @@ class HouseController extends Controller
     {
         $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
-        })->findOrFail($id);
+        })->with('property')->findOrFail($id);
+
+        $currentSum = House::where('property_id', $house->property_id)
+            ->where('id', '!=', $id)
+            ->sum('rent_amount');
+        $remainingAllowed = max(0, $house->property->default_rent_amount - $currentSum);
 
         $request->validate([
             'house_number' => 'sometimes|string|max:50',
             'block_id' => 'nullable|exists:rental_blocks,id',
             'type' => 'sometimes|in:apartment,room,commercial,studio,bedsitter,one_bedroom,two_bedroom,three_bedroom',
-            'rent_amount' => 'sometimes|numeric|min:0',
+            'rent_amount' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+                function ($attribute, $value, $fail) use ($remainingAllowed) {
+                    if ($value > $remainingAllowed) {
+                        $fail("The house rent amount cannot exceed the remaining property target of " . number_format($remainingAllowed, 2));
+                    }
+                },
+            ],
             'deposit_amount' => 'sometimes|numeric|min:0',
             'electricity_meter' => 'nullable|string|max:50',
             'water_meter' => 'nullable|string|max:50',
@@ -171,6 +206,8 @@ class HouseController extends Controller
             'water_type' => 'nullable|string',
             'water_sharing_count' => 'nullable|integer',
             'maintenance_until' => 'nullable|date|after_or_equal:today',
+            'units_count' => 'nullable|integer|min:0',
+            'unit_names' => 'nullable|string',
         ]);
 
         $data = $request->except('images');
@@ -212,6 +249,13 @@ class HouseController extends Controller
                 $currentCaptions = array_merge($currentCaptions, $newCaptions);
                 $data['image_captions'] = $currentCaptions;
             }
+        }
+
+        // Handle unit names in update
+        if ($request->has('unit_names')) {
+            $data['unit_names'] = is_array($request->unit_names)
+                ? $request->unit_names
+                : (empty($request->unit_names) ? [] : explode(',', $request->unit_names));
         }
 
         $house->update($data);
@@ -289,9 +333,19 @@ class HouseController extends Controller
         if ($request->bathrooms) {
             $query->where('bathrooms', '>=', $request->bathrooms);
         }
-        if ($request->max_distance) {
-            $query->where('distance_from_road', '<=', $request->max_distance);
+
+        if ($request->filled('max_distance')) {
+            // Enhanced distance filtering to handle "km" and "m" suffixes correctly
+            // Converts "1km" to 1000 and "200m" to 200 for numeric comparison
+            $query->whereRaw("
+                (CASE
+                    WHEN LOWER(distance_from_road) LIKE '%km%' THEN CAST(REPLACE(REPLACE(LOWER(distance_from_road), 'km', ''), ' ', '') AS DECIMAL(10,2)) * 1000
+                    WHEN LOWER(distance_from_road) LIKE '%m%' AND LOWER(distance_from_road) NOT LIKE '%km%' THEN CAST(REPLACE(REPLACE(LOWER(distance_from_road), 'm', ''), ' ', '') AS DECIMAL(10,2))
+                    ELSE CAST(NULLIF(REPLACE(distance_from_road, ' ', ''), '') AS DECIMAL(10,2))
+                END) <= ?
+            ", [(float)$request->max_distance]);
         }
+
         if ($request->has_fence !== null) {
             $query->where('has_fence', $request->boolean('has_fence'));
         }
@@ -318,6 +372,7 @@ class HouseController extends Controller
                 'water_meter',
                 'electricity_sharing_count',
                 'water_sharing_count',
+                'square_meters', // Hide sqm as requested
             ]);
             return $house;
         });

@@ -59,7 +59,13 @@ class _TenantSelfServiceScreenState extends State<TenantSelfServiceScreen>
         final firstBill = bills.first;
         house = firstBill['house']?['house_number'] ?? house;
         property = firstBill['property']?['name'] ?? property;
-        balance = bills.fold(0, (sum, item) => sum + ((item['balance'] ?? 0) as int));
+        
+        balance = bills.fold(0, (sum, item) {
+          final val = item['balance'];
+          if (val == null) return sum;
+          final parsed = num.tryParse(val.toString())?.toInt() ?? 0;
+          return sum + parsed;
+        });
       }
 
       if (mounted) {

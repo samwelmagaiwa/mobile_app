@@ -446,7 +446,6 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
     final blocksController = TextEditingController(text: "1");
     final housesController = TextEditingController(text: "0");
     final rentController = TextEditingController(text: "0");
-    final depositController = TextEditingController(text: "0");
 
     String? selectedRegion;
     String? selectedDistrict;
@@ -571,23 +570,10 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                       SizedBox(height: 24.h),
                       _buildSectionTitle("Kiwango cha Default (Optional)"),
                       SizedBox(height: 12.h),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildTextField(
-                                  rentController, "Kodi Default", Icons.payments,
-                                  hint: "0",
-                                  keyboardType: TextInputType.number)),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                              child: _buildTextField(
-                                  depositController,
-                                  "${LocalizationService.instance.translate('deposit')} Default",
-                                  Icons.account_balance_wallet,
-                                  hint: "0",
-                                  keyboardType: TextInputType.number)),
-                        ],
-                      ),
+                      _buildTextField(
+                          rentController, "Kodi Default", Icons.payments,
+                          hint: "0",
+                          keyboardType: TextInputType.number),
                       SizedBox(height: 32.h),
                       SizedBox(
                         width: double.infinity,
@@ -612,9 +598,7 @@ class _RentalPropertiesScreenState extends State<RentalPropertiesScreen> {
                                 'currency': selectedCurrency,
                                 'default_rent_amount':
                                     double.tryParse(rentController.text) ?? 0.0,
-                                'default_deposit_amount':
-                                    double.tryParse(depositController.text) ??
-                                        0.0,
+                                'default_deposit_amount': 0.0,
                               });
                               if (context.mounted) Navigator.pop(context);
                             }

@@ -68,8 +68,12 @@ class TenantController extends Controller
      */
     public function availableSystemTenants(Request $request)
     {
+        $user = $request->user();
         $search = $request->query('query');
-        $query = User::where('role', 'tenant');
+
+        // Return ONLY users created by this landlord who have the 'tenant' role
+        $query = User::where('created_by', $user->id)->where('role', 'tenant');
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
@@ -77,6 +81,7 @@ class TenantController extends Controller
                     ->orWhere('phone_number', 'like', "%$search%");
             });
         }
+
         return ResponseHelper::success($query->limit(20)->get());
     }
 
@@ -223,7 +228,7 @@ class TenantController extends Controller
     public function myPayments(Request $request)
     {
         $payments = RentalPayment::where('tenant_id', $request->user()->id)
-            ->with('bill.agreement.house', 'receipt', 'collector')
+            ->with('bill.agreement.house.property', 'receipt', 'collector')
             ->orderBy('payment_date', 'desc')
             ->get();
 
@@ -238,7 +243,9 @@ class TenantController extends Controller
         $receipts = RentalReceipt::where('is_dispatched', true)
             ->whereHas('payment', function ($query) use ($request) {
                 $query->where('tenant_id', $request->user()->id);
-            })->orderBy('created_at', 'desc')->get();
+            })
+            ->with('payment.bill.agreement.house.property', 'payment.tenant', 'payment.collector')
+            ->orderBy('created_at', 'desc')->get();
 
         return ResponseHelper::success($receipts);
     }

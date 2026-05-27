@@ -403,7 +403,6 @@ class _PublicLandingScreenState extends State<PublicLandingScreen> with TickerPr
     final type = house['type'] ?? '';
     final bedrooms = house['bedrooms']?.toString() ?? '';
     final bathrooms = house['bathrooms']?.toString() ?? '';
-    final sqm = house['square_meters']?.toString() ?? '';
     final description = house['description'] ?? '';
 
     // Boolean features
@@ -553,11 +552,10 @@ class _PublicLandingScreenState extends State<PublicLandingScreen> with TickerPr
             ),
             SizedBox(height: 12.h),
 
-            // ── Quick Stats (bedrooms, bathrooms, sqm) ──
+            // ── Quick Stats (bedrooms, bathrooms) ──
             Row(children: [
               if (bedrooms.isNotEmpty && bedrooms != '0') _statChip(Icons.bed, bedrooms, _loc.translate('bedrooms')),
               if (bathrooms.isNotEmpty && bathrooms != '0') _statChip(Icons.bathtub_outlined, bathrooms, _loc.translate('bathrooms')),
-              if (sqm.isNotEmpty && sqm != '0') _statChip(Icons.square_foot, sqm, 'sqm'),
               if (distRoad.isNotEmpty) _statChip(Icons.add_road, distRoad, _loc.translate('from_road')),
             ]),
             SizedBox(height: 12.h),
@@ -623,6 +621,24 @@ class _PublicLandingScreenState extends State<PublicLandingScreen> with TickerPr
       buf.write(s[i]);
     }
     return buf.toString();
+  }
+
+  String _formatDistance(dynamic v) {
+    if (v == null || v.toString().isEmpty) return '';
+    String val = v.toString().toLowerCase().trim();
+    double n = 0;
+    if (val.endsWith('km')) {
+      n = (double.tryParse(val.replaceAll('km', '').trim()) ?? 0) * 1000;
+    } else if (val.endsWith('m')) {
+      n = double.tryParse(val.replaceAll('m', '').trim()) ?? 0;
+    } else {
+      n = double.tryParse(val) ?? 0;
+    }
+    
+    if (n >= 1000) {
+      return '${(n / 1000).toStringAsFixed(1)}km';
+    }
+    return '${n.toInt()}m';
   }
 }
 

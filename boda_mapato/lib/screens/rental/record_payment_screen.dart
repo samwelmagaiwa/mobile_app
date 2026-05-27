@@ -1,8 +1,24 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../utils/rental_flow_validator.dart';
+import 'lease_agreement_wizard_screen.dart';
+import 'receipt_view_screen.dart';
+
+// ─────────────────────────────────────────────
+// Color palette
+// ─────────────────────────────────────────────
+const _kGradientTop    = Color(0xFF04121A);
+const _kGradientMid    = Color(0xFF092D3A);
+const _kGradientBottom = Color(0xFF0D485A);
+const _kOrange         = Color(0xFFF97316);
+const _kGreen          = Color(0xFF10B981);
+const _kAmber          = Color(0xFFF59E0B);
+const _kRed            = Color(0xFFEF4444);
+const _kCyan           = Color(0xFF1BA3C7);
 
 class RecordPaymentScreen extends StatefulWidget {
   const RecordPaymentScreen({super.key, this.preSelectedTenant});
@@ -12,7 +28,8 @@ class RecordPaymentScreen extends StatefulWidget {
   State<RecordPaymentScreen> createState() => _RecordPaymentScreenState();
 }
 
-class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
+class _RecordPaymentScreenState extends State<RecordPaymentScreen>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _selectedTenant;
   Map<String, dynamic>? _selectedBill;
   final _amountController = TextEditingController();
@@ -20,21 +37,52 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   final _referenceController = TextEditingController();
   bool _isProcessing = false;
 
-  final List<Map<String, String>> _paymentMethods = [
-    {'value': 'cash', 'label': 'Cash', 'icon': '💵'},
-    {'value': 'bank_transfer', 'label': 'Bank Transfer', 'icon': '🏦'},
-    {'value': 'mpesa', 'label': 'M-Pesa', 'icon': '📱'},
-    {'value': 'airtel_money', 'label': 'Airtel Money', 'icon': '📱'},
-    {'value': 'tigo_pesa', 'label': 'Tigo Pesa', 'icon': '📱'},
+  late final AnimationController _animCtrl;
+  late final Animation<double>    _fadeAnim;
+  late final Animation<Offset>    _slideAnim;
+
+  final List<Map<String, dynamic>> _paymentMethods = [
+    {'value': 'cash',          'label': 'Cash',          'icon': Icons.payments_outlined,        'color': _kGreen},
+    {'value': 'bank_transfer', 'label': 'Bank Transfer', 'icon': Icons.account_balance_outlined, 'color': _kCyan},
+    {'value': 'mpesa',         'label': 'M-Pesa',        'icon': Icons.phone_android_outlined,   'color': _kGreen},
+    {'value': 'airtel_money',  'label': 'Airtel Money',  'icon': Icons.phone_iphone_outlined,    'color': _kRed},
+    {'value': 'tigo_pesa',     'label': 'Tigo Pesa',     'icon': Icons.smartphone_outlined,      'color': _kCyan},
   ];
 
   @override
   void initState() {
     super.initState();
+
+    _animCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim  = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
+
+    if (widget.preSelectedTenant != null) {
+      _selectedTenant = widget.preSelectedTenant;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<RentalProvider>();
-      provider.fetchTenants();
-      provider.fetchBills();
+      context.read<RentalProvider>().fetchTenants();
+
+      RentalFlowValidator.validateStep(
+        context: context,
+        fetchData: (p) => p.fetchBills(),
+        condition: (p) => p.bills.any((b) =>
+            b['status'] == 'unpaid' ||
+            b['status'] == 'partial' ||
+            b['status'] == 'overdue'),
+        title: "No Unpaid Bills",
+        message:
+            "There are no active unpaid bills to record payment for. Ensure leases are created first.",
+        actionLabel: "Create Lease",
+        onAction: () => Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const LeaseAgreementWizardScreen())),
+      );
+
+      _animCtrl.forward();
     });
   }
 
@@ -42,182 +90,315 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
   void dispose() {
     _amountController.dispose();
     _referenceController.dispose();
+    _animCtrl.dispose();
     super.dispose();
   }
 
+  String _formatCurrency(double value) {
+    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
+    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
+    return value.toStringAsFixed(0);
+  }
+
+  String _formatFullCurrency(double value) {
+    final s = value.toStringAsFixed(0);
+    return s.replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  }
+
+  String _formatStatus(String status) {
+    return switch (status) {
+      'overdue' => 'Overdue',
+      'partial' => 'Sehemu',
+      'paid'    => 'Imelipwa',
+      _         => 'Bado'
+    };
+  }
+
+  int get _currentStep {
+    if (_selectedBill != null) return 3;
+    if (_selectedTenant != null) return 2;
+    return 1;
+  }
+
+  // ── Build ───────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return ThemeConstants.buildResponsiveScaffold(
-      context,
-      title: "Rekodi Malipo",
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStepIndicator(),
-            SizedBox(height: 24.h),
-            _buildTenantSection(),
-            if (_selectedTenant != null) ...[
-              SizedBox(height: 16.h),
-              _buildBillSection(),
-            ],
-            if (_selectedBill != null) ...[
-              SizedBox(height: 16.h),
-              _buildAmountSection(),
-              SizedBox(height: 16.h),
-              _buildPaymentMethodSection(),
-              SizedBox(height: 24.h),
-              _buildSubmitButton(),
-            ],
-            SizedBox(height: 100.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepIndicator() {
-    int step = 1;
-    if (_selectedTenant != null) step = 2;
-    if (_selectedBill != null) step = 3;
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Row(
+    return Scaffold(
+      backgroundColor: _kGradientTop,
+      extendBodyBehindAppBar: true,
+      body: Stack(
         children: [
-          _buildStepDot(1, step >= 1, "Mteja"),
-          _buildStepLine(step >= 2),
-          _buildStepDot(2, step >= 2, "Bima"),
-          _buildStepLine(step >= 3),
-          _buildStepDot(3, step >= 3, "Malipo"),
-        ],
-      ),
-    );
-  }
+          // ── Animated background
+          const _AnimatedBackground(),
 
-  Widget _buildStepDot(int num, bool active, String label) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            decoration: BoxDecoration(
-              color: active ? ThemeConstants.primaryOrange : Colors.white24,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Icon(
-                active ? Icons.check : Icons.circle,
-                color: Colors.white,
-                size: 16.sp,
+          // ── Main content
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // ── App bar
+              SliverAppBar(
+                expandedHeight: 200.h,
+                pinned: true,
+                backgroundColor: _kGradientTop.withOpacity(0.85),
+                elevation: 0,
+                leading: IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(6.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 14.sp),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                flexibleSpace: FlexibleSpaceBar(
+                  collapseMode: CollapseMode.parallax,
+                  background: _HeroHeader(step: _currentStep),
+                ),
               ),
-            ),
+
+              // ── Body
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 100.h),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(height: 20.h),
+                            _GlassCard(
+                              padding: EdgeInsets.zero,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: _buildJoinedSections(),
+                              ),
+                            ),
+                            SizedBox(height: 24.h),
+
+                            // Submit button
+                            if (_selectedBill != null) _buildSubmitButton(),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 4.h),
-          Text(label,
-              style: TextStyle(
-                  color: active ? Colors.white : Colors.white38,
-                  fontSize: 10.sp)),
         ],
       ),
     );
   }
 
-  Widget _buildStepLine(bool active) {
-    return Container(
-      width: 40.w,
-      height: 2.h,
-      decoration: BoxDecoration(
-        color: active ? ThemeConstants.primaryOrange : Colors.white12,
-      ),
+  List<Widget> _buildJoinedSections() {
+    final sections = <Widget>[];
+
+    // 1. Tenant section (always shown)
+    sections.add(_wrapSection(_buildTenantSection()));
+
+    // 2. Bill section (shown after tenant selected)
+    if (_selectedTenant != null) {
+      sections.add(_wrapSection(_buildBillSection()));
+    }
+
+    // 3. Amount + payment method (shown after bill selected)
+    if (_selectedBill != null) {
+      sections.add(_wrapSection(_buildAmountSection()));
+      sections.add(_wrapSection(_buildPaymentMethodSection()));
+      sections.add(_wrapSection(_buildReferenceSection()));
+    }
+
+    // Add dividers between sections
+    final joined = <Widget>[];
+    for (int i = 0; i < sections.length; i++) {
+      joined.add(sections[i]);
+      if (i < sections.length - 1) {
+        joined.add(const _SectionDivider());
+      }
+    }
+    return joined;
+  }
+
+  Widget _wrapSection(Widget child) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+      child: child,
     );
   }
 
+  // ── TENANT SECTION ──
   Widget _buildTenantSection() {
     final provider = context.watch<RentalProvider>();
     final tenants = provider.tenants;
 
-    return _buildSectionCard(
-      "Chagua Mteja",
-      Icons.person,
-      Column(
-        children: [
-          if (provider.isLoading && tenants.isEmpty)
-            const Center(child: CircularProgressIndicator(color: Colors.white))
-          else if (tenants.isEmpty)
-            const Text("Hakuna wapangaji", style: TextStyle(color: Colors.white54))
-          else
-            ...tenants.map((dynamic t) => _buildTenantItem(t as Map<String, dynamic>)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.person_rounded,
+          label: 'Chagua Mteja',
+          trailing: _selectedTenant != null
+              ? Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: _kGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: _kGreen, size: 10.sp),
+                    SizedBox(width: 4.w),
+                    Text('Amechaguliwa',
+                        style: TextStyle(
+                            color: _kGreen,
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                )
+              : null,
+        ),
+        Divider(height: 24.h, color: Colors.white10),
+        if (provider.isLoading && tenants.isEmpty)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.h),
+              child: SizedBox(
+                width: 24.w,
+                height: 24.w,
+                child: const CircularProgressIndicator(
+                    color: _kOrange, strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (tenants.isEmpty)
+          _buildEmptyState(Icons.person_off_outlined, 'Hakuna wapangaji')
+        else
+          ...tenants.map((dynamic t) =>
+              _buildTenantItem(t as Map<String, dynamic>)),
+      ],
     );
   }
 
   Widget _buildTenantItem(Map<String, dynamic> tenant) {
     final isSelected = _selectedTenant?['id'] == tenant['id'];
-    final house = tenant['house'] ?? {};
+    final house = tenant['house'] is Map
+        ? tenant['house'] as Map
+        : <String, dynamic>{};
+    final name = tenant['name'] ?? '?';
+    final initial = name.isNotEmpty ? name[0].toString().toUpperCase() : '?';
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedTenant = tenant;
-          _selectedBill = null;
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 8.h),
-        padding: EdgeInsets.all(12.w),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? ThemeConstants.primaryOrange.withOpacity(0.15)
-              : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-              color:
-                  isSelected ? ThemeConstants.primaryOrange : Colors.white12),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20.r,
-              backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
-              child: Text(
-                (tenant['name'] ?? '?')[0].toString().toUpperCase(),
-                style: const TextStyle(
-                    color: ThemeConstants.primaryOrange,
-                    fontWeight: FontWeight.bold),
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _selectedTenant = tenant;
+              _selectedBill = null;
+            });
+          },
+          borderRadius: BorderRadius.circular(14.r),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _kOrange.withOpacity(0.12)
+                  : Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(
+                color: isSelected
+                    ? _kOrange.withOpacity(0.5)
+                    : Colors.white.withOpacity(0.06),
+                width: isSelected ? 1.5 : 1,
               ),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tenant['name'] ?? '',
-                      style: TextStyle(
+            child: Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 42.w,
+                  height: 42.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: isSelected
+                          ? [_kOrange.withOpacity(0.9), const Color(0xFFFF6B35)]
+                          : [_kOrange.withOpacity(0.25), _kOrange.withOpacity(0.15)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.white.withOpacity(0.3)
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(initial,
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600)),
-                  Text("Nyumba: ${house['house_number'] ?? ''}",
-                      style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
-                ],
-              ),
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        )),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 2.h),
+                      Row(
+                        children: [
+                          Icon(Icons.home_outlined,
+                              color: Colors.white38, size: 12.sp),
+                          SizedBox(width: 4.w),
+                          Text('Nyumba: ${house['house_number'] ?? '—'}',
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 11.sp)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: _kOrange.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.check_rounded,
+                        color: _kOrange, size: 16.sp),
+                  ),
+              ],
             ),
-            if (isSelected)
-              Icon(Icons.check_circle,
-                  color: ThemeConstants.primaryOrange, size: 20.sp),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  // ── BILL SECTION ──
   Widget _buildBillSection() {
     final provider = context.watch<RentalProvider>();
     final bills = provider.bills.where((b) {
@@ -228,259 +409,466 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               b['status'] == 'overdue');
     }).toList();
 
-    return _buildSectionCard(
-      "Chagua Kipindi cha Kodi",
-      Icons.receipt_long,
-      Column(
-        children: [
-          if (bills.isEmpty)
-            Padding(
-              padding: EdgeInsets.all(16.h),
-              child: const Text("Hakuna bima zilizo kugawanyika",
-                  style: TextStyle(color: Colors.white54)),
-            )
-          else
-            ...bills.map((dynamic b) => _buildBillItem(b as Map<String, dynamic>)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.receipt_long_rounded,
+          label: 'Chagua Kipindi cha Kodi',
+          trailing: _selectedBill != null
+              ? Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: _kGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: _kGreen, size: 10.sp),
+                    SizedBox(width: 4.w),
+                    Text('Kimechaguliwa',
+                        style: TextStyle(
+                            color: _kGreen,
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                )
+              : null,
+        ),
+        Divider(height: 24.h, color: Colors.white10),
+        if (bills.isEmpty)
+          _buildEmptyState(
+              Icons.receipt_long_outlined, 'Hakuna bili zilizo wazi')
+        else
+          ...bills.map((dynamic b) =>
+              _buildBillItem(b as Map<String, dynamic>)),
+      ],
     );
   }
 
   Widget _buildBillItem(Map<String, dynamic> bill) {
     final isSelected = _selectedBill?['id'] == bill['id'];
-    final amountDue = (bill['amount_due'] ?? 0).toDouble();
-    final balance = (bill['balance'] ?? 0).toDouble();
+    final amountDue =
+        double.tryParse((bill['amount_due'] ?? 0).toString()) ?? 0.0;
+    final balance =
+        double.tryParse((bill['balance'] ?? 0).toString()) ?? 0.0;
     final status = bill['status'] ?? 'unpaid';
 
     Color statusColor;
     switch (status) {
       case 'overdue':
-        statusColor = ThemeConstants.errorRed;
+        statusColor = _kRed;
       case 'partial':
-        statusColor = ThemeConstants.warningAmber;
+        statusColor = _kAmber;
       default:
         statusColor = Colors.white54;
     }
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedBill = bill;
-          _amountController.text = balance.toStringAsFixed(0);
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 8.h),
-        padding: EdgeInsets.all(12.w),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? ThemeConstants.primaryOrange.withOpacity(0.15)
-              : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-              color:
-                  isSelected ? ThemeConstants.primaryOrange : Colors.white12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8.r),
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _selectedBill = bill;
+              _amountController.text = balance.toStringAsFixed(0);
+            });
+          },
+          borderRadius: BorderRadius.circular(14.r),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _kOrange.withOpacity(0.12)
+                  : Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(
+                color: isSelected
+                    ? _kOrange.withOpacity(0.5)
+                    : Colors.white.withOpacity(0.06),
+                width: isSelected ? 1.5 : 1,
               ),
-              child: Icon(Icons.receipt, color: statusColor, size: 20.sp),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(bill['month_year'] ?? '',
+            child: Row(
+              children: [
+                // Bill icon
+                Container(
+                  width: 42.w,
+                  height: 42.w,
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: statusColor.withOpacity(0.25)),
+                  ),
+                  child: Center(
+                    child: Icon(Icons.calendar_month_outlined,
+                        color: statusColor, size: 20.sp),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(bill['month_year'] ?? '',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
+                          _MiniChip(
+                              label: 'Kodi: TSh ${_formatCurrency(amountDue)}',
+                              color: Colors.white38),
+                          SizedBox(width: 6.w),
+                          _MiniChip(
+                              label: 'Baki: TSh ${_formatCurrency(balance)}',
+                              color: statusColor),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(color: statusColor.withOpacity(0.25)),
+                  ),
+                  child: Text(_formatStatus(status),
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600)),
-                  Text("Kodi: TSh ${_formatCurrency(amountDue)}",
-                      style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
-                  Text("Baki: TSh ${_formatCurrency(balance)}",
-                      style: TextStyle(color: statusColor, fontSize: 12.sp)),
-                ],
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8.r)),
-              child: Text(_formatStatus(status),
-                  style: TextStyle(color: statusColor, fontSize: 10.sp)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmountSection() {
-    return _buildSectionCard(
-      "Kiasi cha Malipo",
-      Icons.attach_money,
-      Column(
-        children: [
-          TextField(
-            controller: _amountController,
-            keyboardType: TextInputType.number,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: "0",
-              hintStyle: TextStyle(color: Colors.white24, fontSize: 24.sp),
-              prefixText: "TSh ",
-              prefixStyle: TextStyle(color: Colors.white54, fontSize: 18.sp),
-              border: InputBorder.none,
+                          color: statusColor,
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3)),
+                ),
+              ],
             ),
           ),
-          if (_selectedBill != null) ...[
-            SizedBox(height: 8.h),
-            Text(
-              "Kiwango cha Kodi: TSh ${_formatCurrency((_selectedBill!['amount_due'] ?? 0).toDouble())}",
-              style: TextStyle(color: Colors.white38, fontSize: 12.sp),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildPaymentMethodSection() {
-    return _buildSectionCard(
-      "Njia ya Malipo",
-      Icons.payment,
-      Wrap(
-        spacing: 8.w,
-        runSpacing: 8.h,
-        children: _paymentMethods.map((method) {
-          final isSelected = _selectedPaymentMethod == method['value'];
-          return InkWell(
-            onTap: () =>
-                setState(() => _selectedPaymentMethod = method['value']!),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? ThemeConstants.primaryOrange
-                    : Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                    color: isSelected
-                        ? ThemeConstants.primaryOrange
-                        : Colors.white12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+  // ── AMOUNT SECTION ──
+  Widget _buildAmountSection() {
+    final balance =
+        double.tryParse((_selectedBill?['balance'] ?? 0).toString()) ?? 0.0;
+    final amountDue =
+        double.tryParse((_selectedBill?['amount_due'] ?? 0).toString()) ?? 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionTitle(
+          icon: Icons.monetization_on_rounded,
+          label: 'Kiasi cha Malipo',
+        ),
+        Divider(height: 24.h, color: Colors.white10),
+
+        // Amount input hero
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _kOrange.withOpacity(0.12),
+                _kCyan.withOpacity(0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: _kOrange.withOpacity(0.2)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(method['icon'] ?? '',
-                      style: const TextStyle(fontSize: 16)),
-                  SizedBox(width: 6.w),
-                  Text(method['label'] ?? '',
-                      style: TextStyle(color: Colors.white, fontSize: 12.sp)),
+                  Text('TSh',
+                      style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500)),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28.sp,
+                          fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                            color: Colors.white12, fontSize: 28.sp),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          );
-        }).toList(),
-      ),
+              SizedBox(height: 12.h),
+              // Balance info chips
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _InfoChip(
+                    label: 'Kodi',
+                    value: 'TSh ${_formatFullCurrency(amountDue)}',
+                    color: Colors.white54,
+                  ),
+                  SizedBox(width: 12.w),
+                  _InfoChip(
+                    label: 'Baki',
+                    value: 'TSh ${_formatFullCurrency(balance)}',
+                    color: _kAmber,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
+  // ── PAYMENT METHOD SECTION ──
+  Widget _buildPaymentMethodSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionTitle(
+          icon: Icons.payment_rounded,
+          label: 'Njia ya Malipo',
+        ),
+        Divider(height: 24.h, color: Colors.white10),
+        Wrap(
+          spacing: 8.w,
+          runSpacing: 8.h,
+          children: _paymentMethods.map((method) {
+            final isSelected =
+                _selectedPaymentMethod == method['value'];
+            final color = method['color'] as Color;
+            final icon = method['icon'] as IconData;
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => setState(
+                    () => _selectedPaymentMethod = method['value'] as String),
+                borderRadius: BorderRadius.circular(14.r),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 14.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [
+                              _kOrange.withOpacity(0.9),
+                              const Color(0xFFFF6B35),
+                            ],
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(
+                      color: isSelected
+                          ? _kOrange.withOpacity(0.6)
+                          : Colors.white.withOpacity(0.08),
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                                color: _kOrange.withOpacity(0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3))
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white.withOpacity(0.2)
+                              : color.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Icon(icon,
+                            color: isSelected ? Colors.white : color,
+                            size: 14.sp),
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(method['label'] as String,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                            fontWeight:
+                                isSelected ? FontWeight.bold : FontWeight.w400,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // ── REFERENCE SECTION ──
+  Widget _buildReferenceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionTitle(
+          icon: Icons.tag_rounded,
+          label: 'Rejea / Nambari ya Malipo',
+        ),
+        Divider(height: 24.h, color: Colors.white10),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: TextField(
+            controller: _referenceController,
+            style: TextStyle(color: Colors.white, fontSize: 14.sp),
+            decoration: InputDecoration(
+              hintText: 'Mfano: TRX12345 (si lazima)',
+              hintStyle: TextStyle(color: Colors.white24, fontSize: 12.sp),
+              prefixIcon: Padding(
+                padding: EdgeInsets.all(12.w),
+                child: Icon(Icons.receipt_outlined,
+                    color: Colors.white24, size: 16.sp),
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14.w, vertical: 14.h),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── SUBMIT BUTTON ──
   Widget _buildSubmitButton() {
     final amount = double.tryParse(_amountController.text) ?? 0;
     final canSubmit =
         _selectedTenant != null && _selectedBill != null && amount > 0;
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: canSubmit && !_isProcessing ? _submitPayment : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              canSubmit ? ThemeConstants.primaryOrange : Colors.white24,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16.r),
+      child: InkWell(
+        onTap: canSubmit && !_isProcessing ? _submitPayment : null,
+        borderRadius: BorderRadius.circular(16.r),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: double.infinity,
           padding: EdgeInsets.symmetric(vertical: 16.h),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          decoration: BoxDecoration(
+            gradient: canSubmit
+                ? const LinearGradient(
+                    colors: [Color(0xFFF97316), Color(0xFFFF6B35)],
+                  )
+                : null,
+            color: canSubmit ? null : Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: canSubmit
+                  ? _kOrange.withOpacity(0.5)
+                  : Colors.white.withOpacity(0.06),
+            ),
+            boxShadow: canSubmit
+                ? [
+                    BoxShadow(
+                        color: _kOrange.withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6))
+                  ]
+                : null,
+          ),
+          child: _isProcessing
+              ? Center(
+                  child: SizedBox(
+                    width: 24.w,
+                    height: 24.w,
+                    child: const CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded,
+                        color:
+                            canSubmit ? Colors.white : Colors.white24,
+                        size: 20.sp),
+                    SizedBox(width: 10.w),
+                    Text('Hifadhi Malipo',
+                        style: TextStyle(
+                          color:
+                              canSubmit ? Colors.white : Colors.white24,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        )),
+                  ],
+                ),
         ),
-        child: _isProcessing
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
-              )
-            : Text(
-                "Hifadhi Malipo",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600),
-              ),
       ),
     );
   }
 
-  Widget _buildSectionCard(String title, IconData icon, Widget content) {
+  Widget _buildEmptyState(IconData icon, String message) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      width: double.infinity,
+      padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: ThemeConstants.primaryOrange, size: 20.sp),
-              SizedBox(width: 8.w),
-              Text(title,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          content,
+          Icon(icon, color: Colors.white12, size: 36.sp),
+          SizedBox(height: 8.h),
+          Text(message,
+              style: TextStyle(color: Colors.white38, fontSize: 12.sp)),
         ],
       ),
     );
   }
 
-  String _formatCurrency(double value) {
-    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
-    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}K";
-    return value.toStringAsFixed(0);
-  }
-
-  String _formatStatus(String status) {
-    return switch (status) {
-      'overdue' => 'Overdue',
-      'partial' => 'Sehemu',
-      'paid' => 'Imelipwa',
-      _ => 'Bado'
-    };
-  }
-
+  // ── Submit payment ──
   Future<void> _submitPayment() async {
     setState(() => _isProcessing = true);
 
     try {
       final provider = context.read<RentalProvider>();
-      final success = await provider.recordPayment({
+      final paymentId = await provider.recordPayment({
         'bill_id': _selectedBill!['id'],
         'amount_paid': double.parse(_amountController.text),
         'payment_method': _selectedPaymentMethod,
@@ -490,8 +878,8 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
       });
 
       if (mounted) {
-        if (success) {
-          _showSuccessDialog();
+        if (paymentId != null) {
+          _showSuccessDialog(provider.lastPayment ?? {'id': paymentId});
         } else {
           _showErrorDialog("Malipo hayafaulu. Jaribu tena.");
         }
@@ -505,25 +893,36 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog(dynamic payment) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: ThemeConstants.primaryBlue,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        backgroundColor: _kGradientMid,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(20.w),
               decoration: BoxDecoration(
-                color: ThemeConstants.successGreen.withOpacity(0.2),
+                gradient: RadialGradient(colors: [
+                  _kGreen.withOpacity(0.25),
+                  Colors.transparent,
+                ]),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.check_circle,
-                  color: ThemeConstants.successGreen, size: 48.sp),
+              child: Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: _kGreen.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _kGreen.withOpacity(0.3)),
+                ),
+                child: Icon(Icons.check_rounded,
+                    color: _kGreen, size: 36.sp),
+              ),
             ),
             SizedBox(height: 16.h),
             Text("Malipo Yamehifadhiwa!",
@@ -532,8 +931,11 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold)),
             SizedBox(height: 8.h),
-            const Text("Risiti itatumwa kwenye simu",
-                style: TextStyle(color: Colors.white54)),
+            Text(
+                "Je, ungependa kuona na kushiriki risiti ya malipo haya?",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.white54, fontSize: 13.sp)),
           ],
         ),
         actions: [
@@ -542,8 +944,47 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: const Text("Sawa",
-                style: TextStyle(color: ThemeConstants.primaryOrange)),
+            child: Text("Baadaye",
+                style: TextStyle(
+                    color: Colors.white54, fontSize: 13.sp)),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF97316), Color(0xFFFF6B35)],
+              ),
+              borderRadius: BorderRadius.circular(10.r),
+              boxShadow: [
+                BoxShadow(
+                    color: _kOrange.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3))
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ReceiptViewScreen(payment: payment),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r)),
+              ),
+              child: Text("Ndiyo, Risiti",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold)),
+            ),
           ),
         ],
       ),
@@ -552,5 +993,472 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
   void _showErrorDialog(String message) {
     ThemeConstants.showErrorSnackBar(context, message);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Animated gradient background
+// ─────────────────────────────────────────────
+class _AnimatedBackground extends StatefulWidget {
+  const _AnimatedBackground();
+  @override
+  State<_AnimatedBackground> createState() => _AnimatedBackgroundState();
+}
+
+class _AnimatedBackgroundState extends State<_AnimatedBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 8))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final t = _ctrl.value;
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _kGradientTop,
+                Color.lerp(
+                    _kGradientMid, const Color(0xFF0A3A4A), t)!,
+                _kGradientBottom,
+              ],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Hero header with step indicator
+// ─────────────────────────────────────────────
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({required this.step});
+  final int step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(painter: _ArcPainter()),
+        ),
+        Positioned(
+          top: 60.h,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              width: 120.w,
+              height: 120.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  _kOrange.withOpacity(0.18),
+                  Colors.transparent,
+                ]),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 24.h,
+          left: 0,
+          right: 0,
+          child: Column(
+            children: [
+              // Payment icon
+              Container(
+                width: 64.w,
+                height: 64.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      _kOrange.withOpacity(0.9),
+                      const Color(0xFFFF6B35),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.3), width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kOrange.withOpacity(0.4),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(Icons.payments_rounded,
+                      color: Colors.white, size: 28.sp),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text('Rekodi Malipo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.4,
+                  )),
+              SizedBox(height: 16.h),
+
+              // Step indicator
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 48.w),
+                child: Row(
+                  children: [
+                    _StepDot(
+                        num: 1,
+                        label: 'Mteja',
+                        isActive: step >= 1,
+                        isCurrent: step == 1),
+                    _StepLine(isActive: step >= 2),
+                    _StepDot(
+                        num: 2,
+                        label: 'Bili',
+                        isActive: step >= 2,
+                        isCurrent: step == 2),
+                    _StepLine(isActive: step >= 3),
+                    _StepDot(
+                        num: 3,
+                        label: 'Malipo',
+                        isActive: step >= 3,
+                        isCurrent: step == 3),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Step dot
+// ─────────────────────────────────────────────
+class _StepDot extends StatelessWidget {
+  const _StepDot({
+    required this.num,
+    required this.label,
+    required this.isActive,
+    required this.isCurrent,
+  });
+  final int num;
+  final String label;
+  final bool isActive;
+  final bool isCurrent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            width: 28.w,
+            height: 28.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: isActive
+                  ? const LinearGradient(
+                      colors: [_kOrange, Color(0xFFFF6B35)],
+                    )
+                  : null,
+              color: isActive ? null : Colors.white.withOpacity(0.08),
+              border: Border.all(
+                color: isActive
+                    ? _kOrange.withOpacity(0.6)
+                    : Colors.white.withOpacity(0.15),
+                width: isCurrent ? 2 : 1,
+              ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                          color: _kOrange.withOpacity(0.3),
+                          blurRadius: 8)
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: isActive && !isCurrent
+                  ? Icon(Icons.check_rounded,
+                      color: Colors.white, size: 14.sp)
+                  : Text('$num',
+                      style: TextStyle(
+                        color: isActive ? Colors.white : Colors.white24,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.bold,
+                      )),
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(label,
+              style: TextStyle(
+                color: isActive ? Colors.white70 : Colors.white24,
+                fontSize: 9.sp,
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Step line
+// ─────────────────────────────────────────────
+class _StepLine extends StatelessWidget {
+  const _StepLine({required this.isActive});
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32.w,
+      height: 2.h,
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(1.r),
+        gradient: isActive
+            ? const LinearGradient(
+                colors: [_kOrange, Color(0xFFFF6B35)],
+              )
+            : null,
+        color: isActive ? null : Colors.white.withOpacity(0.08),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Arc painter
+// ─────────────────────────────────────────────
+class _ArcPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          _kOrange.withOpacity(0.08),
+          _kCyan.withOpacity(0.10),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(Offset.zero & size)
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, size.height * 0.6)
+      ..quadraticBezierTo(size.width * 0.5, size.height * 0.3,
+          size.width, size.height * 0.55)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+
+    final circlePaint = Paint()
+      ..color = _kOrange.withOpacity(0.06)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15),
+        size.width * 0.18, circlePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────
+// Glass card
+// ─────────────────────────────────────────────
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.padding});
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: Colors.white.withOpacity(0.13)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: padding ??
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section divider
+// ─────────────────────────────────────────────
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          height: 2.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.0),
+                Colors.white.withOpacity(0.08),
+                _kOrange.withOpacity(0.45),
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.0),
+              ],
+              stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section title
+// ─────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.label, this.trailing});
+  final IconData icon;
+  final String label;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(7.w),
+          decoration: BoxDecoration(
+            color: _kOrange.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: _kOrange.withOpacity(0.25)),
+          ),
+          child: Icon(icon, color: _kOrange, size: 14.sp),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold)),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Mini chip
+// ─────────────────────────────────────────────
+class _MiniChip extends StatelessWidget {
+  const _MiniChip({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 9.sp, fontWeight: FontWeight.w500)),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Info chip
+// ─────────────────────────────────────────────
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        children: [
+          Text(label,
+              style: TextStyle(
+                  color: color.withOpacity(0.7),
+                  fontSize: 9.sp,
+                  letterSpacing: 0.3)),
+          SizedBox(height: 2.h),
+          Text(value,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 }

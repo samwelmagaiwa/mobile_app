@@ -39,6 +39,7 @@ class RentalAgreement extends Model
         'auto_renew',
         'penalty_per_day',
         'created_by',
+        'selected_units',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class RentalAgreement extends Model
         'rules' => 'array',
         'documents' => 'array',
         'auto_renew' => 'boolean',
+        'selected_units' => 'array',
     ];
 
     public function tenant()

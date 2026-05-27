@@ -44,8 +44,6 @@ class StorePropertyRequest extends FormRequest
             'default_rent_amount' => ['nullable', 'numeric', 'min:0'],
             'default_deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'utility_billing_enabled' => ['sometimes', 'boolean'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5000'],
         ];
     }

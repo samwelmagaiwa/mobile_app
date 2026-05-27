@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import 'receipt_view_screen.dart';
@@ -28,7 +29,11 @@ class _BillingListScreenState extends State<BillingListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchBills();
+      final user = context.read<AuthProvider>().user;
+      // Using manage_properties_rental as it's the required permission for billing management
+      if (user?.hasPermission('manage_properties_rental') ?? false) {
+        context.read<RentalProvider>().fetchBills();
+      }
     });
   }
 
@@ -319,7 +324,7 @@ class _BillingListScreenState extends State<BillingListScreen> {
                       });
                       if (mounted) {
                         setModalState(() => isSaving = false);
-                        if (success) {
+                        if (success != null) {
                           ThemeConstants.showSuccessSnackBar(context, LocalizationService.instance.translate("payment_success"));
                           final lastPayment = context.read<RentalProvider>().lastPayment;
                           Navigator.pop(context); // Close modal

@@ -368,7 +368,7 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
                               .read<RentalProvider>()
                               .createAgreement(data);
 
-                          if (success && mounted) {
+                          if (success != null && mounted) {
                             ThemeConstants.showSuccessSnackBar(
                                 context, "Mkataba umeundwa!");
                             Navigator.pop(context);

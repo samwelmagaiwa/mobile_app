@@ -283,7 +283,7 @@ class DefaultPermissions {
     'manage_settings',
     // Rental permissions
     'view_tenants',
-    'view_properties',
+    'manage_properties_rental',
     'view_rent_payments',
     'view_arrears',
     'view_rental_reports',
@@ -292,10 +292,9 @@ class DefaultPermissions {
     'manage_maintenance',
     'view_vendors',
     'manage_vendors',
-    'view_lease_agreements',
-    'manage_lease_agreements',
-    'view_lease_templates',
-    'manage_lease_templates',
+    'manage_agreements_rental',
+    'view_lease_templates', // Placeholder
+    'manage_lease_templates', // Placeholder
   ];
 
   static const List<String> manager = [

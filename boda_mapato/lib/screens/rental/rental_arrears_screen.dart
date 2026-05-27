@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 
 class RentalArrearsScreen extends StatefulWidget {
@@ -16,7 +17,10 @@ class _RentalArrearsScreenState extends State<RentalArrearsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RentalProvider>().fetchArrears();
+      final user = context.read<AuthProvider>().user;
+      if (user?.hasPermission('manage_properties_rental') ?? false) {
+        context.read<RentalProvider>().fetchArrears();
+      }
     });
   }
 

@@ -56,7 +56,7 @@ class BillingController extends Controller
 
         $payments = RentalPayment::whereHas('bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
-        })->with('bill.agreement.house', 'tenant', 'collector', 'receipt')
+        })->with('bill.agreement.house.property', 'tenant', 'collector', 'receipt')
             ->orderBy('payment_date', 'desc')
             ->get();
 
@@ -72,7 +72,7 @@ class BillingController extends Controller
 
         $receipts = RentalReceipt::whereHas('payment.bill.agreement.house.property', function ($query) use ($user) {
             $query->where('owner_id', $user->id);
-        })->with('payment.tenant', 'payment.bill.agreement.house')
+        })->with('payment.tenant', 'payment.bill.agreement.house.property', 'payment.collector', 'payment.receipt')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -84,7 +84,7 @@ class BillingController extends Controller
      */
     public function getReceipt(Request $request, $id)
     {
-        $receipt = RentalReceipt::with('payment.tenant', 'payment.bill.agreement.house.property', 'payment.collector')
+        $receipt = RentalReceipt::with('payment.tenant', 'payment.bill.agreement.house.property', 'payment.collector', 'payment.receipt')
             ->findOrFail($id);
 
         return ResponseHelper::success($receipt);

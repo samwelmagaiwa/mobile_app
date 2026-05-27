@@ -26,10 +26,8 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _addressController;
   late final TextEditingController _defaultRentController;
-  late final TextEditingController _defaultDepositController;
   late final TextEditingController _ownershipNotesController;
-  late final TextEditingController _latController;
-  late final TextEditingController _lngController;
+
 
   late String _propertyType;
   late String? _region;
@@ -66,10 +64,8 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _nameController = TextEditingController(text: p['name'] ?? '');
     _descriptionController = TextEditingController(text: p['description'] ?? '');
     _addressController = TextEditingController(text: p['address'] ?? '');
-    _latController = TextEditingController(text: (p['latitude'] ?? '').toString());
-    _lngController = TextEditingController(text: (p['longitude'] ?? '').toString());
+
     _defaultRentController = TextEditingController(text: (p['default_rent_amount'] ?? '0').toString());
-    _defaultDepositController = TextEditingController(text: (p['default_deposit_amount'] ?? '0').toString());
     _ownershipNotesController = TextEditingController(text: p['ownership_notes'] ?? '');
     _utilityBillingEnabled = p['utility_billing_enabled'] == 1 || p['utility_billing_enabled'] == true;
     _propertyType = p['property_type'] ?? 'apartment';
@@ -78,7 +74,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
     _ward = p['ward'];
     _street = p['street'];
     _place = p['place'];
-    _billingCycle = p['default_billing_cycle'] ?? p['billing_cycle'] ?? 'monthly';
+    _billingCycle = p['billing_cycle'] ?? 'monthly';
     _currency = p['default_currency'] ?? p['currency'] ?? 'TZS';
     _status = p['status'] ?? 'active';
     _currentImageUrl = p['cover_image'];
@@ -116,28 +112,27 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       'street': _street,
       'place': _place,
       'address': _addressController.text.trim(),
-      'latitude': _latController.text,
-      'longitude': _lngController.text,
-      'default_billing_cycle': _billingCycle,
-      'default_currency': _currency,
+
+      'billing_cycle': _billingCycle,
+      'currency': _currency,
       'status': _status,
       'default_rent_amount': _defaultRentController.text,
-      'default_deposit_amount': _defaultDepositController.text,
+      'default_deposit_amount': '0',
       'ownership_notes': _ownershipNotesController.text,
       'utility_billing_enabled': _utilityBillingEnabled ? 1 : 0,
     };
 
-    final success = await context
+    final error = await context
         .read<RentalProvider>()
         .updateProperty(widget.property['id'], data, image: _newCoverImage);
 
     setState(() => _isSubmitting = false);
 
-    if (success && mounted) {
+    if (error == null && mounted) {
       ThemeConstants.showSuccessSnackBar(context, _loc.translate('property_updated'));
       Navigator.pop(context);
     } else if (mounted) {
-      ThemeConstants.showErrorSnackBar(context, _loc.translate('error_occurred'));
+      ThemeConstants.showErrorSnackBar(context, error ?? _loc.translate('error_occurred'));
     }
   }
 
@@ -203,25 +198,7 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                       maxLines: 2,
                     ),
                     SizedBox(height: 14.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _latController,
-                            label: "Latitudo",
-                            icon: Icons.location_on_outlined,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _lngController,
-                            label: "Longitudo",
-                            icon: Icons.location_on_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
+
                   ],
                 ),
                 SizedBox(height: 20.h),
@@ -269,26 +246,11 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                       formatter: _formatType,
                       onChanged: (v) => setState(() => _status = v!),
                     ),
-                    SizedBox(height: 14.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _defaultRentController,
-                            label: "Kodi ya Msingi (TSh)",
-                            icon: Icons.monetization_on_outlined,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextInput(
-                            controller: _defaultDepositController,
-                            label: "Amana ya Msingi (TSh)",
-                            icon: Icons.savings_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
+                     _buildTextInput(
+                       controller: _defaultRentController,
+                       label: "Kodi ya Msingi (TSh)",
+                       icon: Icons.monetization_on_outlined,
+                     ),
                     SizedBox(height: 14.h),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

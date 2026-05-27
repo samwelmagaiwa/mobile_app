@@ -122,21 +122,26 @@ class PropertyService
      */
     public function delete(string $id): bool
     {
-        $property = $this->getById($id);
+        return DB::transaction(function () use ($id) {
+            $property = $this->getById($id);
 
-        // Check if property has houses
-        if ($property->houses()->count() > 0) {
-            throw new \Exception('Cannot delete property with houses. Remove houses first.');
-        }
+            // Check if any house is occupied
+            $occupiedCount = $property->houses()->where('status', 'occupied')->count();
+            if ($occupiedCount > 0) {
+                throw new \Exception('Huwezi kufuta jengo lenye wapangaji. Tafadhali sitisha mikataba kwanza.');
+            }
 
-        // Check if property has blocks
-        if ($property->blocks()->count() > 0) {
-            throw new \Exception('Cannot delete property with blocks. Remove blocks first.');
-        }
+            // Cascade soft-delete to houses
+            $property->houses()->delete();
 
-        $property->delete();
+            // Cascade soft-delete to blocks
+            $property->blocks()->delete();
 
-        return true;
+            // Soft-delete the property itself
+            $property->delete();
+
+            return true;
+        });
     }
 
     /**

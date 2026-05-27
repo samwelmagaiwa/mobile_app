@@ -4,12 +4,13 @@ namespace App\Models\Rental;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasUuid;
 use App\Models\User;
 
 class House extends Model
 {
-    use HasFactory, HasUuid;
+    use HasFactory, HasUuid, SoftDeletes;
 
     protected $table = 'rental_houses';
 
@@ -44,6 +45,8 @@ class House extends Model
         'images',
         'image_captions',
         'maintenance_until',
+        'units_count',
+        'unit_names',
     ];
 
     protected $casts = [
@@ -61,7 +64,23 @@ class House extends Model
         'has_kitchen' => 'boolean',
         'landlord_lives_present' => 'boolean',
         'maintenance_until' => 'date',
+        'units_count' => 'integer',
+        'unit_names' => 'array',
     ];
+
+    protected $appends = ['occupied_units'];
+
+    public function getOccupiedUnitsAttribute()
+    {
+        return $this->agreements()
+            ->where('status', 'active')
+            ->get()
+            ->pluck('selected_units')
+            ->flatten()
+            ->filter()
+            ->values()
+            ->toArray();
+    }
 
     /**
      * House type options.

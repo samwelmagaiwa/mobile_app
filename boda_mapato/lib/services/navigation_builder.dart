@@ -469,11 +469,32 @@ class NavigationBuilder {
   /// Check if user has permission for navigation item
   static bool _hasPermission(NavigationItem item, UserData? user) {
     if (item.isSystemItem) return true;
+
+    // Tenant-only items: Ensure non-tenants (even admins) do not see tenant-specific pages
+    if (item.key == 'tenant_self_service' && user?.role != 'tenant') {
+      return false;
+    }
+
+    // Role-based exclusion (Tenants should NOT see landlord-only features)
+    if (user?.role == 'tenant') {
+      const tenantAllowedKeys = [
+        'rental_dashboard',
+        'tenant_self_service',
+        'maintenance',
+        'vendors',
+        'switch_service',
+        'settings',
+        'logout'
+      ];
+      if (!tenantAllowedKeys.contains(item.key)) {
+        return false;
+      }
+    }
+
     if (item.requiredPermissions == null || item.requiredPermissions!.isEmpty) {
       return true;
     }
     // Check if any of the required permissions is granted
-    // Changed from "all" to "any" for more flexible system matching
     for (final p in item.requiredPermissions!) {
       if (user?.hasPermission(p) ?? false) return true;
     }
@@ -483,6 +504,14 @@ class NavigationBuilder {
   /// Check if user has permission for quick action
   static bool _hasPermissionForAction(
       QuickActionItem action, UserData? user) {
+    if (user?.role == 'tenant') {
+       // Tenants only allowed specific non-management quick actions
+       const tenantAllowedActions = ['menu', 'receipts'];
+       if (!tenantAllowedActions.contains(action.key)) {
+         return false;
+       }
+    }
+
     if (action.requiredPermissions == null ||
         action.requiredPermissions!.isEmpty) {
       return true;

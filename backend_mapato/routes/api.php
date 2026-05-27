@@ -420,8 +420,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
         });
 
-        // Tenant self-service routes
-        Route::middleware(['role:tenant'])->group(function () {
+        // Tenant self-service routes (admins/landlords can preview empty views safely)
+        Route::middleware(['role:tenant,admin,landlord'])->group(function () {
             Route::get('tenant/bills', [TenantController::class, 'myBills']);
             Route::get('tenant/payments', [TenantController::class, 'myPayments']);
             Route::get('tenant/receipts', [TenantController::class, 'myReceipts']);

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/localization_service.dart';
 import '../../constants/theme_constants.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 
 class LeaseAgreementsScreen extends StatefulWidget {
@@ -32,19 +33,39 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
   }
 
   Future<void> _loadData() async {
+    final user = context.read<AuthProvider>().user;
     final provider = context.read<RentalProvider>();
-    await Future.wait([
-      provider.fetchTenants(),
-      provider.fetchAgreements(),
-    ]);
+    
+    final List<Future> fetches = [];
+    if (user?.hasPermission('view_tenants') ?? false) {
+      fetches.add(provider.fetchTenants());
+    }
+    if (user?.hasPermission('manage_agreements_rental') ?? false) {
+      fetches.add(provider.fetchAgreements());
+    }
+
+    if (fetches.isNotEmpty) {
+      await Future.wait(fetches);
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final rentalProvider = context.watch<RentalProvider>();
-    final agreements = rentalProvider.agreements;
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
     final loc = LocalizationService.instance;
+
+    // Fail-safe: Redirect tenants who somehow reach this screen
+    if (user?.role == 'tenant') {
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+         Navigator.pushReplacementNamed(context, '/rental/tenant-self-service');
+       });
+       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final agreements = rentalProvider.agreements;
 
     return ThemeConstants.buildResponsiveScaffold(
       context,
