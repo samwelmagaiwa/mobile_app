@@ -11,7 +11,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','driver','landlord','caretaker','tenant','vendor') NOT NULL DEFAULT 'driver'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','driver','landlord','caretaker','tenant','vendor') NOT NULL DEFAULT 'driver'");
+        }
     }
 
     /**
@@ -19,7 +21,9 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        // On rollback, this could technically fail if there are active 'vendor' users, but for schema consistency:
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','driver','landlord','caretaker','tenant') NOT NULL DEFAULT 'driver'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // On rollback, this could technically fail if there are active 'vendor' users, but for schema consistency:
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','driver','landlord','caretaker','tenant') NOT NULL DEFAULT 'driver'");
+        }
     }
 };

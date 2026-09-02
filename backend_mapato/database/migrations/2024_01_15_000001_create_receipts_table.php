@@ -11,28 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-if (!Schema::hasTable('payment_receipts')) {
-            Schema::create('payment_receipts', function (Blueprint $table) {
-            $table->id();
-            $table->string('receipt_number')->unique();
-            $table->foreignId('payment_id')->constrained('payments')->onDelete('cascade');
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->foreignId('generated_by')->constrained('users')->onDelete('cascade');
-            $table->decimal('amount', 10, 2);
-            $table->string('payment_period'); // e.g., "5 siku", "2 wiki", "1 mwezi"
-            $table->text('covered_days'); // JSON array of covered dates
-            $table->enum('status', ['generated', 'sent', 'delivered'])->default('generated');
-            $table->timestamp('generated_at');
-            $table->timestamp('sent_at')->nullable();
-            $table->string('sent_via')->nullable(); // whatsapp, email, system
-            $table->text('receipt_data'); // JSON with full receipt details
-            $table->timestamps();
-            
-            $table->index(['driver_id', 'status']);
-            $table->index(['payment_id']);
-            $table->index(['generated_by']);
-        });
-        }
+        // Superseded no-op: this migration predates `payments`, `drivers` and
+        // `users` (all created by later migrations) and referenced them with
+        // bigint foreign keys that no longer match `users.id`, which is now a
+        // UUID. It only ever "worked" because Laravel never re-runs a
+        // migration once recorded, so an incrementally-built database never
+        // hit this. A from-scratch `migrate` does, and fails here.
+        // `2025_10_13_083551_recreate_payments_and_payment_receipts_tables`
+        // is the current, correct definition of `payment_receipts` (UUID
+        // driver_id/generated_by) and fully supersedes this one.
     }
 
     /**
