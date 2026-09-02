@@ -130,6 +130,10 @@ class Property extends Model
      */
     public function getOccupiedUnitsCountAttribute(): int
     {
+        // Use already-loaded collection to avoid extra SQL on every serialization
+        if ($this->relationLoaded('houses')) {
+            return $this->houses->where('status', 'occupied')->count();
+        }
         return $this->houses()->where('status', 'occupied')->count();
     }
 
@@ -138,6 +142,9 @@ class Property extends Model
      */
     public function getVacantUnitsCountAttribute(): int
     {
+        if ($this->relationLoaded('houses')) {
+            return $this->houses->where('status', 'vacant')->count();
+        }
         $total = $this->houses()->count();
         return $total - $this->occupied_units_count;
     }
@@ -147,9 +154,13 @@ class Property extends Model
      */
     public function getOccupancyRateAttribute(): float
     {
+        if ($this->relationLoaded('houses')) {
+            $total = $this->houses->count();
+            if ($total === 0) return 0.0;
+            return round(($this->houses->where('status', 'occupied')->count() / $total) * 100, 1);
+        }
         $total = $this->houses()->count();
-        if ($total == 0)
-            return 0;
+        if ($total == 0) return 0;
         return round(($this->occupied_units_count / $total) * 100, 1);
     }
 

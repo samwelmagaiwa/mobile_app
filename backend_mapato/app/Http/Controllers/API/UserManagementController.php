@@ -18,8 +18,15 @@ class UserManagementController extends Controller
 
         if ($request->query('created_by') === 'me') {
             $query->where('created_by', $user->id);
+        } else if ($request->query('role') === 'super_admin') {
+            // Allow fetching superadmin for support contact purposes
+            $query->where('role', 'super_admin');
         } else if (!$user->isSuperAdmin() && !$user->full_access) {
             $query->where('created_by', $user->id);
+        }
+
+        if ($role = $request->query('role')) {
+            $query->where('role', $role);
         }
 
         if ($serviceType = $request->query('service_type')) {

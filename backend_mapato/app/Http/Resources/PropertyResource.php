@@ -109,7 +109,8 @@ class BlockResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'houses_count' => $this->houses->count() ?? 0,
+            // Use pre-computed withCount('houses') to avoid a query per block
+            'houses_count' => $this->houses_count ?? 0,
         ];
     }
 }
@@ -129,6 +130,10 @@ class HouseResource extends JsonResource
             'bedrooms' => $this->bedrooms,
             'bathrooms' => $this->bathrooms,
             'floor' => $this->floor,
+            'billing_cycle' => $this->billing_cycle,
+            'currency' => $this->currency,
+            'utility_billing_enabled' => $this->utility_billing_enabled,
+            'ownership_notes' => $this->ownership_notes,
             'current_tenant' => $this->when($this->currentTenant, function () {
                 return [
                     'id' => $this->currentTenant->id,

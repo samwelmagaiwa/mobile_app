@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # No env_file here on purpose: Laravel's own Dotenv loader reads .env /
+    # .env.testing itself. Baking .env into the container's real OS
+    # environment would make those values permanent and un-overridable -
+    # Dotenv never replaces a variable that already exists in the real
+    # environment, so .env.testing's sqlite settings would be silently
+    # ignored and every test would hit the live database. (This is exactly
+    # what happened once, wiping boda_db - see docs/INCIDENT_DB_WIPE.md.)
+    environment:
+      DB_HOST: host.docker.internal   # use the MySQL already running on the host
+      REDIS_HOST: redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/var/www/html
+    depends_on: [redis]
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped

@@ -28,7 +28,7 @@ class PropertyService
     {
         $ownerId = $this->getOwnerId();
 
-        $query = Property::with(['blocks', 'houses', 'caretaker'])
+        $query = Property::with(['blocks' => fn($q) => $q->withCount('houses'), 'houses.currentTenant', 'caretaker'])
             ->where('owner_id', $ownerId);
 
         // Search filter
@@ -65,7 +65,7 @@ class PropertyService
      */
     public function getById(string $id): Property
     {
-        return Property::with(['blocks', 'houses', 'caretaker'])
+        return Property::with(['blocks' => fn($q) => $q->withCount('houses'), 'houses.currentTenant', 'caretaker'])
             ->where('owner_id', $this->getOwnerId())
             ->findOrFail($id);
     }

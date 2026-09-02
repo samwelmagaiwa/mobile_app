@@ -47,6 +47,10 @@ class House extends Model
         'maintenance_until',
         'units_count',
         'unit_names',
+        'billing_cycle',
+        'currency',
+        'utility_billing_enabled',
+        'ownership_notes',
     ];
 
     protected $casts = [
@@ -66,9 +70,12 @@ class House extends Model
         'maintenance_until' => 'date',
         'units_count' => 'integer',
         'unit_names' => 'array',
+        'utility_billing_enabled' => 'boolean',
     ];
 
-    protected $appends = ['occupied_units'];
+    // Note: 'occupied_units' is NOT auto-appended here to avoid N+1 queries on list endpoints.
+    // Append it explicitly in the single-house show() endpoint using $house->append('occupied_units').
+    protected $appends = [];
 
     public function getOccupiedUnitsAttribute()
     {
@@ -141,12 +148,12 @@ class House extends Model
 
     public function bills()
     {
-        return $this->hasManyThrough(RentBill::class, RentalAgreement::class);
+        return $this->hasManyThrough(RentBill::class, RentalAgreement::class, 'house_id', 'agreement_id');
     }
 
     public function payments()
     {
-        return $this->hasManyThrough(RentalPayment::class, RentalAgreement::class);
+        return $this->hasManyThrough(RentalPayment::class, RentalAgreement::class, 'house_id', 'tenant_id', 'id', 'tenant_id');
     }
 
     /**

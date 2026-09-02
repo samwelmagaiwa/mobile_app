@@ -155,7 +155,11 @@ class HouseController extends Controller
     {
         $house = House::whereHas('property', function ($q) use ($request) {
             $q->where('owner_id', $request->user()->id);
-        })->with('property', 'block', 'currentTenant.tenantProfile', 'agreements.tenant', 'bills')->findOrFail($id);
+        })->with('property', 'block', 'currentTenant.tenantProfile', 'activeAgreement.tenant')
+          ->findOrFail($id);
+
+        // Append occupied_units only on single-house view (avoids N+1 on list endpoints)
+        $house->append('occupied_units');
 
         return ResponseHelper::success($house);
     }

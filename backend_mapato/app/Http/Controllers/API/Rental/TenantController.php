@@ -14,6 +14,7 @@ use App\Services\Rental\RentalService;
 use App\Services\SmsService;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TenantController extends Controller
 {
@@ -94,15 +95,48 @@ class TenantController extends Controller
             $query->where('owner_id', $request->user()->id);
         })->where('tenant_id', $id)
             ->with('tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')
+            ->first();
+
+        if ($agreement) {
+            return ResponseHelper::success([
+                'tenant' => $agreement->tenant,
+                'profile' => $agreement->tenant->profile,
+                'house' => $agreement->house,
+                'agreement' => $agreement,
+                'bills' => $agreement->bills,
+                'payments' => $agreement->payments,
+            ]);
+        }
+
+        // If no agreement exists, check if this is a valid tenant for this landlord
+        $tenant = User::where('id', $id)
+            ->where('role', 'tenant')
+            ->where(function ($query) use ($request) {
+                $query->where('created_by', $request->user()->id)
+                    ->orWhereExists(function ($q) use ($request) {
+                        $q->select(DB::raw(1))
+                            ->from('rental_houses')
+                            ->join('rental_properties', 'rental_houses.property_id', '=', 'rental_properties.id')
+                            ->whereColumn('rental_houses.current_tenant_id', 'users.id')
+                            ->where('rental_properties.owner_id', $request->user()->id);
+                    });
+            })
+            ->with('profile')
             ->firstOrFail();
 
+        // Check if they are currently assigned to any house
+        $house = House::where('current_tenant_id', $id)
+            ->whereHas('property', function ($query) use ($request) {
+                $query->where('owner_id', $request->user()->id);
+            })->with('property', 'block')->first();
+
         return ResponseHelper::success([
-            'tenant' => $agreement->tenant,
-            'profile' => $agreement->tenant->profile,
-            'house' => $agreement->house,
-            'agreement' => $agreement,
-            'bills' => $agreement->bills,
-            'payments' => $agreement->payments,
+            'tenant' => $tenant,
+            'profile' => $tenant->profile,
+            'house' => $house,
+            'agreement' => null,
+            'bills' => [],
+            'payments' => [],
         ]);
     }
 
@@ -178,13 +212,30 @@ class TenantController extends Controller
 
         $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
             $query->where('owner_id', $request->user()->id);
-        })->where('tenant_id', $id)->firstOrFail();
+        })->where('tenant_id', $id)->first();
 
-        $agreement->update(['status' => $request->status]);
+        if ($agreement) {
+            $agreement->update(['status' => $request->status]);
 
-        // If terminated, free up the house
-        if ($request->status === 'terminated') {
-            $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
+            // If terminated, free up the house
+            if ($request->status === 'terminated') {
+                $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
+            }
+        } else {
+            // No agreement, but if terminating, free up the house
+            if ($request->status === 'terminated') {
+                $house = House::whereHas('property', function ($query) use ($request) {
+                    $query->where('owner_id', $request->user()->id);
+                })->where('current_tenant_id', $id)->first();
+
+                if ($house) {
+                    $house->update(['status' => 'vacant', 'current_tenant_id' => null]);
+                } else {
+                    return ResponseHelper::error('Tenant agreement not found', 404);
+                }
+            } else {
+                return ResponseHelper::error('Tenant agreement not found', 404);
+            }
         }
 
         return ResponseHelper::success($agreement, 'Tenant status updated');
@@ -197,13 +248,34 @@ class TenantController extends Controller
     {
         $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
             $query->where('owner_id', $request->user()->id);
-        })->where('tenant_id', $id)->firstOrFail();
+        })->where('tenant_id', $id)->first();
 
-        // Free up the house
-        $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
+        if ($agreement) {
+            // Free up the house
+            $agreement->house->update(['status' => 'vacant', 'current_tenant_id' => null]);
 
-        // Delete the agreement
-        $agreement->delete();
+            // Delete the agreement
+            $agreement->delete();
+        } else {
+            // If there's no agreement, but there's a house currently occupied by this tenant
+            $house = House::whereHas('property', function ($query) use ($request) {
+                $query->where('owner_id', $request->user()->id);
+            })->where('current_tenant_id', $id)->first();
+
+            if ($house) {
+                $house->update(['status' => 'vacant', 'current_tenant_id' => null]);
+            } else {
+                // If there's no agreement and no house, but the user is a tenant, check access
+                $user = User::where('id', $id)
+                    ->where('role', 'tenant')
+                    ->where('created_by', $request->user()->id)
+                    ->first();
+                
+                if (!$user) {
+                    return ResponseHelper::error('Tenant not found', 404);
+                }
+            }
+        }
 
         return ResponseHelper::success(null, 'Tenant terminated successfully');
     }
