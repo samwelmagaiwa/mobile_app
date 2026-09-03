@@ -235,9 +235,25 @@ class _ReceiptPaper extends StatelessWidget {
                       style: _label.copyWith(fontStyle: FontStyle.italic, letterSpacing: 1),
                       textAlign: TextAlign.center),
                 ],
+                if (shopPhone.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF0D0D0D)),
+                      const SizedBox(width: 5),
+                      Text(shopPhone,
+                          style: const TextStyle(
+                            fontFamily: 'Courier', fontSize: 13,
+                            fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D),
+                            letterSpacing: 1,
+                          )),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 6),
-                // Contact strip
-                _ContactLine(address: shopAddress, phone: shopPhone,
+                // Contact strip (address, email, website, TIN — phone already shown above)
+                _ContactLine(address: shopAddress, phone: '',
                     email: email, website: website, tin: showTin ? tin : ''),
                 const SizedBox(height: 12),
 
