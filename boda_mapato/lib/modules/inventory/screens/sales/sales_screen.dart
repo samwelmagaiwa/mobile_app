@@ -33,6 +33,7 @@ class _SalesScreenState extends State<SalesScreen>
   String _status = 'all'; // all | paid | debt | partial
   DateTime? _from;
   DateTime? _to;
+  bool _checkingOut = false;
 
   @override
   void initState() {
@@ -152,6 +153,7 @@ class _SalesScreenState extends State<SalesScreen>
     final auth = context.read<AuthProvider>();
     final role = (auth.user?.role ?? '').toLowerCase();
     final canManageCustomers = role == 'admin' || role == 'manager';
+    final userId = int.tryParse(auth.user?.id ?? '') ?? 1;
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -445,11 +447,13 @@ class _SalesScreenState extends State<SalesScreen>
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
-                    onPressed: inv.cart.isEmpty
+                    onPressed: (inv.cart.isEmpty || _checkingOut)
                         ? null
                         : () async {
-                            final result = await inv.checkout(createdBy: 1);
+                            setState(() => _checkingOut = true);
+                            final result = await inv.checkout(createdBy: userId);
                             if (!context.mounted) return;
+                            setState(() => _checkingOut = false);
                             final ok = result.$1;
                             final msgKey = result.$2;
                             if (!ok) {
@@ -460,9 +464,20 @@ class _SalesScreenState extends State<SalesScreen>
                                   context, loc.translate('success'));
                             }
                           },
-                    icon: Icon(Icons.payments_outlined, size: 22.sp),
+                    icon: _checkingOut
+                        ? SizedBox(
+                            width: 18.sp,
+                            height: 18.sp,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          )
+                        : Icon(Icons.payments_outlined, size: 22.sp),
                     label: Text(
-                      '${loc.translate('checkout')} • TZS ${inv.cartTotal.toStringAsFixed(0)}',
+                      _checkingOut
+                          ? 'Inatuma...'
+                          : '${loc.translate('checkout')} • TZS ${inv.cartTotal.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.bold,

@@ -758,19 +758,14 @@ class InventoryProvider extends ChangeNotifier {
     };
 
     try {
-      // Try /inventory/sales then /sales
-      try {
-        await _api.post('/inventory/sales', payload);
-      } on Exception {
-        await _api.post('/sales', payload);
-      }
+      // Try /inventory/sales — single authoritative endpoint.
+      await _api.post('/inventory/sales', payload);
 
       await Future.wait([
         fetchSales(),
         fetchProducts(),
         fetchReminders(),
       ]);
-      // Regenerate local low-stock to complement server-side payment_due reminders
       _refreshLowStockReminders();
 
       _cart.clear();
@@ -780,52 +775,8 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
       return (true, 'success');
     } on Exception catch (_) {
-      if (!_mockEnabled) return (false, 'checkout_failed');
-      // Local mock checkout: create sale, update stocks, generate reminders
-      final newId = _nextSaleId();
-      final number = _mockSaleNumber(newId);
-      final due =
-          status == 'paid' ? null : DateTime.now().add(const Duration(days: 7));
-      final items = _cart
-          .map((e) => InvSaleItem(
-                productId: e.productId,
-                name: e.name,
-                qty: e.qty,
-                unitPrice: e.unitPrice,
-                unitCostSnapshot: e.unitCostSnapshot,
-              ))
-          .toList();
-      // Update stocks (prevent negative)
-      for (final it in items) {
-        final idx = _products.indexWhere((p) => p.id == it.productId);
-        if (idx != -1) {
-          final newQty = _products[idx].quantity - it.qty;
-          _products[idx].quantity = newQty < 0 ? 0 : newQty;
-        }
-      }
-      _sales.add(InvSale(
-        id: newId,
-        number: number,
-        customerId: _selectedCustomerId,
-        paymentStatus: status,
-        items: items,
-        subtotal: subtotal,
-        discount: cartDiscount,
-        tax: cartTax,
-        total: total,
-        paidTotal: paidTotal,
-        dueDate: due,
-        createdBy: createdBy,
-        createdAt: DateTime.now(),
-      ));
-      _refreshLowStockReminders();
-      _refreshPaymentDueReminders();
-      _cart.clear();
-      _paymentMode = 'cash';
-      _selectedCustomerId = null;
-      _paidAmount = 0;
-      notifyListeners();
-      return (true, 'success');
+      // Never fall back to mock on checkout — a fake-success loses real sales.
+      return (false, 'checkout_failed');
     }
   }
 
