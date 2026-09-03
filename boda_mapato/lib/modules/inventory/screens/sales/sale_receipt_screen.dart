@@ -120,111 +120,83 @@ class _ReceiptPaper extends StatelessWidget {
   final String stars;
   final String dots;
 
+  // ── Type scale ───────────────────────────────────────────────────────────
   static const TextStyle _body = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 12,
-    color: Color(0xFF1A1A1A),
-    height: 1.6,
+    fontFamily: 'Courier', fontSize: 12, color: Color(0xFF1A1A1A), height: 1.55,
   );
   static const TextStyle _bodyBold = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF1A1A1A),
-    height: 1.6,
+    fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.w700,
+    color: Color(0xFF1A1A1A), height: 1.55,
   );
   static const TextStyle _label = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 11,
-    color: Color(0xFF555555),
-    height: 1.5,
-  );
-  static const TextStyle _heading = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 13,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 3,
-    color: Color(0xFF111111),
+    fontFamily: 'Courier', fontSize: 11, color: Color(0xFF666666), height: 1.5,
   );
   static const TextStyle _shopName = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 20,
-    fontWeight: FontWeight.w900,
-    letterSpacing: 2,
-    color: Color(0xFF111111),
+    fontFamily: 'Courier', fontSize: 22, fontWeight: FontWeight.w900,
+    letterSpacing: 3, color: Color(0xFF0D0D0D),
   );
   static const TextStyle _total = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 16,
-    fontWeight: FontWeight.w900,
-    color: Color(0xFF111111),
-    height: 1.6,
-  );
-  static const TextStyle _thankYou = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 14,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 4,
-    color: Color(0xFF1A1A1A),
+    fontFamily: 'Courier', fontSize: 18, fontWeight: FontWeight.w900,
+    color: Color(0xFF0D0D0D), height: 1.4,
   );
   static const TextStyle _starLine = TextStyle(
-    fontFamily: 'Courier',
-    fontSize: 11,
-    color: Color(0xFF888888),
-    letterSpacing: 1,
+    fontFamily: 'Courier', fontSize: 10, color: Color(0xFFAAAAAA), letterSpacing: 1,
   );
 
-  String _fmt(double v) => NumberFormat('#,##0.00').format(v);
+  // Whole-number TZS format (no cents)
+  String _fmt(double v) => NumberFormat('#,##0').format(v);
 
   String _statusLabel() {
     switch (sale.paymentStatus) {
-      case 'paid': return 'MALIPO KAMILI';
-      case 'debt': return 'DENI';
-      case 'partial': return 'MALIPO YA SEHEMU';
-      default: return sale.paymentStatus.toUpperCase();
+      case 'paid':    return '✓  MALIPO KAMILI';
+      case 'debt':    return '✗  DENI';
+      case 'partial': return '◑  SEHEMU';
+      default:        return sale.paymentStatus.toUpperCase();
     }
   }
 
   Color _statusColor() {
     switch (sale.paymentStatus) {
-      case 'paid': return const Color(0xFF2E7D32);
-      case 'debt': return const Color(0xFFC62828);
-      default: return const Color(0xFFE65100);
+      case 'paid':    return const Color(0xFF1B5E20);
+      case 'debt':    return const Color(0xFFB71C1C);
+      default:        return const Color(0xFFE65100);
+    }
+  }
+
+  Color _statusBg() {
+    switch (sale.paymentStatus) {
+      case 'paid':    return const Color(0xFFE8F5E9);
+      case 'debt':    return const Color(0xFFFFEBEE);
+      default:        return const Color(0xFFFFF3E0);
     }
   }
 
   String _paymentMethod() {
     if (sale.payments.isEmpty) return 'Taslimu';
-    final methods = sale.payments.map((p) => _methodLabel(p.method)).toSet().join(' / ');
-    return methods;
+    return sale.payments.map((p) => _methodLabel(p.method)).toSet().join(' / ');
   }
 
   String _methodLabel(String m) {
     switch (m.toLowerCase()) {
-      case 'cash': return 'Taslimu';
-      case 'mobile': return 'Simu';
-      case 'bank': return 'Benki';
-      default: return m;
+      case 'cash':   return 'Taslimu';
+      case 'mobile': return 'M-Pesa / Simu';
+      case 'bank':   return 'Benki';
+      default:       return m;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final double change = (sale.paidTotal - sale.total).clamp(0, double.infinity);
+    final double change      = (sale.paidTotal - sale.total).clamp(0, double.infinity);
     final double outstanding = (sale.total - sale.paidTotal).clamp(0, double.infinity);
-    final dateStr = DateFormat('dd/MM/yyyy  HH:mm').format(sale.createdAt);
+    final dateStr  = DateFormat('dd MMM yyyy').format(sale.createdAt);
+    final timeStr  = DateFormat('HH:mm').format(sale.createdAt);
+    final custName = sale.customerName?.isNotEmpty == true ? sale.customerName! : null;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Torn-edge top
-        Positioned(
-          top: -10,
-          left: 0,
-          right: 0,
-          child: _TornEdge(top: true),
-        ),
-        // Paper body
+        Positioned(top: -10, left: 0, right: 0, child: _TornEdge(top: true)),
         Container(
           width: double.infinity,
           decoration: const BoxDecoration(
@@ -235,164 +207,206 @@ class _ReceiptPaper extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 8),
-                // ── Shop header ──
+
+                // ── Store emblem ──────────────────────────────────────────
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D0D0D),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(height: 10),
                 Text(shopName, style: _shopName, textAlign: TextAlign.center),
                 if (tagline.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(tagline, style: _label.copyWith(fontStyle: FontStyle.italic), textAlign: TextAlign.center),
+                  const SizedBox(height: 3),
+                  Text(tagline,
+                      style: _label.copyWith(fontStyle: FontStyle.italic, letterSpacing: 1),
+                      textAlign: TextAlign.center),
                 ],
-                if (shopAddress.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(shopAddress, style: _label, textAlign: TextAlign.center),
-                ],
-                if (shopPhone.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text('Tel: $shopPhone', style: _label, textAlign: TextAlign.center),
-                ],
-                if (email.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(email, style: _label, textAlign: TextAlign.center),
-                ],
-                if (website.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(website, style: _label, textAlign: TextAlign.center),
-                ],
-                if (showTin && tin.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text('TIN: $tin', style: _label, textAlign: TextAlign.center),
-                ],
-                const SizedBox(height: 10),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text('RISITI YA MAUZO', style: _heading, textAlign: TextAlign.center),
-                const SizedBox(height: 4),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 10),
-
-                // ── Sale meta ──
-                _MetaRow(label: 'Nambari', value: sale.number, bodyStyle: _body, labelStyle: _label),
-                _MetaRow(label: 'Tarehe', value: dateStr, bodyStyle: _body, labelStyle: _label),
-                if (sale.customerId != null)
-                  _MetaRow(label: 'Mteja #', value: '${sale.customerId}', bodyStyle: _body, labelStyle: _label),
-                const SizedBox(height: 8),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-
-                // ── Column headers ──
-                Row(
-                  children: [
-                    Expanded(child: Text('Bidhaa', style: _bodyBold)),
-                    Text('Bei', style: _bodyBold),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(dots, style: _starLine),
-                const SizedBox(height: 4),
-
-                // ── Items ──
-                ...sale.items.map((item) => _ItemRow(item: item, bodyStyle: _body, labelStyle: _label, fmt: _fmt)),
-                const SizedBox(height: 4),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
                 const SizedBox(height: 6),
+                // Contact strip
+                _ContactLine(address: shopAddress, phone: shopPhone,
+                    email: email, website: website, tin: showTin ? tin : ''),
+                const SizedBox(height: 12),
 
-                // ── Subtotal / Discount / Tax ──
-                if (sale.discount > 0)
-                  _AmountRow(label: 'Punguzo', value: '- ${_fmt(sale.discount)}', bodyStyle: _body, labelStyle: _label),
-                if (sale.tax > 0)
-                  _AmountRow(label: 'Kodi (VAT)', value: _fmt(sale.tax), bodyStyle: _body, labelStyle: _label),
-                const SizedBox(height: 4),
+                // ── Receipt title banner ──────────────────────────────────
+                _SectionBanner(label: 'RISITI YA MAUZO'),
+                const SizedBox(height: 12),
 
-                // ── Total ──
-                Row(
-                  children: [
-                    Expanded(child: Text('JUMLA', style: _total)),
-                    Text(_fmt(sale.total), style: _total),
-                  ],
-                ),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-
-                // ── Payment details ──
-                _AmountRow(label: 'Njia ya Malipo', value: _paymentMethod(), bodyStyle: _body, labelStyle: _label),
-                _AmountRow(label: 'Kilicholipwa', value: _fmt(sale.paidTotal), bodyStyle: _bodyBold, labelStyle: _label),
-                if (change > 0)
-                  _AmountRow(label: 'Chenji', value: _fmt(change), bodyStyle: _body, labelStyle: _label),
-                if (outstanding > 0)
-                  _AmountRow(
-                    label: 'Deni linalobaki',
-                    value: _fmt(outstanding),
-                    bodyStyle: _body.copyWith(color: const Color(0xFFC62828)),
-                    labelStyle: _label.copyWith(color: const Color(0xFFC62828)),
-                  ),
-                const SizedBox(height: 6),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-
-                // ── Payment status badge ──
+                // ── Sale meta card ────────────────────────────────────────
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    border: Border.all(color: _statusColor(), width: 1.5),
-                    borderRadius: BorderRadius.circular(4),
+                    color: const Color(0xFFF0F0EE),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    children: [
+                      _MetaPair(
+                        left: _MetaCell(icon: '🧾', label: 'Nambari', value: sale.number),
+                        right: _MetaCell(icon: '📅', label: 'Tarehe', value: dateStr),
+                      ),
+                      const SizedBox(height: 6),
+                      _MetaPair(
+                        left: _MetaCell(icon: '⏰', label: 'Saa', value: timeStr),
+                        right: custName != null
+                            ? _MetaCell(icon: '👤', label: 'Mteja', value: custName)
+                            : _MetaCell(icon: '👤', label: 'Mteja', value: 'Mteja wa kawaida'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // ── Items header ──────────────────────────────────────────
+                Row(children: [
+                  Expanded(child: Text('BIDHAA', style: _body.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 11))),
+                  Text('QTY', style: _label.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: 72, child: Text('JUMLA', style: _label.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+                ]),
+                const SizedBox(height: 4),
+                _DashedDivider(),
+                const SizedBox(height: 4),
+
+                // ── Items ────────────────────────────────────────────────
+                ...sale.items.asMap().entries.map((e) => _ItemRowV2(
+                  item: e.value,
+                  shaded: e.key.isEven,
+                  fmt: _fmt,
+                  body: _body,
+                  label: _label,
+                )),
+                const SizedBox(height: 6),
+                _DashedDivider(),
+
+                // ── Subtotals ─────────────────────────────────────────────
+                if (sale.discount > 0 || sale.tax > 0) ...[
+                  const SizedBox(height: 6),
+                  if (sale.discount > 0)
+                    _TotalsRow(label: 'Punguzo', value: '− TZS ${_fmt(sale.discount)}',
+                        bold: false, color: const Color(0xFFB71C1C)),
+                  if (sale.tax > 0)
+                    _TotalsRow(label: 'Kodi (VAT)', value: 'TZS ${_fmt(sale.tax)}', bold: false),
+                ],
+
+                // ── Grand total ───────────────────────────────────────────
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D0D0D),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('JUMLA YOTE',
+                          style: _total.copyWith(color: Colors.white, fontSize: 14, letterSpacing: 1))),
+                      Text('TZS ${_fmt(sale.total)}',
+                          style: _total.copyWith(color: Colors.white)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // ── Payment section ───────────────────────────────────────
+                _SectionBanner(label: 'MALIPO'),
+                const SizedBox(height: 10),
+                _TotalsRow(label: 'Njia ya Malipo', value: _paymentMethod(), bold: false),
+                _TotalsRow(label: 'Kilicholipwa', value: 'TZS ${_fmt(sale.paidTotal)}', bold: true),
+                if (change > 0)
+                  _TotalsRow(label: 'Chenji', value: 'TZS ${_fmt(change)}', bold: false),
+                if (outstanding > 0) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: const Color(0xFFEF9A9A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text('⚠', style: TextStyle(fontSize: 13)),
+                        const SizedBox(width: 6),
+                        Expanded(child: Text('Deni linalobaki',
+                            style: _label.copyWith(color: const Color(0xFFB71C1C)))),
+                        Text('TZS ${_fmt(outstanding)}',
+                            style: _bodyBold.copyWith(color: const Color(0xFFB71C1C))),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // ── Status stamp ──────────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _statusBg(),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _statusColor().withOpacity(0.4), width: 1.5),
                   ),
                   child: Text(
                     _statusLabel(),
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Courier',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
                       color: _statusColor(),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 14),
-
-                // ── Thank you ──
-                Text('* * ASANTE SANA! * *', style: _thankYou, textAlign: TextAlign.center),
-                const SizedBox(height: 10),
-                if (footerNote.isNotEmpty) ...[
-                  Text(
-                    footerNote,
-                    style: _label.copyWith(fontSize: 10),
-                    textAlign: TextAlign.center,
-                  ),
-                ] else ...[
-                  Text(
-                    'Karibu tena. Bidhaa zilizouzwa\nhaziruhusiwi kurudishwa bila risiti.',
-                    style: _label.copyWith(fontSize: 10),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
                 const SizedBox(height: 16),
 
-                // ── Barcode strip ──
+                // ── Thank you ─────────────────────────────────────────────
+                Text(stars, style: _starLine, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                const Text('★  ASANTE SANA!  ★',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Courier', fontSize: 15,
+                      fontWeight: FontWeight.w900, letterSpacing: 4,
+                      color: Color(0xFF0D0D0D),
+                    )),
+                const SizedBox(height: 8),
+                Text(
+                  footerNote.isNotEmpty
+                      ? footerNote
+                      : 'Karibu tena!\nBidhaa zilizouzwa haziruhusiwi\nkurudishwa bila risiti.',
+                  style: _label.copyWith(fontSize: 10, height: 1.6),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                Text(stars, style: _starLine, textAlign: TextAlign.center),
+
+                // ── Barcode ───────────────────────────────────────────────
                 if (showBarcode) ...[
+                  const SizedBox(height: 16),
                   _BarcodeWidget(data: sale.number),
-                  const SizedBox(height: 6),
-                  Text(sale.number, style: _label.copyWith(letterSpacing: 2), textAlign: TextAlign.center),
-                  const SizedBox(height: 14),
-                ] else ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
+                  Text(sale.number,
+                      style: _label.copyWith(letterSpacing: 3, fontSize: 10),
+                      textAlign: TextAlign.center),
                 ],
+                const SizedBox(height: 14),
               ],
             ),
           ),
         ),
-        // Torn-edge bottom
-        Positioned(
-          bottom: -10,
-          left: 0,
-          right: 0,
-          child: _TornEdge(top: false),
-        ),
+        Positioned(bottom: -10, left: 0, right: 0, child: _TornEdge(top: false)),
       ],
     );
   }
@@ -400,80 +414,193 @@ class _ReceiptPaper extends StatelessWidget {
 
 // ── Supporting widgets ────────────────────────────────────────────────────────
 
-class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.label, required this.value, required this.bodyStyle, required this.labelStyle});
-  final String label;
-  final String value;
-  final TextStyle bodyStyle;
-  final TextStyle labelStyle;
-
+/// Full-width dashed separator.
+class _DashedDivider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          children: [
-            SizedBox(width: 90, child: Text(label, style: labelStyle)),
-            Text(': ', style: labelStyle),
-            Expanded(child: Text(value, style: bodyStyle)),
-          ],
-        ),
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size(double.infinity, 1),
+        painter: _DashedPainter(),
       );
 }
 
-class _ItemRow extends StatelessWidget {
-  const _ItemRow({required this.item, required this.bodyStyle, required this.labelStyle, required this.fmt});
+class _DashedPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFCCCCCC)
+      ..strokeWidth = 1;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + 5, 0), paint);
+      x += 9;
+    }
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Bold section banner with side rules.
+class _SectionBanner extends StatelessWidget {
+  const _SectionBanner({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Courier', fontSize: 11,
+                fontWeight: FontWeight.w900, letterSpacing: 3,
+                color: Color(0xFF0D0D0D),
+              ),
+            ),
+          ),
+          const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+        ],
+      );
+}
+
+/// Compact contact line under shop name.
+class _ContactLine extends StatelessWidget {
+  const _ContactLine({required this.address, required this.phone,
+      required this.email, required this.website, required this.tin});
+  final String address, phone, email, website, tin;
+
+  @override
+  Widget build(BuildContext context) {
+    const ts = TextStyle(
+      fontFamily: 'Courier', fontSize: 10, color: Color(0xFF555555), height: 1.6,
+    );
+    final parts = [
+      if (address.isNotEmpty) address,
+      if (phone.isNotEmpty) 'Tel: $phone',
+      if (email.isNotEmpty) email,
+      if (website.isNotEmpty) website,
+      if (tin.isNotEmpty) 'TIN: $tin',
+    ];
+    return Column(
+      children: parts.map((p) => Text(p, style: ts, textAlign: TextAlign.center)).toList(),
+    );
+  }
+}
+
+/// Two-column meta cell pair.
+class _MetaPair extends StatelessWidget {
+  const _MetaPair({required this.left, required this.right});
+  final Widget left, right;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(child: left),
+          const SizedBox(width: 8),
+          Expanded(child: right),
+        ],
+      );
+}
+
+/// Single labelled meta cell with emoji icon.
+class _MetaCell extends StatelessWidget {
+  const _MetaCell({required this.icon, required this.label, required this.value});
+  final String icon, label, value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$icon  $label',
+              style: const TextStyle(fontFamily: 'Courier', fontSize: 9,
+                  color: Color(0xFF888888), letterSpacing: 0.5)),
+          Text(value,
+              style: const TextStyle(fontFamily: 'Courier', fontSize: 11,
+                  fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+              overflow: TextOverflow.ellipsis),
+        ],
+      );
+}
+
+/// Alternating-shaded item row with qty pill.
+class _ItemRowV2 extends StatelessWidget {
+  const _ItemRowV2({required this.item, required this.shaded,
+      required this.fmt, required this.body, required this.label});
   final InvSaleItem item;
-  final TextStyle bodyStyle;
-  final TextStyle labelStyle;
+  final bool shaded;
   final String Function(double) fmt;
+  final TextStyle body, label;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Container(
+        color: shaded ? const Color(0xFFF4F4F2) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    item.name,
-                    style: bodyStyle.copyWith(fontWeight: FontWeight.w600),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(fmt(item.total), style: bodyStyle),
-              ],
+            // Name + unit price
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name,
+                      style: body.copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text('@ TZS ${fmt(item.unitPrice)}',
+                      style: label.copyWith(fontSize: 10)),
+                ],
+              ),
             ),
-            Text(
-              '  ${item.qty} x ${fmt(item.unitPrice)}',
-              style: labelStyle,
+            // Qty pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text('×${item.qty}',
+                  style: const TextStyle(fontFamily: 'Courier',
+                      fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 10),
+            // Line total
+            SizedBox(
+              width: 72,
+              child: Text('TZS ${fmt(item.total)}',
+                  style: body.copyWith(fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.right),
             ),
           ],
         ),
       );
 }
 
-class _AmountRow extends StatelessWidget {
-  const _AmountRow({required this.label, required this.value, required this.bodyStyle, required this.labelStyle});
-  final String label;
-  final String value;
-  final TextStyle bodyStyle;
-  final TextStyle labelStyle;
+/// Label + value totals row.
+class _TotalsRow extends StatelessWidget {
+  const _TotalsRow({required this.label, required this.value,
+      required this.bold, this.color});
+  final String label, value;
+  final bool bold;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: labelStyle)),
-            Text(value, style: bodyStyle),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    final c = color ?? const Color(0xFF1A1A1A);
+    final ts = TextStyle(fontFamily: 'Courier', fontSize: 12,
+        fontWeight: bold ? FontWeight.w800 : FontWeight.w400,
+        color: c, height: 1.6);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: ts.copyWith(
+              color: const Color(0xFF555555), fontWeight: FontWeight.w400))),
+          Text(value, style: ts),
+        ],
+      ),
+    );
+  }
 }
 
 /// Simulated barcode using narrow/wide alternating rectangles.
