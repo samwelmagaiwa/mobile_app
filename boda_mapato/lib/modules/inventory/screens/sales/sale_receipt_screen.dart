@@ -140,7 +140,7 @@ class _ReceiptPaper extends StatelessWidget {
     color: Color(0xFF0D0D0D), height: 1.4,
   );
   static const TextStyle _starLine = TextStyle(
-    fontFamily: 'Courier', fontSize: 10, color: Color(0xFF777777), letterSpacing: 1,
+    fontFamily: 'Courier', fontSize: 10, color: Color(0xFF444444), letterSpacing: 1,
   );
 
   // Whole-number TZS format (no cents)
@@ -239,37 +239,35 @@ class _ReceiptPaper extends StatelessWidget {
                 _SectionBanner(label: 'RISITI YA MAUZO'),
                 const SizedBox(height: 12),
 
-                // ── Customer name banner (when known) ────────────────────
-                if (custName != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D0D0D),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('👤', style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            custName.toUpperCase(),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontFamily: 'Courier', fontSize: 13,
-                              fontWeight: FontWeight.w900, letterSpacing: 2,
-                              color: Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                // ── Customer name banner (always shown) ─────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: custName != null ? const Color(0xFF0D0D0D) : const Color(0xFF3A3A3A),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  const SizedBox(height: 10),
-                ],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('👤', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          custName != null ? custName.toUpperCase() : 'MTEJA WA JUMLA',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Courier', fontSize: 13,
+                            fontWeight: FontWeight.w900, letterSpacing: 2,
+                            color: custName != null ? Colors.white : const Color(0xFFCCCCCC),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
 
                 // ── Sale meta card ────────────────────────────────────────
                 Container(
@@ -549,11 +547,11 @@ class _MetaCell extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('$icon  $label',
-              style: const TextStyle(fontFamily: 'Courier', fontSize: 9,
-                  color: Color(0xFF555555), letterSpacing: 0.5)),
-          Text(value,
               style: const TextStyle(fontFamily: 'Courier', fontSize: 11,
-                  fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D)),
+                  color: Color(0xFF222222), letterSpacing: 0.3, fontWeight: FontWeight.w600)),
+          Text(value,
+              style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
+                  fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D)),
               overflow: TextOverflow.ellipsis),
         ],
       );
@@ -639,32 +637,41 @@ class _TotalsRow extends StatelessWidget {
   }
 }
 
-/// Simulated barcode using narrow/wide alternating rectangles.
+/// Simulated barcode — full width, narrow height, deterministic from sale number.
 class _BarcodeWidget extends StatelessWidget {
   const _BarcodeWidget({required this.data});
   final String data;
 
   @override
-  Widget build(BuildContext context) {
-    final rng = math.Random(data.hashCode);
-    final bars = List.generate(52, (i) => rng.nextDouble() > 0.5 ? 1.8 : 0.9);
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (_, constraints) {
+          final availableWidth = constraints.maxWidth;
+          // Each bar unit is ~1.2px wide; fill the full width with groups of black+white
+          const unitW = 1.2;
+          final groupCount = (availableWidth / (unitW * 3)).floor();
+          final rng = math.Random(data.hashCode);
+          // Build alternating black (narrow/wide) and white (gap) segments
+          final segments = <MapEntry<double, bool>>[];
+          for (int i = 0; i < groupCount; i++) {
+            final barW = rng.nextDouble() > 0.5 ? unitW * 2 : unitW;
+            final gapW = unitW;
+            segments.add(MapEntry(barW, true));
+            segments.add(MapEntry(gapW, false));
+          }
 
-    return SizedBox(
-      height: 52,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: bars.asMap().entries.map((e) {
-          final isBar = e.key % 2 == 0;
-          return Container(
-            width: e.value,
-            margin: const EdgeInsets.symmetric(horizontal: 0.4),
-            color: isBar ? const Color(0xFF1A1A1A) : Colors.transparent,
+          return SizedBox(
+            height: 38,
+            width: availableWidth,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: segments.map((e) => Container(
+                width: e.key,
+                color: e.value ? const Color(0xFF1A1A1A) : Colors.transparent,
+              )).toList(),
+            ),
           );
-        }).toList(),
-      ),
-    );
-  }
+        },
+      );
 }
 
 /// Torn paper edge — top or bottom.
