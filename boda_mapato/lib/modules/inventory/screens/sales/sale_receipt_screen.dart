@@ -270,14 +270,9 @@ class _ReceiptPaper extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // ── Sale meta card ────────────────────────────────────────
-                Container(
+                // ── Sale meta card (transparent) ─────────────────────────
+                SizedBox(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0EE),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
                   child: Column(
                     children: [
                       _MetaPair(
