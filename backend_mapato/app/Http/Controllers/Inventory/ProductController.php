@@ -79,6 +79,7 @@ class ProductController extends Controller
             'min_stock' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
             'barcode' => 'nullable|string|max:255',
+            'price_tier' => 'nullable|in:retail,wholesale',
         ]);
 
         $created = DB::transaction(function () use ($data, $request) {
@@ -113,9 +114,10 @@ class ProductController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $priceTier = $data['price_tier'] ?? 'retail';
             DB::table('inventory_product_prices')->insert([
                 'product_unit_id' => $unitId,
-                'tier' => 'retail',
+                'tier' => $priceTier,
                 'customer_id' => null,
                 'price' => $data['selling_price'],
                 'effective_from' => now()->toDateString(),
@@ -125,7 +127,7 @@ class ProductController extends Controller
             ]);
             DB::table('inventory_price_changes')->insert([
                 'product_unit_id' => $unitId,
-                'tier' => 'retail',
+                'tier' => $priceTier,
                 'customer_id' => null,
                 'old_price' => null,
                 'new_price' => $data['selling_price'],

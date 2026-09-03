@@ -26,15 +26,19 @@ class InvProductPrice {
 
   factory InvProductPrice.fromJson(Map<String, dynamic> json) =>
       InvProductPrice(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        productUnitId: (json['product_unit_id'] as num?)?.toInt() ?? 0,
+        id: _toInt(json['id']),
+        productUnitId: _toInt(json['product_unit_id']),
         tier: InvPriceTierX.parse((json['tier'] ?? 'retail').toString()),
-        price: (json['price'] as num?)?.toDouble() ??
-            double.tryParse('${json['price']}') ??
-            0,
-        customerId: (json['customer_id'] as num?)?.toInt(),
+        price: _toDouble(json['price']),
+        customerId: json['customer_id'] == null ? null : _toInt(json['customer_id']),
         effectiveFrom: DateTime.tryParse('${json['effective_from']}'),
       );
+
+  static int _toInt(dynamic v) =>
+      v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+
+  static double _toDouble(dynamic v) =>
+      v is num ? v.toDouble() : double.tryParse('$v') ?? 0.0;
 
   final int id;
   final int productUnitId;
@@ -64,10 +68,10 @@ class InvProductUnit {
         (json['prices'] is List) ? json['prices'] as List<dynamic> : const [];
 
     return InvProductUnit(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      productId: (json['product_id'] as num?)?.toInt() ?? 0,
+      id: InvProductPrice._toInt(json['id']),
+      productId: InvProductPrice._toInt(json['product_id']),
       name: (json['name'] ?? '').toString(),
-      factor: (json['factor'] as num?)?.toInt() ?? 1,
+      factor: InvProductPrice._toInt(json['factor'] == null ? 1 : json['factor']),
       isBase: json['is_base'] == true || json['is_base'] == 1,
       barcode: (json['barcode'] ?? '').toString(),
       status: (json['status'] ?? 'active').toString(),

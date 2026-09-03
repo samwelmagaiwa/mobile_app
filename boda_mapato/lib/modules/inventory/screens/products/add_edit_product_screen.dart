@@ -870,6 +870,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             unit: _unit,
             status: _active ? 'active' : 'inactive',
             barcode: barcode,
+            priceTier: _isRetail ? 'retail' : 'wholesale',
           );
 
     if (!mounted) return;

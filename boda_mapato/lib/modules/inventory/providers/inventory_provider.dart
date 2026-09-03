@@ -1,4 +1,4 @@
-// ignore_for_file: cascade_invocations
+﻿// ignore_for_file: cascade_invocations
 import 'dart:async';
 import 'dart:math';
 
@@ -18,9 +18,6 @@ import '../models/inv_sale.dart';
 
 class InventoryProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
-  // Enable mock data fallback for UI development (no backend needed)
-  final bool _mockEnabled = true;
-  final Random _rng = Random(42);
 
   // Data
   final List<InvProduct> _products = <InvProduct>[];
@@ -251,7 +248,7 @@ class InventoryProvider extends ChangeNotifier {
       }
     }
     if (totals.isEmpty) {
-      return _products.isNotEmpty ? _products.first.name : '—';
+      return _products.isNotEmpty ? _products.first.name : 'â€”';
     }
     int bestId = totals.keys.first;
     double best = totals[bestId] ?? 0;
@@ -266,7 +263,7 @@ class InventoryProvider extends ChangeNotifier {
             ? _products.first
             : InvProduct(
                 id: 0,
-                name: '—',
+                name: 'â€”',
                 sku: '',
                 category: '',
                 costPrice: 0,
@@ -287,12 +284,6 @@ class InventoryProvider extends ChangeNotifier {
       fetchSales(),
       fetchCategories(),
     ]);
-    if (_mockEnabled) {
-      if (_products.isEmpty) _seedMockProducts();
-      if (_customers.isEmpty) _seedMockCustomers();
-      if (_sales.isEmpty) _seedMockSales();
-      if (_categories.isEmpty) _seedMockCategories();
-    }
     _recomputeCategoryProductTotals();
     _refreshLowStockReminders();
     _refreshPaymentDueReminders();
@@ -324,13 +315,7 @@ class InventoryProvider extends ChangeNotifier {
       _refreshLowStockReminders();
       return true;
     } on Exception {
-      // Mock fallback: update local product quantity
-      final int idx = _products.indexWhere((p) => p.id == productId);
-      if (!_mockEnabled || idx == -1) return false;
-      _products[idx].quantity += qty.abs();
-      _refreshLowStockReminders();
-      notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -352,14 +337,7 @@ class InventoryProvider extends ChangeNotifier {
       _refreshLowStockReminders();
       return true;
     } on Exception {
-      // Mock fallback: decrease local product quantity (no negatives)
-      final int idx = _products.indexWhere((p) => p.id == productId);
-      if (!_mockEnabled || idx == -1) return false;
-      if (_products[idx].quantity - qty.abs() < 0) return false;
-      _products[idx].quantity -= qty.abs();
-      _refreshLowStockReminders();
-      notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -392,10 +370,6 @@ class InventoryProvider extends ChangeNotifier {
         // try next endpoint, then fall back to mock below
       }
     }
-    if (_mockEnabled && _products.isEmpty) {
-      _seedMockProducts();
-      notifyListeners();
-    }
   }
 
   Future<bool> createProduct({
@@ -412,6 +386,7 @@ class InventoryProvider extends ChangeNotifier {
     String unit = 'pcs',
     String status = 'active',
     String? barcode,
+    String priceTier = 'retail',
   }) async {
     try {
       await _api.post('/inventory/products', {
@@ -428,30 +403,13 @@ class InventoryProvider extends ChangeNotifier {
         'min_stock': minStock,
         'status': status,
         'barcode': barcode,
+        'price_tier': priceTier,
       });
       await fetchProducts();
       _refreshLowStockReminders();
       return true;
     } on Exception {
-      if (!_mockEnabled) return false;
-      final int id = _nextProductId();
-      _products.add(InvProduct(
-        id: id,
-        name: name,
-        sku: sku,
-        category: category ?? '',
-        costPrice: costPrice,
-        sellingPrice: sellingPrice,
-        unit: unit,
-        quantity: quantity,
-        minStock: minStock,
-        status: status,
-        barcode: barcode ?? '',
-        createdBy: 1,
-      ));
-      _refreshLowStockReminders();
-      notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -530,10 +488,6 @@ class InventoryProvider extends ChangeNotifier {
         // try next endpoint, then fall back to mock below
       }
     }
-    if (_mockEnabled && _customers.isEmpty) {
-      _seedMockCustomers();
-      notifyListeners();
-    }
   }
 
   Future<void> fetchSales(
@@ -571,12 +525,6 @@ class InventoryProvider extends ChangeNotifier {
       } on Exception {
         // try next endpoint, then fall back to mock below
       }
-    }
-    if (_mockEnabled && _sales.isEmpty) {
-      _seedMockSales();
-      _refreshLowStockReminders();
-      _refreshPaymentDueReminders();
-      notifyListeners();
     }
   }
 
@@ -634,8 +582,7 @@ class InventoryProvider extends ChangeNotifier {
 
   Future<(bool, String)> cancelSale(int id, String reason) async {
     try {
-      await _api.post('/inventory/sales/$id/cancel', {'reason': reason})
-          .timeout(const Duration(seconds: 15));
+      await _api.post('/inventory/sales/$id/cancel', {'reason': reason});
       await fetchSales();
       return (true, 'cancelled');
     } on Exception catch (_) {
@@ -649,7 +596,7 @@ class InventoryProvider extends ChangeNotifier {
       await _api.post('/inventory/sales/$id/payments', {
         'amount': amount,
         'method': method,
-      }).timeout(const Duration(seconds: 15));
+      });
       await fetchSales();
       return (true, 'payment_recorded');
     } on Exception catch (_) {
@@ -674,11 +621,7 @@ class InventoryProvider extends ChangeNotifier {
           : null;
       return id;
     } on Exception {
-      if (!_mockEnabled) return null;
-      final int id = _nextCustomerId();
-      _customers.add(InvCustomer(id: id, name: name, phone: phone));
-      notifyListeners();
-      return id;
+      return null;
     }
   }
 
@@ -693,15 +636,7 @@ class InventoryProvider extends ChangeNotifier {
     try {
       final res = await _api.getOrNull(
           qs.isNotEmpty ? '/inventory/reminders?$qs' : '/inventory/reminders');
-      if (res == null) {
-        if (_mockEnabled) {
-          _reminders.clear();
-          _refreshLowStockReminders();
-          _refreshPaymentDueReminders();
-          notifyListeners();
-        }
-        return;
-      }
+      if (res == null) return;
       final List<dynamic> list = (res['data'] is List)
           ? List<dynamic>.from(res['data'] as List)
           : (res is List)
@@ -712,13 +647,7 @@ class InventoryProvider extends ChangeNotifier {
         ..addAll(list.map((j) => _fromReminderJson(j as Map<String, dynamic>)));
       notifyListeners();
     } on Exception {
-      if (_mockEnabled) {
-        // Rebuild local reminders from current products/sales
-        _reminders.clear();
-        _refreshLowStockReminders();
-        _refreshPaymentDueReminders();
-        notifyListeners();
-      }
+      // silently keep existing reminders
     }
   }
 
@@ -844,9 +773,8 @@ class InventoryProvider extends ChangeNotifier {
     };
 
     try {
-      // 15s is enough — fail fast rather than hanging the UI.
-      await _api.post('/inventory/sales', payload)
-          .timeout(const Duration(seconds: 15));
+      // 15s is enough â€” fail fast rather than hanging the UI.
+      await _api.post('/inventory/sales', payload);
 
       // Clear cart immediately so the UI feels instant.
       _cart.clear();
@@ -855,7 +783,7 @@ class InventoryProvider extends ChangeNotifier {
       _paidAmount = 0;
       notifyListeners();
 
-      // Refresh data in the background — don't block the return.
+      // Refresh data in the background â€” don't block the return.
       Future.wait([
         fetchSales(),
         fetchProducts(),
@@ -867,7 +795,7 @@ class InventoryProvider extends ChangeNotifier {
 
       return (true, 'success');
     } on Exception catch (_) {
-      // Never fall back to mock on checkout — a fake-success loses real sales.
+      // Never fall back to mock on checkout â€” a fake-success loses real sales.
       return (false, 'checkout_failed');
     }
   }
@@ -934,266 +862,7 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  // Mock seeding helpers
-  void _seedMockProducts() {
-    if (_products.isNotEmpty) return;
-    final data = <InvProduct>[
-      InvProduct(
-          id: 1,
-          name: 'Dog Kibble 2.5KG',
-          sku: 'DK-25',
-          category: 'Food & treats',
-          costPrice: 18000,
-          sellingPrice: 25000,
-          unit: 'kg',
-          quantity: 12,
-          minStock: 5,
-          status: 'active',
-          barcode: '000111222333',
-          createdBy: 1),
-      InvProduct(
-          id: 2,
-          name: 'Wet Food Can 400g',
-          sku: 'WF-400',
-          category: 'Food & treats',
-          costPrice: 3200,
-          sellingPrice: 5000,
-          unit: 'pcs',
-          quantity: 60,
-          minStock: 20,
-          status: 'active',
-          barcode: '000111222334',
-          createdBy: 1),
-      InvProduct(
-          id: 3,
-          name: 'Grooming Brush',
-          sku: 'GR-BR',
-          category: 'Grooming',
-          costPrice: 7000,
-          sellingPrice: 12000,
-          unit: 'pcs',
-          quantity: 8,
-          minStock: 10,
-          status: 'active',
-          barcode: '000111222335',
-          createdBy: 1),
-      InvProduct(
-          id: 4,
-          name: 'Cat Litter 10KG',
-          sku: 'CL-10',
-          category: 'Hygiene',
-          costPrice: 19000,
-          sellingPrice: 28000,
-          unit: 'kg',
-          quantity: 14,
-          minStock: 6,
-          status: 'active',
-          barcode: '000111222336',
-          createdBy: 1),
-      InvProduct(
-          id: 5,
-          name: 'Leash & Collar Set',
-          sku: 'LC-SET',
-          category: 'Toys collar & Leads',
-          costPrice: 8000,
-          sellingPrice: 15000,
-          unit: 'pcs',
-          quantity: 5,
-          minStock: 6,
-          status: 'active',
-          barcode: '000111222337',
-          createdBy: 1),
-      InvProduct(
-          id: 6,
-          name: 'Pet Shampoo 500ml',
-          sku: 'PS-500',
-          category: 'Grooming',
-          costPrice: 6000,
-          sellingPrice: 10000,
-          unit: 'litre',
-          quantity: 25,
-          minStock: 10,
-          status: 'active',
-          barcode: '000111222338',
-          createdBy: 1),
-      InvProduct(
-          id: 7,
-          name: 'Chew Toy - Bone',
-          sku: 'CT-BONE',
-          category: 'Toys',
-          costPrice: 2000,
-          sellingPrice: 4500,
-          unit: 'pcs',
-          quantity: 35,
-          minStock: 10,
-          status: 'active',
-          barcode: '000111222339',
-          createdBy: 1),
-      InvProduct(
-          id: 8,
-          name: 'Dental Treats (Box)',
-          sku: 'DT-BOX',
-          category: 'Food & treats',
-          costPrice: 15000,
-          sellingPrice: 22000,
-          unit: 'box',
-          quantity: 9,
-          minStock: 8,
-          status: 'active',
-          barcode: '000111222340',
-          createdBy: 1),
-      InvProduct(
-          id: 9,
-          name: 'Catnip 50g',
-          sku: 'CN-50',
-          category: 'Toys',
-          costPrice: 2500,
-          sellingPrice: 4000,
-          unit: 'pcs',
-          quantity: 16,
-          minStock: 5,
-          status: 'active',
-          barcode: '000111222341',
-          createdBy: 1),
-      InvProduct(
-          id: 10,
-          name: 'Dog Jacket - M',
-          sku: 'DJ-M',
-          category: 'Feeding & clothing',
-          costPrice: 22000,
-          sellingPrice: 35000,
-          unit: 'pcs',
-          quantity: 3,
-          minStock: 5,
-          status: 'active',
-          barcode: '000111222342',
-          createdBy: 1),
-      InvProduct(
-          id: 11,
-          name: 'Stainless Bowl 1L',
-          sku: 'SB-1L',
-          category: 'Feeding & clothing',
-          costPrice: 5000,
-          sellingPrice: 9000,
-          unit: 'pcs',
-          quantity: 22,
-          minStock: 8,
-          status: 'active',
-          barcode: '000111222343',
-          createdBy: 1),
-      InvProduct(
-          id: 12,
-          name: 'Fish Snacks 100g',
-          sku: 'FS-100',
-          category: 'Treats',
-          costPrice: 1500,
-          sellingPrice: 3000,
-          unit: 'pcs',
-          quantity: 0,
-          minStock: 10,
-          status: 'active',
-          barcode: '000111222344',
-          createdBy: 1),
-    ];
-    _products
-      ..clear()
-      ..addAll(data);
-  }
-
-  void _seedMockCustomers() {
-    if (_customers.isNotEmpty) return;
-    _customers
-      ..clear()
-      ..addAll([
-        InvCustomer(id: 1, name: 'John Doe', phone: '+255700111222'),
-        InvCustomer(id: 2, name: 'Jane Smith', phone: '+255710333444'),
-        InvCustomer(id: 3, name: 'Pet Palace Ltd', phone: '+255784555666'),
-        InvCustomer(id: 4, name: 'Happy Tails', phone: '+255713777888'),
-      ]);
-  }
-
-  void _seedMockSales() {
-    if (_sales.isNotEmpty) return;
-    if (_products.isEmpty) _seedMockProducts();
-    if (_customers.isEmpty) _seedMockCustomers();
-    final now = DateTime.now();
-    final List<InvSale> seeded = [];
-    int id = 1;
-    for (int i = 0; i < 24; i++) {
-      final date = now.subtract(Duration(days: _rng.nextInt(28)));
-      final int itemsCount = 1 + _rng.nextInt(3);
-      final items = <InvSaleItem>[];
-      double subtotal = 0;
-      for (int j = 0; j < itemsCount; j++) {
-        final p = _products[_rng.nextInt(_products.length)];
-        final qty = 1 + _rng.nextInt(4);
-        items.add(InvSaleItem(
-            productId: p.id,
-            name: p.name,
-            qty: qty,
-            unitPrice: p.sellingPrice,
-            unitCostSnapshot: p.costPrice));
-        subtotal += qty * p.sellingPrice;
-      }
-      const discount = 0.0;
-      const tax = 0.0;
-      final total = subtotal - discount + tax;
-      final r = _rng.nextDouble();
-      String status;
-      double paid = 0;
-      DateTime? due;
-      if (r < 0.7) {
-        status = 'paid';
-        paid = total;
-      } else if (r < 0.85) {
-        status = 'partial';
-        paid = total * 0.5;
-        due = date.add(const Duration(days: 7));
-      } else {
-        status = 'debt';
-        paid = 0;
-        due = date.add(const Duration(days: 7));
-      }
-      seeded.add(InvSale(
-        id: id,
-        number: _mockSaleNumber(id),
-        customerId: _customers[_rng.nextInt(_customers.length)].id,
-        paymentStatus: status,
-        items: items,
-        subtotal: subtotal,
-        discount: discount,
-        tax: tax,
-        total: total,
-        paidTotal: paid,
-        dueDate: due,
-        createdBy: 1,
-        createdAt: date,
-      ));
-      id++;
-    }
-    _sales
-      ..clear()
-      ..addAll(seeded);
-  }
-
-  String _mockSaleNumber(int id) {
-    final d = DateTime.now();
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return 'S-$y$m$day-$id';
-  }
-
-  int _nextProductId() =>
-      _products.isEmpty ? 1 : (_products.map((p) => p.id).reduce(max) + 1);
-  int _nextCustomerId() =>
-      _customers.isEmpty ? 1 : (_customers.map((c) => c.id).reduce(max) + 1);
-  int _nextSaleId() =>
-      _sales.isEmpty ? 1 : (_sales.map((s) => s.id).reduce(max) + 1);
-  int _nextCategoryId() =>
-      _categories.isEmpty ? 1 : (_categories.map((c) => c.id).reduce(max) + 1);
-
-  // Categories API + mock
+  // Categories API
   Future<void> fetchCategories({String? q, String? status}) async {
     final params = <String, String>{
       if (q != null && q.isNotEmpty) 'q': q,
@@ -1230,12 +899,6 @@ class InventoryProvider extends ChangeNotifier {
         // try next endpoint, then fall back to mock below
       }
     }
-    if (_mockEnabled && _categories.isEmpty) {
-      _seedMockCategories();
-      _recomputeCategoryProductTotals();
-      _ensureCategoryCodes();
-      notifyListeners();
-    }
   }
 
   Future<int?> createCategory({
@@ -1264,25 +927,7 @@ class InventoryProvider extends ChangeNotifier {
           : null;
       return id;
     } on Exception {
-      if (!_mockEnabled) return null;
-      final id = _nextCategoryId();
-      _categories.add(InvCategory(
-        id: id,
-        name: name,
-        code: newCode,
-        description: description,
-        parentId: parentId,
-        imagePath: imagePath,
-        status: status,
-        totalProducts: 0,
-        createdBy: createdBy,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ));
-      _recomputeCategoryProductTotals();
-      _ensureCategoryCodes();
-      notifyListeners();
-      return id;
+      return null;
     }
   }
 
@@ -1308,22 +953,7 @@ class InventoryProvider extends ChangeNotifier {
       await fetchCategories();
       return true;
     } on Exception {
-      if (!_mockEnabled) return false;
-      final idx = _categories.indexWhere((c) => c.id == id);
-      if (idx == -1) return false;
-      final c = _categories[idx];
-      _categories[idx] = c.copyWith(
-        name: name ?? c.name,
-        code: code ?? c.code,
-        description: description ?? c.description,
-        parentId: payload.containsKey('parent_id') ? parentId : c.parentId,
-        imagePath: imagePath ?? c.imagePath,
-        status: status ?? c.status,
-        updatedAt: DateTime.now(),
-      );
-      _recomputeCategoryProductTotals();
-      notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -1332,10 +962,7 @@ class InventoryProvider extends ChangeNotifier {
     if (idx == -1) return;
     final newStatus =
         _categories[idx].status == 'active' ? 'inactive' : 'active';
-    final ok = await updateCategory(id: id, status: newStatus);
-    if (!ok && _mockEnabled) {
-      // already toggled by updateCategory in mock path
-    }
+    await updateCategory(id: id, status: newStatus);
   }
 
   void _recomputeCategoryProductTotals() {
@@ -1350,88 +977,6 @@ class InventoryProvider extends ChangeNotifier {
       final count = countByName[c.name.trim()] ?? 0;
       _categories[i] = c.copyWith(totalProducts: count);
     }
-  }
-
-  void _seedMockCategories() {
-    if (_categories.isNotEmpty) return;
-    final now = DateTime.now();
-    final data = <InvCategory>[
-      InvCategory(
-          id: 1,
-          name: 'Food & treats',
-          code: 'CAT001',
-          description: 'Edibles and treats for pets',
-          parentId: null,
-          imagePath: null,
-          status: 'active',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-      InvCategory(
-          id: 2,
-          name: 'Feeding & clothing',
-          code: 'CAT002',
-          description: 'Bowls, feeders and clothing',
-          parentId: null,
-          imagePath: null,
-          status: 'active',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-      InvCategory(
-          id: 3,
-          name: 'Grooming',
-          code: 'CAT003',
-          description: 'Shampoos and grooming tools',
-          parentId: null,
-          imagePath: null,
-          status: 'active',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-      InvCategory(
-          id: 4,
-          name: 'Toys collar & Leads',
-          code: 'CAT004',
-          description: 'Toys and accessories',
-          parentId: null,
-          imagePath: null,
-          status: 'active',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-      InvCategory(
-          id: 5,
-          name: 'Hygiene',
-          code: 'CAT005',
-          description: 'Litter and hygiene',
-          parentId: null,
-          imagePath: null,
-          status: 'inactive',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-      InvCategory(
-          id: 6,
-          name: 'Treats',
-          code: 'CAT006',
-          description: 'Snacks and rewards',
-          parentId: 1,
-          imagePath: null,
-          status: 'active',
-          totalProducts: 0,
-          createdBy: 1,
-          createdAt: now,
-          updatedAt: now),
-    ];
-    _categories
-      ..clear()
-      ..addAll(data);
   }
 
   // Generate category code like ABC001 from name
