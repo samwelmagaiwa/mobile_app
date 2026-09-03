@@ -129,7 +129,7 @@ class _ReceiptPaper extends StatelessWidget {
     color: Color(0xFF1A1A1A), height: 1.55,
   );
   static const TextStyle _label = TextStyle(
-    fontFamily: 'Courier', fontSize: 11, color: Color(0xFF666666), height: 1.5,
+    fontFamily: 'Courier', fontSize: 11, color: Color(0xFF333333), height: 1.5,
   );
   static const TextStyle _shopName = TextStyle(
     fontFamily: 'Courier', fontSize: 22, fontWeight: FontWeight.w900,
@@ -140,7 +140,7 @@ class _ReceiptPaper extends StatelessWidget {
     color: Color(0xFF0D0D0D), height: 1.4,
   );
   static const TextStyle _starLine = TextStyle(
-    fontFamily: 'Courier', fontSize: 10, color: Color(0xFFAAAAAA), letterSpacing: 1,
+    fontFamily: 'Courier', fontSize: 10, color: Color(0xFF777777), letterSpacing: 1,
   );
 
   // Whole-number TZS format (no cents)
@@ -239,6 +239,38 @@ class _ReceiptPaper extends StatelessWidget {
                 _SectionBanner(label: 'RISITI YA MAUZO'),
                 const SizedBox(height: 12),
 
+                // ── Customer name banner (when known) ────────────────────
+                if (custName != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D0D0D),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('👤', style: TextStyle(fontSize: 14)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            custName.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Courier', fontSize: 13,
+                              fontWeight: FontWeight.w900, letterSpacing: 2,
+                              color: Colors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
                 // ── Sale meta card ────────────────────────────────────────
                 Container(
                   width: double.infinity,
@@ -256,9 +288,12 @@ class _ReceiptPaper extends StatelessWidget {
                       const SizedBox(height: 6),
                       _MetaPair(
                         left: _MetaCell(icon: '⏰', label: 'Saa', value: timeStr),
-                        right: custName != null
-                            ? _MetaCell(icon: '👤', label: 'Mteja', value: custName)
-                            : _MetaCell(icon: '👤', label: 'Mteja', value: 'Mteja wa kawaida'),
+                        right: _MetaCell(
+                          icon: '💳',
+                          label: 'Hali ya Malipo',
+                          value: sale.paymentStatus == 'paid' ? 'Imelipwa' :
+                                 sale.paymentStatus == 'debt' ? 'Deni' : 'Sehemu',
+                        ),
                       ),
                     ],
                   ),
@@ -386,7 +421,7 @@ class _ReceiptPaper extends StatelessWidget {
                   footerNote.isNotEmpty
                       ? footerNote
                       : 'Karibu tena!\nBidhaa zilizouzwa haziruhusiwi\nkurudishwa bila risiti.',
-                  style: _label.copyWith(fontSize: 10, height: 1.6),
+                  style: _label.copyWith(fontSize: 11, height: 1.7, color: const Color(0xFF2A2A2A)),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 14),
@@ -398,7 +433,8 @@ class _ReceiptPaper extends StatelessWidget {
                   _BarcodeWidget(data: sale.number),
                   const SizedBox(height: 5),
                   Text(sale.number,
-                      style: _label.copyWith(letterSpacing: 3, fontSize: 10),
+                      style: _label.copyWith(letterSpacing: 3, fontSize: 10,
+                          color: const Color(0xFF333333)),
                       textAlign: TextAlign.center),
                 ],
                 const SizedBox(height: 14),
@@ -473,7 +509,7 @@ class _ContactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const ts = TextStyle(
-      fontFamily: 'Courier', fontSize: 10, color: Color(0xFF555555), height: 1.6,
+      fontFamily: 'Courier', fontSize: 10, color: Color(0xFF2A2A2A), height: 1.6,
     );
     final parts = [
       if (address.isNotEmpty) address,
@@ -514,10 +550,10 @@ class _MetaCell extends StatelessWidget {
         children: [
           Text('$icon  $label',
               style: const TextStyle(fontFamily: 'Courier', fontSize: 9,
-                  color: Color(0xFF888888), letterSpacing: 0.5)),
+                  color: Color(0xFF555555), letterSpacing: 0.5)),
           Text(value,
               style: const TextStyle(fontFamily: 'Courier', fontSize: 11,
-                  fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                  fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D)),
               overflow: TextOverflow.ellipsis),
         ],
       );
@@ -548,7 +584,7 @@ class _ItemRowV2 extends StatelessWidget {
                       style: body.copyWith(fontWeight: FontWeight.w700, fontSize: 12),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                   Text('@ TZS ${fmt(item.unitPrice)}',
-                      style: label.copyWith(fontSize: 10)),
+                      style: label.copyWith(fontSize: 10, color: const Color(0xFF444444))),
                 ],
               ),
             ),
@@ -595,7 +631,7 @@ class _TotalsRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label, style: ts.copyWith(
-              color: const Color(0xFF555555), fontWeight: FontWeight.w400))),
+              color: const Color(0xFF2A2A2A), fontWeight: FontWeight.w600))),
           Text(value, style: ts),
         ],
       ),
