@@ -376,6 +376,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     SizedBox(height: 8.h),
                     _twoCol(
                       left: _input('Barcode (optional)', _barcode,
+                          keyboard: TextInputType.number,
                           hint: 'e.g. 600123456789'),
                       right: _switchRow('Status', _active,
                           (v) => setState(() => _active = v)),

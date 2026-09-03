@@ -43,6 +43,15 @@ class _SalesScreenState extends State<SalesScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Default history to today
+    final today = DateTime.now();
+    _from = DateTime(today.year, today.month, today.day);
+    _to = DateTime(today.year, today.month, today.day);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final inv = context.read<InventoryProvider>();
+      inv.fetchSales(status: _status, from: _from, to: _to);
+      inv.fetchSalesSummary(status: _status, from: _from, to: _to);
+    });
   }
 
   @override
@@ -572,6 +581,8 @@ class _SalesScreenState extends State<SalesScreen>
                         },
                       )
                     : null,
+                filled: true,
+                fillColor: Colors.transparent,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 14.h),
               ),
@@ -1210,6 +1221,7 @@ class _SalesScreenState extends State<SalesScreen>
               SizedBox(height: 8.h),
               TextField(
                   controller: _custPhone,
+                  keyboardType: TextInputType.phone,
                   decoration: ThemeConstants.invInputDecoration(
                       loc.translate('phone_number')),
                   style: ThemeConstants.bodyStyle),

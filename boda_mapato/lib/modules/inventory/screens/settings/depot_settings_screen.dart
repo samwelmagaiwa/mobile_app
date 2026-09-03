@@ -87,7 +87,7 @@ class _SettingsTabState extends State<_SettingsTab> {
     'depot_details': <_Field>[
       const _Field('depot_name', 'depot_name',
           hint: 'e.g. Beverage Depot Dodoma'),
-      const _Field('depot_phone', 'phone', hint: 'e.g. +255 700 000 000'),
+      const _Field('depot_phone', 'phone', hint: 'e.g. +255 700 000 000', phone: true),
       const _Field('depot_address', 'address',
           hint: 'e.g. Main Street, Block B'),
     ],
@@ -211,10 +211,10 @@ class _SettingsTabState extends State<_SettingsTab> {
                           hint: f.hint,
                           validator: (v) => _validateField(f, v),
                           keyboardType: f.numeric
-                              ? const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                )
-                              : TextInputType.text,
+                              ? const TextInputType.numberWithOptions(decimal: true)
+                              : f.phone
+                                  ? TextInputType.phone
+                                  : TextInputType.text,
                         ),
                       ),
                     ),
@@ -283,12 +283,13 @@ class _SettingsTabState extends State<_SettingsTab> {
 }
 
 class _Field {
-  const _Field(this.key, this.labelKey, {this.hint, this.numeric = false});
+  const _Field(this.key, this.labelKey, {this.hint, this.numeric = false, this.phone = false});
 
   final String key;
   final String labelKey;
   final String? hint;
   final bool numeric;
+  final bool phone;
 }
 
 class _AuditTab extends StatelessWidget {
