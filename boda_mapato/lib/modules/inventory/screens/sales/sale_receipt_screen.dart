@@ -169,14 +169,14 @@ class _ReceiptPaper extends StatelessWidget {
 
   // ── Type scale ───────────────────────────────────────────────────────────
   static const TextStyle _body = TextStyle(
-    fontFamily: 'Courier', fontSize: 12, color: Color(0xFF1A1A1A), height: 1.55,
+    fontFamily: 'Courier', fontSize: 12, color: Color(0xFF1A1A1A), height: 1.25,
   );
   static const TextStyle _bodyBold = TextStyle(
     fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.w700,
-    color: Color(0xFF1A1A1A), height: 1.55,
+    color: Color(0xFF1A1A1A), height: 1.25,
   );
   static const TextStyle _label = TextStyle(
-    fontFamily: 'Courier', fontSize: 11, color: Color(0xFF333333), height: 1.5,
+    fontFamily: 'Courier', fontSize: 11, color: Color(0xFF333333), height: 1.2,
   );
   static const TextStyle _shopName = TextStyle(
     fontFamily: 'Courier', fontSize: 22, fontWeight: FontWeight.w900,
@@ -402,29 +402,29 @@ class _ReceiptPaper extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
 
                 // ── Payment section ───────────────────────────────────────
                 _SectionBanner(label: 'MALIPO'),
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
                 _TotalsRow(label: 'Njia ya Malipo', value: _paymentMethod(), bold: false),
                 _TotalsRow(label: 'Kilicholipwa', value: 'TZS ${_fmt(sale.paidTotal)}', bold: true),
                 if (change > 0)
                   _TotalsRow(label: 'Chenji', value: 'TZS ${_fmt(change)}', bold: false),
                 if (outstanding > 0) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFEF9A9A)),
                     ),
                     child: Row(
                       children: [
-                        const Text('⚠', style: TextStyle(fontSize: 13)),
-                        const SizedBox(width: 6),
+                        const Text('⚠', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 5),
                         Expanded(child: Text('Deni linalobaki',
                             style: _label.copyWith(color: const Color(0xFFB71C1C)))),
                         Text('TZS ${_fmt(outstanding)}',
@@ -433,11 +433,11 @@ class _ReceiptPaper extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
 
                 // ── Status stamp (transparent) ────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Text(
                     _statusLabel(),
                     textAlign: TextAlign.center,
@@ -450,34 +450,34 @@ class _ReceiptPaper extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
                 // ── Thank you ─────────────────────────────────────────────
                 Text(stars, style: _starLine, textAlign: TextAlign.center),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 const Text('★  ASANTE SANA!  ★',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'Courier', fontSize: 15,
+                      fontFamily: 'Courier', fontSize: 14,
                       fontWeight: FontWeight.w900, letterSpacing: 4,
                       color: Color(0xFF0D0D0D),
                     )),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   footerNote.isNotEmpty
                       ? footerNote
-                      : 'Karibu tena!\nBidhaa zilizouzwa haziruhusiwi\nkurudishwa bila risiti.',
-                  style: _label.copyWith(fontSize: 11, height: 1.7, color: const Color(0xFF2A2A2A)),
+                      : 'Karibu tena!\nBidhaa zilizouzwa haziruhusiwi kurudishwa bila risiti.',
+                  style: _label.copyWith(fontSize: 10, height: 1.4, color: const Color(0xFF2A2A2A)),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 6),
                 Text(stars, style: _starLine, textAlign: TextAlign.center),
 
                 // ── Barcode ───────────────────────────────────────────────
                 if (showBarcode) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   _BarcodeWidget(data: sale.number),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 3),
                   Text(sale.number,
                       style: _label.copyWith(letterSpacing: 3, fontSize: 10,
                           color: const Color(0xFF333333)),
@@ -699,9 +699,9 @@ class _TotalsRow extends StatelessWidget {
     final c = color ?? const Color(0xFF1A1A1A);
     final ts = TextStyle(fontFamily: 'Courier', fontSize: 12,
         fontWeight: bold ? FontWeight.w800 : FontWeight.w400,
-        color: c, height: 1.6);
+        color: c, height: 1.2);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
+      padding: const EdgeInsets.symmetric(vertical: 0),
       child: Row(
         children: [
           Expanded(child: Text(label, style: ts.copyWith(
