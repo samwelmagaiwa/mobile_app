@@ -1,6 +1,5 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
 }
@@ -27,7 +26,7 @@ android {
     namespace = "com.example.boda_mapato"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
-    buildToolsVersion = "36.1.0"
+    buildToolsVersion = "36.0.0"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

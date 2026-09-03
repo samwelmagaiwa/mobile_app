@@ -758,21 +758,27 @@ class InventoryProvider extends ChangeNotifier {
     };
 
     try {
-      // Try /inventory/sales — single authoritative endpoint.
-      await _api.post('/inventory/sales', payload);
+      // 15s is enough — fail fast rather than hanging the UI.
+      await _api.post('/inventory/sales', payload)
+          .timeout(const Duration(seconds: 15));
 
-      await Future.wait([
-        fetchSales(),
-        fetchProducts(),
-        fetchReminders(),
-      ]);
-      _refreshLowStockReminders();
-
+      // Clear cart immediately so the UI feels instant.
       _cart.clear();
       _paymentMode = 'cash';
       _selectedCustomerId = null;
       _paidAmount = 0;
       notifyListeners();
+
+      // Refresh data in the background — don't block the return.
+      Future.wait([
+        fetchSales(),
+        fetchProducts(),
+        fetchReminders(),
+      ]).then((_) {
+        _refreshLowStockReminders();
+        notifyListeners();
+      }).ignore();
+
       return (true, 'success');
     } on Exception catch (_) {
       // Never fall back to mock on checkout — a fake-success loses real sales.
