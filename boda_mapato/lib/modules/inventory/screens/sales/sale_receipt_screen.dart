@@ -501,20 +501,26 @@ class _DashedDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CustomPaint(
         size: const Size(double.infinity, 1),
-        painter: _DashedPainter(),
+        painter: const _DashedPainter(),
       );
 }
 
 class _DashedPainter extends CustomPainter {
+  const _DashedPainter({
+    this.color = const Color(0xFFCCCCCC),
+    this.dashLen = 5,
+    this.gap = 4,
+  });
+  final Color color;
+  final double dashLen, gap;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFCCCCCC)
-      ..strokeWidth = 1;
+    final paint = Paint()..color = color..strokeWidth = 1;
     double x = 0;
     while (x < size.width) {
-      canvas.drawLine(Offset(x, 0), Offset(x + 5, 0), paint);
-      x += 9;
+      canvas.drawLine(Offset(x, 0), Offset(x + dashLen, 0), paint);
+      x += dashLen + gap;
     }
   }
   @override
@@ -571,39 +577,60 @@ class _ContactLine extends StatelessWidget {
   }
 }
 
-/// Two-column meta cell pair.
+/// One meta row: left cell — dashes — right cell spanning full width.
 class _MetaPair extends StatelessWidget {
   const _MetaPair({required this.left, required this.right});
-  final Widget left, right;
+  final _MetaCell left, right;
 
   @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(child: left),
-          const SizedBox(width: 8),
-          Expanded(child: right),
-        ],
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Left cell — label + value stacked
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${left.icon}  ${left.label}',
+                    style: const TextStyle(fontFamily: 'Courier', fontSize: 10,
+                        color: Color(0xFF555555), fontWeight: FontWeight.w600)),
+                Text(left.value,
+                    style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
+                        fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D))),
+              ],
+            ),
+            // Dashed connector
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CustomPaint(
+                  size: const Size(double.infinity, 1),
+                  painter: _DashedPainter(color: const Color(0xFF999999), dashLen: 4, gap: 4),
+                ),
+              ),
+            ),
+            // Right cell — label + value stacked, right-aligned
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('${right.label}  ${right.icon}',
+                    style: const TextStyle(fontFamily: 'Courier', fontSize: 10,
+                        color: Color(0xFF555555), fontWeight: FontWeight.w600)),
+                Text(right.value,
+                    style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
+                        fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D))),
+              ],
+            ),
+          ],
+        ),
       );
 }
 
-/// Single labelled meta cell with emoji icon.
-class _MetaCell extends StatelessWidget {
+/// Data holder for a meta cell — no build needed, used by _MetaPair directly.
+class _MetaCell {
   const _MetaCell({required this.icon, required this.label, required this.value});
   final String icon, label, value;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$icon  $label',
-              style: const TextStyle(fontFamily: 'Courier', fontSize: 11,
-                  color: Color(0xFF222222), letterSpacing: 0.3, fontWeight: FontWeight.w600)),
-          Text(value,
-              style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
-                  fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D)),
-              overflow: TextOverflow.ellipsis),
-        ],
-      );
 }
 
 /// Alternating-shaded item row with qty pill.
