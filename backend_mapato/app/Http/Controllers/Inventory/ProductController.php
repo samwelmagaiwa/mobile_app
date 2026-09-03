@@ -66,6 +66,7 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             // Leave blank to have the depot generate one automatically.
             'sku' => 'nullable|string|max:255|unique:inventory_products,sku',
             'category' => 'nullable|string|max:255',
@@ -84,6 +85,7 @@ class ProductController extends Controller
             $sku = $data['sku'] ?? $this->generateSku($data);
             $id = DB::table('inventory_products')->insertGetId([
                 'name' => $data['name'],
+                'description' => $data['description'] ?? null,
                 'sku' => $sku,
                 'category' => $data['category'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
@@ -155,6 +157,7 @@ class ProductController extends Controller
 
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'sku' => 'sometimes|required|string|max:255|unique:inventory_products,sku,' . $id,
             'category' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer|exists:inventory_categories,id',

@@ -7,9 +7,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/api_service.dart';
+import '../models/inv_batch.dart';
+import '../models/inv_brand.dart';
 import '../models/inv_category.dart';
 import '../models/inv_customer.dart';
 import '../models/inv_product.dart';
+import '../models/inv_product_unit.dart';
 import '../models/inv_reminder.dart';
 import '../models/inv_sale.dart';
 
@@ -25,6 +28,17 @@ class InventoryProvider extends ChangeNotifier {
   final List<InvSale> _sales = <InvSale>[];
   final List<InvReminder> _reminders = <InvReminder>[];
   final List<InvCategory> _categories = <InvCategory>[];
+  final List<InvBrand> _brands = <InvBrand>[];
+  // Selling units keyed by product id (Area 2 - products, units & pricing).
+  final Map<int, List<InvProductUnit>> _unitsByProduct =
+      <int, List<InvProductUnit>>{};
+  // Area 3 - stock control.
+  final List<InvBatch> _batches = <InvBatch>[];
+  final List<InvWriteOff> _writeOffs = <InvWriteOff>[];
+  final List<InvStockCount> _stockCounts = <InvStockCount>[];
+  final List<InvStockMovement> _stockMovements = <InvStockMovement>[];
+  int _expiredCount = 0;
+  int _expiringSoonCount = 0;
 
   // POS cart state
   final List<InvSaleItem> _cart = <InvSaleItem>[];
@@ -38,6 +52,52 @@ class InventoryProvider extends ChangeNotifier {
   List<InvSale> get sales => List.unmodifiable(_sales);
   List<InvReminder> get reminders => List.unmodifiable(_reminders);
   List<InvCategory> get categories => List.unmodifiable(_categories);
+  List<InvBrand> get brands => List.unmodifiable(_brands);
+
+  List<InvBatch> get batches => List.unmodifiable(_batches);
+  List<InvWriteOff> get writeOffs => List.unmodifiable(_writeOffs);
+  List<InvStockCount> get stockCounts => List.unmodifiable(_stockCounts);
+  List<InvStockMovement> get stockMovements => List.unmodifiable(_stockMovements);
+  int get expiredBatchCount => _expiredCount;
+  int get expiringSoonCount => _expiringSoonCount;
+  int get pendingWriteOffCount =>
+      _writeOffs.where((InvWriteOff w) => w.isPending).length;
+
+  /// Batches of one product with stock left, first-expiring first.
+  List<InvBatch> batchesOf(int productId) {
+    final List<InvBatch> rows = _batches
+        .where((InvBatch b) => b.productId == productId && b.quantity > 0)
+        .toList()
+      ..sort((InvBatch a, InvBatch b) {
+        final DateTime? ea = a.expiryDate;
+        final DateTime? eb = b.expiryDate;
+        if (ea == null && eb == null) return a.id.compareTo(b.id);
+        if (ea == null) return 1;
+        if (eb == null) return -1;
+        return ea.compareTo(eb);
+      });
+    return List.unmodifiable(rows);
+  }
+
+  /// Total value of stock on hand, costed from batches.
+  double get stockValuation =>
+      _batches.fold<double>(0, (double sum, InvBatch b) => sum + b.stockValue);
+
+  /// Total purchasing cost across all products in stock
+  double get totalInventoryCost => _products.fold<double>(
+      0, (double sum, InvProduct p) => sum + p.totalCostPrice);
+
+  /// Total expected selling revenue across all products in stock
+  double get totalInventoryRevenue => _products.fold<double>(
+      0, (double sum, InvProduct p) => sum + p.totalSellingPrice);
+
+  /// Total expected profit margin across all products in stock
+  double get totalInventoryExpectedProfit => _products.fold<double>(
+      0, (double sum, InvProduct p) => sum + p.totalExpectedProfit);
+
+  /// Selling units already loaded for a product; empty until [fetchUnits].
+  List<InvProductUnit> unitsOf(int productId) =>
+      List.unmodifiable(_unitsByProduct[productId] ?? const <InvProductUnit>[]);
   List<InvSaleItem> get cart => List.unmodifiable(_cart);
   String get paymentMode => _paymentMode;
   int? get selectedCustomerId => _selectedCustomerId;
@@ -233,13 +293,25 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   // Stock operations (call backend, then refresh)
-  Future<bool> stockIn(int productId, int qty, {String? reference}) async {
+  Future<bool> stockIn(
+    int productId,
+    int qty, {
+    String? reference,
+    String? batchNumber,
+    DateTime? expiryDate,
+    double? costPrice,
+  }) async {
     try {
       await _api.post('/stock-movements', {
         'product_id': productId,
         'type': 'in',
         'quantity': qty,
         if (reference != null) 'reference': reference,
+        if (batchNumber != null && batchNumber.isNotEmpty)
+          'batch_number': batchNumber,
+        if (expiryDate != null)
+          'expiry_date': expiryDate.toIso8601String().split('T').first,
+        if (costPrice != null) 'cost_price': costPrice,
       });
       await fetchProducts();
       _refreshLowStockReminders();
@@ -255,13 +327,19 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> stockOut(int productId, int qty, {String? reference}) async {
+  Future<bool> stockOut(
+    int productId,
+    int qty, {
+    String? reference,
+    int? batchId,
+  }) async {
     try {
       await _api.post('/stock-movements', {
         'product_id': productId,
         'type': 'out',
         'quantity': qty,
         if (reference != null) 'reference': reference,
+        if (batchId != null) 'batch_id': batchId,
       });
       await fetchProducts();
       _refreshLowStockReminders();
@@ -320,7 +398,10 @@ class InventoryProvider extends ChangeNotifier {
     required double sellingPrice,
     required int quantity,
     required int minStock,
+    String? description,
     String? category,
+    int? categoryId,
+    int? brandId,
     String unit = 'pcs',
     String status = 'active',
     String? barcode,
@@ -328,8 +409,11 @@ class InventoryProvider extends ChangeNotifier {
     try {
       await _api.post('/inventory/products', {
         'name': name,
+        'description': description,
         'sku': sku,
         'category': category,
+        if (categoryId != null) 'category_id': categoryId,
+        if (brandId != null) 'brand_id': brandId,
         'cost_price': costPrice,
         'selling_price': sellingPrice,
         'unit': unit,
@@ -533,6 +617,11 @@ class InventoryProvider extends ChangeNotifier {
 
   void removeFromCart(int productId) {
     _cart.removeWhere((e) => e.productId == productId);
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _cart.clear();
     notifyListeners();
   }
 
@@ -1039,7 +1128,8 @@ class InventoryProvider extends ChangeNotifier {
                     : <dynamic>[];
         _categories
           ..clear()
-          ..addAll(list.map((j) => _fromCategoryJson(j as Map<String, dynamic>)));
+          ..addAll(
+              list.map((j) => _fromCategoryJson(j as Map<String, dynamic>)));
         _recomputeCategoryProductTotals();
         _ensureCategoryCodes();
         notifyListeners();
@@ -1077,7 +1167,9 @@ class InventoryProvider extends ChangeNotifier {
     try {
       final res = await _api.post('/inventory/categories', payload);
       await fetchCategories();
-      final int? id = (res['data'] is Map<String, dynamic>) ? (res['data'] as Map<String, dynamic>)['id'] as int? : null;
+      final int? id = (res['data'] is Map<String, dynamic>)
+          ? int.tryParse((res['data'] as Map<String, dynamic>)['id']?.toString() ?? '')
+          : null;
       return id;
     } on Exception {
       if (!_mockEnabled) return null;
@@ -1100,7 +1192,6 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
       return id;
     }
-
   }
 
   Future<bool> updateCategory({
@@ -1246,7 +1337,9 @@ class InventoryProvider extends ChangeNotifier {
           createdAt: now,
           updatedAt: now),
     ];
-    _categories..clear()..addAll(data);
+    _categories
+      ..clear()
+      ..addAll(data);
   }
 
   // Generate category code like ABC001 from name
@@ -1259,14 +1352,18 @@ class InventoryProvider extends ChangeNotifier {
         .join()
         .toUpperCase();
     if (prefix.isEmpty) prefix = 'CAT';
-    final int seq = (_categories.isEmpty ? 1 : (_categories.map((c) => c.id).fold<int>(0, (p, e) => e > p ? e : p) + 1));
+    final int seq = (_categories.isEmpty
+        ? 1
+        : (_categories.map((c) => c.id).fold<int>(0, (p, e) => e > p ? e : p) +
+            1));
     final String num = seq.toString().padLeft(3, '0');
     return '$prefix$num';
   }
 
   // Ensure every category has a code; auto-generate if missing
   void _ensureCategoryCodes() {
-    final Set<String> used = _categories.map((c) => c.code).where((c) => c.isNotEmpty).toSet();
+    final Set<String> used =
+        _categories.map((c) => c.code).where((c) => c.isNotEmpty).toSet();
     for (int i = 0; i < _categories.length; i++) {
       final c = _categories[i];
       if (c.code.isEmpty) {
@@ -1281,26 +1378,542 @@ class InventoryProvider extends ChangeNotifier {
       }
     }
   }
+
+  // ---------------------------------------------------------------------
+  // Area 2 - brands, selling units & tiered pricing
+  // ---------------------------------------------------------------------
+
+  Future<void> fetchBrands({String? q, String? status}) async {
+    final Map<String, String> params = <String, String>{
+      if (q != null && q.isNotEmpty) 'q': q,
+      if (status != null && status.isNotEmpty && status != 'all')
+        'status': status,
+    };
+    final String qs = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+
+    try {
+      final Map<String, dynamic>? res = await _api.getOrNull(
+        qs.isNotEmpty ? '/inventory/brands?$qs' : '/inventory/brands',
+      );
+      if (res == null) return;
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      _brands
+        ..clear()
+        ..addAll(list.map((j) => InvBrand.fromJson(j as Map<String, dynamic>)));
+      notifyListeners();
+    } on Exception {
+      // leave whatever was loaded before; the UI treats brands as optional
+    }
+  }
+
+  Future<int?> createBrand({
+    required String name,
+    String description = '',
+    String status = 'active',
+  }) async {
+    try {
+      final Map<String, dynamic> res =
+          await _api.post('/inventory/brands', <String, dynamic>{
+        'name': name,
+        if (description.isNotEmpty) 'description': description,
+        'status': status,
+      });
+      await fetchBrands();
+      final dynamic data = res['data'];
+      return (data is Map)
+          ? int.tryParse(data['id']?.toString() ?? '')
+          : null;
+    } on Exception {
+      return null;
+    }
+  }
+
+  Future<bool> updateBrand(
+    int id, {
+    String? name,
+    String? description,
+    String? status,
+  }) async {
+    try {
+      await _api.put('/inventory/brands/$id', <String, dynamic>{
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (status != null) 'status': status,
+      });
+      await fetchBrands();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<List<InvProductUnit>> fetchUnits(int productId) async {
+    try {
+      final Map<String, dynamic>? res =
+          await _api.getOrNull('/inventory/products/$productId/units');
+      if (res == null) return unitsOf(productId);
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      final List<InvProductUnit> units = list
+          .map((j) => InvProductUnit.fromJson(j as Map<String, dynamic>))
+          .toList();
+      _unitsByProduct[productId] = units;
+      notifyListeners();
+      return units;
+    } on Exception {
+      return unitsOf(productId);
+    }
+  }
+
+  Future<bool> createUnit(
+    int productId, {
+    required String name,
+    required int factor,
+    String? barcode,
+    double? retailPrice,
+    double? wholesalePrice,
+  }) async {
+    try {
+      await _api.post('/inventory/products/$productId/units', <String, dynamic>{
+        'name': name,
+        'factor': factor,
+        if (barcode != null && barcode.isNotEmpty) 'barcode': barcode,
+        if (retailPrice != null) 'retail_price': retailPrice,
+        if (wholesalePrice != null) 'wholesale_price': wholesalePrice,
+      });
+      await fetchUnits(productId);
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> updateUnit(
+    int productId,
+    int unitId, {
+    String? name,
+    int? factor,
+    String? barcode,
+    String? status,
+  }) async {
+    try {
+      await _api.put(
+          '/inventory/products/$productId/units/$unitId', <String, dynamic>{
+        if (name != null) 'name': name,
+        if (factor != null) 'factor': factor,
+        if (barcode != null) 'barcode': barcode,
+        if (status != null) 'status': status,
+      });
+      await fetchUnits(productId);
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> deleteUnit(int productId, int unitId) async {
+    try {
+      await _api.delete('/inventory/products/$productId/units/$unitId');
+      await fetchUnits(productId);
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  /// Set one tier's price. The backend logs the change automatically.
+  Future<bool> setUnitPrice(
+    int productId,
+    int unitId, {
+    required InvPriceTier tier,
+    required double price,
+    int? customerId,
+    String? reason,
+  }) async {
+    try {
+      await _api.post(
+        '/inventory/products/$productId/units/$unitId/price',
+        <String, dynamic>{
+          'tier': tier.wire,
+          'price': price,
+          if (customerId != null) 'customer_id': customerId,
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        },
+      );
+      await fetchUnits(productId);
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<List<InvPriceChange>> fetchPriceHistory(
+    int productId,
+    int unitId, {
+    int limit = 50,
+  }) async {
+    try {
+      final Map<String, dynamic>? res = await _api.getOrNull(
+        '/inventory/products/$productId/units/$unitId/price-history?limit=$limit',
+      );
+      if (res == null) return const <InvPriceChange>[];
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      return list
+          .map((j) => InvPriceChange.fromJson(j as Map<String, dynamic>))
+          .toList();
+    } on Exception {
+      return const <InvPriceChange>[];
+    }
+  }
+
+  Future<List<InvStockMovement>> fetchStockMovements({int? productId}) async {
+    final path = productId != null
+        ? '/inventory/stock-movements?product_id=$productId'
+        : '/inventory/stock-movements';
+    try {
+      final Map<String, dynamic>? res = await _api.getOrNull(path);
+      if (res != null && res['data'] is List) {
+        final List<dynamic> list = res['data'] as List<dynamic>;
+        final items = list.map((j) => _fromStockMovementJson(j as Map<String, dynamic>)).toList();
+        _stockMovements
+          ..clear()
+          ..addAll(items);
+        notifyListeners();
+        return items;
+      }
+    } on Exception {
+      // return empty if failed
+    }
+    return _stockMovements;
+  }
+
+  Future<bool> recordStockIn({
+    required int productId,
+    required int quantity,
+    String? reference,
+    String? batchNumber,
+    String? expiryDate,
+    double? costPrice,
+  }) async {
+    final payload = <String, dynamic>{
+      'product_id': productId,
+      'type': 'in',
+      'quantity': quantity,
+      if (reference != null && reference.isNotEmpty) 'reference': reference,
+      if (batchNumber != null && batchNumber.isNotEmpty) 'batch_number': batchNumber,
+      if (expiryDate != null && expiryDate.isNotEmpty) 'expiry_date': expiryDate,
+      if (costPrice != null) 'cost_price': costPrice,
+    };
+
+    try {
+      final res = await _api.post('/inventory/stock-movements', payload);
+      await fetchProducts();
+      await fetchStockMovements(productId: productId);
+      return res != null;
+    } on Exception {
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Area 3 - batches, expiry, stock counts & write-offs
+  // ---------------------------------------------------------------------
+
+  Future<void> fetchBatches({
+    int? productId,
+    bool inStockOnly = true,
+    int? expiringInDays,
+    bool expiredOnly = false,
+    String? q,
+  }) async {
+    final Map<String, String> params = <String, String>{
+      if (productId != null) 'product_id': '$productId',
+      if (inStockOnly) 'in_stock': '1',
+      if (expiringInDays != null) 'expiring_in_days': '$expiringInDays',
+      if (expiredOnly) 'expired': '1',
+      if (q != null && q.isNotEmpty) 'q': q,
+      'per_page': '100',
+    };
+    final String qs = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+
+    try {
+      final Map<String, dynamic>? res =
+          await _api.getOrNull('/inventory/batches?$qs');
+      if (res == null) return;
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      _batches
+        ..clear()
+        ..addAll(list.map((j) => InvBatch.fromJson(j as Map<String, dynamic>)));
+      notifyListeners();
+    } on Exception {
+      // keep the last good list
+    }
+  }
+
+  /// Receive stock into a batch. Creates the batch when the number is new.
+  Future<bool> receiveBatch({
+    required int productId,
+    required String batchNumber,
+    required int quantity,
+    DateTime? expiryDate,
+    double? costPrice,
+    String? reference,
+  }) async {
+    try {
+      await _api.post('/inventory/batches', <String, dynamic>{
+        'product_id': productId,
+        'batch_number': batchNumber,
+        'quantity': quantity,
+        if (expiryDate != null)
+          'expiry_date': expiryDate.toIso8601String().split('T').first,
+        if (costPrice != null) 'cost_price': costPrice,
+        if (reference != null && reference.isNotEmpty) 'reference': reference,
+      });
+      await Future.wait<void>(<Future<void>>[
+        fetchBatches(),
+        fetchProducts(),
+        fetchExpirySummary(),
+      ]);
+      _refreshLowStockReminders();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> updateBatch(
+    int batchId, {
+    DateTime? expiryDate,
+    String? status,
+  }) async {
+    try {
+      await _api.put('/inventory/batches/$batchId', <String, dynamic>{
+        if (expiryDate != null)
+          'expiry_date': expiryDate.toIso8601String().split('T').first,
+        if (status != null) 'status': status,
+      });
+      await fetchBatches();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<void> fetchExpirySummary({int days = 30}) async {
+    try {
+      final Map<String, dynamic>? res =
+          await _api.getOrNull('/inventory/expiry-summary?days=$days');
+      final dynamic data = res?['data'];
+      if (data is! Map) return;
+      _expiredCount = (data['expired'] as num?)?.toInt() ?? 0;
+      _expiringSoonCount = (data['expiring_soon'] as num?)?.toInt() ?? 0;
+      notifyListeners();
+    } on Exception {
+      // leave the previous counts
+    }
+  }
+
+  Future<void> fetchWriteOffs({String? status}) async {
+    try {
+      final Map<String, dynamic>? res = await _api.getOrNull(
+        status == null || status.isEmpty || status == 'all'
+            ? '/inventory/write-offs'
+            : '/inventory/write-offs?status=$status',
+      );
+      if (res == null) return;
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      _writeOffs
+        ..clear()
+        ..addAll(
+            list.map((j) => InvWriteOff.fromJson(j as Map<String, dynamic>)));
+      notifyListeners();
+    } on Exception {
+      // keep the last good list
+    }
+  }
+
+  Future<bool> createWriteOff({
+    required int productId,
+    required String reason,
+    required int quantity,
+    int? batchId,
+    String? note,
+  }) async {
+    try {
+      await _api.post('/inventory/write-offs', <String, dynamic>{
+        'product_id': productId,
+        'reason': reason,
+        'quantity': quantity,
+        if (batchId != null) 'batch_id': batchId,
+        if (note != null && note.isNotEmpty) 'note': note,
+      });
+      await fetchWriteOffs();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  /// Approve or reject. Approving is what actually removes the stock.
+  Future<bool> decideWriteOff(
+    int id, {
+    required bool approve,
+    String? note,
+  }) async {
+    try {
+      await _api.post('/inventory/write-offs/$id/decide', <String, dynamic>{
+        'decision': approve ? 'approved' : 'rejected',
+        if (note != null && note.isNotEmpty) 'decision_note': note,
+      });
+      await fetchWriteOffs();
+      if (approve) {
+        await Future.wait<void>(<Future<void>>[
+          fetchProducts(),
+          fetchBatches(),
+        ]);
+        _refreshLowStockReminders();
+      }
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<void> fetchStockCounts({String? status}) async {
+    try {
+      final Map<String, dynamic>? res = await _api.getOrNull(
+        status == null || status.isEmpty || status == 'all'
+            ? '/inventory/stock-counts'
+            : '/inventory/stock-counts?status=$status',
+      );
+      if (res == null) return;
+      final List<dynamic> list =
+          (res['data'] is List) ? res['data'] as List<dynamic> : <dynamic>[];
+      _stockCounts
+        ..clear()
+        ..addAll(
+            list.map((j) => InvStockCount.fromJson(j as Map<String, dynamic>)));
+      notifyListeners();
+    } on Exception {
+      // keep the last good list
+    }
+  }
+
+  Future<InvStockCount?> fetchStockCount(int id) async {
+    try {
+      final Map<String, dynamic>? res =
+          await _api.getOrNull('/inventory/stock-counts/$id');
+      final dynamic data = res?['data'];
+      if (data is! Map) return null;
+      return InvStockCount.fromJson(Map<String, dynamic>.from(data));
+    } on Exception {
+      return null;
+    }
+  }
+
+  Future<int?> openStockCount({String? note}) async {
+    try {
+      final Map<String, dynamic> res =
+          await _api.post('/inventory/stock-counts', <String, dynamic>{
+        if (note != null && note.isNotEmpty) 'note': note,
+      });
+      await fetchStockCounts();
+      final dynamic data = res['data'];
+      return (data is Map && data['id'] is num)
+          ? (data['id'] as num).toInt()
+          : null;
+    } on Exception {
+      return null;
+    }
+  }
+
+  Future<bool> saveStockCountLine(
+    int countId, {
+    required int productId,
+    required int countedQuantity,
+    int? batchId,
+    String? note,
+  }) async {
+    try {
+      await _api.post(
+        '/inventory/stock-counts/$countId/lines',
+        <String, dynamic>{
+          'product_id': productId,
+          'counted_quantity': countedQuantity,
+          if (batchId != null) 'batch_id': batchId,
+          if (note != null && note.isNotEmpty) 'note': note,
+        },
+      );
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> deleteStockCountLine(int countId, int lineId) async {
+    try {
+      await _api.delete('/inventory/stock-counts/$countId/lines/$lineId');
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  /// Apply every variance to stock and freeze the count.
+  Future<bool> postStockCount(int countId) async {
+    try {
+      await _api.post(
+          '/inventory/stock-counts/$countId/post', const <String, dynamic>{});
+      await Future.wait<void>(<Future<void>>[
+        fetchStockCounts(),
+        fetchProducts(),
+        fetchBatches(),
+      ]);
+      _refreshLowStockReminders();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> cancelStockCount(int countId) async {
+    try {
+      await _api.post(
+          '/inventory/stock-counts/$countId/cancel', const <String, dynamic>{});
+      await fetchStockCounts();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
 }
 
 // JSON mappers (minimal, defensive)
 InvProduct _fromProductJson(Map<String, dynamic> j) => InvProduct(
-      id: (j['id'] ?? j['product_id']) as int,
+      id: int.tryParse((j['id'] ?? j['product_id'] ?? 0).toString()) ?? 0,
       name: (j['name'] ?? j['product_name'] ?? '') as String,
       sku: (j['SKU'] ?? j['sku'] ?? j['code'] ?? '') as String,
       category: (j['category'] ?? '') as String,
-      costPrice: ((j['cost_price'] ?? j['cost'] ?? 0) as num).toDouble(),
-      sellingPrice: ((j['selling_price'] ?? j['price'] ?? 0) as num).toDouble(),
+      costPrice: double.tryParse((j['cost_price'] ?? j['cost'] ?? 0).toString()) ?? 0.0,
+      sellingPrice: double.tryParse((j['selling_price'] ?? j['price'] ?? 0).toString()) ?? 0.0,
       unit: (j['unit'] ?? 'pcs') as String,
-      quantity: (j['quantity'] ?? j['qty'] ?? 0) as int,
-      minStock: (j['min_stock'] ?? j['min'] ?? 0) as int,
+      quantity: int.tryParse((j['quantity'] ?? j['qty'] ?? 0).toString()) ?? 0,
+      minStock: int.tryParse((j['min_stock'] ?? j['min'] ?? 0).toString()) ?? 0,
       status: (j['status'] ?? 'active') as String,
       barcode: (j['barcode'] ?? j['bar_code'] ?? '') as String,
-      createdBy: (j['created_by'] ?? 0) as int,
+      createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
     );
 
 InvCustomer _fromCustomerJson(Map<String, dynamic> j) => InvCustomer(
-      id: (j['id'] ?? j['customer_id']) as int,
+      id: int.tryParse((j['id'] ?? j['customer_id'] ?? 0).toString()) ?? 0,
       name: (j['name'] ?? j['customer_name'] ?? '') as String,
       phone: (j['phone'] ?? j['phone_number'] ?? '') as String,
     );
@@ -1310,10 +1923,10 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
       ? (j['items'] as List)
           .map((it) => it is Map<String, dynamic>
               ? InvSaleItem(
-                  productId: (it['product_id'] ?? 0) as int,
+                  productId: int.tryParse((it['product_id'] ?? 0).toString()) ?? 0,
                   name: (it['product_name'] ?? '') as String,
-                  qty: (it['quantity'] ?? it['qty'] ?? 0) as int,
-                  unitPrice: ((it['unit_price'] ?? 0) as num).toDouble(),
+                  qty: int.tryParse((it['quantity'] ?? it['qty'] ?? 0).toString()) ?? 0,
+                  unitPrice: double.tryParse((it['unit_price'] ?? 0).toString()) ?? 0.0,
                   unitCostSnapshot: ((it['unit_cost_snapshot'] ??
                           it['unit_cost'] ??
                           0) as num)
@@ -1333,9 +1946,9 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
       ? DateTime.tryParse(createdAtStr) ?? DateTime.now()
       : DateTime.now();
   return InvSale(
-    id: (j['id'] ?? 0) as int,
+    id: int.tryParse((j['id'] ?? 0).toString()) ?? 0,
     number: (j['number'] ?? j['sale_number'] ?? '') as String,
-    customerId: j['customer_id'] as int?,
+    customerId: j['customer_id'] != null ? int.tryParse(j['customer_id'].toString()) : null,
     paymentStatus: (j['payment_status'] ?? j['status'] ?? '') as String,
     items: items,
     subtotal: subtotal,
@@ -1346,7 +1959,7 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
     dueDate: j['due_date'] != null
         ? DateTime.tryParse(j['due_date'].toString())
         : null,
-    createdBy: (j['created_by'] ?? 0) as int,
+    createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
     createdAt: createdAt,
   );
 }
@@ -1365,7 +1978,7 @@ InvReminder _fromReminderJson(Map<String, dynamic> j) {
   }
 
   return InvReminder(
-    id: (j['id'] ?? 0) as int,
+    id: int.tryParse((j['id'] ?? 0).toString()) ?? 0,
     type: (j['type'] ?? 'payment_due') as String,
     title: (j['title'] ?? '') as String,
     description: (j['description'] ?? '') as String,
@@ -1376,7 +1989,9 @@ InvReminder _fromReminderJson(Map<String, dynamic> j) {
     snoozeUntil: j['snooze_until'] != null
         ? DateTime.tryParse(j['snooze_until'].toString())
         : null,
-    relatedId: (j['related_id'] ?? j['sale_id'] ?? j['product_id']) as int?,
+    relatedId: j['related_id'] != null 
+        ? int.tryParse(j['related_id'].toString()) 
+        : (j['sale_id'] != null ? int.tryParse(j['sale_id'].toString()) : null),
   );
 }
 
@@ -1390,16 +2005,71 @@ InvCategory _fromCategoryJson(Map<String, dynamic> j) {
       ? (DateTime.tryParse(updatedAtStr) ?? createdAt)
       : createdAt;
   return InvCategory(
-    id: (j['id'] ?? j['category_id'] ?? 0) as int,
+    id: int.tryParse((j['id'] ?? j['category_id'] ?? 0).toString()) ?? 0,
     name: (j['name'] ?? j['category_name'] ?? '') as String,
     code: (j['code'] ?? j['category_code'] ?? '') as String,
     description: (j['description'] ?? '') as String,
-    parentId: j['parent_id'] as int?,
+    parentId: j['parent_id'] != null ? int.tryParse(j['parent_id'].toString()) : null,
     imagePath: (j['image'] ?? j['icon'] ?? j['image_url']) as String?,
     status: (j['status'] ?? 'active') as String,
-    totalProducts: (j['total_products'] ?? 0) as int,
-    createdBy: (j['created_by'] ?? 0) as int,
+    totalProducts: int.tryParse((j['total_products'] ?? 0).toString()) ?? 0,
+    createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
 }
+
+class InvStockMovement {
+  final int id;
+  final int productId;
+  final String productName;
+  final String productSku;
+  final String type; // 'in' | 'out'
+  final int quantity;
+  final int previousQuantity;
+  final int newQuantity;
+  final String reason;
+  final String reference;
+  final String userName;
+  final DateTime createdAt;
+
+  InvStockMovement({
+    required this.id,
+    required this.productId,
+    required this.productName,
+    required this.productSku,
+    required this.type,
+    required this.quantity,
+    required this.previousQuantity,
+    required this.newQuantity,
+    required this.reason,
+    required this.reference,
+    required this.userName,
+    required this.createdAt,
+  });
+
+  bool get isStockIn => type.toLowerCase() == 'in';
+}
+
+InvStockMovement _fromStockMovementJson(Map<String, dynamic> j) {
+  final createdAtStr = j['created_at']?.toString();
+  final DateTime createdAt = createdAtStr != null
+      ? (DateTime.tryParse(createdAtStr) ?? DateTime.now())
+      : DateTime.now();
+
+  return InvStockMovement(
+    id: int.tryParse((j['id'] ?? 0).toString()) ?? 0,
+    productId: int.tryParse((j['product_id'] ?? 0).toString()) ?? 0,
+    productName: (j['product_name'] ?? j['name'] ?? '') as String,
+    productSku: (j['product_sku'] ?? j['sku'] ?? '') as String,
+    type: (j['type'] ?? 'in') as String,
+    quantity: int.tryParse((j['quantity'] ?? 0).toString()) ?? 0,
+    previousQuantity: int.tryParse((j['previous_quantity'] ?? 0).toString()) ?? 0,
+    newQuantity: int.tryParse((j['new_quantity'] ?? 0).toString()) ?? 0,
+    reason: (j['reason'] ?? '') as String,
+    reference: (j['reference'] ?? '') as String,
+    userName: (j['user_name'] ?? '') as String,
+    createdAt: createdAt,
+  );
+}
+
