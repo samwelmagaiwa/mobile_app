@@ -26,47 +26,66 @@ class SaleReceiptScreen extends StatelessWidget {
       );
 
   @override
+  // Sanitise a setting value — treat missing, empty and literal "null" as ''.
+  static String _s(Map<String, String> s, String key, [String fallback = '']) {
+    final v = s[key]?.trim() ?? '';
+    return (v == 'null' || v.isEmpty) ? fallback : v;
+  }
+
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
 
-    // Read settings live — rebuilds automatically when admin saves changes.
     final s    = context.watch<DepotProvider>().settings;
     final auth = context.watch<AuthProvider>();
     final role = auth.user?.role ?? '';
     final canConfigure = role == 'admin' || role == 'manager';
 
-    final shopName   = s['depot_name']?.trim().isNotEmpty == true ? s['depot_name']! : 'DUKA LAKO';
-    final tagline    = s['receipt_tagline']     ?? '';
-    final address    = s['depot_address']       ?? '';
-    final phone      = s['depot_phone']         ?? '';
-    final email      = s['receipt_email']       ?? '';
-    final website    = s['receipt_website']     ?? '';
-    final tin        = s['receipt_tin']         ?? '';
-    final footer     = s['receipt_footer_note'] ?? '';
+    final shopName   = _s(s, 'depot_name', 'DUKA LAKO');
+    final tagline    = _s(s, 'receipt_tagline');
+    final address    = _s(s, 'depot_address');
+    final phone      = _s(s, 'depot_phone');
+    final email      = _s(s, 'receipt_email');
+    final website    = _s(s, 'receipt_website');
+    final tin        = _s(s, 'receipt_tin');
+    final footer     = _s(s, 'receipt_footer_note');
     final showBarcode= (s['receipt_show_barcode'] ?? '1') == '1';
     final showTin    = (s['receipt_show_tin']     ?? '1') == '1';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8),
+      backgroundColor: const Color(0xFFDDDDDD),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
-        foregroundColor: Colors.black87,
-        title: const Text('Risiti ya Mauzo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Column(
+          children: [
+            const Text('Risiti ya Mauzo',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15,
+                    color: Colors.white, letterSpacing: 0.5)),
+            Text(sale.number,
+                style: const TextStyle(fontSize: 10, color: Colors.white54,
+                    letterSpacing: 1)),
+          ],
+        ),
         centerTitle: true,
         actions: [
           if (canConfigure)
-            IconButton(
-              tooltip: 'Badilisha Mpangilio wa Risiti',
-              icon: const Icon(Icons.tune_rounded),
-              onPressed: () => Navigator.of(context).push(ReceiptHeaderScreen.route()),
+            _AppBarAction(
+              icon: Icons.tune_rounded,
+              tooltip: 'Mpangilio wa Risiti',
+              onTap: () => Navigator.of(context).push(ReceiptHeaderScreen.route()),
             ),
-          IconButton(icon: const Icon(Icons.share_rounded), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.print_rounded), onPressed: () {}),
+          _AppBarAction(icon: Icons.share_rounded, tooltip: 'Shiriki', onTap: () {}),
+          _AppBarAction(icon: Icons.print_rounded, tooltip: 'Chapisha', onTap: () {}),
+          const SizedBox(width: 4),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Center(
           child: _ReceiptPaper(
             sale: sale,
@@ -87,6 +106,34 @@ class SaleReceiptScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pill-shaped icon button for the receipt AppBar.
+class _AppBarAction extends StatelessWidget {
+  const _AppBarAction({required this.icon, required this.tooltip, required this.onTap});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+        child: Tooltip(
+          message: tooltip,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: Colors.white, size: 18),
+            ),
+          ),
+        ),
+      );
 }
 
 class _ReceiptPaper extends StatelessWidget {
@@ -229,13 +276,13 @@ class _ReceiptPaper extends StatelessWidget {
                     Flexible(child: Text(shopName, style: _shopName, textAlign: TextAlign.left)),
                   ],
                 ),
-                if (tagline.isNotEmpty) ...[
+                if (tagline.isNotEmpty && tagline != 'null') ...[
                   const SizedBox(height: 3),
                   Text(tagline,
                       style: _label.copyWith(fontStyle: FontStyle.italic, letterSpacing: 1),
                       textAlign: TextAlign.center),
                 ],
-                if (shopPhone.isNotEmpty) ...[
+                if (shopPhone.isNotEmpty && shopPhone != 'null') ...[
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -510,12 +557,13 @@ class _ContactLine extends StatelessWidget {
     const ts = TextStyle(
       fontFamily: 'Courier', fontSize: 10, color: Color(0xFF2A2A2A), height: 1.6,
     );
+    bool _ok(String v) => v.isNotEmpty && v != 'null';
     final parts = [
-      if (address.isNotEmpty) address,
-      if (phone.isNotEmpty) 'Tel: $phone',
-      if (email.isNotEmpty) email,
-      if (website.isNotEmpty) website,
-      if (tin.isNotEmpty) 'TIN: $tin',
+      if (_ok(address)) address,
+      if (_ok(phone)) 'Tel: $phone',
+      if (_ok(email)) email,
+      if (_ok(website)) website,
+      if (_ok(tin)) 'TIN: $tin',
     ];
     return Column(
       children: parts.map((p) => Text(p, style: ts, textAlign: TextAlign.center)).toList(),
