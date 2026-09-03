@@ -364,12 +364,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('customers', [InventoryCustomerController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::post('inventory/customers', [InventoryCustomerController::class, 'store'])->middleware('role_any:admin,manager');
     Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update'])->middleware('role_any:admin,manager');
+    Route::get('inventory/kpis', [InventorySalesController::class, 'kpis'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('inventory/sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('inventory/sales/{id}', [InventorySalesController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('sales/{id}', [InventorySalesController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
     Route::post('inventory/sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
     Route::post('sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/sales/{id}/payments', [InventorySalesController::class, 'recordPayment'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/sales/{id}/cancel', [InventorySalesController::class, 'cancel'])->middleware('role_any:admin,manager');
     Route::get('inventory/stock-movements', [InventoryStockMovementController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('stock-movements', [InventoryStockMovementController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::post('inventory/stock-movements', [InventoryStockMovementController::class, 'store'])->middleware('role_any:admin,manager');

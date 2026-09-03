@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Inventory\CrateController;
 
 /**
  * Area 11 — the 12 standard reports.

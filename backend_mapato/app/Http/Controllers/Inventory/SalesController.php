@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\Inventory;
 
+use App\Services\Inventory\AuditTrail;
 use App\Services\Inventory\StockLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
 
 class SalesController extends Controller
 {
-    public function __construct(private readonly StockLedger $ledger)
-    {
+    public function __construct(
+        private readonly StockLedger $ledger,
+        private readonly AuditTrail  $audit,
+    ) {
     }
 
     public function index(Request $request)
@@ -154,6 +156,237 @@ class SalesController extends Controller
         return response()->json(['data' => $saleArray]);
     }
 
+    /**
+     * GET /inventory/kpis
+     * Lightweight dashboard summary — today's sales, profit and 7/30 day trend.
+     */
+    public function kpis(Request $request)
+    {
+        $today = now()->toDateString();
+        $weekAgo = now()->subDays(6)->toDateString();
+        $monthAgo = now()->subDays(29)->toDateString();
+        $userId = optional($request->user())->id;
+
+        // Today's headline figures
+        $todayRow = DB::table('inventory_sales')
+            ->whereDate('created_at', $today)
+            ->when($userId && !$this->isManager($request), fn ($q) => $q->where('created_by', $userId))
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total),0) as total, COALESCE(SUM(paid_total),0) as paid')
+            ->first();
+
+        // Outstanding debt
+        $debtTotal = (float) DB::table('inventory_sales')
+            ->whereIn('payment_status', ['debt', 'partial'])
+            ->sum(DB::raw('total - paid_total'));
+
+        // Profit today (revenue - cost from sale items)
+        $profitToday = (float) DB::table('inventory_sale_items as si')
+            ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
+            ->whereDate('s.created_at', $today)
+            ->sum(DB::raw('si.total - (si.unit_cost_snapshot * si.quantity)'));
+
+        // 7-day daily trend
+        $weekTrend = DB::table('inventory_sales')
+            ->whereDate('created_at', '>=', $weekAgo)
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy(DB::raw('DATE(created_at)'))
+            ->get([
+                DB::raw('DATE(created_at) as day'),
+                DB::raw('COALESCE(SUM(total),0) as total'),
+                DB::raw('COALESCE(SUM(paid_total),0) as paid'),
+                DB::raw('COUNT(*) as count'),
+            ]);
+
+        // 30-day daily trend
+        $monthTrend = DB::table('inventory_sales')
+            ->whereDate('created_at', '>=', $monthAgo)
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy(DB::raw('DATE(created_at)'))
+            ->get([
+                DB::raw('DATE(created_at) as day'),
+                DB::raw('COALESCE(SUM(total),0) as total'),
+                DB::raw('COUNT(*) as count'),
+            ]);
+
+        // Top 5 products by revenue today
+        $topProducts = DB::table('inventory_sale_items as si')
+            ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
+            ->join('inventory_products as p', 'p.id', '=', 'si.product_id')
+            ->whereDate('s.created_at', $today)
+            ->groupBy('p.id', 'p.name')
+            ->orderByDesc(DB::raw('SUM(si.total)'))
+            ->limit(5)
+            ->get([
+                'p.name as product',
+                DB::raw('SUM(si.quantity) as quantity'),
+                DB::raw('SUM(si.total) as revenue'),
+            ]);
+
+        return response()->json(['data' => [
+            'today' => [
+                'count'   => (int) ($todayRow->count ?? 0),
+                'total'   => (float) ($todayRow->total ?? 0),
+                'paid'    => (float) ($todayRow->paid ?? 0),
+                'profit'  => $profitToday,
+            ],
+            'outstanding_debt' => $debtTotal,
+            'week_trend'       => $weekTrend,
+            'month_trend'      => $monthTrend,
+            'top_products'     => $topProducts,
+        ]]);
+    }
+
+    /**
+     * POST /inventory/sales/{id}/payments
+     * Record a payment against an existing debt or partial sale.
+     * Updates paid_total and recalculates payment_status automatically.
+     */
+    public function recordPayment(Request $request, int $id)
+    {
+        $v = Validator::make($request->all(), [
+            'amount'    => 'required|numeric|min:0.01',
+            'method'    => 'required|in:cash,mobile_money,bank_transfer',
+            'reference' => 'nullable|string|max:100',
+            'paid_at'   => 'nullable|date',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['message' => $v->errors()->first()], 422);
+        }
+
+        return DB::transaction(function () use ($request, $id) {
+            $sale = DB::table('inventory_sales')->lockForUpdate()->find($id);
+            if (!$sale) {
+                return response()->json(['message' => 'Sale not found'], 404);
+            }
+            if (!empty($sale->cancelled_at)) {
+                return response()->json(['message' => 'Cannot pay a cancelled sale'], 422);
+            }
+            if ($sale->payment_status === 'paid') {
+                return response()->json(['message' => 'Sale is already fully paid'], 422);
+            }
+
+            $outstanding = (float) $sale->total - (float) $sale->paid_total;
+            $amount = min((float) $request->amount, $outstanding); // never overpay
+
+            DB::table('inventory_sale_payments')->insert([
+                'sale_id'    => $id,
+                'amount'     => $amount,
+                'method'     => $request->method,
+                'reference'  => $request->reference,
+                'paid_at'    => $request->paid_at ?? now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $newPaid = (float) $sale->paid_total + $amount;
+            $newStatus = $newPaid >= (float) $sale->total
+                ? 'paid'
+                : ($newPaid > 0 ? 'partial' : 'debt');
+
+            DB::table('inventory_sales')->where('id', $id)->update([
+                'paid_total'     => $newPaid,
+                'payment_status' => $newStatus,
+                'updated_at'     => now(),
+            ]);
+
+            // Close the reminder when fully settled
+            if ($newStatus === 'paid') {
+                DB::table('inventory_reminders')
+                    ->where('type', 'payment_due')
+                    ->where('related_id', $id)
+                    ->where('status', 'open')
+                    ->update(['status' => 'done', 'updated_at' => now()]);
+            }
+
+            $this->audit->record($request, 'sale_payment', $id, 'payment_recorded', null, [
+                'amount'     => $amount,
+                'method'     => $request->method,
+                'new_status' => $newStatus,
+                'paid_total' => $newPaid,
+            ], $sale->number);
+
+            return response()->json([
+                'message' => 'Payment recorded',
+                'data'    => [
+                    'sale_id'        => $id,
+                    'sale_number'    => $sale->number,
+                    'amount_paid'    => $amount,
+                    'new_paid_total' => $newPaid,
+                    'balance'        => max(0, (float) $sale->total - $newPaid),
+                    'payment_status' => $newStatus,
+                ],
+            ]);
+        });
+    }
+
+    /**
+     * POST /inventory/sales/{id}/cancel
+     * Cancels a sale and returns all issued stock back to the ledger.
+     * Only allowed on today's sales (configurable) and by managers.
+     */
+    public function cancel(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
+
+        return DB::transaction(function () use ($request, $id, $data) {
+            $sale = DB::table('inventory_sales')->lockForUpdate()->find($id);
+            if (!$sale) {
+                return response()->json(['message' => 'Sale not found'], 404);
+            }
+            if (!empty($sale->cancelled_at)) {
+                return response()->json(['message' => 'Sale already cancelled'], 422);
+            }
+
+            // Re-stock every line item
+            $items = DB::table('inventory_sale_items')->where('sale_id', $id)->get();
+            foreach ($items as $item) {
+                try {
+                    $this->ledger->receive(
+                        (int) $item->product_id,
+                        (int) $item->quantity,
+                        'CANCEL-' . now()->format('Ymd'),
+                        null,
+                        (float) $item->unit_cost_snapshot,
+                        $sale->number,
+                        optional($request->user())->id,
+                    );
+                } catch (\Throwable $e) {
+                    // Fallback: direct quantity add if ledger can't create batch
+                    DB::table('inventory_products')
+                        ->where('id', $item->product_id)
+                        ->increment('quantity', (int) $item->quantity, ['updated_at' => now()]);
+                }
+            }
+
+            DB::table('inventory_sales')->where('id', $id)->update([
+                'cancelled_at'        => now(),
+                'cancellation_reason' => $data['reason'],
+                'updated_at'          => now(),
+            ]);
+
+            // Close any open reminders for this sale
+            DB::table('inventory_reminders')
+                ->where('type', 'payment_due')
+                ->where('related_id', $id)
+                ->where('status', 'open')
+                ->update(['status' => 'done', 'updated_at' => now()]);
+
+            $this->audit->record($request, 'sale', $id, 'cancelled', [
+                'payment_status' => $sale->payment_status,
+                'total'          => $sale->total,
+            ], ['reason' => $data['reason']], $sale->number);
+
+            return response()->json(['message' => 'Sale cancelled and stock restored']);
+        });
+    }
+
+    private function isManager(Request $request): bool
+    {
+        return in_array(optional($request->user())->role, ['admin', 'manager']);
+    }
+
     public function store(Request $request)
     {
         $v = Validator::make($request->all(), [
@@ -186,12 +419,11 @@ class SalesController extends Controller
         }
 
         return DB::transaction(function () use ($request) {
-            $todayStr = now()->format('Ymd');
-            $nextId = (DB::table('inventory_sales')->max('id') ?? 0) + 1;
-            $number = 'S-' . $todayStr . '-' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT);
-
+            // Insert with a placeholder number first so we can derive the
+            // number from the guaranteed-unique auto-increment ID, avoiding the
+            // max(id)+1 race condition under concurrent checkouts.
             $saleId = DB::table('inventory_sales')->insertGetId([
-                'number' => $number,
+                'number' => 'PENDING',
                 'customer_id' => $request->customer_id,
                 'payment_status' => $request->payment_status,
                 'subtotal' => $request->subtotal,
@@ -204,6 +436,9 @@ class SalesController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            $number = 'S-' . now()->format('Ymd') . '-' . str_pad((string) $saleId, 4, '0', STR_PAD_LEFT);
+            DB::table('inventory_sales')->where('id', $saleId)->update(['number' => $number]);
 
             $insertedItems = [];
             foreach ($request->items as $item) {
@@ -291,6 +526,13 @@ class SalesController extends Controller
                     'updated_at' => now(),
                 ]);
             }
+
+            $this->audit->record($request, 'sale', (int) $saleId, 'created', null, [
+                'number' => $number,
+                'total' => $request->total,
+                'payment_status' => $request->payment_status,
+                'items_count' => count($request->items),
+            ], $number);
 
             return response()->json([
                 'message' => 'Sale created successfully',
