@@ -212,17 +212,23 @@ class _ReceiptPaper extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
 
-                // ── Store emblem ──────────────────────────────────────────
-                Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D0D0D),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 28),
+                // ── Store emblem + name (side by side) ───────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D0D0D),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(child: Text(shopName, style: _shopName, textAlign: TextAlign.left)),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                Text(shopName, style: _shopName, textAlign: TextAlign.center),
                 if (tagline.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Text(tagline,
@@ -239,14 +245,9 @@ class _ReceiptPaper extends StatelessWidget {
                 _SectionBanner(label: 'RISITI YA MAUZO'),
                 const SizedBox(height: 12),
 
-                // ── Customer name banner (always shown) ─────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: custName != null ? const Color(0xFF0D0D0D) : const Color(0xFF3A3A3A),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                // ── Customer name (always shown, transparent bg) ─────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -256,10 +257,10 @@ class _ReceiptPaper extends StatelessWidget {
                         child: Text(
                           custName != null ? custName.toUpperCase() : 'MTEJA WA JUMLA',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'Courier', fontSize: 13,
                             fontWeight: FontWeight.w900, letterSpacing: 2,
-                            color: custName != null ? Colors.white : const Color(0xFFCCCCCC),
+                            color: Color(0xFF0D0D0D),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -267,7 +268,7 @@ class _ReceiptPaper extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
 
                 // ── Sale meta card ────────────────────────────────────────
                 Container(
@@ -376,21 +377,15 @@ class _ReceiptPaper extends StatelessWidget {
                 ],
                 const SizedBox(height: 12),
 
-                // ── Status stamp ──────────────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: _statusBg(),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _statusColor().withOpacity(0.4), width: 1.5),
-                  ),
+                // ── Status stamp (transparent) ────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
                     _statusLabel(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Courier',
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 3,
                       color: _statusColor(),
@@ -638,35 +633,27 @@ class _BarcodeWidget extends StatelessWidget {
   final String data;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (_, constraints) {
-          final availableWidth = constraints.maxWidth;
-          // Each bar unit is ~1.2px wide; fill the full width with groups of black+white
-          const unitW = 1.2;
-          final groupCount = (availableWidth / (unitW * 3)).floor();
-          final rng = math.Random(data.hashCode);
-          // Build alternating black (narrow/wide) and white (gap) segments
-          final segments = <MapEntry<double, bool>>[];
-          for (int i = 0; i < groupCount; i++) {
-            final barW = rng.nextDouble() > 0.5 ? unitW * 2 : unitW;
-            final gapW = unitW;
-            segments.add(MapEntry(barW, true));
-            segments.add(MapEntry(gapW, false));
-          }
+  Widget build(BuildContext context) {
+    final rng = math.Random(data.hashCode);
+    // Fixed 80 alternating bar/gap pairs, centered
+    const barCount = 80;
+    final bars = List.generate(barCount, (_) => rng.nextDouble() > 0.5 ? 2.2 : 1.1);
 
-          return SizedBox(
-            height: 38,
-            width: availableWidth,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: segments.map((e) => Container(
-                width: e.key,
-                color: e.value ? const Color(0xFF1A1A1A) : Colors.transparent,
-              )).toList(),
-            ),
-          );
-        },
-      );
+    return Center(
+      child: SizedBox(
+        height: 34,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: bars.asMap().entries.map((e) => Container(
+            width: e.value,
+            margin: const EdgeInsets.symmetric(horizontal: 0.3),
+            color: e.key % 2 == 0 ? const Color(0xFF1A1A1A) : Colors.transparent,
+          )).toList(),
+        ),
+      ),
+    );
+  }
 }
 
 /// Torn paper edge — top or bottom.
