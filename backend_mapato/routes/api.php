@@ -246,6 +246,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('products', [InventoryProductController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::post('inventory/products', [InventoryProductController::class, 'store'])->middleware('role_any:admin,manager');
     Route::put('inventory/products/{id}', [InventoryProductController::class, 'update'])->middleware('role_any:admin,manager');
+    Route::delete('inventory/products/{id}', [InventoryProductController::class, 'destroy'])->middleware('role_any:admin,manager');
 
     // Product units — selling units (bottle / pack / crate) and tiered prices (Area 2)
     Route::get('inventory/products/{productId}/units', [InventoryProductUnitController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');

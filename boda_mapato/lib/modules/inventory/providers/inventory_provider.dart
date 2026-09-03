@@ -448,6 +448,55 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateProduct({
+    required int id,
+    required String name,
+    required double costPrice,
+    required double sellingPrice,
+    required int quantity,
+    required int minStock,
+    String? description,
+    String? category,
+    int? categoryId,
+    int? brandId,
+    String? unit,
+    String status = 'active',
+    String? barcode,
+  }) async {
+    try {
+      await _api.put('/inventory/products/$id', {
+        'name': name,
+        'description': description,
+        'category': category,
+        if (categoryId != null) 'category_id': categoryId,
+        if (brandId != null) 'brand_id': brandId,
+        'cost_price': costPrice,
+        'selling_price': sellingPrice,
+        if (unit != null) 'unit': unit,
+        'quantity': quantity,
+        'min_stock': minStock,
+        'status': status,
+        'barcode': barcode,
+      });
+      await fetchProducts();
+      _refreshLowStockReminders();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> deleteProduct(int id) async {
+    try {
+      await _api.delete('/inventory/products/$id');
+      _products.removeWhere((InvProduct p) => p.id == id);
+      notifyListeners();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
   Future<void> fetchCustomers({String? q}) async {
     final List<String> endpoints = [
       '/inventory/customers',
@@ -1916,6 +1965,11 @@ InvProduct _fromProductJson(Map<String, dynamic> j) => InvProduct(
       status: (j['status'] ?? 'active') as String,
       barcode: (j['barcode'] ?? j['bar_code'] ?? '') as String,
       createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
+      description: j['description'] as String?,
+      categoryId: int.tryParse((j['category_id'] ?? '').toString()),
+      brandId: int.tryParse((j['brand_id'] ?? '').toString()),
+      categoryName: j['category_name'] as String?,
+      brandName: j['brand_name'] as String?,
     );
 
 InvCustomer _fromCustomerJson(Map<String, dynamic> j) => InvCustomer(

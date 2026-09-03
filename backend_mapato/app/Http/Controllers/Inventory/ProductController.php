@@ -177,4 +177,18 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Product updated']);
     }
+
+    public function destroy(int $id)
+    {
+        $sold = DB::table('inventory_sale_items')->where('product_id', $id)->exists();
+        if ($sold) {
+            return response()->json(['message' => 'Product has sales history and cannot be deleted'], 422);
+        }
+
+        $deleted = DB::table('inventory_products')->where('id', $id)->delete();
+
+        return $deleted
+            ? response()->json(['message' => 'Product deleted'])
+            : response()->json(['message' => 'Not found'], 404);
+    }
 }

@@ -12,6 +12,11 @@ class InvProduct {
     required this.status,
     required this.barcode,
     required this.createdBy,
+    this.description,
+    this.categoryId,
+    this.brandId,
+    this.categoryName,
+    this.brandName,
   });
 
   final int id;
@@ -25,5 +30,14 @@ class InvProduct {
   int minStock;
   String status; // active/inactive
   String barcode;
-  int createdBy;
+  final int createdBy;
+  String? description;
+  int? categoryId;
+  int? brandId;
+  String? categoryName;
+  String? brandName;
+
+  double get totalCostPrice => costPrice * quantity;
+  double get totalSellingPrice => sellingPrice * quantity;
+  double get totalExpectedProfit => (sellingPrice - costPrice) * quantity;
 }
