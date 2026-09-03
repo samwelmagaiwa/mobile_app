@@ -73,6 +73,11 @@ class SalesController extends Controller
 
         $data = collect($sales->items())->map(function ($s) use ($itemsBySale) {
             $sArray = (array) $s;
+            $sArray['subtotal']   = (float) $s->subtotal;
+            $sArray['discount']   = (float) $s->discount;
+            $sArray['tax']        = (float) $s->tax;
+            $sArray['total']      = (float) $s->total;
+            $sArray['paid_total'] = (float) $s->paid_total;
             $sItems = $itemsBySale[$s->id] ?? collect();
             $sArray['items'] = $sItems->map(function ($it) {
                 return [
