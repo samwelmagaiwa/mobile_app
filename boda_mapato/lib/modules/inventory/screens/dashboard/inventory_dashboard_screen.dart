@@ -25,6 +25,8 @@ class InventoryDashboardScreen extends StatefulWidget {
       _InventoryDashboardScreenState();
 }
 
+enum _DateFilter { today, week, month, year, custom }
+
 class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     with TickerProviderStateMixin {
   static const Color primaryBlue = ThemeConstants.primaryBlue;
@@ -36,6 +38,11 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   late final Animation<double> _chartAnimation;
 
   int _selectedMonth = DateTime.now().month;
+
+  // ── Date filter state ─────────────────────────────────────────────────────
+  _DateFilter _filter = _DateFilter.today;
+  DateTime? _customStart;
+  DateTime? _customEnd;
 
   static const List<String> months = <String>[
     'Jan',
@@ -143,42 +150,156 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
         ),
       );
 
-  // ── Combined top sales card: monthly total | today | profit on same row ──
+  // ── Filter helpers ────────────────────────────────────────────────────────
+
+  String get _filterLabel {
+    switch (_filter) {
+      case _DateFilter.today:   return 'Leo';
+      case _DateFilter.week:    return 'Wiki hii';
+      case _DateFilter.month:   return 'Mwezi huu';
+      case _DateFilter.year:    return 'Mwaka huu';
+      case _DateFilter.custom:
+        if (_customStart != null && _customEnd != null) {
+          final s = _customStart!;
+          final e = _customEnd!;
+          return '${s.day}/${s.month} – ${e.day}/${e.month}';
+        }
+        return 'Chaguo';
+    }
+  }
+
+  DateTimeRange _filterRange() {
+    final now = DateTime.now();
+    switch (_filter) {
+      case _DateFilter.today:
+        final start = DateTime(now.year, now.month, now.day);
+        return DateTimeRange(start: start, end: now);
+      case _DateFilter.week:
+        final start = now.subtract(Duration(days: now.weekday - 1));
+        return DateTimeRange(
+            start: DateTime(start.year, start.month, start.day), end: now);
+      case _DateFilter.month:
+        return DateTimeRange(
+            start: DateTime(now.year, now.month, 1), end: now);
+      case _DateFilter.year:
+        return DateTimeRange(start: DateTime(now.year, 1, 1), end: now);
+      case _DateFilter.custom:
+        return DateTimeRange(
+            start: _customStart ?? DateTime(now.year, now.month, 1),
+            end: _customEnd ?? now);
+    }
+  }
+
+  List<InvSale> _filteredSales(InventoryProvider inv) {
+    final range = _filterRange();
+    return inv.sales.where((s) =>
+        !s.createdAt.isBefore(range.start) &&
+        !s.createdAt.isAfter(range.end)).toList();
+  }
+
+  double _filteredTotal(InventoryProvider inv) =>
+      _filteredSales(inv).fold(0, (sum, s) => sum + s.total);
+
+  double _filteredProfit(InventoryProvider inv) =>
+      _filteredSales(inv).fold(0,
+          (sum, s) => sum + s.items.fold(0.0, (a, i) => a + i.profit));
+
+  int _filteredSalesCount(InventoryProvider inv) => _filteredSales(inv).length;
+
+  Future<void> _showFilterSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _FilterSheet(
+        current: _filter,
+        customStart: _customStart,
+        customEnd: _customEnd,
+        onSelect: (f, start, end) {
+          setState(() {
+            _filter = f;
+            _customStart = start;
+            _customEnd = end;
+          });
+        },
+      ),
+    );
+  }
+
+  // ── Combined top sales card with date filter ─────────────────────────────
   Widget _buildSalesTopCard(LocalizationService loc, InventoryProvider inv) =>
       _buildGlassCard(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // Monthly sales
-              Expanded(
-                child: _salesMiniTile(
-                  label: loc.translate('sales'),
-                  value: 'TSH ${_formatCurrency(_monthSalesTotal(inv))}',
-                  icon: Icons.calendar_month_rounded,
-                  iconColor: Colors.lightBlueAccent.shade200,
-                  divider: true,
-                ),
+              // Header row: period label + filter icon
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.bar_chart_rounded, color: Colors.white54, size: 15),
+                  const SizedBox(width: 6),
+                  Text(_filterLabel,
+                      style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _showFilterSheet,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const <Widget>[
+                          Icon(Icons.tune_rounded, color: Colors.white, size: 14),
+                          SizedBox(width: 5),
+                          Text('Chuja', style: TextStyle(color: Colors.white,
+                              fontSize: 11, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              // Today
-              Expanded(
-                child: _salesMiniTile(
-                  label: loc.translate('total_sales_today'),
-                  value: 'TSH ${_formatCurrency(inv.totalSalesToday)}',
-                  icon: Icons.today_rounded,
-                  iconColor: Colors.greenAccent.shade200,
-                  divider: true,
-                ),
-              ),
-              // Profit today
-              Expanded(
-                child: _salesMiniTile(
-                  label: loc.translate('profit'),
-                  value: 'TSH ${_formatCurrency(inv.profitToday)}',
-                  icon: Icons.trending_up_rounded,
-                  iconColor: Colors.amber.shade300,
-                  divider: false,
-                ),
+              const SizedBox(height: 10),
+              // Three stat tiles
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _salesMiniTile(
+                      label: 'Mauzo',
+                      value: 'TSH ${_formatCurrency(_filteredTotal(inv))}',
+                      icon: Icons.receipt_long_rounded,
+                      iconColor: Colors.lightBlueAccent.shade200,
+                      divider: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: _salesMiniTile(
+                      label: 'Idadi ya Mauzo',
+                      value: '${_filteredSalesCount(inv)}',
+                      icon: Icons.shopping_cart_rounded,
+                      iconColor: Colors.greenAccent.shade200,
+                      divider: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: _salesMiniTile(
+                      label: loc.translate('profit'),
+                      value: 'TSH ${_formatCurrency(_filteredProfit(inv))}',
+                      icon: Icons.trending_up_rounded,
+                      iconColor: Colors.amber.shade300,
+                      divider: false,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1211,5 +1332,169 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   double _niceCeilValue(double raw) {
     final double step = _niceStep(raw / 5);
     return (raw / step).ceil() * step;
+  }
+}
+
+// ── Date filter bottom sheet ──────────────────────────────────────────────────
+
+class _FilterSheet extends StatefulWidget {
+  const _FilterSheet({
+    required this.current,
+    required this.onSelect,
+    this.customStart,
+    this.customEnd,
+  });
+  final _DateFilter current;
+  final DateTime? customStart;
+  final DateTime? customEnd;
+  final void Function(_DateFilter, DateTime?, DateTime?) onSelect;
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  late _DateFilter _selected;
+  DateTime? _start;
+  DateTime? _end;
+
+  static const _options = <({_DateFilter filter, String label, IconData icon})>[
+    (filter: _DateFilter.today,  label: 'Leo',        icon: Icons.today_rounded),
+    (filter: _DateFilter.week,   label: 'Wiki hii',   icon: Icons.view_week_rounded),
+    (filter: _DateFilter.month,  label: 'Mwezi huu',  icon: Icons.calendar_month_rounded),
+    (filter: _DateFilter.year,   label: 'Mwaka huu',  icon: Icons.calendar_today_rounded),
+    (filter: _DateFilter.custom, label: 'Tarehe maalum', icon: Icons.date_range_rounded),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.current;
+    _start = widget.customStart;
+    _end = widget.customEnd;
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 2),
+      lastDate: now,
+      initialDateRange: (_start != null && _end != null)
+          ? DateTimeRange(start: _start!, end: _end!)
+          : DateTimeRange(
+              start: now.subtract(const Duration(days: 6)), end: now),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: ThemeConstants.primaryBlue,
+            onPrimary: Colors.white,
+            surface: Color(0xFF1E3A5F),
+            onSurface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() { _start = picked.start; _end = picked.end; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A2E45),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // Drag handle
+          Container(
+            width: 40, height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const Text('Chagua Kipindi',
+              style: TextStyle(color: Colors.white, fontSize: 16,
+                  fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          const SizedBox(height: 16),
+          // Option tiles
+          ..._options.map((opt) {
+            final bool active = _selected == opt.filter;
+            final bool isCustom = opt.filter == _DateFilter.custom;
+            return GestureDetector(
+              onTap: () async {
+                setState(() => _selected = opt.filter);
+                if (isCustom) await _pickCustomRange();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: active
+                      ? ThemeConstants.primaryBlue.withOpacity(0.35)
+                      : Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: active ? ThemeConstants.primaryBlue : Colors.white12,
+                    width: active ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(opt.icon,
+                        color: active ? Colors.white : Colors.white54, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isCustom && _start != null && _end != null
+                            ? '${opt.label}  ${_start!.day}/${_start!.month}/${_start!.year} – ${_end!.day}/${_end!.month}/${_end!.year}'
+                            : opt.label,
+                        style: TextStyle(
+                          color: active ? Colors.white : Colors.white70,
+                          fontSize: 14,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    if (active)
+                      const Icon(Icons.check_circle_rounded,
+                          color: Colors.white, size: 18),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          // Apply button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeConstants.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                widget.onSelect(_selected, _start, _end);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Tumia', style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
