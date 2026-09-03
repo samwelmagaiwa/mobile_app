@@ -73,11 +73,11 @@ class SalesController extends Controller
 
         $data = collect($sales->items())->map(function ($s) use ($itemsBySale) {
             $sArray = (array) $s;
-            $sArray['subtotal']   = (float) $s->subtotal;
-            $sArray['discount']   = (float) $s->discount;
-            $sArray['tax']        = (float) $s->tax;
-            $sArray['total']      = (float) $s->total;
-            $sArray['paid_total'] = (float) $s->paid_total;
+            $sArray['subtotal']   = (int) $s->subtotal;
+            $sArray['discount']   = (int) $s->discount;
+            $sArray['tax']        = (int) $s->tax;
+            $sArray['total']      = (int) $s->total;
+            $sArray['paid_total'] = (int) $s->paid_total;
             $sItems = $itemsBySale[$s->id] ?? collect();
             $sArray['items'] = $sItems->map(function ($it) {
                 return [
@@ -86,9 +86,9 @@ class SalesController extends Controller
                     'product_name' => $it->product_name ?? 'Product #' . $it->product_id,
                     'quantity' => (int) $it->quantity,
                     'qty' => (int) $it->quantity,
-                    'unit_price' => (float) $it->unit_price,
-                    'unit_cost_snapshot' => (float) $it->unit_cost_snapshot,
-                    'total' => (float) $it->total,
+                    'unit_price' => (int) $it->unit_price,
+                    'unit_cost_snapshot' => (int) $it->unit_cost_snapshot,
+                    'total' => (int) $it->total,
                 ];
             })->values()->all();
             return $sArray;
@@ -137,11 +137,18 @@ class SalesController extends Controller
                 'product_name' => $it->product_name ?? 'Product #' . $it->product_id,
                 'quantity' => (int) $it->quantity,
                 'qty' => (int) $it->quantity,
-                'unit_price' => (float) $it->unit_price,
-                'unit_cost_snapshot' => (float) $it->unit_cost_snapshot,
-                'total' => (float) $it->total,
+                'unit_price' => (int) $it->unit_price,
+                'unit_cost_snapshot' => (int) $it->unit_cost_snapshot,
+                'total' => (int) $it->total,
             ];
         })->values()->all();
+
+        // Cast sale-level decimals to int
+        $saleArray['subtotal']   = (int) $sale->subtotal;
+        $saleArray['discount']   = (int) $sale->discount;
+        $saleArray['tax']        = (int) $sale->tax;
+        $saleArray['total']      = (int) $sale->total;
+        $saleArray['paid_total'] = (int) $sale->paid_total;
 
         $payments = DB::table('inventory_sale_payments')
             ->where('sale_id', $id)
@@ -151,7 +158,7 @@ class SalesController extends Controller
         $saleArray['payments'] = $payments->map(function ($p) {
             return [
                 'id' => (int) $p->id,
-                'amount' => (float) $p->amount,
+                'amount' => (int) $p->amount,
                 'method' => $p->method,
                 'reference' => $p->reference,
                 'paid_at' => $p->paid_at,
@@ -425,13 +432,13 @@ class SalesController extends Controller
              COALESCE(SUM(s.paid_total),0) as paid'
         )->first();
 
-        $debt = max(0, (float)($row->total ?? 0) - (float)($row->paid ?? 0));
+        $debt = max(0, (int)($row->total ?? 0) - (int)($row->paid ?? 0));
 
         return response()->json(['data' => [
             'count'  => (int)($row->count ?? 0),
-            'total'  => (float)($row->total ?? 0),
-            'paid'   => (float)($row->paid ?? 0),
-            'debt'   => $debt,
+            'total'  => (int)($row->total ?? 0),
+            'paid'   => (int)($row->paid ?? 0),
+            'debt'   => (int) $debt,
         ]]);
     }
 
