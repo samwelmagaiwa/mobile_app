@@ -1367,10 +1367,16 @@ class InventoryProvider extends ChangeNotifier {
     for (int i = 0; i < _categories.length; i++) {
       final c = _categories[i];
       if (c.code.isEmpty) {
-        String candidate = _genCategoryCode(c.name);
+        final String base = _genCategoryCode(c.name);
+        String candidate = base;
+        // Appending to `c.name` doesn't change the generated code (the
+        // prefix only looks at each word's first letter, and `seq` doesn't
+        // depend on the name at all), so retries must vary the candidate
+        // itself. The 999-attempt cap is a hard stop against ever looping
+        // forever again, even if this generator changes later.
         int k = 1;
-        while (used.contains(candidate)) {
-          candidate = _genCategoryCode(c.name + k.toString());
+        while (used.contains(candidate) && k < 999) {
+          candidate = '$base-$k';
           k++;
         }
         used.add(candidate);
