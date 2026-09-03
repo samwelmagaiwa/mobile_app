@@ -108,15 +108,15 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _buildBalanceCard(loc, inv),
+              _buildSalesTopCard(loc, inv),
               ResponsiveHelper.verticalSpace(2),
-              _buildStatsCards(loc, inv),
-              ResponsiveHelper.verticalSpace(2),
-              _buildChartSection(loc, inv),
+              _buildProductStatsRow(loc, inv),
               ResponsiveHelper.verticalSpace(2),
               _buildInventoryValuation(loc, inv),
               ResponsiveHelper.verticalSpace(2),
               _buildProductsOverview(loc, inv),
+              ResponsiveHelper.verticalSpace(2),
+              _buildChartSection(loc, inv),
             ],
           ),
         ),
@@ -142,6 +142,127 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           child: child,
         ),
       );
+
+  // ── Combined top sales card: monthly total | today | profit on same row ──
+  Widget _buildSalesTopCard(LocalizationService loc, InventoryProvider inv) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          child: Row(
+            children: <Widget>[
+              // Monthly sales
+              Expanded(
+                child: _salesMiniTile(
+                  label: loc.translate('sales'),
+                  value: 'TSH ${_formatCurrency(_monthSalesTotal(inv))}',
+                  icon: Icons.calendar_month_rounded,
+                  iconColor: Colors.lightBlueAccent.shade200,
+                  divider: true,
+                ),
+              ),
+              // Today
+              Expanded(
+                child: _salesMiniTile(
+                  label: loc.translate('total_sales_today'),
+                  value: 'TSH ${_formatCurrency(inv.totalSalesToday)}',
+                  icon: Icons.today_rounded,
+                  iconColor: Colors.greenAccent.shade200,
+                  divider: true,
+                ),
+              ),
+              // Profit today
+              Expanded(
+                child: _salesMiniTile(
+                  label: loc.translate('profit'),
+                  value: 'TSH ${_formatCurrency(inv.profitToday)}',
+                  icon: Icons.trending_up_rounded,
+                  iconColor: Colors.amber.shade300,
+                  divider: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _salesMiniTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required bool divider,
+  }) =>
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(children: <Widget>[
+                  Icon(icon, color: iconColor, size: 14),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: textSecondary,
+                            fontSize: ResponsiveHelper.bodyS,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ]),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value,
+                      style: TextStyle(
+                          color: textPrimary,
+                          fontSize: ResponsiveHelper.bodyM,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          if (divider)
+            Container(
+              width: 1, height: 40,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              color: Colors.white.withOpacity(0.15),
+            ),
+        ],
+      );
+
+  // ── Products + low-stock row ──────────────────────────────────────────────
+  Widget _buildProductStatsRow(LocalizationService loc, InventoryProvider inv) {
+    final int totalProducts = inv.products.length;
+    final int lowStock = inv.lowStockCount;
+    final int inStock = math.max(0, totalProducts - lowStock);
+
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _buildStatCard(
+            loc.translate('products'),
+            '$totalProducts',
+            '${loc.translate('active')} $inStock/$totalProducts',
+            Icons.inventory_2_outlined,
+            true,
+          ),
+        ),
+        ResponsiveHelper.horizontalSpace(4),
+        Expanded(
+          child: _buildStatCard(
+            loc.translate('low_stock_alerts'),
+            '$lowStock',
+            loc.translate('items'),
+            Icons.warning_amber_rounded,
+            lowStock == 0,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildBalanceCard(LocalizationService loc, InventoryProvider inv) {
     final Size size = MediaQuery.of(context).size;
