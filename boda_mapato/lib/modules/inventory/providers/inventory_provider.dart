@@ -1575,20 +1575,21 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
                   name: (it['product_name'] ?? '') as String,
                   qty: int.tryParse((it['quantity'] ?? it['qty'] ?? 0).toString()) ?? 0,
                   unitPrice: double.tryParse((it['unit_price'] ?? 0).toString()) ?? 0.0,
-                  unitCostSnapshot: ((it['unit_cost_snapshot'] ??
-                          it['unit_cost'] ??
-                          0) as num)
-                      .toDouble(),
+                  unitCostSnapshot: (() {
+                    final v = it['unit_cost_snapshot'] ?? it['unit_cost'] ?? 0;
+                    return v is num ? v.toDouble() : double.tryParse('$v') ?? 0.0;
+                  })(),
                 )
               : null)
           .whereType<InvSaleItem>()
           .toList()
       : <InvSaleItem>[];
-  final double subtotal = ((j['subtotal'] ?? 0) as num).toDouble();
-  final double total = ((j['total'] ?? 0) as num).toDouble();
-  final double discount = ((j['discount'] ?? 0) as num).toDouble();
-  final double tax = ((j['tax'] ?? 0) as num).toDouble();
-  final double paidTotal = ((j['paid_total'] ?? 0) as num).toDouble();
+  double _n(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0.0;
+  final double subtotal = _n(j['subtotal']);
+  final double total = _n(j['total']);
+  final double discount = _n(j['discount']);
+  final double tax = _n(j['tax']);
+  final double paidTotal = _n(j['paid_total']);
   final createdAtStr = j['created_at']?.toString();
   final createdAt = createdAtStr != null
       ? DateTime.tryParse(createdAtStr) ?? DateTime.now()
