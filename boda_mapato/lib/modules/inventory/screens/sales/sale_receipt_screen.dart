@@ -282,26 +282,32 @@ class _ReceiptPaper extends StatelessWidget {
                       style: _label.copyWith(fontStyle: FontStyle.italic, letterSpacing: 1),
                       textAlign: TextAlign.center),
                 ],
-                if (shopPhone.isNotEmpty && shopPhone != 'null') ...[
+                // ── Phone (left) + TIN (right) on same row ───────────────
+                if ((shopPhone.isNotEmpty && shopPhone != 'null') ||
+                    (showTin && tin.isNotEmpty && tin != 'null')) ...[
                   const SizedBox(height: 4),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF0D0D0D)),
-                      const SizedBox(width: 5),
-                      Text(shopPhone,
-                          style: const TextStyle(
-                            fontFamily: 'Courier', fontSize: 13,
-                            fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D),
-                            letterSpacing: 1,
-                          )),
+                      if (shopPhone.isNotEmpty && shopPhone != 'null')
+                        Row(children: [
+                          const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF0D0D0D)),
+                          const SizedBox(width: 4),
+                          Text(shopPhone,
+                              style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
+                                  fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D))),
+                        ]),
+                      const Spacer(),
+                      if (showTin && tin.isNotEmpty && tin != 'null')
+                        Text('TIN: $tin',
+                            style: const TextStyle(fontFamily: 'Courier', fontSize: 12,
+                                fontWeight: FontWeight.w800, color: Color(0xFF0D0D0D))),
                     ],
                   ),
                 ],
-                const SizedBox(height: 6),
-                // Contact strip (address, email, website, TIN — phone already shown above)
+                const SizedBox(height: 4),
+                // Contact strip (address, email, website — phone & TIN shown above)
                 _ContactLine(address: shopAddress, phone: '',
-                    email: email, website: website, tin: showTin ? tin : ''),
+                    email: email, website: website, tin: ''),
                 const SizedBox(height: 12),
 
                 // ── Receipt title banner ──────────────────────────────────
