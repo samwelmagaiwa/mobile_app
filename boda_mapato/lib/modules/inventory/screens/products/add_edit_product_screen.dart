@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_brand.dart';
 import '../../models/inv_category.dart';
@@ -84,6 +85,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       context.read<InventoryProvider>()
         ..fetchCategories()
         ..fetchBrands();
+      final authUser = context.read<AuthProvider>().user;
+      if (authUser != null && _createdBy.text.isEmpty) {
+        _createdBy.text = authUser.name.isNotEmpty ? authUser.name : authUser.email;
+      }
     });
   }
 
@@ -377,7 +382,24 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     ),
                     SizedBox(height: 8.h),
                     _twoCol(
-                      left: _input('Created By', _createdBy),
+                      left: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionTitle('Created By'),
+                          TextField(
+                            controller: _createdBy,
+                            readOnly: true,
+                            decoration: _decoration('Created By').copyWith(
+                              prefixIcon: const Icon(Icons.person_outline,
+                                  color: Colors.white38),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                            ),
+                            style: ThemeConstants.bodyStyle
+                                .copyWith(color: Colors.white54),
+                          ),
+                        ],
+                      ),
                       right: const SizedBox.shrink(),
                     ),
                   ],
@@ -719,7 +741,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Future<void> _createCategoryDialog(LocalizationService loc) async {
-    final TextEditingController controller = TextEditingController();
+    // No TextEditingController here on purpose: disposing one right after
+    // the dialog's exit *transition* (which spans several frames after
+    // showDialog resolves, not just the next one) raced the still-mounted
+    // TextField reading it - "used after being disposed", then cascading
+    // Overlay/GlobalKey errors. Plain onChanged has nothing to dispose.
+    String draft = '';
     final String? name = await showDialog<String>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
@@ -729,23 +756,23 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         title: Text(loc.translate('add_category'),
             style: ThemeConstants.headingStyle),
         content: TextField(
-          controller: controller,
           autofocus: true,
           style: ThemeConstants.bodyStyle,
           decoration: _decoration(loc.translate('new_category_name')),
+          onChanged: (String v) => draft = v,
+          onSubmitted: (String v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: <Widget>[
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(loc.translate('cancel'))),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            onPressed: () => Navigator.pop(ctx, draft.trim()),
             child: Text(loc.translate('save')),
           ),
         ],
       ),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
     if (name == null || name.isEmpty || !mounted) return;
 
     final int? id =
@@ -759,7 +786,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Future<void> _createBrandDialog(LocalizationService loc) async {
-    final TextEditingController controller = TextEditingController();
+    // See _createCategoryDialog for why this deliberately has no
+    // TextEditingController.
+    String draft = '';
     final String? name = await showDialog<String>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
@@ -769,23 +798,23 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         title: Text(loc.translate('add_brand'),
             style: ThemeConstants.headingStyle),
         content: TextField(
-          controller: controller,
           autofocus: true,
           style: ThemeConstants.bodyStyle,
           decoration: _decoration(loc.translate('new_brand_name')),
+          onChanged: (String v) => draft = v,
+          onSubmitted: (String v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: <Widget>[
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(loc.translate('cancel'))),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            onPressed: () => Navigator.pop(ctx, draft.trim()),
             child: Text(loc.translate('save')),
           ),
         ],
       ),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
     if (name == null || name.isEmpty || !mounted) return;
 
     final int? id =

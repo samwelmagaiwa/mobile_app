@@ -146,7 +146,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   Future<void> _promptManualEntry(BuildContext context) async {
     final LocalizationService loc = LocalizationService.instance;
-    final TextEditingController controller = TextEditingController();
+    // No TextEditingController here on purpose: disposing one right after
+    // showDialog resolves races the dialog's still-animating exit
+    // transition reading it - "used after being disposed", then cascading
+    // Overlay/GlobalKey errors. Plain onChanged has nothing to dispose.
+    String draft = '';
 
     final String? code = await showDialog<String>(
       context: context,
@@ -158,12 +162,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         title: Text(loc.translate('enter_code_manually'),
             style: ThemeConstants.headingStyle),
         content: TextField(
-          controller: controller,
           autofocus: true,
           style: ThemeConstants.bodyStyle,
           decoration:
               ThemeConstants.invInputDecoration(loc.translate('barcode')),
-          onSubmitted: (String v) => Navigator.pop(ctx, v),
+          onChanged: (String v) => draft = v,
+          onSubmitted: (String v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: <Widget>[
           TextButton(
@@ -171,13 +175,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             child: Text(loc.translate('cancel')),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            onPressed: () => Navigator.pop(ctx, draft.trim()),
             child: Text(loc.translate('ok')),
           ),
         ],
       ),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
 
     if (code != null && code.isNotEmpty && mounted) {
       Navigator.of(context).pop(code);
