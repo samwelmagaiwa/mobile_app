@@ -43,13 +43,19 @@ class InvSale {
     required this.createdBy,
     required this.createdAt,
     this.customerId,
+    this.customerName,
+    this.customerPhone,
     this.dueDate,
+    this.cancelledAt,
+    this.cancellationReason,
     this.payments = const [],
   });
 
   final int id;
   final String number;
   final int? customerId;
+  final String? customerName;
+  final String? customerPhone;
   String paymentStatus;
   final List<InvSaleItem> items;
   double subtotal;
@@ -58,10 +64,13 @@ class InvSale {
   double total;
   double paidTotal;
   DateTime? dueDate;
+  DateTime? cancelledAt;
+  String? cancellationReason;
   int createdBy;
   DateTime createdAt;
   List<InvPayment> payments;
 
+  bool get isCancelled => cancelledAt != null;
   double get profit => items.fold(0, (sum, it) => sum + it.profit);
   int get totalItems => items.fold(0, (sum, it) => sum + it.qty);
 }

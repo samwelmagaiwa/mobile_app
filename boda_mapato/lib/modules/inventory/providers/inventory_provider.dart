@@ -46,10 +46,17 @@ class InventoryProvider extends ChangeNotifier {
   int? _selectedCustomerId;
   double _paidAmount = 0;
 
+  // Sales history pagination + summary
+  int _salesPage = 1;
+  bool _salesHasMore = false;
+  Map<String, dynamic> _salesSummary = {};
+
   // Accessors
   List<InvProduct> get products => List.unmodifiable(_products);
   List<InvCustomer> get customers => List.unmodifiable(_customers);
   List<InvSale> get sales => List.unmodifiable(_sales);
+  bool get salesHasMore => _salesHasMore;
+  Map<String, dynamic> get salesSummary => Map.unmodifiable(_salesSummary);
   List<InvReminder> get reminders => List.unmodifiable(_reminders);
   List<InvCategory> get categories => List.unmodifiable(_categories);
   List<InvBrand> get brands => List.unmodifiable(_brands);
@@ -530,22 +537,21 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   Future<void> fetchSales(
-      {String? status, DateTime? from, DateTime? to}) async {
+      {String? status, DateTime? from, DateTime? to, String? q}) async {
+    _salesPage = 1;
     final params = <String, String>{
       if (status != null && status != 'all') 'status': status,
-      if (from != null) 'from': from.toIso8601String(),
-      if (to != null) 'to': to.toIso8601String(),
+      if (from != null) 'from': from.toIso8601String().split('T').first,
+      if (to != null) 'to': to.toIso8601String().split('T').first,
+      if (q != null && q.isNotEmpty) 'q': q,
+      'page': '1',
     };
     final qs = params.entries
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
         .join('&');
-    final List<String> endpoints = [
-      '/inventory/sales',
-      '/sales',
-    ];
-    for (final e in endpoints) {
+    for (final e in ['/inventory/sales', '/sales']) {
       try {
-        final res = await _api.getOrNull(qs.isNotEmpty ? '$e?$qs' : e);
+        final res = await _api.getOrNull('$e?$qs');
         if (res == null) continue;
         final List<dynamic> list = (res['data'] is List)
             ? List<dynamic>.from(res['data'] as List)
@@ -557,6 +563,9 @@ class InventoryProvider extends ChangeNotifier {
         _sales
           ..clear()
           ..addAll(list.map((j) => _fromSaleJson(j as Map<String, dynamic>)));
+        final meta = res['meta'] as Map<String, dynamic>?;
+        _salesHasMore = meta != null &&
+            (meta['current_page'] as int? ?? 1) < (meta['last_page'] as int? ?? 1);
         notifyListeners();
         return;
       } on Exception {
@@ -568,6 +577,83 @@ class InventoryProvider extends ChangeNotifier {
       _refreshLowStockReminders();
       _refreshPaymentDueReminders();
       notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreSales(
+      {String? status, DateTime? from, DateTime? to, String? q}) async {
+    if (!_salesHasMore) return;
+    _salesPage++;
+    final params = <String, String>{
+      if (status != null && status != 'all') 'status': status,
+      if (from != null) 'from': from.toIso8601String().split('T').first,
+      if (to != null) 'to': to.toIso8601String().split('T').first,
+      if (q != null && q.isNotEmpty) 'q': q,
+      'page': '$_salesPage',
+    };
+    final qs = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    try {
+      final res = await _api.getOrNull('/inventory/sales?$qs');
+      if (res == null) return;
+      final List<dynamic> list = (res['data'] is List)
+          ? List<dynamic>.from(res['data'] as List)
+          : <dynamic>[];
+      _sales.addAll(list.map((j) => _fromSaleJson(j as Map<String, dynamic>)));
+      final meta = res['meta'] as Map<String, dynamic>?;
+      _salesHasMore = meta != null &&
+          (meta['current_page'] as int? ?? 1) < (meta['last_page'] as int? ?? 1);
+      notifyListeners();
+    } on Exception {
+      _salesPage--;
+    }
+  }
+
+  Future<void> fetchSalesSummary(
+      {String? status, DateTime? from, DateTime? to, String? q}) async {
+    final params = <String, String>{
+      if (status != null && status != 'all') 'status': status,
+      if (from != null) 'from': from.toIso8601String().split('T').first,
+      if (to != null) 'to': to.toIso8601String().split('T').first,
+      if (q != null && q.isNotEmpty) 'q': q,
+    };
+    final qs = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    try {
+      final res = await _api.getOrNull('/inventory/sales/summary?$qs');
+      if (res != null && res['data'] is Map) {
+        _salesSummary = Map<String, dynamic>.from(res['data'] as Map);
+        notifyListeners();
+      }
+    } on Exception {
+      // leave cached summary
+    }
+  }
+
+  Future<(bool, String)> cancelSale(int id, String reason) async {
+    try {
+      await _api.post('/inventory/sales/$id/cancel', {'reason': reason})
+          .timeout(const Duration(seconds: 15));
+      await fetchSales();
+      return (true, 'cancelled');
+    } on Exception catch (_) {
+      return (false, 'cancel_failed');
+    }
+  }
+
+  Future<(bool, String)> recordSalePayment(
+      int id, double amount, String method) async {
+    try {
+      await _api.post('/inventory/sales/$id/payments', {
+        'amount': amount,
+        'method': method,
+      }).timeout(const Duration(seconds: 15));
+      await fetchSales();
+      return (true, 'payment_recorded');
+    } on Exception catch (_) {
+      return (false, 'payment_failed');
     }
   }
 
@@ -1962,10 +2048,13 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
   final createdAt = createdAtStr != null
       ? DateTime.tryParse(createdAtStr) ?? DateTime.now()
       : DateTime.now();
+  final cancelledAtStr = j['cancelled_at']?.toString();
   return InvSale(
     id: int.tryParse((j['id'] ?? 0).toString()) ?? 0,
     number: (j['number'] ?? j['sale_number'] ?? '') as String,
     customerId: j['customer_id'] != null ? int.tryParse(j['customer_id'].toString()) : null,
+    customerName: j['customer_name']?.toString(),
+    customerPhone: j['customer_phone']?.toString(),
     paymentStatus: (j['payment_status'] ?? j['status'] ?? '') as String,
     items: items,
     subtotal: subtotal,
@@ -1976,6 +2065,8 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
     dueDate: j['due_date'] != null
         ? DateTime.tryParse(j['due_date'].toString())
         : null,
+    cancelledAt: cancelledAtStr != null ? DateTime.tryParse(cancelledAtStr) : null,
+    cancellationReason: j['cancellation_reason']?.toString(),
     createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
     createdAt: createdAt,
   );

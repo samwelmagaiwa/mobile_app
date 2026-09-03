@@ -382,6 +382,54 @@ class SalesController extends Controller
         });
     }
 
+    /**
+     * GET /inventory/sales/summary
+     * Aggregated totals for the same filters as index — used by the history tab summary bar.
+     */
+    public function summary(Request $request)
+    {
+        $status = $request->query('status');
+        $from   = $request->query('from');
+        $to     = $request->query('to');
+        $q      = $request->query('q');
+
+        $query = DB::table('inventory_sales as s')
+            ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
+            ->whereNull('s.cancelled_at');
+
+        if ($status && in_array($status, ['paid', 'debt', 'partial'])) {
+            $query->where('s.payment_status', $status);
+        }
+        if ($from) {
+            $query->whereDate('s.created_at', '>=', $from);
+        }
+        if ($to) {
+            $query->whereDate('s.created_at', '<=', $to);
+        }
+        if (!empty($q)) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('s.number', 'like', "%{$q}%")
+                    ->orWhere('c.name', 'like', "%{$q}%")
+                    ->orWhere('c.phone', 'like', "%{$q}%");
+            });
+        }
+
+        $row = (clone $query)->selectRaw(
+            'COUNT(s.id) as count,
+             COALESCE(SUM(s.total),0) as total,
+             COALESCE(SUM(s.paid_total),0) as paid'
+        )->first();
+
+        $debt = max(0, (float)($row->total ?? 0) - (float)($row->paid ?? 0));
+
+        return response()->json(['data' => [
+            'count'  => (int)($row->count ?? 0),
+            'total'  => (float)($row->total ?? 0),
+            'paid'   => (float)($row->paid ?? 0),
+            'debt'   => $debt,
+        ]]);
+    }
+
     private function isManager(Request $request): bool
     {
         return in_array(optional($request->user())->role, ['admin', 'manager']);

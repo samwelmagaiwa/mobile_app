@@ -366,6 +366,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('inventory/customers', [InventoryCustomerController::class, 'store'])->middleware('role_any:admin,manager');
     Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update'])->middleware('role_any:admin,manager');
     Route::get('inventory/kpis', [InventorySalesController::class, 'kpis'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('inventory/sales/summary', [InventorySalesController::class, 'summary'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('inventory/sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::get('inventory/sales/{id}', [InventorySalesController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
