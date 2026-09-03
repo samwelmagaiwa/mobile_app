@@ -41,7 +41,10 @@ class UserPermissions {
 
   /// Check if user is an admin
   bool get isAdmin =>
-      role?.toLowerCase() == 'admin' || role?.toLowerCase() == 'administrator';
+      role?.toLowerCase() == 'admin' ||
+      role?.toLowerCase() == 'administrator' ||
+      role?.toLowerCase() == 'super_admin' ||
+      role?.toLowerCase() == 'superadmin';
 
   /// Check if user is a manager
   bool get isManager => role?.toLowerCase() == 'manager';
@@ -79,6 +82,8 @@ class UserPermissions {
     switch (userRole.toLowerCase()) {
       case 'admin':
       case 'administrator':
+      case 'super_admin':
+      case 'superadmin':
         return const [
           'view_drivers',
           'manage_drivers',

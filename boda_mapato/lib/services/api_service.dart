@@ -24,8 +24,8 @@ class ApiService {
   // For Android emulator: "http://10.0.2.2:8000/api";
   // For iOS simulator: "http://127.0.1:8000/api";
 
-  // Timeout duration - reduced for better UX
-  static const Duration timeoutDuration = Duration(seconds: 15);
+  // Timeout duration
+  static Duration get timeoutDuration => ApiConfig.timeoutDuration;
   static const Duration connectionTimeout = Duration(seconds: 10);
 
   // Headers
@@ -262,6 +262,10 @@ class ApiService {
     final Map<String, dynamic> data,
   ) async {
     return _put(endpoint, data);
+  }
+
+  Future<Map<String, dynamic>> delete(final String endpoint) async {
+    return _delete(endpoint);
   }
 
   Future<Map<String, dynamic>> _get(
@@ -770,10 +774,17 @@ class ApiService {
 
   // Users management endpoints
   Future<Map<String, dynamic>> getUsers(
-      {int page = 1, int limit = 50, String? query, String? serviceType}) async {
+      {int page = 1,
+      int limit = 50,
+      String? query,
+      String? role,
+      String? serviceType}) async {
     String q = (query != null && query.isNotEmpty)
         ? "&q=${Uri.encodeComponent(query)}"
         : "";
+    if (role != null && role.isNotEmpty) {
+      q += "&role=${Uri.encodeComponent(role)}";
+    }
     if (serviceType != null && serviceType.isNotEmpty) {
       q += "&service_type=${Uri.encodeComponent(serviceType)}";
     }
@@ -783,6 +794,28 @@ class ApiService {
       "/admin/user-management/users?page=$page&limit=$limit$q",
     ];
     return _getFirst(endpoints);
+  }
+
+  /// Get the first user with 'super_admin' role for support contact
+  Future<Map<String, dynamic>?> getSuperAdminUser() async {
+    try {
+      // Use the new role parameter supported by our backend update
+      final response = await getUsers(role: 'super_admin');
+      final dynamic data = response['data'] ?? response['users'] ?? [];
+      final List<dynamic> users = data is List ? data : (data['users'] as List? ?? []);
+      
+      if (users.isEmpty) return null;
+      
+      // Look for exact role match
+      final admin = users.firstWhere(
+        (u) => (u['role']?.toString().toLowerCase() == 'super_admin'),
+        orElse: () => users.first, // Fallback to first search result if no exact role match but search returned results
+      );
+      return admin as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('ApiService.getSuperAdminUser failed: $e');
+      return null;
+    }
   }
 
   /// Get users created by the currently authenticated admin

@@ -4,9 +4,11 @@ import "dart:io";
 import "package:flutter/foundation.dart";
 import "package:http/http.dart" as http;
 
+import "../config/api_config.dart";
+
 class ApiHelpers {
   // Default timeout duration
-  static const Duration defaultTimeout = Duration(seconds: 30);
+  static Duration get defaultTimeout => ApiConfig.timeoutDuration;
 
   // Common headers
   static Map<String, String> get defaultHeaders => <String, String>{

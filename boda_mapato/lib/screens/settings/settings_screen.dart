@@ -295,11 +295,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             SizedBox(width: 8.w),
             Expanded(
-              child: AutoSizeText(
+              child: Text(
                 _localizationService.translate('app_name'),
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 maxLines: 1,
-                stepGranularity: 0.5,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -354,11 +354,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             SizedBox(width: 8.w),
             Expanded(
-              child: AutoSizeText(
+              child: Text(
                 _localizationService.translate('confirm'),
                 style: const TextStyle(color: ThemeConstants.textPrimary),
                 maxLines: 1,
-                stepGranularity: 0.5,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -388,6 +388,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if ((confirm ?? false) && context.mounted) {
       await authProvider.logout();
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     }
   }
 

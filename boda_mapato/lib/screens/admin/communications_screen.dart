@@ -12,6 +12,19 @@ import '../../services/api_service.dart';
 import "../../services/localization_service.dart";
 import "../../utils/responsive_helper.dart";
 
+// ─────────────────────────────────────────────
+// Color palette (local — matches property_details_screen)
+// ─────────────────────────────────────────────
+const _kGradientTop = Color(0xFF04121A);
+const _kGradientMid = Color(0xFF092D3A);
+const _kGradientBottom = Color(0xFF0D485A);
+const _kOrange = Color(0xFFF97316);
+const _kGreen = Color(0xFF10B981);
+const _kAmber = Color(0xFFF59E0B);
+const _kRed = Color(0xFFEF4444);
+const _kCyan = Color(0xFF1BA3C7);
+const _kWhatsApp = Color(0xFF25D366);
+
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
 
@@ -19,7 +32,8 @@ class CommunicationsScreen extends StatefulWidget {
   State<CommunicationsScreen> createState() => _CommunicationsScreenState();
 }
 
-class _CommunicationsScreenState extends State<CommunicationsScreen> {
+class _CommunicationsScreenState extends State<CommunicationsScreen>
+    with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
 
   bool _isLoading = true;
@@ -37,54 +51,28 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
 
+  // Animations
+  late final AnimationController _animCtrl;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+
   @override
   void initState() {
     super.initState();
+    _animCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
     _loadCommunicationsData();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _animCtrl.dispose();
     super.dispose();
-  }
-
-  // Custom glass card decoration for consistent blue background blending
-  Widget _buildBlueBlendGlassCard({required Widget child}) {
-    ResponsiveHelper.init(context);
-    return Container(
-      constraints: BoxConstraints(
-        minHeight: ResponsiveHelper.cardMinHeight,
-        maxWidth: ResponsiveHelper.maxCardWidth,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.15),
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: ResponsiveHelper.elevation * 3,
-            offset: Offset(0, ResponsiveHelper.elevation * 1.5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(ResponsiveHelper.radiusL),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: ResponsiveHelper.isMobile ? 6 : 8,
-            sigmaY: ResponsiveHelper.isMobile ? 6 : 8,
-          ),
-          child: Padding(
-            padding: ResponsiveHelper.cardPadding,
-            child: child,
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _loadCommunicationsData() async {
@@ -110,6 +98,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
       setState(() {
         _isLoading = false;
       });
+      if (mounted) _animCtrl.forward();
     }
   }
 
@@ -373,547 +362,29 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     ThemeConstants.showSuccessSnackBar(context, message);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) {
-        ResponsiveHelper.init(context);
-        return ThemeConstants.buildResponsiveScaffold(
-          context,
-          title: localizationService.translate("communications_title"),
-          body: _isLoading
-              ? ThemeConstants.buildResponsiveLoadingWidget(context)
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      _buildCommunicationSummary(localizationService),
-                      ResponsiveHelper.verticalSpace(1),
-                      _buildFiltersSection(localizationService),
-                      ResponsiveHelper.verticalSpace(1),
-                      _buildCommunicationsTable(localizationService),
-                      ResponsiveHelper.verticalSpace(1),
-                    ],
-                  ),
-                ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCommunicationSummary(LocalizationService localizationService) {
-    if (_summary == null) return const SizedBox.shrink();
-
-    return _buildBlueBlendGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(
-                Icons.chat,
-                color: ThemeConstants.primaryOrange,
-                size: 24,
-              ),
-              ResponsiveHelper.horizontalSpace(2),
-              Expanded(
-                child: Text(
-                  localizationService.translate("communications_summary_title"),
-                  style: ThemeConstants.responsiveHeadingStyle(context),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-              ),
-            ],
-          ),
-          ResponsiveHelper.verticalSpace(1),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: ResponsiveHelper.isMobile ? 2 : 4,
-            childAspectRatio: ResponsiveHelper.isMobile ? 1.3 : 1.2,
-            mainAxisSpacing: ResponsiveHelper.spacingM,
-            crossAxisSpacing: ResponsiveHelper.spacingM,
-            children: <Widget>[
-              _buildSummaryCard(
-                localizationService.translate("total_communications"),
-                _summary!.totalCommunications,
-                Icons.chat_bubble_outline,
-                ThemeConstants.primaryOrange,
-              ),
-              _buildSummaryCard(
-                localizationService.translate("unanswered"),
-                _summary!.unansweredCommunications,
-                Icons.help_outline,
-                ThemeConstants.errorRed,
-              ),
-              _buildSummaryCard(
-                localizationService.translate("recent_7_days"),
-                _summary!.recentCommunications,
-                Icons.access_time,
-                ThemeConstants.successGreen,
-              ),
-              _buildSummaryCard(
-                localizationService.translate("response_rate"),
-                (((_summary!.totalCommunications -
-                                _summary!.unansweredCommunications) /
-                            (_summary!.totalCommunications == 0
-                                ? 1
-                                : _summary!.totalCommunications)) *
-                        100)
-                    .round(),
-                Icons.trending_up,
-                ThemeConstants.warningAmber,
-                suffix: "%",
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(String title, int value, IconData icon, Color color,
-      {String suffix = ""}) {
-    return Container(
-      padding: ResponsiveHelper.cardPadding,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(icon, color: color, size: 28),
-            ResponsiveHelper.verticalSpace(1),
-            SizedBox(
-              width: 140,
-              child: Text(
-                title,
-                style: ThemeConstants.responsiveCaptionStyle(context).copyWith(
-                  color: color,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
-              ),
-            ),
-            ResponsiveHelper.verticalSpace(0.5),
-            Text(
-              "$value$suffix",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFiltersSection(LocalizationService localizationService) {
-    return _buildBlueBlendGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                Icons.filter_list,
-                color: ThemeConstants.primaryOrange,
-                size: 20.sp,
-              ),
-              ResponsiveHelper.horizontalSpace(2),
-              Text(
-                localizationService.translate("filter_communications"),
-                style: ThemeConstants.responsiveHeadingStyle(context),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: _showAddCommunicationDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeConstants.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                icon: Icon(Icons.add, size: 16.sp),
-                label: Text(
-                  ResponsiveHelper.isMobile
-                      ? localizationService.translate("add")
-                      : localizationService.translate("add_communication"),
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-          ResponsiveHelper.verticalSpace(1),
-          // Search field
-          TextField(
-            controller: _searchController,
-            style: ThemeConstants.responsiveBodyStyle(context),
-            decoration: InputDecoration(
-              hintText: localizationService.translate("search_driver_content"),
-              hintStyle: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                color: ThemeConstants.textSecondary,
-              ),
-              prefixIcon:
-                  const Icon(Icons.search, color: ThemeConstants.textSecondary),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.toLowerCase();
-              });
-            },
-          ),
-          ResponsiveHelper.verticalSpace(1),
-          // Filter buttons
-          if (ResponsiveHelper.isMobile)
-            Column(
-              children: <Widget>[
-                _buildMobileFilterRow(localizationService.translate("type"),
-                    _buildModeFilters(localizationService)),
-                ResponsiveHelper.verticalSpace(0.5),
-                _buildMobileFilterRow(localizationService.translate("status"),
-                    _buildStatusFilters(localizationService)),
-              ],
-            )
-          else
-            Row(
-              children: <Widget>[
-                Text(
-                  localizationService.translate("type"),
-                  style: ThemeConstants.responsiveSubHeadingStyle(context),
-                ),
-                ResponsiveHelper.horizontalSpace(1),
-                Expanded(child: _buildModeFilters(localizationService)),
-                ResponsiveHelper.horizontalSpace(2),
-                Text(
-                  localizationService.translate("status"),
-                  style: ThemeConstants.responsiveSubHeadingStyle(context),
-                ),
-                ResponsiveHelper.horizontalSpace(1),
-                Expanded(child: _buildStatusFilters(localizationService)),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileFilterRow(String label, Widget filters) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: ThemeConstants.responsiveSubHeadingStyle(context),
-        ),
-        ResponsiveHelper.verticalSpace(0.5),
-        filters,
-      ],
-    );
-  }
-
-  Widget _buildModeFilters(LocalizationService localizationService) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: <Widget>[
-          _buildFilterChip(
-              localizationService.translate("all"), "all", _selectedFilterMode,
-              (value) {
-            setState(() {
-              _selectedFilterMode = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("SMS", "sms", _selectedFilterMode, (value) {
-            setState(() {
-              _selectedFilterMode = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("call"), "call",
-              _selectedFilterMode, (value) {
-            setState(() {
-              _selectedFilterMode = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip("WhatsApp", "whatsapp", _selectedFilterMode,
-              (value) {
-            setState(() {
-              _selectedFilterMode = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("note"), "system_note",
-              _selectedFilterMode, (value) {
-            setState(() {
-              _selectedFilterMode = value;
-            });
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusFilters(LocalizationService localizationService) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: <Widget>[
-          _buildFilterChip(localizationService.translate("all"), "all",
-              _selectedFilterStatus, (value) {
-            setState(() {
-              _selectedFilterStatus = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("answered"),
-              "answered", _selectedFilterStatus, (value) {
-            setState(() {
-              _selectedFilterStatus = value;
-            });
-          }),
-          ResponsiveHelper.horizontalSpace(1),
-          _buildFilterChip(localizationService.translate("unanswered"),
-              "unanswered", _selectedFilterStatus, (value) {
-            setState(() {
-              _selectedFilterStatus = value;
-            });
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String value, String selectedValue,
-      Function(String) onSelected) {
-    final bool isSelected = selectedValue == value;
-    return GestureDetector(
-      onTap: () => onSelected(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? ThemeConstants.primaryOrange.withOpacity(0.8)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? ThemeConstants.primaryOrange
-                : ThemeConstants.textSecondary,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : ThemeConstants.textPrimary,
-            fontWeight: FontWeight.w500,
-            fontSize: 12.sp,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCommunicationsTable(LocalizationService localizationService) {
-    final List<Communication> filteredCommunications =
-        _getFilteredCommunications();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          "${localizationService.translate("communications")} (${filteredCommunications.length})",
-          style: ThemeConstants.responsiveHeadingStyle(context),
-        ),
-        ResponsiveHelper.verticalSpace(1),
-        _buildBlueBlendGlassCard(
-          child: Column(
-            children: <Widget>[
-              // Table header
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ThemeConstants.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                        flex: 2,
-                        child: Text(localizationService.translate("date"),
-                            style: ThemeConstants.responsiveCaptionStyle(
-                                context))),
-                    Expanded(
-                        flex: 2,
-                        child: Text(localizationService.translate("driver"),
-                            style: ThemeConstants.responsiveCaptionStyle(
-                                context))),
-                    Expanded(
-                        flex: 3,
-                        child: Text(localizationService.translate("message"),
-                            style: ThemeConstants.responsiveCaptionStyle(
-                                context))),
-                    Expanded(
-                        flex: 2,
-                        child: Text(localizationService.translate("response"),
-                            style: ThemeConstants.responsiveCaptionStyle(
-                                context))),
-                    Expanded(
-                        child: Text(localizationService.translate("type"),
-                            style: ThemeConstants.responsiveCaptionStyle(
-                                context))),
-                  ],
-                ),
-              ),
-              ResponsiveHelper.verticalSpace(0.5),
-              // Table rows
-              if (filteredCommunications.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Center(
-                    child: Column(
-                      children: <Widget>[
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48.sp,
-                          color: ThemeConstants.textSecondary,
-                        ),
-                        ResponsiveHelper.verticalSpace(1),
-                        Text(
-                          localizationService.translate("no_communications"),
-                          style: ThemeConstants.responsiveBodyStyle(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredCommunications.length,
-                  separatorBuilder: (context, index) => const Divider(
-                    color: ThemeConstants.textSecondary,
-                    height: 1,
-                  ),
-                  itemBuilder: (context, index) {
-                    final communication = filteredCommunications[index];
-                    return _buildCommunicationRow(
-                        communication, localizationService);
-                  },
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommunicationRow(
-      Communication communication, LocalizationService localizationService) {
-    return GestureDetector(
-      onTap: () => _showCommunicationDetails(communication),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              flex: 2,
-              child: Text(
-                communication.formattedMessageDate,
-                style: ThemeConstants.responsiveBodyStyle(context),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                communication.driverName,
-                style: ThemeConstants.responsiveBodyStyle(context),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                communication.truncatedContent,
-                style: ThemeConstants.responsiveBodyStyle(context),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                communication.truncatedResponse,
-                style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: communication.hasResponse
-                      ? ThemeConstants.successGreen
-                      : ThemeConstants.warningAmber,
-                  fontWeight: FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-              ),
-            ),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getCommunicationModeColor(communication.mode)
-                      .withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _getCommunicationModeColor(communication.mode)
-                        .withOpacity(0.5),
-                  ),
-                ),
-                child: Text(
-                  communication.mode.icon,
-                  style: const TextStyle(fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getCommunicationModeColor(CommunicationMode mode) {
+  Color _getModeColor(CommunicationMode mode) {
     switch (mode) {
       case CommunicationMode.sms:
-        return ThemeConstants.primaryOrange;
+        return _kOrange;
       case CommunicationMode.call:
-        return ThemeConstants.successGreen;
+        return _kGreen;
       case CommunicationMode.whatsapp:
-        return const Color(0xFF25D366); // WhatsApp green
+        return _kWhatsApp;
       case CommunicationMode.systemNote:
-        return ThemeConstants.warningAmber;
+        return _kAmber;
+    }
+  }
+
+  IconData _getModeIcon(CommunicationMode mode) {
+    switch (mode) {
+      case CommunicationMode.sms:
+        return Icons.sms_outlined;
+      case CommunicationMode.call:
+        return Icons.phone_outlined;
+      case CommunicationMode.whatsapp:
+        return Icons.chat_outlined;
+      case CommunicationMode.systemNote:
+        return Icons.note_alt_outlined;
     }
   }
 
@@ -951,132 +422,1065 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     return filtered;
   }
 
-  void _showCommunicationDetails(Communication communication) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
-          title: Row(
-            children: <Widget>[
-              Text(
-                communication.mode.icon,
-                style: TextStyle(fontSize: 20.sp),
-              ),
-              ResponsiveHelper.horizontalSpace(1),
-              Expanded(
-                child: AutoSizeText(
-                  "Maelezo ya Mawasiliano",
-                  style: ThemeConstants.responsiveHeadingStyle(context),
-                  maxLines: 1,
-                  stepGranularity: 0.5,
-                ),
-              ),
+  // ════════════════════════════════════════════
+  //  BUILD
+  // ════════════════════════════════════════════
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LocalizationService>(
+      builder: (context, localizationService, child) {
+        return Scaffold(
+          backgroundColor: _kGradientTop,
+          extendBodyBehindAppBar: true,
+          floatingActionButton: _buildFab(localizationService),
+          body: Stack(
+            children: [
+              // ── Animated gradient background
+              const _AnimatedBackground(),
+
+              // ── Main scrollable content
+              _isLoading
+                  ? _buildLoadingState()
+                  : _buildMainContent(localizationService),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildDetailRow("Dereva:", communication.driverName),
-                _buildDetailRow("Tarehe:", communication.formattedDateTime),
-                _buildDetailRow("Aina:", communication.mode.displayName),
-                ResponsiveHelper.verticalSpace(1),
-                Text(
-                  "Ujumbe:",
-                  style: ThemeConstants.responsiveSubHeadingStyle(context),
-                ),
-                ResponsiveHelper.verticalSpace(0.5),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    communication.messageContent,
-                    style: ThemeConstants.responsiveBodyStyle(context),
-                  ),
-                ),
-                ResponsiveHelper.verticalSpace(1),
-                Text(
-                  "Jibu:",
-                  style: ThemeConstants.responsiveSubHeadingStyle(context),
-                ),
-                ResponsiveHelper.verticalSpace(0.5),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    communication.response ?? "Hakuna jibu bado",
-                    style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                      color: communication.hasResponse
-                          ? ThemeConstants.textPrimary
-                          : ThemeConstants.textSecondary,
-                      fontStyle: communication.hasResponse
-                          ? FontStyle.normal
-                          : FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            if (!communication.hasResponse)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _showAddResponseDialog(communication);
-                },
-                child: Text(
-                  "Ongeza Jibu",
-                  style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                    color: ThemeConstants.primaryOrange,
-                  ),
-                ),
-              ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                "Funga",
-                style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: ThemeConstants.primaryOrange,
-                ),
-              ),
-            ),
-          ],
         );
       },
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: ThemeConstants.responsiveSubHeadingStyle(context),
+  Widget _buildFab(LocalizationService loc) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.r),
+        onTap: _showAddCommunicationDialog,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF97316), Color(0xFFFF6B35)],
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: _kOrange.withOpacity(0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_comment_rounded,
+                  color: Colors.white, size: 18.sp),
+              SizedBox(width: 8.w),
+              Text(
+                loc.translate("add"),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return CustomScrollView(
+      slivers: [
+        _buildSliverAppBar(null),
+        SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 32.w,
+                  height: 32.w,
+                  child: const CircularProgressIndicator(
+                      color: _kOrange, strokeWidth: 2.5),
+                ),
+                SizedBox(height: 16.h),
+                Text("Inapakia...",
+                    style: TextStyle(
+                        color: Colors.white38, fontSize: 13.sp)),
+              ],
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: ThemeConstants.responsiveBodyStyle(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainContent(LocalizationService loc) {
+    final filteredCommunications = _getFilteredCommunications();
+
+    return RefreshIndicator(
+      onRefresh: _loadCommunicationsData,
+      color: _kOrange,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+        slivers: [
+          _buildSliverAppBar(loc),
+
+          // ── Content
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 100.h),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: 16.h),
+
+                        // ── Summary Cards
+                        if (_summary != null)
+                          _buildSummarySection(loc),
+
+                        SizedBox(height: 16.h),
+
+                        // ── Filter & Search
+                        _buildFiltersSection(loc),
+
+                        SizedBox(height: 16.h),
+
+                        // ── Communications List Header
+                        Padding(
+                          padding: EdgeInsets.only(left: 4.w, bottom: 8.h),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(7.w),
+                                decoration: BoxDecoration(
+                                  color: _kOrange.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  border: Border.all(
+                                      color: _kOrange.withOpacity(0.25)),
+                                ),
+                                child: Icon(Icons.forum_outlined,
+                                    color: _kOrange, size: 14.sp),
+                              ),
+                              SizedBox(width: 10.w),
+                              Text(
+                                "${loc.translate("communications")} (${filteredCommunications.length})",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // ── Communication Cards List
+                        if (filteredCommunications.isEmpty)
+                          _buildEmptyState(loc)
+                        else
+                          ...filteredCommunications
+                              .map((comm) => _buildCommunicationCard(comm)),
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Sliver App Bar
+  SliverAppBar _buildSliverAppBar(LocalizationService? loc) {
+    return SliverAppBar(
+      expandedHeight: 140.h,
+      pinned: true,
+      backgroundColor: _kGradientTop.withOpacity(0.85),
+      elevation: 0,
+      leading: IconButton(
+        icon: Container(
+          padding: EdgeInsets.all(6.w),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 14.sp),
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.parallax,
+        background: Stack(
+          children: [
+            // Subtle radial glow
+            Positioned(
+              top: 50.h,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  width: 120.w,
+                  height: 120.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      _kOrange.withOpacity(0.15),
+                      Colors.transparent,
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+            // Content
+            Positioned(
+              bottom: 20.h,
+              left: 0,
+              right: 0,
+              child: Column(
+                children: [
+                  // Icon
+                  Container(
+                    width: 56.w,
+                    height: 56.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF97316), Color(0xFFFF6B35)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.3), width: 2.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _kOrange.withOpacity(0.35),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(Icons.forum_rounded,
+                          color: Colors.white, size: 24.sp),
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  // Title
+                  Text(
+                    loc?.translate("communications_title") ?? "Mawasiliano",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Summary Section
+  Widget _buildSummarySection(LocalizationService loc) {
+    final responseRate = ((_summary!.totalCommunications -
+                    _summary!.unansweredCommunications) /
+                (_summary!.totalCommunications == 0
+                    ? 1
+                    : _summary!.totalCommunications) *
+                100)
+            .round();
+
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(
+            icon: Icons.analytics_outlined,
+            label: loc.translate("communications_summary_title"),
+          ),
+          Divider(height: 24.h, color: Colors.white10),
+          Row(
+            children: [
+              Expanded(
+                child: _StatPill(
+                  icon: Icons.chat_bubble_outline,
+                  label: loc.translate("total_communications"),
+                  value: '${_summary!.totalCommunications}',
+                  color: _kCyan,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _StatPill(
+                  icon: Icons.help_outline,
+                  label: loc.translate("unanswered"),
+                  value: '${_summary!.unansweredCommunications}',
+                  color: _kRed,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Expanded(
+                child: _StatPill(
+                  icon: Icons.access_time,
+                  label: loc.translate("recent_7_days"),
+                  value: '${_summary!.recentCommunications}',
+                  color: _kGreen,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _StatPill(
+                  icon: Icons.trending_up,
+                  label: loc.translate("response_rate"),
+                  value: '$responseRate%',
+                  color: _kAmber,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Filter & Search Section
+  Widget _buildFiltersSection(LocalizationService loc) {
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(
+            icon: Icons.filter_list_rounded,
+            label: loc.translate("filter_communications"),
+          ),
+          Divider(height: 20.h, color: Colors.white10),
+
+          // Search field
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: Colors.white, fontSize: 13.sp),
+              decoration: InputDecoration(
+                hintText: loc.translate("search_driver_content"),
+                hintStyle:
+                    TextStyle(color: Colors.white38, fontSize: 12.sp),
+                prefixIcon: Icon(Icons.search,
+                    color: Colors.white38, size: 18.sp),
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
+          SizedBox(height: 14.h),
+
+          // Type filters
+          Text(loc.translate("type"),
+              style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10.sp,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600)),
+          SizedBox(height: 6.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip(loc.translate("all"), "all",
+                    _selectedFilterMode, (v) {
+                  setState(() => _selectedFilterMode = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip("SMS", "sms", _selectedFilterMode, (v) {
+                  setState(() => _selectedFilterMode = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip(
+                    loc.translate("call"), "call", _selectedFilterMode, (v) {
+                  setState(() => _selectedFilterMode = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip(
+                    "WhatsApp", "whatsapp", _selectedFilterMode, (v) {
+                  setState(() => _selectedFilterMode = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip(
+                    loc.translate("note"), "system_note", _selectedFilterMode,
+                    (v) {
+                  setState(() => _selectedFilterMode = v);
+                }),
+              ],
+            ),
+          ),
+          SizedBox(height: 10.h),
+
+          // Status filters
+          Text(loc.translate("status"),
+              style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10.sp,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600)),
+          SizedBox(height: 6.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip(loc.translate("all"), "all",
+                    _selectedFilterStatus, (v) {
+                  setState(() => _selectedFilterStatus = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip(loc.translate("answered"), "answered",
+                    _selectedFilterStatus, (v) {
+                  setState(() => _selectedFilterStatus = v);
+                }),
+                SizedBox(width: 6.w),
+                _buildFilterChip(loc.translate("unanswered"), "unanswered",
+                    _selectedFilterStatus, (v) {
+                  setState(() => _selectedFilterStatus = v);
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, String selectedValue,
+      Function(String) onSelected) {
+    final bool isSelected = selectedValue == value;
+    return GestureDetector(
+      onTap: () => onSelected(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFFF97316), Color(0xFFFF6B35)])
+              : null,
+          color: isSelected ? null : Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isSelected
+                ? _kOrange.withOpacity(0.5)
+                : Colors.white.withOpacity(0.12),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: _kOrange.withOpacity(0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white60,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 11.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Empty state
+  Widget _buildEmptyState(LocalizationService loc) {
+    return _GlassCard(
+      child: Column(
+        children: [
+          SizedBox(height: 20.h),
+          Icon(Icons.chat_bubble_outline,
+              size: 48.sp, color: Colors.white24),
+          SizedBox(height: 12.h),
+          Text(
+            loc.translate("no_communications"),
+            style: TextStyle(color: Colors.white38, fontSize: 13.sp),
+          ),
+          SizedBox(height: 20.h),
+        ],
+      ),
+    );
+  }
+
+  // ── Communication Card
+  Widget _buildCommunicationCard(Communication comm) {
+    final Color modeColor = _getModeColor(comm.mode);
+    final IconData modeIcon = _getModeIcon(comm.mode);
+    final String initial =
+        comm.driverName.isNotEmpty ? comm.driverName[0].toUpperCase() : '?';
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16.r),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.r),
+          onTap: () => _showCommunicationDetails(comm),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: EdgeInsets.all(14.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Top row: avatar + name + mode badge
+                    Row(
+                      children: [
+                        // Avatar
+                        Container(
+                          width: 40.w,
+                          height: 40.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                modeColor.withOpacity(0.7),
+                                modeColor.withOpacity(0.4),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(
+                                color: modeColor.withOpacity(0.4), width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+
+                        // Name
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                comm.driverName,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 2.h),
+                              Row(
+                                children: [
+                                  Icon(Icons.access_time_rounded,
+                                      color: Colors.white38, size: 11.sp),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    comm.formattedMessageDate,
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 10.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Mode badge
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 5.h),
+                          decoration: BoxDecoration(
+                            color: modeColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                                color: modeColor.withOpacity(0.35)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(modeIcon,
+                                  color: modeColor, size: 12.sp),
+                              SizedBox(width: 4.w),
+                              Text(
+                                comm.mode.displayName,
+                                style: TextStyle(
+                                  color: modeColor,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 10.h),
+
+                    // ── Message content
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(10.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.06)),
+                      ),
+                      child: Text(
+                        comm.messageContent,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12.sp,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                    SizedBox(height: 8.h),
+
+                    // ── Bottom row: response status
+                    Row(
+                      children: [
+                        if (comm.hasResponse) ...[
+                          Container(
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(
+                              color: _kGreen.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            child: Icon(Icons.check_circle_outline,
+                                color: _kGreen, size: 13.sp),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              comm.response ?? "",
+                              style: TextStyle(
+                                color: _kGreen.withOpacity(0.8),
+                                fontSize: 11.sp,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(
+                              color: _kAmber.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            child: Icon(Icons.schedule_rounded,
+                                color: _kAmber, size: 13.sp),
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            "Inasubiri jibu",
+                            style: TextStyle(
+                              color: _kAmber.withOpacity(0.8),
+                              fontSize: 11.sp,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        Icon(Icons.chevron_right_rounded,
+                            color: Colors.white24, size: 18.sp),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  //  DIALOGS — frosted glassmorphic style
+  // ════════════════════════════════════════════
+
+  void _showCommunicationDetails(Communication communication) {
+    final Color modeColor = _getModeColor(communication.mode);
+    final IconData modeIcon = _getModeIcon(communication.mode);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 480.w),
+                decoration: BoxDecoration(
+                  color: _kGradientMid.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(10.w),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  modeColor.withOpacity(0.3),
+                                  modeColor.withOpacity(0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: modeColor.withOpacity(0.3)),
+                            ),
+                            child: Icon(modeIcon,
+                                color: modeColor, size: 20.sp),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Maelezo ya Mawasiliano",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  communication.mode.displayName,
+                                  style: TextStyle(
+                                    color: modeColor,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              padding: EdgeInsets.all(6.w),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Icon(Icons.close_rounded,
+                                  color: Colors.white54, size: 16.sp),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Info rows
+                      _buildGlassDetailRow(
+                          Icons.person_outline, "Dereva", communication.driverName),
+                      SizedBox(height: 8.h),
+                      _buildGlassDetailRow(Icons.calendar_today_outlined,
+                          "Tarehe", communication.formattedDateTime),
+                      SizedBox(height: 16.h),
+
+                      // Message
+                      Text("Ujumbe",
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.sp,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6.h),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.08)),
+                        ),
+                        child: Text(
+                          communication.messageContent,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13.sp,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      // Response
+                      Text("Jibu",
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.sp,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6.h),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.w),
+                        decoration: BoxDecoration(
+                          color: communication.hasResponse
+                              ? _kGreen.withOpacity(0.06)
+                              : _kAmber.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: communication.hasResponse
+                                ? _kGreen.withOpacity(0.15)
+                                : _kAmber.withOpacity(0.15),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              communication.hasResponse
+                                  ? Icons.check_circle_outline
+                                  : Icons.schedule_rounded,
+                              color: communication.hasResponse
+                                  ? _kGreen
+                                  : _kAmber,
+                              size: 16.sp,
+                            ),
+                            SizedBox(width: 10.w),
+                            Expanded(
+                              child: Text(
+                                communication.response ??
+                                    "Hakuna jibu bado",
+                                style: TextStyle(
+                                  color: communication.hasResponse
+                                      ? Colors.white70
+                                      : Colors.white38,
+                                  fontSize: 13.sp,
+                                  fontStyle: communication.hasResponse
+                                      ? FontStyle.normal
+                                      : FontStyle.italic,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (!communication.hasResponse)
+                            _buildGlassButton(
+                              label: "Ongeza Jibu",
+                              icon: Icons.reply_rounded,
+                              color: _kOrange,
+                              filled: true,
+                              onTap: () {
+                                Navigator.pop(context);
+                                _showAddResponseDialog(communication);
+                              },
+                            ),
+                          if (!communication.hasResponse)
+                            SizedBox(width: 10.w),
+                          _buildGlassButton(
+                            label: "Funga",
+                            icon: Icons.close_rounded,
+                            color: Colors.white54,
+                            onTap: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGlassDetailRow(IconData icon, String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: BoxDecoration(
+              color: _kCyan.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(icon, color: _kCyan, size: 14.sp),
+          ),
+          SizedBox(width: 10.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: Colors.white38, fontSize: 10.sp)),
+              SizedBox(height: 2.h),
+              Text(value,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool filled = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10.r),
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            gradient: filled
+                ? const LinearGradient(
+                    colors: [Color(0xFFF97316), Color(0xFFFF6B35)])
+                : null,
+            color: filled ? null : Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color:
+                  filled ? _kOrange.withOpacity(0.5) : Colors.white.withOpacity(0.15),
+            ),
+            boxShadow: filled
+                ? [
+                    BoxShadow(
+                      color: _kOrange.withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  color: filled ? Colors.white : color, size: 14.sp),
+              SizedBox(width: 6.w),
+              Text(label,
+                  style: TextStyle(
+                    color: filled ? Colors.white : color,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  )),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1088,213 +1492,271 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
-              title: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.add_comment,
-                    color: ThemeConstants.primaryOrange,
-                    size: 20.sp,
-                  ),
-                  ResponsiveHelper.horizontalSpace(1),
-                  Expanded(
-                    child: AutoSizeText(
-                      "Ongeza Mawasiliano",
-                      style: ThemeConstants.responsiveHeadingStyle(context),
-                      maxLines: 1,
-                      stepGranularity: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: SizedBox(
-                  width: ResponsiveHelper.isMobile ? double.maxFinite : 400,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      // Driver selection
-                      Text(
-                        "Chagua Dereva:",
-                        style:
-                            ThemeConstants.responsiveSubHeadingStyle(context),
-                      ),
-                      ResponsiveHelper.verticalSpace(0.5),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                          ),
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding:
+                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20.r),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: 480.w),
+                    decoration: BoxDecoration(
+                      color: _kGradientMid.withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border:
+                          Border.all(color: Colors.white.withOpacity(0.12)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<Driver>(
-                            value: selectedDriver,
-                            hint: Text(
-                              "Chagua dereva...",
-                              style: ThemeConstants.responsiveBodyStyle(context)
-                                  .copyWith(
-                                color: ThemeConstants.textSecondary,
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(20.w),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10.w),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      _kOrange.withOpacity(0.3),
+                                      _kOrange.withOpacity(0.1),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(
+                                      color: _kOrange.withOpacity(0.3)),
+                                ),
+                                child: Icon(Icons.add_comment_rounded,
+                                    color: _kOrange, size: 20.sp),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text(
+                                  "Ongeza Mawasiliano",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  messageController.dispose();
+                                  Navigator.pop(ctx);
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(6.w),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Icon(Icons.close_rounded,
+                                      color: Colors.white54, size: 16.sp),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 20.h),
+
+                          // Driver selection
+                          Text("Chagua Dereva",
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10.sp,
+                                  letterSpacing: 0.5,
+                                  fontWeight: FontWeight.w600)),
+                          SizedBox(height: 6.h),
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<Driver>(
+                                value: selectedDriver,
+                                hint: Text(
+                                  "Chagua dereva...",
+                                  style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 13.sp),
+                                ),
+                                dropdownColor: _kGradientMid,
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 13.sp),
+                                items:
+                                    _availableDrivers.map((Driver driver) {
+                                  return DropdownMenuItem<Driver>(
+                                    value: driver,
+                                    child: Text(driver.name,
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 13.sp)),
+                                  );
+                                }).toList(),
+                                onChanged: (Driver? value) {
+                                  setDialogState(() {
+                                    selectedDriver = value;
+                                  });
+                                },
                               ),
                             ),
-                            dropdownColor:
-                                ThemeConstants.primaryBlue.withOpacity(0.9),
-                            style: ThemeConstants.responsiveBodyStyle(context),
-                            items: _availableDrivers.map((Driver driver) {
-                              return DropdownMenuItem<Driver>(
-                                value: driver,
-                                child: Text(
-                                  driver.name,
-                                  style: ThemeConstants.responsiveBodyStyle(
-                                      context),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (Driver? value) {
-                              setState(() {
-                                selectedDriver = value;
-                              });
-                            },
                           ),
-                        ),
-                      ),
-                      ResponsiveHelper.verticalSpace(1),
 
-                      // Communication mode selection
-                      Text(
-                        "Aina ya Mawasiliano:",
-                        style:
-                            ThemeConstants.responsiveSubHeadingStyle(context),
-                      ),
-                      ResponsiveHelper.verticalSpace(0.5),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<CommunicationMode>(
-                            value: selectedMode,
-                            dropdownColor:
-                                ThemeConstants.primaryBlue.withOpacity(0.9),
-                            style: ThemeConstants.responsiveBodyStyle(context),
-                            items: CommunicationMode.allModes
-                                .map((CommunicationMode mode) {
-                              return DropdownMenuItem<CommunicationMode>(
-                                value: mode,
-                                child: Row(
-                                  children: <Widget>[
-                                    Text(
-                                      mode.icon,
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    ResponsiveHelper.horizontalSpace(1),
-                                    Text(
-                                      mode.displayName,
-                                      style: ThemeConstants.responsiveBodyStyle(
-                                          context),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (CommunicationMode? value) {
-                              setState(() {
-                                selectedMode =
-                                    value ?? CommunicationMode.systemNote;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      ResponsiveHelper.verticalSpace(1),
+                          SizedBox(height: 16.h),
 
-                      // Message content
-                      Text(
-                        "Ujumbe:",
-                        style:
-                            ThemeConstants.responsiveSubHeadingStyle(context),
-                      ),
-                      ResponsiveHelper.verticalSpace(0.5),
-                      TextField(
-                        controller: messageController,
-                        style: ThemeConstants.responsiveBodyStyle(context),
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText: "Andika ujumbe hapa...",
-                          hintStyle: ThemeConstants.responsiveBodyStyle(context)
-                              .copyWith(
-                            color: ThemeConstants.textSecondary,
+                          // Communication mode
+                          Text("Aina ya Mawasiliano",
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10.sp,
+                                  letterSpacing: 0.5,
+                                  fontWeight: FontWeight.w600)),
+                          SizedBox(height: 6.h),
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<CommunicationMode>(
+                                value: selectedMode,
+                                dropdownColor: _kGradientMid,
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 13.sp),
+                                items: CommunicationMode.allModes
+                                    .map((CommunicationMode mode) {
+                                  return DropdownMenuItem<CommunicationMode>(
+                                    value: mode,
+                                    child: Row(
+                                      children: [
+                                        Icon(_getModeIcon(mode),
+                                            color: _getModeColor(mode),
+                                            size: 16.sp),
+                                        SizedBox(width: 10.w),
+                                        Text(mode.displayName,
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13.sp)),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (CommunicationMode? value) {
+                                  setDialogState(() {
+                                    selectedMode =
+                                        value ?? CommunicationMode.systemNote;
+                                  });
+                                },
+                              ),
+                            ),
                           ),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+
+                          SizedBox(height: 16.h),
+
+                          // Message
+                          Text("Ujumbe",
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10.sp,
+                                  letterSpacing: 0.5,
+                                  fontWeight: FontWeight.w600)),
+                          SizedBox(height: 6.h),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.1)),
+                            ),
+                            child: TextField(
+                              controller: messageController,
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 13.sp),
+                              maxLines: 4,
+                              decoration: InputDecoration(
+                                hintText: "Andika ujumbe hapa...",
+                                hintStyle: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 12.sp),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.all(14.w),
+                              ),
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.all(12),
-                        ),
+
+                          SizedBox(height: 24.h),
+
+                          // Actions
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              _buildGlassButton(
+                                label: "Ghairi",
+                                icon: Icons.close_rounded,
+                                color: Colors.white54,
+                                onTap: () {
+                                  messageController.dispose();
+                                  Navigator.pop(ctx);
+                                },
+                              ),
+                              SizedBox(width: 10.w),
+                              _buildGlassButton(
+                                label: "Hifadhi",
+                                icon: Icons.save_rounded,
+                                color: _kOrange,
+                                filled: true,
+                                onTap: () {
+                                  if (selectedDriver != null &&
+                                      messageController.text
+                                          .trim()
+                                          .isNotEmpty) {
+                                    _saveCommunication(
+                                      selectedDriver!,
+                                      messageController.text.trim(),
+                                      selectedMode,
+                                    );
+                                    messageController.dispose();
+                                    Navigator.pop(ctx);
+                                  } else {
+                                    _showErrorSnackBar(
+                                        "Tafadhali jaza sehemu zote zinazohitajika");
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () {
-                    messageController.dispose();
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(
-                    "Ghairi",
-                    style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                      color: ThemeConstants.textSecondary,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (selectedDriver != null &&
-                        messageController.text.trim().isNotEmpty) {
-                      _saveCommunication(
-                        selectedDriver!,
-                        messageController.text.trim(),
-                        selectedMode,
-                      );
-                      messageController.dispose();
-                      Navigator.of(context).pop();
-                    } else {
-                      _showErrorSnackBar(
-                          "Tafadhali jaza sehemu zote zinazohitajika");
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ThemeConstants.primaryOrange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(
-                    "Hifadhi",
-                    style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
             );
           },
         );
@@ -1307,126 +1769,196 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: ThemeConstants.primaryBlue.withOpacity(0.9),
-          title: Row(
-            children: <Widget>[
-              const Icon(
-                Icons.reply,
-                color: ThemeConstants.primaryOrange,
-                size: 24,
-              ),
-              ResponsiveHelper.horizontalSpace(1),
-              Expanded(
-                child: Text(
-                  "Ongeza Jibu",
-                  style: ThemeConstants.responsiveHeadingStyle(context),
+      builder: (BuildContext ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding:
+              EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 480.w),
+                decoration: BoxDecoration(
+                  color: _kGradientMid.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border:
+                      Border.all(color: Colors.white.withOpacity(0.12)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: ResponsiveHelper.isMobile ? double.maxFinite : 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // Original message
-                  Text(
-                    "Ujumbe wa Awali:",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context),
-                  ),
-                  ResponsiveHelper.verticalSpace(0.5),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(10.w),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  _kOrange.withOpacity(0.3),
+                                  _kOrange.withOpacity(0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: _kOrange.withOpacity(0.3)),
+                            ),
+                            child: Icon(Icons.reply_rounded,
+                                color: _kOrange, size: 20.sp),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Text(
+                              "Ongeza Jibu",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              responseController.dispose();
+                              Navigator.pop(ctx);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(6.w),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Icon(Icons.close_rounded,
+                                  color: Colors.white54, size: 16.sp),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Text(
-                      communication.messageContent,
-                      style:
-                          ThemeConstants.responsiveBodyStyle(context).copyWith(
-                        color: ThemeConstants.textSecondary,
-                      ),
-                    ),
-                  ),
-                  ResponsiveHelper.verticalSpace(1),
 
-                  // Response field
-                  Text(
-                    "Jibu Lako:",
-                    style: ThemeConstants.responsiveSubHeadingStyle(context),
-                  ),
-                  ResponsiveHelper.verticalSpace(0.5),
-                  TextField(
-                    controller: responseController,
-                    style: ThemeConstants.responsiveBodyStyle(context),
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: "Andika jibu lako hapa...",
-                      hintStyle:
-                          ThemeConstants.responsiveBodyStyle(context).copyWith(
-                        color: ThemeConstants.textSecondary,
+                      SizedBox(height: 20.h),
+
+                      // Original message
+                      Text("Ujumbe wa Awali",
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.sp,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6.h),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.08)),
+                        ),
+                        child: Text(
+                          communication.messageContent,
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12.sp,
+                            height: 1.5,
+                          ),
+                        ),
                       ),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
+
+                      SizedBox(height: 16.h),
+
+                      // Response
+                      Text("Jibu Lako",
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.sp,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6.h),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: TextField(
+                          controller: responseController,
+                          style: TextStyle(
+                              color: Colors.white, fontSize: 13.sp),
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                            hintText: "Andika jibu lako hapa...",
+                            hintStyle: TextStyle(
+                                color: Colors.white38, fontSize: 12.sp),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.all(14.w),
+                          ),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
+
+                      SizedBox(height: 24.h),
+
+                      // Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildGlassButton(
+                            label: "Ghairi",
+                            icon: Icons.close_rounded,
+                            color: Colors.white54,
+                            onTap: () {
+                              responseController.dispose();
+                              Navigator.pop(ctx);
+                            },
+                          ),
+                          SizedBox(width: 10.w),
+                          _buildGlassButton(
+                            label: "Tuma Jibu",
+                            icon: Icons.send_rounded,
+                            color: _kOrange,
+                            filled: true,
+                            onTap: () {
+                              if (responseController.text
+                                  .trim()
+                                  .isNotEmpty) {
+                                _saveResponse(communication,
+                                    responseController.text.trim());
+                                responseController.dispose();
+                                Navigator.pop(ctx);
+                              } else {
+                                _showErrorSnackBar(
+                                    "Tafadhali andika jibu");
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                responseController.dispose();
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                "Ghairi",
-                style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: ThemeConstants.textSecondary,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (responseController.text.trim().isNotEmpty) {
-                  _saveResponse(communication, responseController.text.trim());
-                  responseController.dispose();
-                  Navigator.of(context).pop();
-                } else {
-                  _showErrorSnackBar("Tafadhali andika jibu");
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConstants.primaryOrange,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(
-                "Tuma Jibu",
-                style: ThemeConstants.responsiveBodyStyle(context).copyWith(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
         );
       },
     );
   }
+
+  // ════════════════════════════════════════════
+  //  API SAVE METHODS (unchanged logic)
+  // ════════════════════════════════════════════
 
   Future<void> _saveCommunication(
       Driver driver, String message, CommunicationMode mode) async {
@@ -1540,5 +2072,199 @@ class _CommunicationsScreenState extends State<CommunicationsScreen> {
     } on Exception catch (e) {
       _showErrorSnackBar("Hitilafu katika kuhifadhi jibu: $e");
     }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Animated gradient background
+// ─────────────────────────────────────────────
+class _AnimatedBackground extends StatefulWidget {
+  const _AnimatedBackground();
+  @override
+  State<_AnimatedBackground> createState() => _AnimatedBackgroundState();
+}
+
+class _AnimatedBackgroundState extends State<_AnimatedBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 8))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final t = _ctrl.value;
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _kGradientTop,
+                Color.lerp(_kGradientMid, const Color(0xFF0A3A4A), t)!,
+                _kGradientBottom,
+              ],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Glass card base
+// ─────────────────────────────────────────────
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.padding});
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: Colors.white.withOpacity(0.13)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: padding ??
+                EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section title row
+// ─────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.label, this.trailing});
+  final IconData icon;
+  final String label;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(7.w),
+          decoration: BoxDecoration(
+            color: _kOrange.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: _kOrange.withOpacity(0.25)),
+          ),
+          child: Icon(icon, color: _kOrange, size: 14.sp),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Stat pill widget
+// ─────────────────────────────────────────────
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Icon(icon, color: color, size: 16.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 9.sp,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

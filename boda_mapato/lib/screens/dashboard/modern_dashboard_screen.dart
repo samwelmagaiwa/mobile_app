@@ -762,25 +762,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
     );
   }
 
-  Widget _buildLoadingScreen(LocalizationService localizationService) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              localizationService.translate('loading_dashboard'),
-              style: const TextStyle(
-                color: textSecondary,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+  Widget _buildLoadingScreen(LocalizationService localizationService) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: ThemeConstants.buildResponsiveLoadingWidget(
+          context,
+          message: localizationService.translate('loading_dashboard'),
         ),
-      );
+      ),
+    );
+  }
 
   Widget _buildMainContent(LocalizationService localizationService) =>
       FadeTransition(
@@ -823,33 +815,44 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         Provider.of<AuthProvider>(context, listen: false);
     final LocalizationService loc =
         Provider.of<LocalizationService>(context, listen: false);
-    final UserData? user = authProvider.user;
-    final String trimmedName = (user?.name ?? '').trim();
-    final String name = trimmedName.isNotEmpty ? trimmedName : '—';
-    final String title = '${loc.translate('welcome')}, $name';
 
     return AppBar(
-      backgroundColor: primaryBlue,
-      foregroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      centerTitle: true,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/images/app_icon.png',
+            height: 32.h,
+            width: 32.h,
+          ),
+          SizedBox(width: 10.w),
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Colors.white, ThemeConstants.primaryCyan],
+            ).createShader(bounds),
+            child: Text(
+              loc.translate('app_name'),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
       leading: IconButton(
-        icon: const Icon(Icons.menu, color: textPrimary),
+        icon: const Icon(Icons.menu_rounded, color: textPrimary),
         onPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
-      centerTitle: true,
-      title: Text(
-        title,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: textPrimary, fontWeight: FontWeight.w600),
-      ),
-      actions: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: cardColor,
-            child: _avatarWidget(user, radius: 20),
-          ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.notifications_none_rounded, color: textPrimary),
+          onPressed: () => _navigateToReceiptsList(filter: 'all'),
         ),
       ],
     );
@@ -2054,34 +2057,84 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
           // Drawer Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.1),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.black.withOpacity(0.3),
+                  Colors.transparent,
+                ],
+              ),
             ),
             child: SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: cardColor,
-                    child: _avatarWidget(user, radius: 30),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    user?.name ?? "Admin User",
-                    style: const TextStyle(
-                      color: textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  // New Premium Logo in Drawer
+                  Container(
+                    margin: EdgeInsets.only(bottom: 20.h),
+                    padding: EdgeInsets.all(2.w),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: ThemeConstants.primaryCyan.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: ThemeConstants.primaryCyan.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30.r),
+                      child: Image.asset(
+                        'assets/images/app_icon.png',
+                        width: 50.w,
+                        height: 50.w,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                  Text(
-                    user?.email ?? "admin@bodamapato.com",
-                    style: const TextStyle(
-                      color: textSecondary,
-                      fontSize: 14,
-                    ),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: cardColor,
+                        child: _avatarWidget(user, radius: 20),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user?.name ?? "Admin User",
+                              style: TextStyle(
+                                color: textPrimary,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              user?.email ?? "admin@bodamapato.com",
+                              style: TextStyle(
+                                color: textSecondary,
+                                fontSize: 12.sp,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

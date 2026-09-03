@@ -1,3 +1,7 @@
+// ignore_for_file: directives_ordering
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -6,773 +10,1085 @@ import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
 import '../../../../services/localization_service.dart';
-import '../../../../widgets/value_listenable_builder_3.dart';
+import '../../../../utils/responsive_helper.dart';
+import '../../models/inv_sale.dart';
 import '../../providers/inventory_provider.dart';
+import '../widgets/inventory_widgets.dart';
 
-class InventoryDashboardScreen extends StatelessWidget {
+/// Inventory dashboard styled to match the Transport (Modern) dashboard:
+/// hero balance card, glass stat cards, month strip + line chart.
+class InventoryDashboardScreen extends StatefulWidget {
   const InventoryDashboardScreen({super.key});
 
   @override
+  State<InventoryDashboardScreen> createState() =>
+      _InventoryDashboardScreenState();
+}
+
+class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
+    with TickerProviderStateMixin {
+  static const Color primaryBlue = ThemeConstants.primaryBlue;
+  static const Color cardColor = ThemeConstants.cardColor;
+  static const Color textPrimary = ThemeConstants.textPrimary;
+  static const Color textSecondary = ThemeConstants.textSecondary;
+
+  late final AnimationController _chartAnimationController;
+  late final Animation<double> _chartAnimation;
+
+  int _selectedMonth = DateTime.now().month;
+
+  static const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _chartAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    _chartAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _chartAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _chartAnimationController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _chartAnimationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final InventoryProvider inv =
+        Provider.of<InventoryProvider>(context, listen: false);
+    await inv.bootstrap();
+    if (!mounted) {
+      return;
+    }
+    _chartAnimationController.reset();
+    unawaited(_chartAnimationController.forward());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
-    final inv = context.watch<InventoryProvider>();
+    ResponsiveHelper.init(context);
+    final LocalizationService loc = LocalizationService.instance;
+    final InventoryProvider inv = context.watch<InventoryProvider>();
 
-    // Toggles to match mock: two-series chips above chart, small period selector inside chart
-    final ValueNotifier<bool> showOnline = ValueNotifier<bool>(true);
-    final ValueNotifier<bool> showPOS = ValueNotifier<bool>(true);
-    final ValueNotifier<String> period = ValueNotifier<String>('daily');
-    final ValueNotifier<DateTimeRange?> selectedRange =
-        ValueNotifier<DateTimeRange?>(null);
-
-    List<LineChartBarData> seriesFor(String p) {
-      final List<LineChartBarData> lines = [];
-      if (showOnline.value) {
-        final spots = p == 'weekly'
-            ? inv.onlineTrendWeekly
-            : p == 'monthly'
-                ? inv.onlineTrendMonthly
-                : inv.onlineTrendDaily;
-        lines.add(LineChartBarData(
-          isCurved: true,
-          spots: spots,
-          color: const Color(0xFFB388FF), // purple-ish for online
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-              show: true, color: const Color(0xFFB388FF).withOpacity(0.12)),
-          barWidth: 3,
-        ));
-      }
-      if (showPOS.value) {
-        final spots = p == 'weekly'
-            ? inv.posTrendWeekly
-            : p == 'monthly'
-                ? inv.posTrendMonthly
-                : inv.posTrendDaily;
-        lines.add(LineChartBarData(
-          isCurved: true,
-          spots: spots,
-          color: const Color(0xFF64B5F6), // blue for POS
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-              show: true, color: const Color(0xFF64B5F6).withOpacity(0.10)),
-          barWidth: 3,
-        ));
-      }
-      return lines;
-    }
-
-    Widget chartCard() => SizedBox(
-          width: double.infinity,
-          child: Container(
-            decoration: ThemeConstants.glassCardDecoration,
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Legend-like chips above chart
-              Row(
-                children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: showOnline,
-                    builder: (_, val, __) => FilterChip(
-                      selected: val,
-                      label: Text(loc.translate('online_retail_mode')),
-                      onSelected: (s) => showOnline.value = s,
-                    ),
-                  ),
-                  SizedBox(width: 6.w),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: showPOS,
-                    builder: (_, val, __) => FilterChip(
-                      selected: val,
-                      label: Text(loc.translate('pos_total_mode')),
-                      onSelected: (s) => showPOS.value = s,
-                    ),
-                  ),
-                ],
-              ),
-              // Selected range label
-              ValueListenableBuilder<DateTimeRange?>(
-                valueListenable: selectedRange,
-                builder: (_, r, __) {
-                  if (r == null) return const SizedBox.shrink();
-                  final l = MaterialLocalizations.of(context);
-                  String fmt(DateTime d) => l.formatShortDate(d);
-                  return Padding(
-                    padding: EdgeInsets.only(top: 4.h),
-                    child: Text('${fmt(r.start)}  —  ${fmt(r.end)}',
-                        style: ThemeConstants.captionStyle),
-                  );
-                },
-              ),
-              SizedBox(height: 6.h),
-              Stack(
-                children: [
-                  SizedBox(
-                    height: 200.h,
-                    child: ValueListenableBuilder3<bool, bool, String>(
-                      a: showOnline,
-                      b: showPOS,
-                      c: period,
-                      builder: (_, __, ___, p) => LineChart(
-                        LineChartData(
-                          gridData: const FlGridData(show: false),
-                          titlesData: const FlTitlesData(show: false),
-                          borderData: FlBorderData(
-                              show: true,
-                              border: Border.all(color: Colors.white24)),
-                          lineBarsData: seriesFor(p),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Small period selector pinned top-right of chart
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                          color: Colors.white12,
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        child: Row(children: [
-                          _PeriodMini(
-                              value: 'daily',
-                              label: 'D',
-                              period: period,
-                              range: selectedRange),
-                          _PeriodMini(
-                              value: 'weekly',
-                              label: 'W',
-                              period: period,
-                              range: selectedRange),
-                          _PeriodMini(
-                              value: 'monthly',
-                              label: 'M',
-                              period: period,
-                              range: selectedRange),
-                          const SizedBox(width: 4),
-                          _CalendarTrigger(
-                              period: period, range: selectedRange),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ));
-
-    // Two KPI tiles below chart with a very small inner gap (vertical divider)
-    Widget kpisBlock() => SizedBox(
-          width: double.infinity,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: ThemeConstants.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Table(
-              columnWidths: const <int, TableColumnWidth>{
-                0: FlexColumnWidth(),
-                1: FlexColumnWidth(),
-              },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              border: const TableBorder(
-                verticalInside: BorderSide(color: Colors.white24),
-              ),
-              children: [
-                TableRow(children: [
-                  Padding(
-                    padding: EdgeInsets.all(8.w),
-                    child: _KpiTile(
-                        title: loc.translate('pos_total_made'),
-                        amount: 'TZS 7,444',
-                        change: '+16.24%'),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(8.w),
-                    child: _KpiTile(
-                        title: loc.translate('online_total_made'),
-                        amount: 'TZS 7,334',
-                        change: '+16.24%'),
-                  ),
-                ]),
-              ],
-            ),
-          ),
-        ));
-
-    String cleanLabel(String keyOrText) {
-      final raw = loc.translate(keyOrText);
-      final s = (raw == keyOrText || raw.contains('_'))
-          ? raw.replaceAll('_', ' ')
-          : raw;
-      // Title case first letter only to avoid shouting
-      return s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
-    }
-
-    // 2x2 grid block (Inventory, Current Orders, Past Orders, Top Customers)
-    Widget gridBlock() => SizedBox(
-          width: double.infinity,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: ThemeConstants.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Table(
-              columnWidths: const <int, TableColumnWidth>{
-                0: FlexColumnWidth(),
-                1: FlexColumnWidth(),
-                2: FlexColumnWidth(),
-              },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              border: const TableBorder(
-                horizontalInside: BorderSide(color: Colors.white24),
-                verticalInside: BorderSide(color: Colors.white24),
-              ),
-              children: [
-                // Row 1
-                TableRow(children: [
-                  _GridCell(
-                    icon: Icons.inventory_2_outlined,
-                    title: cleanLabel('inventory'),
-                    primary:
-                        '${inv.products.length} ${loc.translate('products')}',
-                    secondary: '+16.24%',
-                  ),
-                  _GridCell(
-                    icon: Icons.shopping_bag_outlined,
-                    title: cleanLabel('current_orders'),
-                    primary: '05 ${loc.translate('orders')}',
-                    secondary:
-                        '34 ${loc.translate('orders')} ${loc.translate('today')}',
-                    badgeText: '05',
-                  ),
-                  _GridCell(
-                    icon: Icons.history_outlined,
-                    title: cleanLabel('past_orders'),
-                    primary: '457 ${loc.translate('orders')}',
-                    secondary: '+14.24%',
-                  ),
-                ]),
-                // Row 2
-                TableRow(children: [
-                  _GridCell(
-                    icon: Icons.people_alt_outlined,
-                    title: cleanLabel('top_customers'),
-                    primary: '733 ${loc.translate('customers')}',
-                    secondary: '+23 ${loc.translate('this_week')}',
-                  ),
-                  _GridCell(
-                    icon: Icons.attach_money_rounded,
-                    title: cleanLabel('total_sales_today'),
-                    primary: inv.totalSalesTodayFormatted,
-                    secondary: loc.translate('today'),
-                  ),
-                  _GridCell(
-                    icon: Icons.trending_up_rounded,
-                    title: cleanLabel('profit'),
-                    primary: inv.profitTodayFormatted,
-                    secondary:
-                        'W: ${inv.profitWeekFormatted} • M: ${inv.profitMonthFormatted}',
-                  ),
-                ]),
-                // Row 3
-                TableRow(children: [
-                  _GridCell(
-                    icon: Icons.star_rate_rounded,
-                    title: cleanLabel('top_selling_product'),
-                    primary: inv.topSellingProductName,
-                    secondary: loc.translate('best_seller'),
-                  ),
-                  _GridCell(
-                    icon: Icons.warning_amber_rounded,
-                    title: cleanLabel('low_stock_alerts'),
-                    primary: '${inv.lowStockCount}',
-                    secondary: loc.translate('items'),
-                  ),
-                  _GridCell(
-                    icon: Icons.notifications_active_outlined,
-                    title: cleanLabel('reminders'),
-                    primary: '${inv.reminders.length}',
-                    secondary: loc.translate('active'),
-                  ),
-                ]),
-              ],
-            ),
-          ),
-        ));
-
-    // Products overview table-like list
-    Widget productsOverview() => SizedBox(
-          width: double.infinity,
-          child: Container(
-            margin: EdgeInsets.only(top: 4.h),
-            decoration: ThemeConstants.glassCardDecoration,
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(loc.translate('products_overview'),
-                      style: ThemeConstants.headingStyle),
-                  Row(children: [
-                    const _MiniPill(text: 'Day'),
-                    SizedBox(width: 4.w),
-                    const _MiniPill(text: 'Week'),
-                    SizedBox(width: 4.w),
-                    const _MiniPill(text: 'Month'),
-                  ]),
-                ],
-              ),
-              SizedBox(height: 6.h),
-              // Header row
-              Row(
-                children: [
-                  Expanded(
-                      flex: 5,
-                      child: Text(loc.translate('product'),
-                          style: ThemeConstants.captionStyle)),
-                  Expanded(
-                      flex: 3,
-                      child: Text(loc.translate('orders'),
-                          style: ThemeConstants.captionStyle)),
-                  Expanded(
-                      flex: 4,
-                      child: Text(loc.translate('sale'),
-                          style: ThemeConstants.captionStyle)),
-                  Expanded(
-                      flex: 4,
-                      child: Text(loc.translate('profit'),
-                          style: ThemeConstants.captionStyle)),
-                ],
-              ),
-              SizedBox(height: 4.h),
-              ..._topProducts(inv).map((e) => _ProductRow(item: e)),
-            ],
-          ),
-        ));
-
-    return SafeArea(
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      backgroundColor: Colors.white,
+      color: primaryBlue,
       child: SingleChildScrollView(
-        padding: EdgeInsets.only(top: 12.h, bottom: 12.h),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _buildBalanceCard(loc, inv),
+              ResponsiveHelper.verticalSpace(2),
+              _buildStatsCards(loc, inv),
+              ResponsiveHelper.verticalSpace(2),
+              _buildChartSection(loc, inv),
+              ResponsiveHelper.verticalSpace(2),
+              _buildInventoryValuation(loc, inv),
+              ResponsiveHelper.verticalSpace(2),
+              _buildProductsOverview(loc, inv),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassCard({required Widget child}) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: child,
+        ),
+      );
+
+  Widget _buildBalanceCard(LocalizationService loc, InventoryProvider inv) {
+    final Size size = MediaQuery.of(context).size;
+    final bool isShort = size.height < 700;
+
+    double cardHeight = size.height * (isShort ? 0.11 : 0.14);
+    cardHeight = cardHeight.clamp(100.0, 130.0);
+
+    final double avatarSide = (size.width * 0.10).clamp(32.0, 42.0);
+    final double gapLarge = isShort ? 6.0 : 8.0;
+    final double gapMid = isShort ? 4.0 : 6.0;
+    final double gapSmall = isShort ? 3.0 : 4.0;
+
+    return SizedBox(
+      height: cardHeight,
+      child: _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: avatarSide,
+                    height: avatarSide,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(avatarSide / 2),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.more_horiz, color: textSecondary),
+                ],
+              ),
+              SizedBox(height: gapLarge),
+              SizedBox(height: gapMid),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'TSH ${_formatCurrency(_monthSalesTotal(inv))}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: isShort
+                          ? (ResponsiveHelper.h2 * 0.9)
+                          : ResponsiveHelper.h2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: gapSmall),
+                    child: Text(
+                      loc.translate('total_sales'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: isShort
+                            ? (ResponsiveHelper.bodyL * 0.95)
+                            : ResponsiveHelper.bodyL,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCards(LocalizationService loc, InventoryProvider inv) {
+    final int totalProducts = inv.products.length;
+    final int lowStock = inv.lowStockCount;
+    final int inStock = math.max(0, totalProducts - lowStock);
+
+    return Column(
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _buildStatCard(
+                loc.translate('total_sales_today'),
+                'TSH ${_formatCurrency(inv.totalSalesToday)}',
+                '',
+                Icons.today,
+                true,
+              ),
+            ),
+            ResponsiveHelper.horizontalSpace(4),
+            Expanded(
+              child: _buildStatCard(
+                loc.translate('profit'),
+                'TSH ${_formatCurrency(inv.profitToday)}',
+                '',
+                Icons.trending_up_rounded,
+                true,
+              ),
+            ),
+          ],
+        ),
+        ResponsiveHelper.verticalSpace(2),
+        _buildStatCard(
+          loc.translate('sales'),
+          'TSH ${_formatCurrency(_monthSalesTotal(inv))}',
+          '',
+          Icons.calendar_month,
+          false,
+        ),
+        ResponsiveHelper.verticalSpace(2),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _buildStatCard(
+                loc.translate('products'),
+                '$totalProducts',
+                '${loc.translate('active')} $inStock/$totalProducts',
+                Icons.inventory_2_outlined,
+                true,
+              ),
+            ),
+            ResponsiveHelper.horizontalSpace(4),
+            Expanded(
+              child: _buildStatCard(
+                loc.translate('low_stock_alerts'),
+                '$lowStock',
+                loc.translate('items'),
+                Icons.warning_amber_rounded,
+                lowStock == 0,
+              ),
+            ),
+            ResponsiveHelper.horizontalSpace(4),
+            const Expanded(child: SizedBox()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    String title,
+    String value,
+    String change,
+    IconData icon,
+    bool isPositive,
+  ) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    icon,
+                    color: textSecondary,
+                    size: ResponsiveHelper.iconSizeM,
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.more_vert,
+                    color: textSecondary,
+                    size: ResponsiveHelper.iconSizeS,
+                  ),
+                ],
+              ),
+              ResponsiveHelper.verticalSpace(1.5),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: ResponsiveHelper.bodyS,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              ResponsiveHelper.verticalSpace(0.5),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: ResponsiveHelper.bodyL,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ResponsiveHelper.verticalSpace(0.5),
+              Text(
+                change,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color:
+                      isPositive ? Colors.green.shade300 : Colors.red.shade300,
+                  fontSize: ResponsiveHelper.bodyS,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildChartSection(LocalizationService loc, InventoryProvider inv) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _buildMonthSelector(),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: MediaQuery.of(context).size.height < 700 ? 200 : 240,
+                child: AnimatedBuilder(
+                  animation: _chartAnimation,
+                  builder: (BuildContext context, Widget? child) {
+                    final List<double> points = _monthDailyTotals(inv);
+                    if (points.isEmpty) {
+                      return Center(
+                        child: Text(
+                          loc.translate('no_chart_data'),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+                    final List<String> labels = _monthDayLabels();
+                    final double dataMax = points.reduce(math.max);
+                    final double displayMax =
+                        _niceCeilValue((dataMax <= 0 ? 1 : dataMax) * 1.1);
+                    final double interval =
+                        math.max(1, _niceStep(displayMax / 5));
+                    final String maxLabel = _formatShort(displayMax);
+                    final double reserved =
+                        (maxLabel.length * 8 + 12).clamp(44, 72).toDouble();
+
+                    return LineChart(
+                      LineChartData(
+                        minX: 0,
+                        maxX: (points.length - 1).toDouble(),
+                        minY: 0,
+                        maxY: displayMax,
+                        gridData: FlGridData(
+                          drawVerticalLine: false,
+                          horizontalInterval: interval,
+                          getDrawingHorizontalLine: (double value) => FlLine(
+                            color: Colors.white.withOpacity(0.15),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: reserved,
+                              interval: interval,
+                              getTitlesWidget: (double value, meta) => Text(
+                                _formatShort(value),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: 1,
+                              reservedSize: 40,
+                              getTitlesWidget: (double value, meta) {
+                                final int i = value.toInt();
+                                if (i < 0 || i >= labels.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                final double width =
+                                    MediaQuery.of(context).size.width - 40;
+                                const double approxLabelWidth = 22;
+                                final int step = labels.isEmpty
+                                    ? 1
+                                    : (labels.length * approxLabelWidth / width)
+                                        .ceil()
+                                        .clamp(1, 6);
+                                if (i % step != 0) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Transform.rotate(
+                                  angle: -math.pi / 6,
+                                  alignment: Alignment.topRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      labels[i],
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          rightTitles: const AxisTitles(),
+                          topTitles: const AxisTitles(),
+                        ),
+                        lineTouchData: LineTouchData(
+                          handleBuiltInTouches: false,
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipItems: (List<LineBarSpot> touchedSpots) =>
+                                touchedSpots.map((LineBarSpot barSpot) {
+                              final int i = barSpot.x.toInt();
+                              final String label = (i >= 0 && i < labels.length)
+                                  ? labels[i]
+                                  : '';
+                              return LineTooltipItem(
+                                '$label\nTSH ${_formatCurrency(barSpot.y)}',
+                                const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: <LineChartBarData>[
+                          LineChartBarData(
+                            spots: points
+                                .asMap()
+                                .entries
+                                .map(
+                                  (MapEntry<int, double> e) => FlSpot(
+                                    e.key.toDouble(),
+                                    e.value * _chartAnimation.value,
+                                  ),
+                                )
+                                .toList(),
+                            isCurved: true,
+                            color: Colors.white,
+                            barWidth: 3,
+                            dotData: FlDotData(
+                              getDotPainter: (FlSpot spot, double percent,
+                                      LineChartBarData bar, int index) =>
+                                  FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.white,
+                                strokeColor: Colors.white,
+                              ),
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              gradient: LinearGradient(
+                                colors: <Color>[
+                                  Colors.white.withOpacity(0.3),
+                                  Colors.white.withOpacity(0.05),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildMonthSelector() => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: months.asMap().entries.map((MapEntry<int, String> entry) {
+            final int index = entry.key;
+            final String month = entry.value;
+            final bool isSelected = index + 1 == _selectedMonth;
+
+            return GestureDetector(
+              onTap: () {
+                setState(() => _selectedMonth = index + 1);
+                _chartAnimationController
+                  ..reset()
+                  ..forward();
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  month,
+                  style: TextStyle(
+                    color: isSelected ? textPrimary : textSecondary,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      );
+
+  Widget _buildInventoryValuation(
+    LocalizationService loc,
+    InventoryProvider inv,
+  ) {
+    final double totalCost = inv.totalInventoryCost;
+    final double totalRevenue = inv.totalInventoryRevenue;
+    final double totalProfit = inv.totalInventoryExpectedProfit;
+    final int totalProducts = inv.products.length;
+    final int totalUnits = inv.products.fold<int>(0, (s, p) => s + p.quantity);
+
+    return _buildGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            chartCard(),
-            SizedBox(height: 6.h),
-            kpisBlock(),
-            SizedBox(height: 6.h),
-            gridBlock(),
-            productsOverview(),
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                const Icon(Icons.assessment_outlined,
+                    color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Muhtasari wa Mzigo - Imported Products Valuation',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: ResponsiveHelper.bodyL,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$totalProducts Products · $totalUnits Units',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: ResponsiveHelper.bodyS,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Aggregate stat tiles
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _valuationTile(
+                    'Total Cost (Gharama)',
+                    'TZS ${formatAmount(totalCost)}',
+                    Colors.amber.shade300,
+                    Icons.shopping_cart_outlined,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _valuationTile(
+                    'Total Revenue (Kuuza)',
+                    'TZS ${formatAmount(totalRevenue)}',
+                    Colors.lightBlueAccent.shade200,
+                    Icons.storefront_outlined,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Profit banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: <Color>[
+                    Colors.green.shade800.withOpacity(0.5),
+                    Colors.green.shade600.withOpacity(0.3),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: Colors.greenAccent.shade400.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Icon(Icons.trending_up,
+                            color: Colors.greenAccent.shade400, size: 20),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Faida Tarajiwa (Expected Profit):',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: ResponsiveHelper.bodyS,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'TZS ${formatAmount(totalProfit)}',
+                    style: TextStyle(
+                      color: Colors.greenAccent.shade400,
+                      fontSize: ResponsiveHelper.bodyL,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            // Per-product breakdown table
+            Text(
+              'Product Profit Margins',
+              style: TextStyle(
+                color: textPrimary,
+                fontSize: ResponsiveHelper.bodyM,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: 4,
+                    child: Text('Product',
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text('Qty',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text('Cost',
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text('Profit',
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ),
+                ],
+              ),
+            ),
+            // Product rows
+            ...inv.products.map((p) => Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom:
+                          BorderSide(color: Colors.white.withOpacity(0.06)),
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              p.name,
+                              style: TextStyle(
+                                color: textPrimary,
+                                fontSize: ResponsiveHelper.bodyS,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              p.unit.toUpperCase(),
+                              style: TextStyle(
+                                color: textSecondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '${p.quantity}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: ResponsiveHelper.bodyS,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          formatAmount(p.totalCostPrice),
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: Colors.amber.shade300,
+                            fontSize: ResponsiveHelper.bodyS,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          formatAmount(p.totalExpectedProfit),
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: Colors.greenAccent.shade400,
+                            fontSize: ResponsiveHelper.bodyS,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
           ],
         ),
       ),
     );
   }
-}
 
-
-class _KpiTile extends StatelessWidget {
-  const _KpiTile(
-      {required this.title, required this.amount, required this.change});
-  final String title;
-  final String amount;
-  final String change;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      // Removed inner glass decoration to avoid the double-layered look.
-      // Keep only padding so the outer big container with the vertical divider remains.
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.w),
-      child: Row(
-        children: [
-          Container(
-            width: 28.w,
-            height: 28.w,
-            decoration: BoxDecoration(
-                color: Colors.white12, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.payments_outlined,
-                color: Colors.white, size: 16),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              AutoSizeText(title,
-                  style: ThemeConstants.captionStyle,
-                  maxLines: 1,
-                  minFontSize: 10),
-              SizedBox(height: 2.w),
-              Row(children: [
-                Expanded(
-                    child: AutoSizeText(amount,
-                        style: ThemeConstants.bodyStyle
-                            .copyWith(fontWeight: FontWeight.w700),
-                        maxLines: 1)),
-                Text(change,
-                    style: const TextStyle(color: Colors.lightGreenAccent)),
-              ]),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GridCell extends StatelessWidget {
-  const _GridCell(
-      {required this.icon,
-      required this.title,
-      required this.primary,
-      required this.secondary,
-      this.badgeText});
-  final IconData icon;
-  final String title;
-  final String primary;
-  final String secondary;
-  final String? badgeText;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      child: Stack(
-        children: [
-          // Top-left corner icon inside the grid cell
-          Positioned(
-            left: 6,
-            top: 6,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(icon, color: Colors.white70, size: 14),
-            ),
-          ),
-          // Content with padding to avoid overlapping the top-left icon
-          Padding(
-            padding: EdgeInsets.only(left: 34, top: 2.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AutoSizeText(
-                  title,
-                  style: ThemeConstants.captionStyle
-                      .copyWith(fontSize: 13.sp, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  minFontSize: 11,
-                ),
-                SizedBox(height: 4.h),
-                AutoSizeText(
-                  primary,
-                  style: ThemeConstants.bodyStyle
-                      .copyWith(fontSize: 16.sp, fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                ),
-                AutoSizeText(
-                  secondary,
-                  style: ThemeConstants.captionStyle.copyWith(fontSize: 12.sp),
-                  maxLines: 1,
-                  minFontSize: 10,
-                ),
-              ],
-            ),
-          ),
-          // Optional badge
-          if (badgeText != null)
-            Positioned(
-              right: 32,
-              top: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF4FC3F7),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Text(badgeText!,
-                    style: const TextStyle(color: Colors.white, fontSize: 10)),
-              ),
-            ),
-          // Eye icon in top-right corner for consistency
-          const Positioned(
-            right: 6,
-            top: 6,
-            child: Icon(Icons.remove_red_eye_outlined,
-                color: Colors.white24, size: 16),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniPill extends StatelessWidget {
-  const _MiniPill({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-          color: Colors.white12, borderRadius: BorderRadius.circular(12)),
-      child: Text(text,
-          style: const TextStyle(color: Colors.white70, fontSize: 12)),
-    );
-  }
-}
-
-class ProductRowItem {
-  ProductRowItem(
-      {required this.name,
-      required this.category,
-      required this.orders,
-      required this.sale,
-      required this.profit});
-  final String name;
-  final String category;
-  final int orders;
-  final double sale;
-  final double profit;
-}
-
-List<ProductRowItem> _topProducts(InventoryProvider inv) {
-  final items = inv.products.take(3).map((p) => ProductRowItem(
-        name: p.name,
-        category: p.category.isEmpty ? 'Category' : p.category,
-        orders: 23,
-        sale: 59466,
-        profit: 3766,
-      ));
-  if (items.isNotEmpty) return items.toList();
-  // Fallback mocks
-  return [
-    ProductRowItem(
-        name: 'Product 1',
-        category: 'Category',
-        orders: 23,
-        sale: 59466,
-        profit: 3766),
-    ProductRowItem(
-        name: 'Product 2',
-        category: 'Category',
-        orders: 19,
-        sale: 42466,
-        profit: 2766),
-    ProductRowItem(
-        name: 'Product 3',
-        category: 'Category',
-        orders: 11,
-        sale: 29466,
-        profit: 1766),
-  ];
-}
-
-class _ProductRow extends StatelessWidget {
-  const _ProductRow({required this.item});
-  final ProductRowItem item;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 6.w),
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.w),
-      decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          // Product cell
-          Expanded(
-            flex: 5,
-            child: Row(children: [
-              Container(
-                width: 28.w,
-                height: 28.w,
-                decoration: const BoxDecoration(
-                    color: Colors.white24, shape: BoxShape.circle),
-                child: const Icon(Icons.inventory_2_outlined,
-                    size: 16, color: Colors.white),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AutoSizeText(item.name,
-                          style: ThemeConstants.bodyStyle, maxLines: 1),
-                      AutoSizeText(item.category,
-                          style: ThemeConstants.captionStyle,
-                          maxLines: 1,
-                          minFontSize: 10),
-                    ]),
-              ),
-            ]),
-          ),
-          Expanded(
-              flex: 3,
-              child: Text('${item.orders}', style: ThemeConstants.bodyStyle)),
-          Expanded(
-              flex: 4,
-              child: Text('TZS ${item.sale.toStringAsFixed(0)}',
-                  style: ThemeConstants.bodyStyle)),
-          Expanded(
-              flex: 4,
-              child: Text('TZS ${item.profit.toStringAsFixed(0)}',
-                  style: ThemeConstants.bodyStyle)),
-        ],
-      ),
-    );
-  }
-}
-
-class _MonthYearPickerDialog extends StatefulWidget {
-  const _MonthYearPickerDialog();
-  @override
-  State<_MonthYearPickerDialog> createState() => _MonthYearPickerDialogState();
-}
-
-class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
-  final loc = LocalizationService.instance;
-  int year = DateTime.now().year;
-  // Removed unused 'months' constant to satisfy analyzer.
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: ThemeConstants.primaryBlue,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white70),
-            onPressed: () => setState(() => year -= 1),
-          ),
-          Text('$year', style: ThemeConstants.headingStyle),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white70),
-            onPressed: () => setState(() => year += 1),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 320,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.6,
-            ),
-            itemCount: 12,
-            itemBuilder: (context, i) {
-              final ml = MaterialLocalizations.of(context);
-              final label = ml.formatMonthYear(DateTime(year, i + 1));
-              return InkWell(
-                onTap: () => Navigator.pop(context, DateTime(year, i + 1)),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(label,
-                      style: ThemeConstants.bodyStyle,
-                      textAlign: TextAlign.center),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ],
-    );
-  }
-}
-
-
-class _CalendarTrigger extends StatelessWidget {
-  const _CalendarTrigger({required this.period, required this.range});
-  final ValueNotifier<String> period;
-  final ValueNotifier<DateTimeRange?> range;
-
-  Future<void> _handleTap(BuildContext context) async {
-    // Temporarily disable popup date pickers to avoid platform/layout issues.
-    // You can re-enable by calling _pickForPeriod(context, period.value, range)
-    // once tested on the target platform.
-    return;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkResponse(
-      onTap: () => _handleTap(context),
-      radius: 20,
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Icon(Icons.date_range, color: Colors.white, size: 16),
-      ),
-    );
-  }
-}
-
-class _PeriodMini extends StatelessWidget {
-  const _PeriodMini(
-      {required this.value,
-      required this.label,
-      required this.period,
-      required this.range});
-  final String value;
-  final String label;
-  final ValueNotifier<String> period;
-  final ValueNotifier<DateTimeRange?> range;
-  @override
-  Widget build(BuildContext context) {
-    final bool selected = period.value == value;
-    return GestureDetector(
-      onTap: () {
-        // Only switch period locally; range picking (dialogs) is disabled for stability
-        period.value = value;
-        range.value = null;
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  Widget _valuationTile(
+      String label, String value, Color color, IconData icon) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.25)),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color: selected ? Colors.black : Colors.white70, fontSize: 12)),
-      ),
-    );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: ResponsiveHelper.bodyS,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: ResponsiveHelper.bodyL,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildProductsOverview(
+    LocalizationService loc,
+    InventoryProvider inv,
+  ) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                loc.translate('products_overview'),
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: ResponsiveHelper.bodyL,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              ResponsiveHelper.verticalSpace(1.5),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: 6,
+                    child: Text(
+                      loc.translate('product'),
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: ResponsiveHelper.bodyS,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      loc.translate('stock'),
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: ResponsiveHelper.bodyS,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Text(
+                      loc.translate('sale'),
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: ResponsiveHelper.bodyS,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              ResponsiveHelper.verticalSpace(1),
+              if (inv.products.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    loc.translate('no_data'),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                )
+              else
+                ...inv.products.take(5).map(
+                      (p) => Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              flex: 6,
+                              child: Row(
+                                children: <Widget>[
+                                  Container(
+                                    width: 28.w,
+                                    height: 28.w,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white24,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.inventory_2_outlined,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Expanded(
+                                    child: AutoSizeText(
+                                      p.name,
+                                      maxLines: 1,
+                                      minFontSize: 10,
+                                      style: const TextStyle(
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                '${p.quantity}',
+                                style: const TextStyle(color: textPrimary),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 4,
+                              child: AutoSizeText(
+                                'TSH ${_formatCurrency(p.sellingPrice)}',
+                                maxLines: 1,
+                                minFontSize: 10,
+                                style: const TextStyle(color: textPrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ],
+          ),
+        ),
+      );
+
+  // ---- data helpers -------------------------------------------------------
+
+  List<InvSale> _salesForSelectedMonth(InventoryProvider inv) {
+    final int year = DateTime.now().year;
+    return inv.sales
+        .where((InvSale s) =>
+            s.createdAt.year == year && s.createdAt.month == _selectedMonth)
+        .toList();
+  }
+
+  double _monthSalesTotal(InventoryProvider inv) => _salesForSelectedMonth(inv)
+      .fold<double>(0, (double sum, InvSale s) => sum + s.total);
+
+  int get _daysInSelectedMonth =>
+      DateTime(DateTime.now().year, _selectedMonth + 1, 0).day;
+
+  List<double> _monthDailyTotals(InventoryProvider inv) {
+    final List<double> totals = List<double>.filled(_daysInSelectedMonth, 0);
+    for (final InvSale s in _salesForSelectedMonth(inv)) {
+      final int i = s.createdAt.day - 1;
+      if (i >= 0 && i < totals.length) {
+        totals[i] += s.total;
+      }
+    }
+    return totals;
+  }
+
+  List<String> _monthDayLabels() =>
+      List<String>.generate(_daysInSelectedMonth, (int i) => '${i + 1}');
+
+  String _formatCurrency(num amount) {
+    final double value = amount.toDouble();
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  String _formatShort(double value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 1000) {
+      return '${(value / 1000).round()}K';
+    }
+    return value.round().toString();
+  }
+
+  double _niceStep(double raw) {
+    if (raw <= 0) {
+      return 1;
+    }
+    final double magnitude =
+        math.pow(10, (math.log(raw) / math.ln10).floor()).toDouble();
+    final double residual = raw / magnitude;
+    if (residual <= 1) {
+      return magnitude;
+    }
+    if (residual <= 2) {
+      return 2 * magnitude;
+    }
+    if (residual <= 5) {
+      return 5 * magnitude;
+    }
+    return 10 * magnitude;
+  }
+
+  double _niceCeilValue(double raw) {
+    final double step = _niceStep(raw / 5);
+    return (raw / step).ceil() * step;
   }
 }

@@ -11,6 +11,7 @@ import 'constants/colors.dart';
 import 'constants/styles.dart';
 import 'constants/theme_constants.dart';
 import 'modules/inventory/providers/inventory_provider.dart';
+import 'modules/inventory/providers/depot_provider.dart';
 import 'modules/inventory/screens/inventory_home.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
@@ -42,9 +43,9 @@ import 'screens/receipts/receipts_screen.dart';
 import 'screens/reminders/reminders_screen.dart';
 import 'screens/rental/billing_list_screen.dart';
 import 'screens/rental/blocks_management_screen.dart';
-import 'screens/rental/create_agreement_screen.dart';
 import 'screens/rental/create_property_screen.dart';
 import 'screens/rental/edit_property_screen.dart';
+import 'screens/rental/helpdesk_screen.dart';
 import 'screens/rental/house_details_screen.dart';
 import 'screens/rental/house_management_screen.dart';
 import 'screens/rental/lease_agreements_screen.dart';
@@ -179,6 +180,9 @@ class BodaMapatoApp extends StatelessWidget {
             ChangeNotifierProvider<InventoryProvider>(
               create: (final BuildContext _) =>
                   InventoryProvider()..bootstrap(),
+            ),
+            ChangeNotifierProvider<DepotProvider>(
+              create: (final BuildContext _) => DepotProvider(),
             ),
             ChangeNotifierProvider<RentalProvider>(
               create: (final BuildContext _) => RentalProvider(),
@@ -346,6 +350,8 @@ class BodaMapatoApp extends StatelessWidget {
                   }
                   return const ComingSoonScreen();
                 },
+                "/rental/helpdesk": (final BuildContext context) =>
+                    const HelpdeskScreen(),
                 "/rental/lease-templates": (final BuildContext context) =>
                     const LeaseAgreementsScreen(), // Placeholder for templates
               },
@@ -355,8 +361,16 @@ class BodaMapatoApp extends StatelessWidget {
       );
 
   ThemeData _buildTheme(BuildContext context) => ThemeData(
+        brightness: Brightness.dark,
         primarySwatch: Colors.blue,
         primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: ThemeConstants.primaryBlue,
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.primary,
+          surface: ThemeConstants.primaryBlue,
+          onSurface: Colors.white,
+          onPrimary: Colors.white,
+        ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
         fontFamily: 'NotoSans',
 
@@ -395,8 +409,12 @@ class BodaMapatoApp extends StatelessWidget {
           style: AppStyles.secondaryButton(context),
         ),
 
-        // Text theme (keep Flutter defaults and app styles)
-        textTheme: Theme.of(context).textTheme,
+        // Text theme configured for crisp white text on dark background
+        textTheme: ThemeData.dark().textTheme.apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+              fontFamily: 'NotoSans',
+            ),
 
         // Responsive spacing and sizing
         materialTapTargetSize: MaterialTapTargetSize.padded,

@@ -6,6 +6,7 @@ import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../utils/rental_flow_validator.dart';
 import 'receipt_view_screen.dart';
 
 class BillingListScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class BillingListScreen extends StatefulWidget {
 
 class _BillingListScreenState extends State<BillingListScreen> {
   String _filter = 'all'; // all, unpaid, paid, overdue
+  RentalFlowStage? _flowStage;
 
   String _formatAmount(dynamic value) {
     if (value == null) return '0.00';
@@ -28,11 +30,31 @@ class _BillingListScreenState extends State<BillingListScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final user = context.read<AuthProvider>().user;
-      // Using manage_properties_rental as it's the required permission for billing management
+      final provider = context.read<RentalProvider>();
       if (user?.hasPermission('manage_properties_rental') ?? false) {
-        context.read<RentalProvider>().fetchBills();
+        // Fetch all required data for stage evaluation
+        await provider.fetchProperties();
+        await provider.fetchTenants();
+        await provider.fetchBills();
+
+        if (!context.mounted) return;
+
+        // Evaluate current stage and show gate if prerequisites missing
+        if (!RentalFlowValidator.hasProperties(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoProperties);
+        } else if (!RentalFlowValidator.hasHouses(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoHouses);
+        } else if (!RentalFlowValidator.hasTenants(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoTenants);
+        } else if (!RentalFlowValidator.hasActiveAgreements(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoAgreements);
+        } else if (!RentalFlowValidator.hasUnpaidBills(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoBills);
+        } else {
+          setState(() => _flowStage = RentalFlowStage.complete);
+        }
       }
     });
   }
@@ -53,6 +75,13 @@ class _BillingListScreenState extends State<BillingListScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Stage gate banner: shown when prerequisites are not yet met
+            if (_flowStage != null && _flowStage != RentalFlowStage.complete)
+              RentalFlowValidator.buildStageBanner(
+                    stage: _flowStage!,
+                    context: context,
+                  ) ??
+                  const SizedBox.shrink(),
             _buildFilters(context),
             Expanded(
               child: rentalProvider.isLoading && bills.isEmpty

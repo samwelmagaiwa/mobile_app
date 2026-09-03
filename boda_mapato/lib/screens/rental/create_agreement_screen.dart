@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../utils/rental_flow_validator.dart';
 
 class CreateAgreementScreen extends StatefulWidget {
   const CreateAgreementScreen({super.key});
@@ -42,10 +43,39 @@ class _CreateAgreementScreenState extends State<CreateAgreementScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<RentalProvider>();
-      provider.fetchTenants();
-      provider.fetchProperties();
+      await provider.fetchTenants();
+      await provider.fetchProperties();
+      if (!context.mounted) return;
+
+      // Stage 1: Must have at least one tenant onboarded
+      if (!RentalFlowValidator.hasTenants(provider)) {
+        await RentalFlowValidator.validateStep(
+          context: context,
+          fetchData: (_) async {},
+          condition: RentalFlowValidator.hasTenants,
+          title: 'Ingiza Mpangaji Kwanza',
+          message: 'Huna wapangaji walioingia. Ingiza mpangaji kabla ya kutengeneza mkataba.',
+          actionLabel: 'Ingiza Mpangaji',
+          actionRoute: '/rental/onboard-tenant',
+        );
+        return;
+      }
+
+      // Stage 2: Must have at least one vacant house
+      if (!RentalFlowValidator.hasVacantHouses(provider)) {
+        await RentalFlowValidator.validateStep(
+          context: context,
+          fetchData: (_) async {},
+          condition: RentalFlowValidator.hasVacantHouses,
+          title: 'Hakuna Nyumba Wazi',
+          message: 'Nyumba zote zimekaliwa. Ongeza nyumba mpya au angalia nyumba zilizo wazi.',
+          actionLabel: 'Angalia Mali',
+          actionRoute: '/rental/properties',
+        );
+        return;
+      }
     });
   }
 

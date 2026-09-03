@@ -53,6 +53,7 @@ class _PublicLandingScreenState extends State<PublicLandingScreen> with TickerPr
   }
 
   Future<void> _loadHouses() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     final result = await _api.getPublicHouses(
       search: _searchCtrl.text,
@@ -66,6 +67,7 @@ class _PublicLandingScreenState extends State<PublicLandingScreen> with TickerPr
       hasMasterBedroom: _hasMasterBedroom,
       hasSittingRoom: _hasSittingRoom,
     );
+    if (!mounted) return;
     final data = result['data'];
     setState(() {
       if (data is List) {

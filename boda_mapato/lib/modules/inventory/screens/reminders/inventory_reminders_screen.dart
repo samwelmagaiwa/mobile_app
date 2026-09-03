@@ -7,88 +7,228 @@ import '../../../../constants/theme_constants.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_reminder.dart';
 import '../../providers/inventory_provider.dart';
+import '../widgets/inventory_widgets.dart';
 
-class InventoryRemindersScreen extends StatelessWidget {
+/// Simple reminders: low stock and payments coming due. For the fuller list
+/// — near-expiry, over-limit customers, overdue invoices — see the Alerts
+/// screen instead.
+class InventoryRemindersScreen extends StatefulWidget {
   const InventoryRemindersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
-    final inv = context.watch<InventoryProvider>();
-    final reminders = inv.reminders;
-    if (reminders.isEmpty) {
-      // Try fetch on first build if list empty
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<InventoryProvider>().fetchReminders();
-      });
+  State<InventoryRemindersScreen> createState() =>
+      _InventoryRemindersScreenState();
+}
+
+class _InventoryRemindersScreenState extends State<InventoryRemindersScreen> {
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loading = context.read<InventoryProvider>().reminders.isEmpty;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    await context.read<InventoryProvider>().fetchReminders();
+    if (mounted) {
+      setState(() => _loading = false);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final LocalizationService loc = LocalizationService.instance;
+    final InventoryProvider inv = context.watch<InventoryProvider>();
+    final List<InvReminder> reminders = inv.reminders;
+
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: ListView.separated(
-          itemCount: reminders.length,
-          separatorBuilder: (_, __) => SizedBox(height: 8.h),
-          itemBuilder: (context, index) {
-            final r = reminders[index];
-            final isLow = r.type == 'low_stock';
-            final icon =
-                isLow ? Icons.inventory_2_outlined : Icons.payments_outlined;
-            final statusText = r.status == InvReminderStatus.done
-                ? loc.translate('done')
-                : r.status == InvReminderStatus.snoozed
-                    ? loc.translate('snoozed')
-                    : loc.translate('open');
-            return Container(
-              decoration: ThemeConstants.glassCardDecoration,
-              padding: EdgeInsets.all(12.w),
-              child: Row(
-                children: [
-                  Icon(icon, color: Colors.white70, size: 22.sp),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AutoSizeText(r.title,
-                            style: ThemeConstants.bodyStyle, maxLines: 1),
-                        SizedBox(height: 4.h),
-                        AutoSizeText(r.description,
-                            style: ThemeConstants.captionStyle,
-                            maxLines: 2,
-                            minFontSize: 10),
-                        SizedBox(height: 4.h),
-                        AutoSizeText(statusText,
-                            style: ThemeConstants.captionStyle,
-                            maxLines: 1,
-                            minFontSize: 10),
+      child: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.white70))
+          : RefreshIndicator(
+              onRefresh: _load,
+              backgroundColor: Colors.white,
+              color: ThemeConstants.primaryBlue,
+              child: reminders.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: <Widget>[
+                        SizedBox(height: 80.h),
+                        InvEmptyState(
+                          icon: Icons.notifications_none_rounded,
+                          message: loc.translate('no_reminders'),
+                        ),
                       ],
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: EdgeInsets.all(12.w),
+                      itemCount: reminders.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                      itemBuilder: (BuildContext context, int index) =>
+                          _ReminderCard(
+                        reminder: reminders[index],
+                        onMarkDone: () => _markDone(reminders[index].id),
+                        onSnooze: () => _snooze(reminders[index].id),
+                      ),
+                    ),
+            ),
+    );
+  }
+
+  Future<void> _markDone(int id) async {
+    final LocalizationService loc = LocalizationService.instance;
+    await context.read<InventoryProvider>().markReminderDone(id);
+    if (mounted) {
+      ThemeConstants.showSuccessSnackBar(context, loc.translate('done'));
+    }
+  }
+
+  Future<void> _snooze(int id) async {
+    final LocalizationService loc = LocalizationService.instance;
+    await context
+        .read<InventoryProvider>()
+        .snoozeReminder(id, minutes: 60 * 24);
+    if (mounted) {
+      ThemeConstants.showSuccessSnackBar(
+          context, loc.translate('snoozed_a_day'));
+    }
+  }
+}
+
+class _ReminderCard extends StatelessWidget {
+  const _ReminderCard({
+    required this.reminder,
+    required this.onMarkDone,
+    required this.onSnooze,
+  });
+
+  final InvReminder reminder;
+  final VoidCallback onMarkDone;
+  final VoidCallback onSnooze;
+
+  @override
+  Widget build(BuildContext context) {
+    final LocalizationService loc = LocalizationService.instance;
+    final bool isLowStock = reminder.type == 'low_stock';
+    final bool isDone = reminder.status == InvReminderStatus.done;
+
+    final (Color color, String statusLabel) = switch (reminder.status) {
+      InvReminderStatus.done => (
+          ThemeConstants.successGreen,
+          loc.translate('done')
+        ),
+      InvReminderStatus.snoozed => (
+          ThemeConstants.warningAmber,
+          loc.translate('snoozed')
+        ),
+      InvReminderStatus.open => (
+          ThemeConstants.primaryCyan,
+          loc.translate('open')
+        ),
+    };
+
+    return Container(
+      decoration: ThemeConstants.glassCardDecoration,
+      padding: EdgeInsets.all(12.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: 34.w,
+                height: 34.w,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  isLowStock
+                      ? Icons.inventory_2_outlined
+                      : Icons.payments_outlined,
+                  color: color,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AutoSizeText(
+                      reminder.title,
+                      maxLines: 1,
+                      minFontSize: 11,
+                      overflow: TextOverflow.ellipsis,
+                      style: ThemeConstants.bodyStyle
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    if (reminder.description.isNotEmpty) ...<Widget>[
+                      SizedBox(height: 2.h),
+                      AutoSizeText(
+                        reminder.description,
+                        maxLines: 2,
+                        minFontSize: 9,
+                        overflow: TextOverflow.ellipsis,
+                        style: ThemeConstants.captionStyle,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+              InvBadge(label: statusLabel, color: color),
+            ],
+          ),
+          if (!isDone) ...<Widget>[
+            SizedBox(height: 10.h),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    onPressed: onSnooze,
+                    child: AutoSizeText(
+                      loc.translate('snooze_a_day'),
+                      maxLines: 1,
+                      minFontSize: 9,
+                      style: ThemeConstants.captionStyle,
                     ),
                   ),
-                  TextButton(
-                    onPressed: r.status == InvReminderStatus.done
-                        ? null
-                        : () async {
-                            await inv.markReminderDone(r.id);
-                            if (!context.mounted) return;
-                            ThemeConstants.showSuccessSnackBar(
-                                context, loc.translate('success'));
-                          },
-                    child: Text(loc.translate('mark_done')),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeConstants.successGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    onPressed: onMarkDone,
+                    child: AutoSizeText(
+                      loc.translate('mark_done'),
+                      maxLines: 1,
+                      minFontSize: 9,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      await inv.snoozeReminder(r.id, minutes: 60 * 24);
-                      if (!context.mounted) return;
-                      ThemeConstants.showSuccessSnackBar(
-                          context, loc.translate('success'));
-                    },
-                    child: Text(loc.translate('snooze')),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

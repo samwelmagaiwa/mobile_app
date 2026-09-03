@@ -1,17 +1,31 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../services/localization_service.dart';
+import '../../utils/type_helpers.dart';
+import 'receipt_view_screen.dart';
 
 class RentalReceiptsScreen extends StatefulWidget {
-  const RentalReceiptsScreen({super.key});
+  final bool isSubView;
+
+  const RentalReceiptsScreen({super.key, this.isSubView = false});
 
   @override
   State<RentalReceiptsScreen> createState() => _RentalReceiptsScreenState();
 }
 
 class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+  String _selectedPaymentMethod = "All";
+
   @override
   void initState() {
     super.initState();
@@ -21,66 +35,152 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _formatCurrency(double value) {
+    final formatter = NumberFormat("#,###");
+    return formatter.format(value);
+  }
+
+  String _formatCompact(double value) {
+    if (value >= 1000000) {
+      return "${(value / 1000000).toStringAsFixed(1)}M";
+    } else if (value >= 1000) {
+      return "${(value / 1000).toStringAsFixed(0)}K";
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final rentalProvider = context.watch<RentalProvider>();
     final receipts = rentalProvider.receipts;
+    final loc = LocalizationService.instance;
+
+    // Filter receipts based on search query and payment method
+    final filteredReceipts = receipts.where((receipt) {
+      final payment = receipt['payment'] ?? {};
+      final tenant = payment['tenant'] ?? {};
+      final details = receipt['details'] ?? {};
+      
+      final receiptNumber = (details['receipt_number'] ?? receipt['receipt_number'] ?? '').toString().toLowerCase();
+      final tenantName = (tenant['name'] ?? 'Mteja').toString().toLowerCase();
+      final propertyName = (details['property_name'] ?? '').toString().toLowerCase();
+      final houseNumber = (details['house_number'] ?? '').toString().toLowerCase();
+      final paymentMethod = (details['payment_method'] ?? 'Cash').toString().toLowerCase();
+
+      final matchesQuery = receiptNumber.contains(_searchQuery) ||
+          tenantName.contains(_searchQuery) ||
+          propertyName.contains(_searchQuery) ||
+          houseNumber.contains(_searchQuery);
+
+      final matchesMethod = _selectedPaymentMethod == "All" ||
+          paymentMethod == _selectedPaymentMethod.toLowerCase();
+
+      return matchesQuery && matchesMethod;
+    }).toList();
+
+    int totalReceipts = filteredReceipts.length;
+    double totalCollected = filteredReceipts.fold(0.0, (sum, item) {
+      final payment = item['payment'] ?? {};
+      final details = item['details'] ?? {};
+      return sum + TypeHelpers.toDouble(details['amount_paid'] ?? payment['amount_paid']);
+    });
+
+    Widget content = Column(
+      children: [
+        _buildStatsDashboard(totalReceipts, totalCollected, loc),
+        _buildSearchAndFilters(loc),
+        Expanded(
+          child: rentalProvider.isLoading && receipts.isEmpty
+              ? ThemeConstants.buildResponsiveLoadingWidget(context)
+              : filteredReceipts.isEmpty
+                  ? _buildEmptyState(loc)
+                  : _buildReceiptsList(filteredReceipts, loc),
+        ),
+      ],
+    );
+
+    if (widget.isSubView) {
+      return content;
+    }
 
     return ThemeConstants.buildResponsiveScaffold(
       context,
-      title: "Risiti",
-      body: rentalProvider.isLoading && receipts.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : receipts.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.receipt_long, size: 64, color: Colors.white38),
-                      SizedBox(height: 16.h),
-                      Text("Hakuna risiti",
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 16.sp)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: EdgeInsets.all(16.w),
-                  itemCount: receipts.length,
-                  itemBuilder: (context, index) {
-                    final receipt = receipts[index];
-                    return _buildReceiptCard(context, receipt);
-                  },
-                ),
+      title: loc.translate("digital_receipt"),
+      body: content,
     );
   }
 
-  Widget _buildReceiptCard(BuildContext context, Map<String, dynamic> receipt) {
-    final payment = receipt['payment'] ?? {};
-    final tenant = payment['tenant'] ?? {};
-    final details = receipt['details'] ?? {};
-    final amount =
-        (details['amount_paid'] ?? payment['amount_paid'] ?? 0).toDouble();
+  Widget _buildStatsDashboard(int count, double total, LocalizationService loc) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatCard(
+              title: "Jumla ya Risiti",
+              value: count.toString(),
+              icon: Icons.receipt_long,
+              gradient: const LinearGradient(
+                colors: [ThemeConstants.primaryOrange, Color(0xFFFB923C)],
+              ),
+            ),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: _buildStatCard(
+              title: "Kiasi Kilicholipwa",
+              value: "TZS ${_formatCompact(total)}",
+              icon: Icons.account_balance_wallet,
+              gradient: const LinearGradient(
+                colors: [ThemeConstants.successGreen, Color(0xFF34D399)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Gradient gradient,
+  }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: ThemeConstants.glassCardDecoration,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showReceiptDetails(context, receipt),
-          borderRadius: BorderRadius.circular(20.r),
-          child: Padding(
+      decoration: ThemeConstants.responsiveGlassCardDecoration(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
             padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              borderRadius: BorderRadius.circular(20.r),
+            ),
             child: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(12.w),
+                  padding: EdgeInsets.all(10.w),
                   decoration: BoxDecoration(
-                    color: ThemeConstants.primaryOrange.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12.r),
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gradient.colors.first.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      )
+                    ],
                   ),
-                  child: Icon(Icons.receipt,
-                      color: ThemeConstants.primaryOrange, size: 24.sp),
+                  child: Icon(icon, color: Colors.white, size: 22.sp),
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
@@ -88,33 +188,25 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        details['receipt_number'] ??
-                            receipt['receipt_number'] ??
-                            '',
+                        title,
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600),
+                          color: Colors.white60,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
+                      SizedBox(height: 4.h),
                       Text(
-                        tenant['name'] ?? 'Mteja',
-                        style:
-                            TextStyle(color: Colors.white54, fontSize: 12.sp),
-                      ),
-                      Text(
-                        receipt['created_at'] ?? '',
-                        style:
-                            TextStyle(color: Colors.white38, fontSize: 12.sp),
+                        value,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                Text(
-                  "TSh ${_formatCurrency(amount)}",
-                  style: TextStyle(
-                      color: ThemeConstants.primaryOrange,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -124,60 +216,152 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
     );
   }
 
-  void _showReceiptDetails(BuildContext context, Map<String, dynamic> receipt) {
-    final details = receipt['details'] ?? {};
-    final payment = receipt['payment'] ?? {};
-    final tenant = payment['tenant'] ?? {};
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: ThemeConstants.primaryBlue,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("RISITI",
-                    style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
-                Text(
-                    details['receipt_number'] ??
-                        receipt['receipt_number'] ??
-                        '',
-                    style: TextStyle(
-                        color: ThemeConstants.primaryOrange,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
-            SizedBox(height: 20.h),
-            _buildDetailRow("Mteja", tenant['name'] ?? '-'),
-            _buildDetailRow("Nyumba", details['house_number'] ?? '-'),
-            _buildDetailRow("Mali", details['property_name'] ?? '-'),
-            _buildDetailRow("Muda", details['period'] ?? '-'),
-            const Divider(color: Colors.white12),
-            _buildDetailRow("Kiasi Alicholipa",
-                "TSh ${_formatCurrency((details['amount_paid'] ?? 0).toDouble())}"),
-            _buildDetailRow("Baki",
-                "TSh ${_formatCurrency((details['balance_remaining'] ?? 0).toDouble())}"),
-            _buildDetailRow("Njia ya Malipo", details['payment_method'] ?? '-'),
-            _buildDetailRow("Mkusanyaji", details['collector_name'] ?? '-'),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.share),
-                label: const Text("Shiriki"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeConstants.primaryOrange,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
+  Widget _buildSearchAndFilters(LocalizationService loc) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      child: Column(
+        children: [
+          // Search Bar
+          Container(
+            decoration: ThemeConstants.responsiveGlassCardDecoration(context),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16.r),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val.trim().toLowerCase();
+                    });
+                  },
+                  style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                  decoration: InputDecoration(
+                    hintText: "Tafuta kwa mteja, nyumba, risiti...",
+                    hintStyle: TextStyle(color: Colors.white38, fontSize: 13.sp),
+                    prefixIcon: Icon(Icons.search, color: ThemeConstants.primaryOrange, size: 20.sp),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = "";
+                              });
+                            },
+                            child: Icon(Icons.clear, color: Colors.white60, size: 18.sp),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.01),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: const BorderSide(color: ThemeConstants.footerBarColor, width: 1.2),
+                    ),
+                  ),
                 ),
               ),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          // Filter Chips
+          SizedBox(
+            height: 34.h,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildFilterChip("All"),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Cash"),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Bank"),
+                SizedBox(width: 8.w),
+                _buildFilterChip("M-Pesa"),
+                SizedBox(width: 8.w),
+                _buildFilterChip("Airtel Money"),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label) {
+    final isSelected = _selectedPaymentMethod == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = label;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? ThemeConstants.primaryOrange.withOpacity(0.85)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isSelected
+                ? ThemeConstants.primaryOrange
+                : Colors.white.withOpacity(0.1),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: ThemeConstants.primaryOrange.withOpacity(0.3),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 12.sp,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(LocalizationService loc) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(24.r),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.02),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Icon(Icons.receipt_long_outlined, size: 70.sp, color: Colors.white30),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              "Hakuna Risiti Zilizopatikana",
+              style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              "Bado hakuna malipo yaliyorekodiwa yenye risiti hapa.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 13.sp),
             ),
           ],
         ),
@@ -185,25 +369,202 @@ class _RentalReceiptsScreenState extends State<RentalReceiptsScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Colors.white54, fontSize: 14.sp)),
-          Text(value, style: TextStyle(color: Colors.white, fontSize: 14.sp)),
-        ],
-      ),
+  Widget _buildReceiptsList(List<dynamic> list, LocalizationService loc) {
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, widget.isSubView ? 100.h : 20.h),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final receipt = list[index];
+        return _buildReceiptCard(receipt, loc);
+      },
     );
   }
 
-  String _formatCurrency(double value) {
-    if (value >= 1000000) {
-      return "${(value / 1000000).toStringAsFixed(1)}M";
-    } else if (value >= 1000) {
-      return "${(value / 1000).toStringAsFixed(0)}K";
+  Widget _buildReceiptCard(Map<String, dynamic> receipt, LocalizationService loc) {
+    final payment = receipt['payment'] ?? {};
+    final tenant = payment['tenant'] ?? {};
+    final details = receipt['details'] ?? {};
+    final amount = TypeHelpers.toDouble(details['amount_paid'] ?? payment['amount_paid']);
+    final paymentMethod = (details['payment_method'] ?? 'Cash').toString();
+    final receiptNumber = (details['receipt_number'] ?? receipt['receipt_number'] ?? 'RCP-xxx').toString();
+    final tenantName = (tenant['name'] ?? 'Mteja').toString();
+    final property = (details['property_name'] ?? 'Mali').toString();
+    final house = (details['house_number'] ?? '').toString();
+
+    String dateStr = receipt['created_at'] ?? payment['payment_date'] ?? '';
+    String formattedDate = 'Leo';
+    if (dateStr.isNotEmpty) {
+      try {
+        formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(dateStr));
+      } catch (_) {
+        formattedDate = dateStr;
+      }
     }
-    return value.toStringAsFixed(0);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: Colors.white.withOpacity(0.15)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              // Construct synthetic compatible payment map for ReceiptViewScreen
+              final syntheticPayment = {
+                'id': receipt['id']?.toString() ?? details['id']?.toString() ?? payment['id']?.toString() ?? 'N/A',
+                'created_at': receipt['created_at'] ?? payment['payment_date'] ?? '',
+                'amount_paid': details['amount_paid'] ?? payment['amount_paid'] ?? payment['amount'] ?? '0',
+                'payment_method': details['payment_method'] ?? payment['payment_method'] ?? 'Cash',
+                'tenant': {
+                  'name': tenantName,
+                },
+                'bill': {
+                  'balance': details['balance_remaining'] ?? payment['balance_remaining'] ?? '0',
+                  'due_date': payment['bill']?['due_date'] ?? details['due_date'] ?? '',
+                  'house': {
+                    'house_number': house,
+                    'property': {
+                      'name': property,
+                    }
+                  },
+                  'agreement': {
+                    'rent_amount': payment['bill']?['agreement']?['rent_amount'] ?? '1',
+                  }
+                },
+                'receipt': {
+                  'id': receipt['id']?.toString() ?? details['id']?.toString() ?? '',
+                  'receipt_number': receiptNumber,
+                }
+              };
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReceiptViewScreen(payment: syntheticPayment),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(16.r),
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Row(
+                children: [
+                  // Receipt Icon container with standard orange style
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: ThemeConstants.primaryOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(
+                      Icons.receipt_long,
+                      color: ThemeConstants.primaryOrange,
+                      size: 24.sp,
+                    ),
+                  ),
+                  SizedBox(width: 14.w),
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                receiptNumber,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: ThemeConstants.primaryOrange.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Text(
+                                paymentMethod,
+                                style: TextStyle(
+                                  color: ThemeConstants.primaryOrange,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          tenantName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          "$property ${house.isNotEmpty ? '- Nyumba $house' : ''}",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11.sp,
+                          ),
+                        ),
+                        SizedBox(height: 6.h),
+                        Text(
+                          formattedDate,
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 10.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  // Amount with standard success green color
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "TZS",
+                        style: TextStyle(
+                          color: ThemeConstants.successGreen,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        _formatCurrency(amount),
+                        style: TextStyle(
+                          color: ThemeConstants.successGreen,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -94,8 +94,8 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inv = widget.providerOverride ??
-        Provider.of<InventoryProvider>(context);
+    final inv =
+        widget.providerOverride ?? Provider.of<InventoryProvider>(context);
     final cats = inv.categories;
 
     return Scaffold(
@@ -123,21 +123,34 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                     // Name
                     TextFormField(
                       controller: _nameCtrl,
+                      style: ThemeConstants.bodyStyle,
                       decoration:
-                          ThemeConstants.invInputDecoration('Category Name'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          ThemeConstants.invInputDecoration('Category Name')
+                              .copyWith(
+                        labelText: 'Category Name',
+                        hintText: 'e.g. Soft Drinks & Sodas',
+                      ),
+                      validator: (v) {
+                        final val = v?.trim() ?? '';
+                        if (val.isEmpty) return 'Category name is required';
+                        if (val.length < 2)
+                          return 'Category name must be at least 2 characters';
+                        return null;
+                      },
                     ),
-                    SizedBox(height: 12.h),
-
-                    // Category code removed – generated automatically
                     SizedBox(height: 12.h),
 
                     // Description
                     TextFormField(
                       controller: _descCtrl,
+                      style: ThemeConstants.bodyStyle,
                       decoration:
-                          ThemeConstants.invInputDecoration('Description'),
+                          ThemeConstants.invInputDecoration('Description')
+                              .copyWith(
+                        labelText: 'Description (optional)',
+                        hintText:
+                            'e.g. Carbonated beverages sold in crates or bottles',
+                      ),
                       maxLines: 3,
                     ),
                     SizedBox(height: 12.h),

@@ -1,13 +1,12 @@
+import "dart:ui";
 import "package:flutter/material.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
 
-import "../../constants/styles.dart";
 import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/localization_service.dart";
-import "../../utils/responsive_utils.dart";
-import "../../widgets/custom_button.dart";
+import "../../widgets/backgrounds/starfield_background.dart";
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,6 +25,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fillDemoCredentials();
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -36,16 +43,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      final AuthProvider authProvider =
-          Provider.of<AuthProvider>(context, listen: false);
-
+      final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
       final bool success = await authProvider.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -59,22 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (success) {
-        // Show success message
         if (mounted) {
-          _showSnackBar(
-              LocalizationService.instance.translate('login_successful'),
-              Colors.green);
+          _showSnackBar(LocalizationService.instance.translate('login_successful'), Colors.green);
+          Navigator.of(context).pop();
         }
-        // Navigation will be handled by AuthWrapper poping current login screen
-        if (mounted) Navigator.of(context).pop();
       } else {
-        // Show error message
         if (mounted) {
-          _showSnackBar(
-            authProvider.errorMessage ??
-                LocalizationService.instance.translate('login_failed'),
-            Colors.red,
-          );
+          _showSnackBar(authProvider.errorMessage ?? LocalizationService.instance.translate('login_failed'), Colors.red);
         }
       }
     } on Exception catch (e) {
@@ -82,18 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _isLoading = false;
         });
-      }
-
-      if (mounted) {
-        _showSnackBar(
-          "${LocalizationService.instance.translate('login_error')}${e.toString().replaceAll("Exception: ", "")}",
-          Colors.red,
-        );
+        _showSnackBar("${LocalizationService.instance.translate('login_error')}${e.toString().replaceAll("Exception: ", "")}", Colors.red);
       }
     }
   }
 
-  // Show snackbar message
   void _showSnackBar(final String message, final Color backgroundColor) {
     if (mounted) {
       if (backgroundColor == Colors.green) {
@@ -104,50 +91,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Auto-fill demo credentials
   void _fillDemoCredentials() {
     _emailController.text = "admin@gmail.com";
     _phoneController.text = "+255743519104";
     _passwordController.text = "12345678";
-
-    _showSnackBar(
-        LocalizationService.instance.translate('demo_credentials_filled'),
-        Colors.blue);
   }
 
-  // Fill actual database credentials
-  void _fillDatabaseCredentials() {
-    _emailController.text = "admin@";
-    _phoneController.text = "+255743519104";
-    _passwordController.text = "12345678";
-
-    _showSnackBar(
-        LocalizationService.instance.translate('database_credentials_filled'),
-        Colors.orange);
-  }
-
-  // Forgot password functionality
   void _handleForgotPassword() {
     showDialog(
       context: context,
       builder: (final BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Umesahau Nywila?"),
-        content: const SelectableText(
-          "Kipengele cha kurudisha nywila kinatengenezwa. Kwa sasa, tumia taarifa za demo au wasiliana na msimamizi.",
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Sawa"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _fillDatabaseCredentials();
-            },
-            child: const Text("Tumia Database"),
-          ),
+        backgroundColor: const Color(0xFF001D3D),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text("Umesahau Nywila?", style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold)),
+        content: Text("Kipengele hiki kinatengenezwa. Kwa sasa tumia taarifa za demo.", style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Sawa", style: TextStyle(color: const Color(0xFF00E5FF)))),
         ],
       ),
     );
@@ -155,454 +114,263 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    final bool isLandscape = ResponsiveUtils.isLandscape(context);
+    final Color cyberCyan = const Color(0xFF00E5FF);
 
-    return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) => Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) =>
-                SingleChildScrollView(
-              padding: ResponsiveUtils.getResponsivePadding(context),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                  maxWidth: ResponsiveUtils.getResponsiveMaxWidth(context),
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      SizedBox(height: isLandscape ? 20.h : 60.h),
-
-                      // Logo and Title
-                      Container(
-                        alignment: Alignment.center,
-                        child: Column(
-                          children: <Widget>[
-                            Container(
-                              width: ResponsiveUtils.getResponsiveIconSize(
-                                context,
-                                100,
-                              ),
-                              height: ResponsiveUtils.getResponsiveIconSize(
-                                context,
-                                100,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E40AF),
-                                borderRadius: BorderRadius.circular(
-                                  ResponsiveUtils.getResponsiveIconSize(
-                                    context,
-                                    50,
-                                  ),
-                                ),
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: const Color(0xFF1E40AF)
-                                        .withOpacity(0.3),
-                                    blurRadius:
-                                        ResponsiveUtils.getResponsiveSpacing(
-                                      context,
-                                      20,
-                                    ),
-                                    offset: Offset(0, 10.h),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.motorcycle,
-                                color: Colors.white,
-                                size: ResponsiveUtils.getResponsiveIconSize(
-                                  context,
-                                  50,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              height: ResponsiveUtils.getResponsiveSpacing(
-                                context,
-                                24,
-                              ),
-                            ),
-                            Text(
-                              localizationService.translate('app_name'),
-                              style: AppStyles.heading1Responsive(context)
-                                  .copyWith(
-                                color: const Color(0xFF1F2937),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(
-                              height: ResponsiveUtils.getResponsiveSpacing(
-                                context,
-                                8,
-                              ),
-                            ),
-                            Text(
-                              localizationService.translate('app_description'),
-                              style: AppStyles.bodyLargeResponsive(context)
-                                  .copyWith(
-                                color: Colors.black54,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: isLandscape ? 30.h : 60.h),
-
-                      // Login Form
-                      Container(
-                        constraints: BoxConstraints(
-                          maxWidth:
-                              ResponsiveUtils.getResponsiveDialogWidth(context),
-                        ),
-                        padding:
-                            ResponsiveUtils.getResponsiveCardPadding(context),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(
-                            ResponsiveUtils.getResponsiveBorderRadius(
-                              context,
-                              16,
-                            ),
-                          ),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: ResponsiveUtils.getResponsiveSpacing(
-                                context,
-                                20,
-                              ),
-                              offset: Offset(0, 10.h),
-                            ),
-                          ],
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              Text(
-                                localizationService.translate('signin'),
-                                style: AppStyles.heading2Responsive(context)
-                                    .copyWith(
-                                  color: const Color(0xFF1F2937),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  32,
-                                ),
-                              ),
-
-                              // Email Field
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                style: AppStyles.bodyMediumResponsive(context),
-                                decoration:
-                                    AppStyles.inputDecoration(context).copyWith(
-                                  labelText:
-                                      localizationService.translate('email'),
-                                  hintText:
-                                      "${localizationService.translate('email')} (admin@gmail.com)",
-                                  prefixIcon: Icon(
-                                    Icons.email_outlined,
-                                    size: ResponsiveUtils.getResponsiveIconSize(
-                                      context,
-                                      20,
-                                    ),
-                                  ),
-                                ),
-                                validator: (final String? value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return "Tafadhali ingiza barua pepe";
-                                  }
-                                  // Allow incomplete email for database compatibility
-                                  if (value.trim() != "admin@" &&
-                                      !RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$")
-                                          .hasMatch(value.trim())) {
-                                    return "Ingiza barua pepe sahihi";
-                                  }
-                                  return null;
-                                },
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  16,
-                                ),
-                              ),
-
-                              // Phone Field
-                              TextFormField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                style: AppStyles.bodyMediumResponsive(context),
-                                decoration:
-                                    AppStyles.inputDecoration(context).copyWith(
-                                  labelText: localizationService
-                                      .translate('phone_number'),
-                                  hintText:
-                                      "${localizationService.translate('phone_number')} (+255743519104)",
-                                  prefixIcon: Icon(
-                                    Icons.phone_outlined,
-                                    size: ResponsiveUtils.getResponsiveIconSize(
-                                      context,
-                                      20,
-                                    ),
-                                  ),
-                                ),
-                                validator: (final String? value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return "Tafadhali ingiza namba ya simu";
-                                  }
-                                  if (!RegExp(r"^\+?[0-9]{10,15}$")
-                                      .hasMatch(value.replaceAll(" ", ""))) {
-                                    return "Ingiza namba ya simu sahihi";
-                                  }
-                                  return null;
-                                },
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  16,
-                                ),
-                              ),
-
-                              // Password Field
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                style: AppStyles.bodyMediumResponsive(context),
-                                decoration:
-                                    AppStyles.inputDecoration(context).copyWith(
-                                  labelText:
-                                      localizationService.translate('password'),
-                                  hintText:
-                                      localizationService.translate('password'),
-                                  prefixIcon: Icon(
-                                    Icons.lock_outlined,
-                                    size: ResponsiveUtils.getResponsiveIconSize(
-                                      context,
-                                      20,
-                                    ),
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      size:
-                                          ResponsiveUtils.getResponsiveIconSize(
-                                        context,
-                                        20,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                validator: (final String? value) {
-                                  if (value == null || value.isEmpty) {
-                                    return "Tafadhali ingiza nywila";
-                                  }
-                                  if (value.length < 8) {
-                                    return "Nywila lazima iwe na angalau herufi 8";
-                                  }
-                                  return null;
-                                },
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  32,
-                                ),
-                              ),
-
-                              // Login Button
-                              CustomButton(
-                                text: localizationService.translate('signin'),
-                                onPressed: _isLoading ? null : _handleLogin,
-                                isLoading: _isLoading,
-                                backgroundColor: const Color(0xFF1E40AF),
-                                height:
-                                    ResponsiveUtils.getResponsiveButtonHeight(
-                                  context,
-                                ),
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  16,
-                                ),
-                              ),
-
-                              // Forgot Password Link
-                              TextButton(
-                                onPressed: _handleForgotPassword,
-                                child: Text(
-                                  "Umesahau nywila?",
-                                  style: AppStyles.bodyMediumResponsive(context)
-                                      .copyWith(
-                                    color: const Color(0xFF1E40AF),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-
-                              SizedBox(
-                                height: ResponsiveUtils.getResponsiveSpacing(
-                                  context,
-                                  16,
-                                ),
-                              ),
-
-                              // Credentials Section
-                              Container(
-                                padding:
-                                    ResponsiveUtils.getResponsiveCardPadding(
-                                  context,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF3F4F6),
-                                  borderRadius: BorderRadius.circular(
-                                    ResponsiveUtils.getResponsiveBorderRadius(
-                                      context,
-                                      12,
-                                    ),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      "Taarifa za Kuingia:",
-                                      style: AppStyles.bodyMediumResponsive(
-                                              context)
-                                          .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1F2937),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height:
-                                          ResponsiveUtils.getResponsiveSpacing(
-                                        context,
-                                        8,
-                                      ),
-                                    ),
-                                    SelectableText(
-                                      "Database: admin@gmail.com / +255743519104",
-                                      style:
-                                          AppStyles.bodySmallResponsive(context)
-                                              .copyWith(
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                    SelectableText(
-                                      "Demo: admin@gmail.com / +255743519104",
-                                      style:
-                                          AppStyles.bodySmallResponsive(context)
-                                              .copyWith(
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                    SelectableText(
-                                      "Nywila: 12345678",
-                                      style: AppStyles.bodyMediumResponsive(
-                                              context)
-                                          .copyWith(
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height:
-                                          ResponsiveUtils.getResponsiveSpacing(
-                                        context,
-                                        8,
-                                      ),
-                                    ),
-                                    Row(
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: TextButton(
-                                            onPressed: _fillDatabaseCredentials,
-                                            child: Text(
-                                              "Database",
-                                              style:
-                                                  AppStyles.bodySmallResponsive(
-                                                context,
-                                              ).copyWith(
-                                                color: const Color(0xFFF97316),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: TextButton(
-                                            onPressed: _fillDemoCredentials,
-                                            child: Text(
-                                              "Demo",
-                                              style:
-                                                  AppStyles.bodySmallResponsive(
-                                                context,
-                                              ).copyWith(
-                                                color: const Color(0xFF1E40AF),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(
-                        height:
-                            ResponsiveUtils.getResponsiveSpacing(context, 32),
-                      ),
-
-                      // Footer
-                      Text(
-                        "Imetengenezwa kwa ajili ya biashara za boda boda",
-                        style: AppStyles.bodyMediumResponsive(context).copyWith(
-                          color: Colors.black45,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+    return StarfieldBackground(
+      child: Consumer<LocalizationService>(
+        builder: (context, localizationService, child) => Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              // Nebula Glow
+              Positioned(
+                top: -100.h,
+                right: -50.w,
+                child: Container(
+                  width: 400.w,
+                  height: 400.h,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        cyberCyan.withValues(alpha: 0.12),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+
+              SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: AnimatedOpacity(
+                            opacity: _isLoading ? 0.3 : 1.0,
+                            duration: const Duration(milliseconds: 500),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24.w),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 50.h),
+                                  
+                                  // Hero Logo Section
+                                  TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    duration: const Duration(seconds: 2),
+                                    builder: (context, val, child) {
+                                      return Transform.scale(
+                                        scale: 0.9 + (0.1 * val),
+                                        child: Container(
+                                          padding: EdgeInsets.all(4.w),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: cyberCyan.withValues(alpha: 0.5 * val), width: 2),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: cyberCyan.withValues(alpha: 0.2 * val),
+                                                blurRadius: 30 * val,
+                                                spreadRadius: 5 * val,
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(70.r),
+                                            child: Image.asset(
+                                              'assets/images/app_icon.png',
+                                              width: 110.w,
+                                              height: 110.w,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  
+                                  SizedBox(height: 16.h),
+                                  
+                                  Text(
+                                    localizationService.translate('app_name').toUpperCase(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28.sp,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 4.w,
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: 60.h),
+                                  
+                                  // Glass Card Form
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(24.r),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                      child: Container(
+                                        padding: EdgeInsets.all(24.w),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.05),
+                                          borderRadius: BorderRadius.circular(24.r),
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                                        ),
+                                        child: Form(
+                                          key: _formKey,
+                                          child: Column(
+                                            children: [
+                                              _buildModernField(
+                                                controller: _emailController,
+                                                label: localizationService.translate('email'),
+                                                icon: Icons.email_outlined,
+                                                cyberCyan: cyberCyan,
+                                              ),
+                                              SizedBox(height: 20.h),
+                                              _buildModernField(
+                                                controller: _phoneController,
+                                                label: localizationService.translate('phone_number'),
+                                                icon: Icons.phone_android_outlined,
+                                                cyberCyan: cyberCyan,
+                                              ),
+                                              SizedBox(height: 20.h),
+                                              _buildModernField(
+                                                controller: _passwordController,
+                                                label: localizationService.translate('password'),
+                                                icon: Icons.lock_outline,
+                                                obscureText: _obscurePassword,
+                                                cyberCyan: cyberCyan,
+                                                suffix: IconButton(
+                                                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off, color: Colors.white38, size: 20.sp),
+                                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                                ),
+                                              ),
+                                              SizedBox(height: 32.h),
+                                              
+                                              // Login Button
+                                              GestureDetector(
+                                                onTap: _handleLogin,
+                                                child: Container(
+                                                  height: 56.h,
+                                                  width: double.infinity,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(16.r),
+                                                    gradient: LinearGradient(
+                                                      colors: [cyberCyan, const Color(0xFF00B8D4)],
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: cyberCyan.withValues(alpha: 0.3),
+                                                        blurRadius: 15,
+                                                        offset: const Offset(0, 5),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      localizationService.translate('signin').toUpperCase(),
+                                                      style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontSize: 16.sp,
+                                                        fontWeight: FontWeight.w900,
+                                                        letterSpacing: 2.w,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              
+                                              SizedBox(height: 16.h),
+                                              
+                                              TextButton(
+                                                onPressed: _handleForgotPassword,
+                                                child: Text(
+                                                  localizationService.translate('forgot_password'),
+                                                  style: TextStyle(color: Colors.white38, fontSize: 13.sp),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  SizedBox(height: 20.h),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Loading Overlay
+              if (_isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    child: Center(
+                      child: ThemeConstants.buildResponsiveLoadingWidget(
+                        context,
+                        message: localizationService.translate('signing_in'),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModernField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+    Widget? suffix,
+    required Color cyberCyan,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(color: Colors.white54, fontSize: 11.sp, fontWeight: FontWeight.bold, letterSpacing: 1),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            style: const TextStyle(color: Colors.white, decoration: TextDecoration.none),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.transparent,
+              prefixIcon: Icon(icon, color: cyberCyan.withValues(alpha: 0.6), size: 20.sp),
+              suffixIcon: suffix,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -384,54 +384,63 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen>
           ),
 
         // Config details grid
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
-          ),
-          child: Column(
-            children: [
-              _DetailGridRow(
-                item1Label: _loc.translate('billing_cycle'),
-                item1Value: _formatType(property['billing_cycle'] ?? '-'),
-                item1Icon: Icons.calendar_month_outlined,
-                item2Label: _loc.translate('currency'),
-                item2Value: property['default_currency'] ?? property['currency'] ?? 'TZS',
-                item2Icon: Icons.monetization_on_outlined,
-                showBorder: true,
+        Builder(
+          builder: (context) {
+            final houses = property['houses'] as List? ?? [];
+            final Map<String, dynamic> configSource = (property['billing_cycle'] != null && property['billing_cycle'].toString().isNotEmpty)
+                ? property
+                : (houses.isNotEmpty ? houses.first : property);
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
               ),
-              if (property['default_rent_amount'] != null)
-                _DetailTableRow(
-                  label: _loc.translate('base_rent'),
-                  value: 'Tsh ${_formatNumber(property['default_rent_amount'])}',
-                  icon: Icons.home_work_outlined,
-                  showBorder: property['utility_billing_enabled'] != null ||
-                      (property['ownership_notes'] ?? '').toString().isNotEmpty,
-                ),
-              if (property['utility_billing_enabled'] != null)
-                _DetailTableRow(
-                  label: _loc.translate('utility_billing'),
-                  value: (property['utility_billing_enabled'] == true ||
-                          property['utility_billing_enabled'] == 1)
-                      ? _loc.translate('enabled')
-                      : _loc.translate('disabled'),
-                  icon: Icons.electrical_services_outlined,
-                  showBorder: (property['ownership_notes'] ?? '').toString().isNotEmpty,
-                  valueColor: (property['utility_billing_enabled'] == true ||
-                          property['utility_billing_enabled'] == 1)
-                      ? _kGreen
-                      : Colors.white38,
-                ),
-              if ((property['ownership_notes'] ?? '').toString().isNotEmpty)
-                _DetailTableRow(
-                  label: _loc.translate('ownership_details'),
-                  value: property['ownership_notes'].toString(),
-                  icon: Icons.note_alt_outlined,
-                  showBorder: false,
-                ),
-            ],
-          ),
+              child: Column(
+                children: [
+                  _DetailGridRow(
+                    item1Label: _loc.translate('billing_cycle'),
+                    item1Value: _formatType(configSource['billing_cycle'] ?? '-'),
+                    item1Icon: Icons.calendar_month_outlined,
+                    item2Label: _loc.translate('currency'),
+                    item2Value: configSource['currency'] ?? configSource['default_currency'] ?? 'TZS',
+                    item2Icon: Icons.monetization_on_outlined,
+                    showBorder: true,
+                  ),
+                  if (configSource['rent_amount'] != null || property['default_rent_amount'] != null)
+                    _DetailTableRow(
+                      label: _loc.translate('base_rent'),
+                      value: 'Tsh ${_formatNumber(configSource['rent_amount'] ?? property['default_rent_amount'])}',
+                      icon: Icons.home_work_outlined,
+                      showBorder: configSource['utility_billing_enabled'] != null ||
+                          (configSource['ownership_notes'] ?? '').toString().isNotEmpty,
+                    ),
+                  if (configSource['utility_billing_enabled'] != null)
+                    _DetailTableRow(
+                      label: _loc.translate('utility_billing'),
+                      value: (configSource['utility_billing_enabled'] == true ||
+                              configSource['utility_billing_enabled'] == 1)
+                          ? _loc.translate('enabled')
+                          : _loc.translate('disabled'),
+                      icon: Icons.electrical_services_outlined,
+                      showBorder: (configSource['ownership_notes'] ?? '').toString().isNotEmpty,
+                      valueColor: (configSource['utility_billing_enabled'] == true ||
+                              configSource['utility_billing_enabled'] == 1)
+                          ? _kGreen
+                          : Colors.white38,
+                    ),
+                  if ((configSource['ownership_notes'] ?? '').toString().isNotEmpty)
+                    _DetailTableRow(
+                      label: _loc.translate('ownership_details'),
+                      value: configSource['ownership_notes'].toString(),
+                      icon: Icons.note_alt_outlined,
+                      showBorder: false,
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );

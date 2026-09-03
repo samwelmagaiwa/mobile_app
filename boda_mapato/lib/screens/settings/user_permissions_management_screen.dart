@@ -4,19 +4,24 @@ import '../../constants/theme_constants.dart';
 import '../../services/api_service.dart';
 import '../../services/localization_service.dart';
 
-class UserPermissionsManagementScreen extends StatefulWidget { // rental, transport, inventory
+class UserPermissionsManagementScreen extends StatefulWidget {
+  // rental, transport, inventory
 
   const UserPermissionsManagementScreen({
-    required this.user, required this.serviceType, super.key,
+    required this.user,
+    required this.serviceType,
+    super.key,
   });
   final Map<String, dynamic> user;
   final String serviceType;
 
   @override
-  State<UserPermissionsManagementScreen> createState() => _UserPermissionsManagementScreenState();
+  State<UserPermissionsManagementScreen> createState() =>
+      _UserPermissionsManagementScreenState();
 }
 
-class _UserPermissionsManagementScreenState extends State<UserPermissionsManagementScreen> {
+class _UserPermissionsManagementScreenState
+    extends State<UserPermissionsManagementScreen> {
   final ApiService _api = ApiService();
   final LocalizationService _loc = LocalizationService.instance;
 
@@ -53,13 +58,15 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
   void _loadInitialPermissions() {
     final rawPerms = widget.user['permissions'];
     if (rawPerms is List) {
-      _currentPermissions = List<String>.from(rawPerms.map((e) => e.toString()));
+      _currentPermissions =
+          List<String>.from(rawPerms.map((e) => e.toString()));
     } else if (rawPerms is String && rawPerms.trim().startsWith('[')) {
       // Handle case where it might be a JSON string
       try {
         final decoded = jsonDecode(rawPerms);
         if (decoded is List) {
-          _currentPermissions = List<String>.from(decoded.map((e) => e.toString()));
+          _currentPermissions =
+              List<String>.from(decoded.map((e) => e.toString()));
         } else {
           _currentPermissions = [];
         }
@@ -93,7 +100,9 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_loc.isSwahili ? 'Mabadiliko yamehifadhiwa' : 'Permissions updated'),
+              content: Text(_loc.isSwahili
+                  ? 'Mabadiliko yamehifadhiwa'
+                  : 'Permissions updated'),
               backgroundColor: Colors.green,
             ),
           );
@@ -117,7 +126,7 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
   }
 
   String get _serviceName {
-    if (widget.serviceType == 'rental') return 'Rental Service';
+    if (widget.serviceType == 'rental') return 'All In One';
     if (widget.serviceType == 'transport') return 'Transport Service';
     return '${widget.serviceType.toUpperCase()} Service';
   }
@@ -131,7 +140,8 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
       appBar: AppBar(
         title: Text(
           _loc.isSwahili ? 'Usimamizi wa Ruhusa' : 'Permissions Management',
-          style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 18),
+          style:
+              const TextStyle(color: ThemeConstants.textPrimary, fontSize: 18),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -147,7 +157,8 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: ThemeConstants.primaryOrange),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: ThemeConstants.primaryOrange),
                 ),
               ),
             )
@@ -156,7 +167,9 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
               onPressed: _savePermissions,
               child: Text(
                 _loc.isSwahili ? 'HIFADHI' : 'SAVE',
-                style: const TextStyle(color: ThemeConstants.primaryOrange, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: ThemeConstants.primaryOrange,
+                    fontWeight: FontWeight.bold),
               ),
             ),
         ],
@@ -183,10 +196,14 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.2),
+                  backgroundColor:
+                      ThemeConstants.primaryOrange.withOpacity(0.2),
                   child: Text(
                     widget.user['name']?[0]?.toUpperCase() ?? 'U',
-                    style: const TextStyle(color: ThemeConstants.primaryOrange, fontWeight: FontWeight.bold, fontSize: 20),
+                    style: const TextStyle(
+                        color: ThemeConstants.primaryOrange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -196,26 +213,37 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
                     children: [
                       Text(
                         widget.user['name'] ?? 'Unknown User',
-                        style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            color: ThemeConstants.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Role: ${(widget.user['role'] ?? 'N/A').toString().toUpperCase()}',
-                        style: TextStyle(color: ThemeConstants.textSecondary.withOpacity(0.7), fontSize: 13),
+                        style: TextStyle(
+                            color:
+                                ThemeConstants.textSecondary.withOpacity(0.7),
+                            fontSize: 13),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: ThemeConstants.primaryOrange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ThemeConstants.primaryOrange.withOpacity(0.3)),
+                    border: Border.all(
+                        color: ThemeConstants.primaryOrange.withOpacity(0.3)),
                   ),
                   child: Text(
                     widget.serviceType.toUpperCase(),
-                    style: const TextStyle(color: ThemeConstants.primaryOrange, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: ThemeConstants.primaryOrange,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -227,7 +255,8 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
             child: Row(
               children: [
                 Container(
-                  width: 4, height: 16,
+                  width: 4,
+                  height: 16,
                   decoration: BoxDecoration(
                     color: ThemeConstants.primaryOrange,
                     borderRadius: BorderRadius.circular(2),
@@ -270,27 +299,35 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: isGranted 
-                            ? [Colors.green.withOpacity(0.2), Colors.green.withOpacity(0.05)]
-                            : [Colors.red.withOpacity(0.15), Colors.red.withOpacity(0.04)],
+                        colors: isGranted
+                            ? [
+                                Colors.green.withOpacity(0.2),
+                                Colors.green.withOpacity(0.05)
+                              ]
+                            : [
+                                Colors.red.withOpacity(0.15),
+                                Colors.red.withOpacity(0.04)
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: isGranted 
-                            ? Colors.green.withOpacity(0.6) 
+                        color: isGranted
+                            ? Colors.green.withOpacity(0.6)
                             : Colors.red.withOpacity(0.3),
                         width: 1.5,
                       ),
-                      boxShadow: isGranted ? [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.1),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 4),
-                        )
-                      ] : [],
+                      boxShadow: isGranted
+                          ? [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.1),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          : [],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -311,7 +348,8 @@ class _UserPermissionsManagementScreenState extends State<UserPermissionsManagem
                           style: TextStyle(
                             color: ThemeConstants.textPrimary,
                             fontSize: 14,
-                            fontWeight: isGranted ? FontWeight.bold : FontWeight.w500,
+                            fontWeight:
+                                isGranted ? FontWeight.bold : FontWeight.w500,
                             letterSpacing: 0.5,
                           ),
                           maxLines: 2,

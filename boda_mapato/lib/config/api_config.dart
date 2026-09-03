@@ -6,12 +6,11 @@ import "package:http/http.dart" as http;
 
 mixin ApiConfig {
   // Environment enum
-  // Default to local for Flutter web/desktop running on the same machine as Laravel
-  static const String _environment = Environment.emulator;
+  // Set to production to use the deployed VPS backend
+  static const String _environment = Environment.production;
 
   // Toggle verbose HTTP logging in debug builds only
-  static const bool enableHttpLogs =
-      true; // TEMP: enable verbose HTTP logs for debugging login
+  static const bool enableHttpLogs = true;
 
   // Get base URL based on environment
   static String get baseUrl {
@@ -20,13 +19,13 @@ mixin ApiConfig {
         // Localhost/dev machine
         return "http://127.0.0.1:8000/api";
       case Environment.network:
-        // LAN IP of the dev machine hosting Laravel (update if your IP changes)
-        return "http://192.168.145.10:8000/api";
+        // LAN IP of the dev machine hosting Laravel (Wi-Fi IP)
+        return "http://192.168.160.20:8000/api";
       case Environment.emulator:
         // Android emulator loopback to host
         return "http://10.0.2.2:8000/api";
       case Environment.production:
-        return "https://yourdomain.com/api";
+        return "https://depot.magrethschools.sc.tz/api";
       default:
         return "http://127.0.0.1:8000/api";
     }
@@ -38,11 +37,11 @@ mixin ApiConfig {
       case Environment.local:
         return "http://127.0.0.1:8000";
       case Environment.network:
-        return "http://192.168.145.10:8000";
+        return "http://192.168.160.20:8000";
       case Environment.emulator:
         return "http://10.0.2.2:8000";
       case Environment.production:
-        return "https://yourdomain.com";
+        return "https://depot.magrethschools.sc.tz";
       default:
         return "http://127.0.0.1:8000";
     }

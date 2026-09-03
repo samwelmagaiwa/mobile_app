@@ -196,6 +196,12 @@ class NavigationConfig {
       requiredPermissions: ['manage_agreements_rental'],
     ),
     NavigationItem(
+      key: 'helpdesk',
+      icon: Icons.help_outline,
+      route: '/rental/helpdesk',
+      isSystemItem: true, // Always visible for guidance
+    ),
+    NavigationItem(
       key: 'switch_service',
       icon: Icons.sync_alt,
       route: '/switch_service', // Special route

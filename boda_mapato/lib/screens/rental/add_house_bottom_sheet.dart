@@ -67,6 +67,10 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
   String _kitchenLocation = 'inside';
   String _elecType = 'independent';
   String _waterType = 'independent';
+  String _billingCycle = 'monthly';
+  String _currency = 'TZS';
+  bool _utilityBillingEnabled = false;
+  final _ownershipNotesCtrl = TextEditingController();
 
   /// Each entry: {'file': XFile, 'caption': String}
   final List<Map<String, dynamic>> _captionedImages = [];
@@ -113,8 +117,12 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       _elecCountCtrl.text = h['electricity_sharing_count']?.toString() ?? '';
       _waterCountCtrl.text = h['water_sharing_count']?.toString() ?? '';
       _notesCtrl.text = h['description'] ?? '';
+      _ownershipNotesCtrl.text = h['ownership_notes'] ?? '';
       _type = h['type'] ?? 'room';
       _status = h['status'] ?? 'vacant';
+      _billingCycle = h['billing_cycle'] ?? 'monthly';
+      _currency = h['currency'] ?? 'TZS';
+      _utilityBillingEnabled = h['utility_billing_enabled'] == 1 || h['utility_billing_enabled'] == true;
       _blockId = h['block_id']?.toString();
       _hasFence = h['has_fence'] == true;
       _hasTiles = h['has_tiles'] == true;
@@ -506,7 +514,35 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
                   _sectionHeader(_loc.translate('residence_ownership'), Icons.person_pin_circle),
                   SizedBox(height: 8.h),
                   _buildSwitch(_loc.translate('landlord_lives_here'), _landlordLivesHere, (v) => setState(() => _landlordLivesHere = v), Icons.home),
+                  SizedBox(height: 12.h),
+
+                  // ── Section 4.5: Configuration (Shifted from Property) ──
+                  _divider(),
+                  SizedBox(height: 16.h),
+                  _sectionHeader(_loc.translate('configuration'), Icons.settings_outlined),
+                  SizedBox(height: 14.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDropdown(_loc.translate('billing_cycle'), _billingCycle,
+                          ['monthly', 'quarterly', 'yearly'],
+                          (v) => setState(() => _billingCycle = v)),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: _buildDropdown(_loc.translate('currency'), _currency,
+                          ['TZS', 'USD'],
+                          (v) => setState(() => _currency = v),
+                          displayValue: (v) => v),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildSwitch("Bili za Huduma (Maji/Umeme)", _utilityBillingEnabled, 
+                    (v) => setState(() => _utilityBillingEnabled = v), Icons.electrical_services),
                   SizedBox(height: 8.h),
+                  _buildTextField(_ownershipNotesCtrl, "Maelezo ya Umiliki", Icons.note_alt_outlined, maxLines: 3),
+                  SizedBox(height: 16.h),
                   _buildTextField(_notesCtrl, _loc.translate('notes'), Icons.description, maxLines: 3),
 
                   SizedBox(height: 28.h),
@@ -859,6 +895,10 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       'square_meters': _sqmCtrl.text,
       'floor': _floorCtrl.text,
       'description': _notesCtrl.text,
+      'billing_cycle': _billingCycle,
+      'currency': _currency,
+      'utility_billing_enabled': _utilityBillingEnabled,
+      'ownership_notes': _ownershipNotesCtrl.text,
       if (_status == 'maintenance' && _maintenanceUntil != null)
         'maintenance_until': "${_maintenanceUntil!.year}-${_maintenanceUntil!.month.toString().padLeft(2, '0')}-${_maintenanceUntil!.day.toString().padLeft(2, '0')}",
       'units_count': int.tryParse(_unitsCountCtrl.text) ?? 0,

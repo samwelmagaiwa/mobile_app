@@ -15,7 +15,19 @@ import 'orders/orders_screen.dart';
 import 'products/products_screen.dart';
 import 'reminders/inventory_reminders_screen.dart';
 import 'sales/sales_screen.dart';
+import 'alerts/alerts_screen.dart';
+import 'cash/cash_sessions_screen.dart';
+import 'crates/crates_screen.dart';
+import 'credit/credit_screen.dart';
+import 'dispatch/dispatch_screen.dart';
+import 'purchasing/purchasing_screen.dart';
+import 'reports/reports_screen.dart';
+import 'sales/returns_screen.dart';
+import 'settings/depot_settings_screen.dart';
+import 'stock/batches_screen.dart';
+import 'stock/stock_counts_screen.dart';
 import 'stock/stock_levels_screen.dart';
+import 'stock/write_offs_screen.dart';
 import 'stock/stock_ops_screen.dart';
 
 class InventoryHome extends StatefulWidget {
@@ -29,11 +41,25 @@ class InventoryHome extends StatefulWidget {
 class _InventoryHomeState extends State<InventoryHome> {
   int _index = 0;
 
+  /// Number of pages the body builds for these permissions. Keeps the quick
+  /// menu's indices aligned with the conditional page list.
+  int _pageCount(UserPermissions perms) {
+    // dashboard, products, stock levels, sales, categories, orders,
+    // batches, stock counts, write-offs, purchasing, credit, cash, crates,
+    // dispatch, returns, reports, alerts, settings
+    int count = 18;
+    if (perms.has('inv_manage_stock')) count++;
+    if (perms.has('inv_view_reminders')) count++;
+    return count;
+  }
+
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex;
   }
+
+
 
   Future<void> _openQuickMenu(BuildContext context) async {
     final loc = LocalizationService.instance;
@@ -161,6 +187,73 @@ class _InventoryHomeState extends State<InventoryHome> {
       }
     } // This closes the main perms check or else block
 
+    // Area 3 - stock control entries. Indices are resolved from the same
+    // page list the body builds, so they cannot drift out of step.
+    final int idxBatches = _pageCount(perms) - 12;
+    items.add(_GridNavItem(
+      label: loc.translate('batches_and_expiry'),
+      icon: Icons.event_available_outlined,
+      color: ThemeConstants.primaryCyan.withOpacity(0.85),
+      onTap: () {
+        setState(() => _index = idxBatches);
+        Navigator.of(context).pop();
+      },
+    ));
+    items.add(_GridNavItem(
+      label: loc.translate('stock_counts'),
+      icon: Icons.fact_check_outlined,
+      color: ThemeConstants.successGreen.withOpacity(0.85),
+      onTap: () {
+        setState(() => _index = idxBatches + 1);
+        Navigator.of(context).pop();
+      },
+    ));
+    items.add(_GridNavItem(
+      label: loc.translate('write_offs'),
+      icon: Icons.report_problem_outlined,
+      color: ThemeConstants.errorRed.withOpacity(0.85),
+      onTap: () {
+        setState(() => _index = idxBatches + 2);
+        Navigator.of(context).pop();
+      },
+    ));
+
+    // Depot areas 4-13. Offsets follow the same page list as above.
+    const List<List<Object>> depotEntries = <List<Object>>[
+      <Object>['purchasing', Icons.local_shipping_outlined, 3],
+      <Object>['customers_and_credit', Icons.credit_card_outlined, 4],
+      <Object>['daily_cash', Icons.point_of_sale_outlined, 5],
+      <Object>['crates_and_empties', Icons.inbox_outlined, 6],
+      <Object>['deliveries', Icons.route_outlined, 7],
+      <Object>['returns_and_parked', Icons.assignment_return_outlined, 8],
+      <Object>['reports', Icons.bar_chart_outlined, 9],
+      <Object>['alerts', Icons.notifications_active_outlined, 10],
+      <Object>['depot_settings', Icons.settings_outlined, 11],
+    ];
+    const List<Color> depotColors = <Color>[
+      Color(0xFF667eea),
+      Color(0xFF20B8CE),
+      Color(0xFF10B981),
+      Color(0xFFF59E0B),
+      Color(0xFF764ba2),
+      Color(0xFFEF4444),
+      Color(0xFF00E5FF),
+      Color(0xFFF97316),
+      Color(0xFF64748B),
+    ];
+    for (int k = 0; k < depotEntries.length; k++) {
+      final int target = idxBatches + (depotEntries[k][2] as int);
+      items.add(_GridNavItem(
+        label: loc.translate(depotEntries[k][0] as String),
+        icon: depotEntries[k][1] as IconData,
+        color: depotColors[k].withOpacity(0.85),
+        onTap: () {
+          setState(() => _index = target);
+          Navigator.of(context).pop();
+        },
+      ));
+    }
+
     // Add Switch Service to quick menu
     items.add(_GridNavItem(
       label: loc.translate('switch_service'),
@@ -263,6 +356,18 @@ class _InventoryHomeState extends State<InventoryHome> {
       if (perms.has('inv_view_reminders')) const InventoryRemindersScreen(),
       const InventoryCategoriesScreen(),
       const InventoryOrdersScreen(),
+      const BatchesScreen(),
+      const StockCountsScreen(),
+      const WriteOffsScreen(),
+      const PurchasingScreen(),
+      const CreditScreen(),
+      const CashSessionsScreen(),
+      const CratesScreen(),
+      const DispatchScreen(),
+      const ReturnsScreen(),
+      const ReportsScreen(),
+      const AlertsScreen(),
+      const DepotSettingsScreen(),
     ];
 
     final titles = <String>[
@@ -274,22 +379,53 @@ class _InventoryHomeState extends State<InventoryHome> {
       if (perms.has('inv_view_reminders')) loc.translate('reminders'),
       'Categories',
       'Past Orders',
+      loc.translate('batches_and_expiry'),
+      loc.translate('stock_counts'),
+      loc.translate('write_offs'),
+      loc.translate('purchasing'),
+      loc.translate('customers_and_credit'),
+      loc.translate('daily_cash'),
+      loc.translate('crates_and_empties'),
+      loc.translate('deliveries'),
+      loc.translate('returns_and_parked'),
+      loc.translate('reports'),
+      loc.translate('alerts'),
+      loc.translate('depot_settings'),
     ];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: ThemeConstants.buildAppBar(titles[_index], actions: [
-        IconButton(
-          icon: Icon(Icons.search, size: 20.sp),
-          onPressed: () {},
+      appBar: ThemeConstants.buildAppBar(
+        titles[_index],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, size: 20.sp),
+          tooltip: loc.translate('back'),
+          onPressed: () {
+            if (_index > 0) {
+              setState(() => _index = 0);
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/select-service');
+            }
+          },
         ),
-        IconButton(
-          icon: Icon(Icons.apps, size: 20.sp),
-          tooltip: loc.translate('select_service'),
-          onPressed: () =>
-              Navigator.pushReplacementNamed(context, '/select-service'),
-        ),
-      ]),
+        actions: [
+          Builder(
+            builder: (ctx) => IconButton(
+              icon: Icon(Icons.menu, size: 20.sp),
+              tooltip: loc.translate('menu'),
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.apps, size: 20.sp),
+            tooltip: loc.translate('select_service'),
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, '/select-service'),
+          ),
+        ],
+      ),
       drawer: _InventoryDrawer(
         index: _index,
         onSelected: (i) {
@@ -297,14 +433,9 @@ class _InventoryHomeState extends State<InventoryHome> {
           Navigator.pop(context);
         },
       ),
-      body: Stack(
-        children: [
-          const DecoratedBox(
-            decoration: ThemeConstants.dashboardBackground,
-            child: SizedBox.expand(),
-          ),
-          SafeArea(child: pages[_index.clamp(0, pages.length - 1)]),
-        ],
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
+        child: SafeArea(child: pages[_index.clamp(0, pages.length - 1)]),
       ),
       bottomNavigationBar: _InventoryFooter(
         index: _index,

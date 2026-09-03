@@ -143,7 +143,6 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
 
   String _formatMoney(num v) => 'TZS ${v.toStringAsFixed(0)}';
 
-
   @override
   Widget build(BuildContext context) {
     final orders = _mock();

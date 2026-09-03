@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/rental_provider.dart';
+import '../../utils/type_helpers.dart';
 
 class RentalPaymentsScreen extends StatefulWidget {
   const RentalPaymentsScreen({super.key});
@@ -58,7 +59,7 @@ class _RentalPaymentsScreenState extends State<RentalPaymentsScreen> {
     final tenant = payment['tenant'] ?? {};
     final bill = payment['bill'] ?? {};
     final house = bill['agreement']?['house'] ?? {};
-    final amount = (payment['amount_paid'] ?? 0).toDouble();
+    final amount = TypeHelpers.toDouble(payment['amount_paid']);
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),

@@ -17,7 +17,7 @@ mixin AuthService {
   // For Android emulator: "http://10.0.2.2:8000/api"
   // For iOS simulator: "http://127.0.1:8000/api"
 
-  static const Duration timeoutDuration = Duration(seconds: 30);
+  static Duration get timeoutDuration => ApiConfig.timeoutDuration;
   static const String tokenKey = "auth_token";
   static const String userKey = "user_data";
 

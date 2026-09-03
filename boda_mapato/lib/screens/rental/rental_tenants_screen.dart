@@ -74,8 +74,8 @@ class _RentalTenantsScreenState extends State<RentalTenantsScreen> {
           _buildSearchAndFilter(),
           Expanded(
             child: rentalProvider.isLoading && tenants.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.white))
+                ? Center(
+                    child: ThemeConstants.buildResponsiveLoadingWidget(context))
                 : tenants.isEmpty
                     ? _buildEmptyState()
                     : _buildTenantList(filteredTenants),

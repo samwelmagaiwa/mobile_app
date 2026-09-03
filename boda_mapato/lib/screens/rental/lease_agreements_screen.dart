@@ -58,11 +58,11 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
     final loc = LocalizationService.instance;
 
     // Fail-safe: Redirect tenants who somehow reach this screen
-    if (user?.role == 'tenant') {
+    if (user != null && user.role == 'tenant') {
        WidgetsBinding.instance.addPostFrameCallback((_) {
          Navigator.pushReplacementNamed(context, '/rental/tenant-self-service');
        });
-       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+       return Scaffold(body: Center(child: ThemeConstants.buildResponsiveLoadingWidget(context)));
     }
 
     final agreements = rentalProvider.agreements;
@@ -70,44 +70,49 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: loc.translate('lease_agreements'),
-      actions: [
-        IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () =>
-                Navigator.pushNamed(context, "/rental/create-agreement")),
-      ],
-      body: Column(
-        children: [
-          _buildSummaryStats(agreements),
-          Container(
-            margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r)),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                  color: ThemeConstants.primaryOrange,
+      showBackButton: true,
+      onBack: () {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacementNamed(context, '/rental/dashboard');
+        }
+      },
+      body: Container(
+        decoration: const BoxDecoration(color: ThemeConstants.bgMid),
+        child: Column(
+          children: [
+            _buildSummaryStats(agreements),
+            Container(
+              margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12.r)),
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              labelStyle:
-                  TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(text: loc.translate('active_leases')),
-                Tab(text: loc.translate('expiring_leases')),
-                Tab(text: loc.translate('all_leases'))
-              ],
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                    color: ThemeConstants.primaryOrange,
+                    borderRadius: BorderRadius.circular(12.r)),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white54,
+                labelStyle:
+                    TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(text: loc.translate('active_leases')),
+                  Tab(text: loc.translate('expiring_leases')),
+                  Tab(text: loc.translate('all_leases'))
+                ],
+              ),
             ),
-          ),
-          Expanded(
-              child: TabBarView(controller: _tabController, children: [
-            _buildAgreementList(agreements.where((a) => a['status'] == 'active').toList()),
-            _buildAgreementList(agreements.where((a) => a['status'] == 'expiring_soon' || a['status'] == 'notice').toList()),
-            _buildAgreementList(agreements),
-          ])),
-        ],
+            Expanded(
+                child: TabBarView(controller: _tabController, children: [
+              _buildAgreementList(agreements.where((a) => a is Map && a['status'] == 'active').toList()),
+              _buildAgreementList(agreements.where((a) => a is Map && (a['status'] == 'expiring_soon' || a['status'] == 'notice')).toList()),
+              _buildAgreementList(agreements),
+            ])),
+          ],
+        ),
       ),
     );
   }
@@ -115,7 +120,7 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
   Widget _buildAgreementList(List<dynamic> list) {
     final loc = LocalizationService.instance;
     return _isLoading
-      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+      ? Center(child: ThemeConstants.buildResponsiveLoadingWidget(context))
       : list.isEmpty 
         ? Center(child: Text(loc.translate('no_leases_found'), style: TextStyle(color: Colors.white54, fontSize: 14.sp)))
         : RefreshIndicator(

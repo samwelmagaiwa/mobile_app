@@ -6,6 +6,7 @@ import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
+import '../../utils/rental_flow_validator.dart';
 
 class RentalDashboardScreen extends StatefulWidget {
   const RentalDashboardScreen({super.key, this.isSubView = false});
@@ -22,22 +23,22 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthProvider>().user;
       final provider = context.read<RentalProvider>();
-      
+
       // Dashboard summary is usually safe as it contains role-specific summary
       provider.fetchDashboard();
-      
+
       // Management data should only be fetched if the user has permissions
       if (user?.hasPermission('manage_properties_rental') ?? false) {
         provider.fetchProperties();
       }
-      
+
       if (user?.hasPermission('manage_billing_rental') ?? false) {
         provider.fetchBills();
       }
-    // Fetch tenant house details for tenants (no property management permission)
-    if (!(user?.hasPermission('manage_properties_rental') ?? false)) {
-      provider.fetchCurrentTenantHouse();
-    }
+      // Fetch tenant house details for tenants (no property management permission)
+      if (!(user?.hasPermission('manage_properties_rental') ?? false)) {
+        provider.fetchCurrentTenantHouse();
+      }
     });
   }
 
@@ -54,7 +55,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                 if (widget.isSubView) _buildModernAppBar(),
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh: () => context.read<RentalProvider>().fetchDashboard(),
+                    onRefresh: () =>
+                        context.read<RentalProvider>().fetchDashboard(),
                     color: ThemeConstants.primaryOrange,
                     backgroundColor: Colors.white10,
                     child: _buildScrollableContent(),
@@ -103,16 +105,25 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             children: [
               IconButton(
                 onPressed: () => Scaffold.of(context).openDrawer(),
-                icon: const Icon(Icons.menu_open, color: Colors.white, size: 26),
+                icon:
+                    const Icon(Icons.menu_open, color: Colors.white, size: 26),
               ),
               SizedBox(width: 2.w),
               Text(
-                "Mapato",
-                style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.w900, letterSpacing: -0.8),
+                "All In",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8),
               ),
               Text(
-                " Rental",
-                style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 20.sp, fontWeight: FontWeight.w300, letterSpacing: -0.8),
+                " One",
+                style: TextStyle(
+                    color: ThemeConstants.primaryOrange,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: -0.8),
               ),
             ],
           ),
@@ -152,10 +163,15 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("${loc.translate('welcome')},", style: TextStyle(color: Colors.white60, fontSize: 13.sp)),
+        Text("${loc.translate('welcome')},",
+            style: TextStyle(color: Colors.white60, fontSize: 13.sp)),
         Text(
           user?.name ?? "Landlord",
-          style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
       ],
     );
@@ -167,7 +183,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final loc = auth.localization;
-    
+
     double totalArrears = 0;
     int totalHouses = 0;
     int occupiedHouses = 0;
@@ -179,13 +195,17 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         if (house['is_occupied'] == 1 || house['is_occupied'] == true) {
           occupiedHouses++;
         }
-        totalArrears += double.tryParse((house['current_balance'] ?? 0).toString()) ?? 0.0;
+        totalArrears +=
+            double.tryParse((house['current_balance'] ?? 0).toString()) ?? 0.0;
       }
     }
-    
-    final occupancyRate = totalHouses > 0 ? (occupiedHouses / totalHouses) : 0.0;
-    final bool canManageProperties = user?.hasPermission('manage_properties_rental') ?? false;
-    final bool canViewArrears = user?.hasPermission('manage_debts_transport') ?? false;
+
+    final occupancyRate =
+        totalHouses > 0 ? (occupiedHouses / totalHouses) : 0.0;
+    final bool canManageProperties =
+        user?.hasPermission('manage_properties_rental') ?? false;
+    final bool canViewArrears =
+        user?.hasPermission('manage_debts_transport') ?? false;
 
     return Column(
       children: [
@@ -197,7 +217,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           Icons.donut_large,
           ThemeConstants.primaryOrange,
         ),
-        
+
         if (canManageProperties) ...[
           SizedBox(height: 10.h),
           // Wider Secondary Grid
@@ -223,7 +243,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             ],
           ),
         ],
-        
+
         SizedBox(height: 10.h),
         if (canViewArrears && canManageProperties)
           _buildWideBentoHorizontal(
@@ -235,7 +255,10 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         else
           _buildWideBentoHorizontal(
             loc.translate('active_leases'),
-            rentalProvider.agreements.where((a) => a['status'] == 'active').length.toString(),
+            rentalProvider.agreements
+                .where((a) => a['status'] == 'active')
+                .length
+                .toString(),
             Icons.verified_user,
             const Color(0xFF6366F1),
           ),
@@ -243,7 +266,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     );
   }
 
-  Widget _buildHeroBentoHorizontal(String title, String value, double progress, IconData icon, Color accent) {
+  Widget _buildHeroBentoHorizontal(String title, String value, double progress,
+      IconData icon, Color accent) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24.r),
@@ -255,7 +279,7 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Padding(
-            padding: EdgeInsets.all(16.w), 
+            padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
                 Stack(
@@ -280,15 +304,32 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: TextStyle(color: Colors.white60, fontSize: 13.sp, fontWeight: FontWeight.w600)),
-                      Text(value, style: TextStyle(color: Colors.white, fontSize: 30.sp, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      Text(title,
+                          style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600)),
+                      Text(value,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 30.sp,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-                  decoration: BoxDecoration(color: accent.withOpacity(0.12), borderRadius: BorderRadius.circular(10.r)),
-                  child: Text(LocalizationService.instance.isSwahili ? "Hai" : "Active", style: TextStyle(color: accent, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                      color: accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10.r)),
+                  child: Text(
+                      LocalizationService.instance.isSwahili ? "Hai" : "Active",
+                      style: TextStyle(
+                          color: accent,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -298,7 +339,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     );
   }
 
-  Widget _buildStandardBentoHorizontal(String title, String value, IconData icon, Color color) {
+  Widget _buildStandardBentoHorizontal(
+      String title, String value, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.r),
@@ -315,7 +357,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
               children: [
                 Container(
                   padding: EdgeInsets.all(6.w),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                      color: color.withOpacity(0.1), shape: BoxShape.circle),
                   child: Icon(icon, color: color, size: 16.sp),
                 ),
                 SizedBox(width: 12.w),
@@ -324,8 +367,18 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(value, style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w900)),
-                      Text(title, style: TextStyle(color: Colors.white38, fontSize: 12.sp, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(value,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w900)),
+                      Text(title,
+                          style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -337,7 +390,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     );
   }
 
-  Widget _buildWideBentoHorizontal(String title, String value, IconData icon, Color color) {
+  Widget _buildWideBentoHorizontal(
+      String title, String value, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.r),
@@ -358,8 +412,16 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(title, style: TextStyle(color: Colors.white54, fontSize: 13.sp, fontWeight: FontWeight.w600)),
-                      Text(value, style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w800)),
+                      Text(title,
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600)),
+                      Text(value,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 17.sp,
+                              fontWeight: FontWeight.w800)),
                     ],
                   ),
                 ),
@@ -378,32 +440,70 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final user = auth.user;
     final loc = auth.localization;
 
-    final bool canManageProperties = user?.hasPermission('manage_properties_rental') ?? false;
-    final bool canManageAgreements = user?.hasPermission('manage_agreements_rental') ?? false;
+    final bool canManageProperties =
+        user?.hasPermission('manage_properties_rental') ?? false;
+    final bool canManageAgreements =
+        user?.hasPermission('manage_agreements_rental') ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(loc.translate('quick_actions'), style: TextStyle(color: Colors.white70, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+        Text(loc.translate('quick_actions'),
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800)),
         SizedBox(height: 12.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             if (canManageProperties)
-              _buildActionIcon(loc.translate('lipisha'), Icons.send, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/billing")),
+              _buildActionIcon(
+                  loc.translate('lipisha'),
+                  Icons.send,
+                  ThemeConstants.primaryOrange,
+                  () => RentalFlowValidator.validateStep(
+                        context: context,
+                        fetchData: (p) => p.fetchBills(),
+                        condition: RentalFlowValidator.hasUnpaidBills,
+                        title: 'Hakuna Bili Tupu',
+                        message: 'Hakuna bili zinazohitaji malipo kwa sasa. Hakikisha una mikataba hai.',
+                        actionLabel: 'Angalia Mikataba',
+                        actionRoute: '/rental/agreements',
+                      )),
             if (canManageProperties)
-              _buildActionIcon(loc.translate('mali'), Icons.add, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/add-property")),
+              _buildActionIcon(
+                  loc.translate('mali'),
+                  Icons.add,
+                  ThemeConstants.primaryOrange,
+                  () => Navigator.pushNamed(context, "/rental/add-property")),
             if (canManageAgreements)
-              _buildActionIcon(loc.translate('mkataba'), Icons.edit, ThemeConstants.primaryOrange, () => Navigator.pushNamed(context, "/rental/agreements")),
-            _buildActionIcon(loc.translate('zaidi'), Icons.grid_view, ThemeConstants.primaryOrange, () {}),
+              _buildActionIcon(
+                  loc.translate('mkataba'),
+                  Icons.edit,
+                  ThemeConstants.primaryOrange,
+                  () => RentalFlowValidator.validateStep(
+                        context: context,
+                        fetchData: (p) async {
+                          await p.fetchTenants();
+                          await p.fetchProperties();
+                        },
+                        condition: (p) => RentalFlowValidator.hasTenants(p) && RentalFlowValidator.hasVacantHouses(p),
+                        title: 'Tengeneza Mkataba',
+                        message: 'Unahitaji kuwa na wapangaji na nyumba wazi kabla ya kutengeneza mkataba mpya.',
+                        actionLabel: 'Ingiza Mpangaji',
+                        actionRoute: '/rental/onboard-tenant', // Fixed typo
+                      )),
+            _buildActionIcon(loc.translate('zaidi'), Icons.grid_view,
+                ThemeConstants.primaryOrange, () {}),
           ],
         ),
       ],
     );
   }
 
-
-  Widget _buildActionIcon(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionIcon(
+      String label, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -425,7 +525,11 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
             child: Center(child: Icon(icon, color: Colors.white, size: 24.sp)),
           ),
           SizedBox(height: 6.h),
-          Text(label, style: TextStyle(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w700)),
+          Text(label,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -453,11 +557,23 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(house['name'] ?? 'House', style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+              Text(house['name'] ?? 'House',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900)),
               SizedBox(height: 8.h),
               _infoRow('Location', house['location'] ?? ''),
-              _infoRow('Rent', house['rent'] != null ? 'TSh ${_formatAmount(house["rent"]) }' : ''),
-              _infoRow('Status', (house['is_occupied'] == 1 || house['is_occupied'] == true) ? 'Occupied' : 'Vacant'),
+              _infoRow(
+                  'Rent',
+                  house['rent'] != null
+                      ? 'TSh ${_formatAmount(house["rent"])}'
+                      : ''),
+              _infoRow(
+                  'Status',
+                  (house['is_occupied'] == 1 || house['is_occupied'] == true)
+                      ? 'Occupied'
+                      : 'Vacant'),
             ],
           ),
         ),
@@ -473,12 +589,15 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
-          Text(value, style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+          Text(value,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
-
 
   Widget _buildCompactProperties() {
     final rentalProvider = context.watch<RentalProvider>();
@@ -486,7 +605,8 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
     final user = auth.user;
     final loc = auth.localization;
 
-    final bool canManageProperties = user?.hasPermission('manage_properties_rental') ?? false;
+    final bool canManageProperties =
+        user?.hasPermission('manage_properties_rental') ?? false;
     if (!canManageProperties) return const SizedBox.shrink();
 
     final properties = rentalProvider.properties;
@@ -495,17 +615,25 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(loc.translate('my_properties'), style: TextStyle(color: Colors.white70, fontSize: 15.sp, fontWeight: FontWeight.w800)),
+            Text(loc.translate('my_properties'),
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800)),
             TextButton(
-              onPressed: () => Navigator.pushNamed(context, "/rental/properties"),
-              child: Text(loc.translate('see_all'), style: TextStyle(color: ThemeConstants.primaryOrange, fontSize: 12.sp)),
+              onPressed: () =>
+                  Navigator.pushNamed(context, "/rental/properties"),
+              child: Text(loc.translate('see_all'),
+                  style: TextStyle(
+                      color: ThemeConstants.primaryOrange, fontSize: 12.sp)),
             ),
           ],
         ),
         if (properties.isEmpty)
           Padding(
             padding: EdgeInsets.symmetric(vertical: 20.h),
-            child: Text(loc.translate('no_properties'), style: TextStyle(color: Colors.white38, fontSize: 14.sp)),
+            child: Text(loc.translate('no_properties'),
+                style: TextStyle(color: Colors.white38, fontSize: 14.sp)),
           )
         else
           ...properties.take(3).map((prop) => _buildModernPropertyTile(prop)),
@@ -527,22 +655,30 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
           CircleAvatar(
             radius: 14.r,
             backgroundColor: ThemeConstants.primaryOrange.withOpacity(0.1),
-            child: Icon(Icons.business, color: ThemeConstants.primaryOrange, size: 14.sp),
+            child: Icon(Icons.business,
+                color: ThemeConstants.primaryOrange, size: 14.sp),
           ),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(prop['name'] ?? 'Property', style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
+                Text(prop['name'] ?? 'Property',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.bold)),
                 Text(
                   (prop['full_address']?.toString().trim().isNotEmpty == true
                       ? prop['full_address']
                       : (prop['address']?.toString().trim().isNotEmpty == true
                           ? prop['address']
-                          : (prop['district']?.toString().trim().isNotEmpty == true
+                          : (prop['district']?.toString().trim().isNotEmpty ==
+                                  true
                               ? '${prop['ward'] != null ? "${prop['ward']}, " : ""}${prop['district']}'
-                              : prop['region'] ?? prop['location'] ?? '—'))) as String,
+                              : prop['region'] ??
+                                  prop['location'] ??
+                                  '—'))) as String,
                   style: TextStyle(color: Colors.white38, fontSize: 10.sp),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -566,9 +702,9 @@ class _RentalDashboardScreenState extends State<RentalDashboardScreen> {
 
 extension BlurExtension on Widget {
   Widget withBlur(double sigma) => ClipRRect(
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-      child: this,
-    ),
-  );
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+          child: this,
+        ),
+      );
 }

@@ -9,7 +9,11 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_product.dart';
 import '../../providers/inventory_provider.dart';
+import '../widgets/inventory_widgets.dart';
 import 'add_edit_product_screen.dart';
+import '../../providers/depot_provider.dart';
+import '../scanning/barcode_scanner_screen.dart';
+import 'product_units_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -22,6 +26,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
   int _page = 0;
   final int _pageSize = 8;
   String _query = '';
+
+  Future<void> _scanToSearch(BuildContext context) async {
+    final loc = LocalizationService.instance;
+    final String? code =
+        await scanBarcode(context, title: loc.translate('scan_barcode'));
+    if (code == null || code.isEmpty || !context.mounted) return;
+
+    final result = await context.read<DepotProvider>().resolveBarcode(code);
+    if (result == null) {
+      if (context.mounted) {
+        ThemeConstants.showErrorSnackBar(
+            context, loc.translate('barcode_not_found'));
+      }
+      return;
+    }
+    setState(() {
+      _query = result.productName.isNotEmpty ? result.productName : code;
+      _page = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +91,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     style: ThemeConstants.bodyStyle,
                   ),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 8.w),
+                IconButton(
+                  tooltip: loc.translate('scan_barcode'),
+                  onPressed: () => _scanToSearch(context),
+                  icon:
+                      const Icon(Icons.qr_code_scanner, color: Colors.white70),
+                ),
+                SizedBox(width: 4.w),
                 if (canManage)
                   ElevatedButton.icon(
                     onPressed: () => Navigator.push(
@@ -77,7 +108,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                     ),
                     icon: Icon(Icons.add, size: 18.sp),
-                    label: Text(loc.translate('add_product')),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        loc.translate('add_product'),
+                        maxLines: 1,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -94,44 +131,51 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       itemBuilder: (context, index) {
                         final p = slice[index];
                         final isLow = p.quantity < p.minStock;
-                        return Container(
-                          decoration: ThemeConstants.glassCardDecoration,
-                          padding: EdgeInsets.all(12.w),
-                          child: Row(
-                            children: [
-                              Icon(Icons.inventory_2_outlined,
-                                  color: Colors.white70, size: 22.sp),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AutoSizeText(p.name,
-                                        style: ThemeConstants.bodyStyle,
-                                        maxLines: 1),
-                                    SizedBox(height: 4.h),
-                                    AutoSizeText(
-                                        '${loc.translate('sku')}: ${p.sku} • ${loc.translate('quantity')}: ${p.quantity}',
-                                        style: ThemeConstants.captionStyle,
-                                        maxLines: 1,
-                                        minFontSize: 10),
-                                  ],
+                        return InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => ProductUnitsScreen(product: p),
+                            ),
+                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Container(
+                            decoration: ThemeConstants.glassCardDecoration,
+                            padding: EdgeInsets.all(12.w),
+                            child: Row(
+                              children: [
+                                Icon(Icons.inventory_2_outlined,
+                                    color: Colors.white70, size: 22.sp),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      AutoSizeText(p.name,
+                                          style: ThemeConstants.bodyStyle,
+                                          maxLines: 1),
+                                      SizedBox(height: 4.h),
+                                      AutoSizeText(
+                                          '${loc.translate('sku')}: ${p.sku} • ${loc.translate('quantity')}: ${p.quantity}',
+                                          style: ThemeConstants.captionStyle,
+                                          maxLines: 1,
+                                          minFontSize: 10),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              if (isLow)
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8.w, vertical: 4.h),
-                                  decoration: BoxDecoration(
+                                if (isLow)
+                                  Flexible(
+                                    child: InvBadge(
+                                      label: loc.translate('low_stock'),
                                       color: Colors.orange.shade600,
-                                      borderRadius:
-                                          BorderRadius.circular(10.r)),
-                                  child: Text(loc.translate('low_stock'),
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11.sp)),
-                                ),
-                            ],
+                                    ),
+                                  ),
+                                SizedBox(width: 4.w),
+                                Icon(Icons.chevron_right,
+                                    color: Colors.white38, size: 20.sp),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -172,5 +216,4 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
     );
   }
-
 }

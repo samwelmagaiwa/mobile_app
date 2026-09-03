@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../utils/responsive_helper.dart';
+import '../widgets/loading/faux_3d_loading_widget.dart';
 
 class ThemeConstants {
   // Modern theme colors - matching admin dashboard
@@ -21,6 +22,7 @@ class ThemeConstants {
   static const Color successGreen = Color(0xFF10B981);
   static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
+  static const Color primaryCyan = Color(0xFF00E5FF); // Premium Cyber-Cyan
 
   // Inventory teal-cyan palette (for consistent design across inventory pages)
   // 30% alpha teal fill, 25% alpha cyan border, vivid cyan accent, neutral chip ~28% alpha
@@ -56,7 +58,13 @@ class ThemeConstants {
   );
 
   // Standard app bar theme
-  static AppBar buildAppBar(String title, {List<Widget>? actions}) => AppBar(
+  static AppBar buildAppBar(
+    String title, {
+    List<Widget>? actions,
+    Widget? leading,
+    bool automaticallyImplyLeading = true,
+  }) =>
+      AppBar(
         title: Text(
           title,
           style: TextStyle(
@@ -68,6 +76,8 @@ class ThemeConstants {
         backgroundColor: bgTop,
         foregroundColor: textPrimary,
         elevation: 0,
+        leading: leading,
+        automaticallyImplyLeading: automaticallyImplyLeading,
         actions: actions,
         iconTheme: const IconThemeData(color: textPrimary),
       );
@@ -107,10 +117,25 @@ class ThemeConstants {
         ),
       );
 
+  // Default text style for input fields (bright white)
+  static TextStyle get inputStyle => TextStyle(
+        color: textPrimary,
+        fontSize: 14.sp,
+        fontWeight: FontWeight.normal,
+      );
+
   // Convenience: inventory input decoration (teal/cyan)
   static InputDecoration invInputDecoration(String hint) => InputDecoration(
         hintText: hint,
-        hintStyle: captionStyle,
+        hintStyle: TextStyle(
+          color: textSecondary,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.normal,
+        ),
+        labelStyle: TextStyle(
+          color: textPrimary,
+          fontSize: 14.sp,
+        ),
         filled: true,
         fillColor: invFill,
         border: OutlineInputBorder(
@@ -206,7 +231,8 @@ class ThemeConstants {
     Duration? duration,
     IconData? icon,
   }) {
-    final overlay = Overlay.of(context);
+    final OverlayState? overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
@@ -323,8 +349,10 @@ class ThemeConstants {
 
   /// Get responsive app bar with MediaQuery-based sizing
   static AppBar buildResponsiveAppBar(BuildContext context, String title,
-      {List<Widget>? actions}) {
+      {List<Widget>? actions, Widget? leading, bool? showBackButton, VoidCallback? onBack}) {
     ResponsiveHelper.init(context);
+    final canPop = showBackButton ?? Navigator.canPop(context);
+
     return AppBar(
       title: Text(
         title,
@@ -338,6 +366,11 @@ class ThemeConstants {
       foregroundColor: textPrimary,
       elevation: 0,
       actions: actions,
+      automaticallyImplyLeading: true,
+      leading: leading ?? (canPop ? IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+        onPressed: onBack ?? () => Navigator.pop(context),
+      ) : null),
       iconTheme: IconThemeData(
         color: textPrimary,
         size: ResponsiveHelper.iconSizeL,
@@ -410,11 +443,18 @@ class ThemeConstants {
     List<Widget>? actions,
     Widget? floatingActionButton,
     Widget? drawer,
+    Widget? leading,
+    bool? showBackButton,
+    VoidCallback? onBack,
   }) {
     ResponsiveHelper.init(context);
     return Scaffold(
       backgroundColor: primaryBlue,
-      appBar: buildResponsiveAppBar(context, title, actions: actions),
+      appBar: buildResponsiveAppBar(context, title,
+          actions: actions,
+          leading: leading,
+          showBackButton: showBackButton,
+          onBack: onBack),
       body: DecoratedBox(
         decoration: const BoxDecoration(color: primaryBlue),
         child: SafeArea(
@@ -427,30 +467,11 @@ class ThemeConstants {
   }
 
   /// Responsive loading widget with MediaQuery-based sizing
-  static Widget buildResponsiveLoadingWidget(BuildContext context) {
+  static Widget buildResponsiveLoadingWidget(BuildContext context,
+      {String? message}) {
     ResponsiveHelper.init(context);
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          SizedBox(
-            width: ResponsiveHelper.wp(10),
-            height: ResponsiveHelper.wp(10),
-            child: const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          ResponsiveHelper.verticalSpace(3),
-          Text(
-            "Inapakia...",
-            style: TextStyle(
-              color: textSecondary,
-              fontSize: ResponsiveHelper.bodyL,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+      child: Faux3DLoadingWidget(message: message),
     );
   }
 

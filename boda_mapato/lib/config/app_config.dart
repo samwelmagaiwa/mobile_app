@@ -19,8 +19,8 @@ mixin AppConfig {
 
   // Company info
   static const String companyName = "All In One Ltd";
-  static const String companyPhone = "+255 123 456 789";
-  static const String companyEmail = "info@allinone.com";
+  static const String companyPhone = "+255 617 919 104";
+  static const String companyEmail = "qq@gmail.com";
 
   // API configuration based on mode
   static bool get useRealApi => !useMockData;

@@ -36,14 +36,6 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
   String? _place;
 
 
-  // Section 3 — Configuration
-  final _defaultRentController = TextEditingController(text: "0");
-  final _ownershipNotesController = TextEditingController();
-  bool _utilityBillingEnabled = false;
-  String _billingCycle = 'monthly';
-  String _currency = 'TZS';
-  String _status = 'active';
-
   // Section 4 — Media
   File? _coverImage;
 
@@ -93,14 +85,6 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
       'street': _street,
       'place': _place,
       'address': _addressController.text.trim(),
-
-      'billing_cycle': _billingCycle,
-      'currency': _currency,
-      'status': _status,
-      'default_rent_amount': _defaultRentController.text,
-      'default_deposit_amount': '0',
-      'ownership_notes': _ownershipNotesController.text,
-      'utility_billing_enabled': _utilityBillingEnabled ? 1 : 0,
     };
 
     final propertyId = await context.read<RentalProvider>().addProperty(data, image: _coverImage);
@@ -158,11 +142,22 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeConstants.buildScaffold(
+    return ThemeConstants.buildResponsiveScaffold(
+      context,
       title: _loc.translate('add_property'),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+      showBackButton: true,
+      onBack: () {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacementNamed(context, '/rental/dashboard');
+        }
+      },
+      body: Container(
+        color: ThemeConstants.bgMid,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,84 +229,6 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader(_loc.translate('configuration'), Icons.settings),
-                    SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdownField(
-                            label: _loc.translate('billing_cycle'),
-                            value: _billingCycle,
-                            items: const ['monthly', 'quarterly', 'yearly'],
-                            formatter: (v) => v == 'monthly'
-                                ? _loc.translate('monthly')
-                                : v == 'quarterly'
-                                    ? _loc.translate('quarterly')
-                                    : _loc.translate('yearly'),
-                            onChanged: (v) => setState(() => _billingCycle = v!),
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: _buildDropdownField(
-                            label: _loc.translate('currency'),
-                            value: _currency,
-                            items: const ['TZS', 'USD'],
-                            formatter: (v) => v,
-                            onChanged: (v) => setState(() => _currency = v!),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildDropdownField(
-                      label: _loc.translate('status'),
-                      value: _status,
-                      items: const [
-                        'active',
-                        'inactive',
-                        'under_maintenance',
-                        'archived'
-                      ],
-                      formatter: _formatType,
-                      onChanged: (v) => setState(() => _status = v!),
-                    ),
-                     _buildTextInput(
-                       controller: _defaultRentController,
-                       label: "Kodi ya Msingi (TSh)",
-                       icon: Icons.monetization_on,
-                     ),
-                    SizedBox(height: 16.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text("Bili za Huduma (Maji/Umeme)",
-                            style: TextStyle(
-                                color: Colors.white70, fontSize: 13.sp)),
-                        Switch(
-                          value: _utilityBillingEnabled,
-                          onChanged: (v) =>
-                              setState(() => _utilityBillingEnabled = v),
-                          activeThumbColor: ThemeConstants.primaryOrange,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildTextInput(
-                      controller: _ownershipNotesController,
-                      label: "Maelezo ya Umiliki",
-                      icon: Icons.note_alt,
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20.h),
-              ThemeConstants.buildResponsiveGlassCardStatic(
-                context,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
                     _buildSectionHeader(_loc.translate('media'), Icons.image),
                     SizedBox(height: 16.h),
                     GestureDetector(
@@ -373,7 +290,8 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {

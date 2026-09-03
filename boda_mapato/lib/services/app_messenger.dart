@@ -24,4 +24,10 @@ class AppMessenger {
   static void showError(String message) {
     show(message, isSuccess: false);
   }
+
+  static void showInfo(String message) {
+    final BuildContext? ctx = key.currentContext;
+    if (ctx == null) return;
+    ThemeConstants.showInfoSnackBar(ctx, message);
+  }
 }

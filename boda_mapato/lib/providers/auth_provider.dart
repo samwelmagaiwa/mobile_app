@@ -25,6 +25,10 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String? _errorMessage;
+  
+  // Support Contact Detail Cache
+  String? _supportPhone;
+  String? _supportEmail;
 
   late final StreamSubscription<AuthEvent> _authSub;
   Timer? _refreshTimer;
@@ -38,6 +42,10 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get errorMessage => _errorMessage;
+
+  // Contact Getters (Database-only)
+  String get supportPhone => _supportPhone ?? "";
+  String get supportEmail => _supportEmail ?? "";
 
   @override
   void dispose() {
@@ -74,6 +82,8 @@ class AuthProvider extends ChangeNotifier {
         if (isValid) {
           _startRefreshTimer();
         }
+        // Fetch superadmin contact info dynamically
+        unawaited(fetchSuperAdminContact());
       }
     } on Exception catch (e) {
       _setError("Failed to initialize auth: $e");
@@ -482,6 +492,23 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Fetch Superadmin contact details from DB
+  Future<void> fetchSuperAdminContact() async {
+    try {
+      final api = ApiService();
+      final admin = await api.getSuperAdminUser();
+      
+      // Always use the superadmin found in the users table
+      if (admin != null) {
+        _supportPhone = admin['phone_number']?.toString();
+        _supportEmail = admin['email']?.toString();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("AuthProvider.fetchSuperAdminContact failed: $e");
+    }
   }
 
   // Get user display name

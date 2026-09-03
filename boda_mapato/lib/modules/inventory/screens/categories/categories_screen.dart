@@ -117,7 +117,8 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                           child: Text('No categories found',
                               style: ThemeConstants.captionStyle))
                       : Builder(builder: (ctx) {
-                          final bool compact = 1.sw < 420.w; // phone-friendly per ScreenUtil
+                          final bool compact =
+                              1.sw < 420.w; // phone-friendly per ScreenUtil
                           if (compact) {
                             // Compact: ID | Name | Code | Total | Status
                             return Scrollbar(
@@ -127,11 +128,14 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                                 controller: _compactHCtrl,
                                 scrollDirection: Axis.horizontal,
                                 child: ConstrainedBox(
-                                  constraints: BoxConstraints(minWidth: 1.25.sw),
+                                  constraints:
+                                      BoxConstraints(minWidth: 1.25.sw),
                                   child: DataTable(
                                     columnSpacing: 1.w,
                                     horizontalMargin: 2.w,
-                                    headingTextStyle: ThemeConstants.captionStyle.copyWith(fontWeight: FontWeight.bold),
+                                    headingTextStyle: ThemeConstants
+                                        .captionStyle
+                                        .copyWith(fontWeight: FontWeight.bold),
                                     dataTextStyle: ThemeConstants.bodyStyle,
                                     columns: const [
                                       DataColumn(label: Text('Category Name')),
@@ -141,18 +145,40 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                                     ],
                                     rows: cats.map((c) {
                                       final statusPill = Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 6.w, vertical: 2.h),
                                         decoration: BoxDecoration(
-                                          color: c.status == 'active' ? ThemeConstants.successGreen.withOpacity(0.18) : Colors.white10,
-                                          borderRadius: BorderRadius.circular(14.r),
-                                          border: Border.all(color: c.status == 'active' ? ThemeConstants.successGreen : Colors.white24),
+                                          color: c.status == 'active'
+                                              ? ThemeConstants.successGreen
+                                                  .withOpacity(0.18)
+                                              : Colors.white10,
+                                          borderRadius:
+                                              BorderRadius.circular(14.r),
+                                          border: Border.all(
+                                              color: c.status == 'active'
+                                                  ? ThemeConstants.successGreen
+                                                  : Colors.white24),
                                         ),
-                                        child: Text(c.status == 'active' ? 'Active' : 'Inactive', style: ThemeConstants.captionStyle),
+                                        child: Text(
+                                            c.status == 'active'
+                                                ? 'Active'
+                                                : 'Inactive',
+                                            style: ThemeConstants.captionStyle),
                                       );
                                       return DataRow(cells: [
-                                        DataCell(SizedBox(width: 128.w, child: AutoSizeText(c.name, maxLines: 1))),
-                                        DataCell(SizedBox(width: 48.w, child: AutoSizeText(c.code.isEmpty ? '—' : c.code, maxLines: 1))),
-                                        DataCell(SizedBox(width: 36.w, child: Text(c.totalProducts.toString()))),
+                                        DataCell(SizedBox(
+                                            width: 128.w,
+                                            child: AutoSizeText(c.name,
+                                                maxLines: 1))),
+                                        DataCell(SizedBox(
+                                            width: 48.w,
+                                            child: AutoSizeText(
+                                                c.code.isEmpty ? '—' : c.code,
+                                                maxLines: 1))),
+                                        DataCell(SizedBox(
+                                            width: 36.w,
+                                            child: Text(
+                                                c.totalProducts.toString()))),
                                         DataCell(statusPill),
                                       ]);
                                     }).toList(),
@@ -168,7 +194,8 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                             child: DataTable(
                               columnSpacing: 2.w,
                               horizontalMargin: 2.w,
-                              headingTextStyle: ThemeConstants.captionStyle.copyWith(fontWeight: FontWeight.bold),
+                              headingTextStyle: ThemeConstants.captionStyle
+                                  .copyWith(fontWeight: FontWeight.bold),
                               dataTextStyle: ThemeConstants.bodyStyle,
                               columns: const [
                                 DataColumn(label: Text('Category Name')),
@@ -176,7 +203,10 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                                 DataColumn(label: Text('T.products')),
                                 DataColumn(label: Text('Status')),
                               ],
-                              rows: cats.map((c) => _buildRow(context, inv, c, full:true)).toList(),
+                              rows: cats
+                                  .map((c) =>
+                                      _buildRow(context, inv, c, full: true))
+                                  .toList(),
                             ),
                           );
                         }),
@@ -189,8 +219,8 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
     );
   }
 
-  DataRow _buildRow(
-      BuildContext context, InventoryProvider inv, InvCategory c, {bool full = false}) {
+  DataRow _buildRow(BuildContext context, InventoryProvider inv, InvCategory c,
+      {bool full = false}) {
     final statusChip = Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
       decoration: BoxDecoration(
@@ -209,14 +239,15 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
 
     return DataRow(
       cells: [
-        DataCell(SizedBox(width: 150.w, child: AutoSizeText(c.name, maxLines: 1))),
+        DataCell(
+            SizedBox(width: 150.w, child: AutoSizeText(c.name, maxLines: 1))),
         DataCell(SizedBox(
             width: 64.w,
             child: AutoSizeText(c.code.isEmpty ? '—' : c.code, maxLines: 1))),
-        DataCell(SizedBox(width: 60.w, child: Text(c.totalProducts.toString()))),
+        DataCell(
+            SizedBox(width: 60.w, child: Text(c.totalProducts.toString()))),
         DataCell(statusChip),
       ],
     );
   }
-
 }

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rental_provider.dart';
+import '../../utils/rental_flow_validator.dart';
+import '../../utils/type_helpers.dart';
 
 class RentalArrearsScreen extends StatefulWidget {
   const RentalArrearsScreen({super.key});
@@ -13,13 +15,32 @@ class RentalArrearsScreen extends StatefulWidget {
 }
 
 class _RentalArrearsScreenState extends State<RentalArrearsScreen> {
+  RentalFlowStage? _flowStage;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final user = context.read<AuthProvider>().user;
+      final provider = context.read<RentalProvider>();
       if (user?.hasPermission('manage_properties_rental') ?? false) {
-        context.read<RentalProvider>().fetchArrears();
+        await provider.fetchProperties();
+        await provider.fetchTenants();
+        await provider.fetchArrears();
+
+        if (!context.mounted) return;
+
+        if (!RentalFlowValidator.hasProperties(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoProperties);
+        } else if (!RentalFlowValidator.hasHouses(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoHouses);
+        } else if (!RentalFlowValidator.hasTenants(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoTenants);
+        } else if (!RentalFlowValidator.hasActiveAgreements(provider)) {
+          setState(() => _flowStage = RentalFlowStage.hasNoAgreements);
+        } else {
+          setState(() => _flowStage = RentalFlowStage.complete);
+        }
       }
     });
   }
@@ -32,46 +53,58 @@ class _RentalArrearsScreenState extends State<RentalArrearsScreen> {
     return ThemeConstants.buildResponsiveScaffold(
       context,
       title: "Deni la Kodi",
-      body: rentalProvider.isLoading && arrears.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : arrears.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.check_circle,
-                          size: 64, color: ThemeConstants.successGreen),
-                      SizedBox(height: 16.h),
-                      Text("Hakuna deni!",
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 16.sp)),
-                      Text("Wapangaji wote wamelipa",
-                          style: TextStyle(
-                              color: Colors.white38, fontSize: 14.sp)),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    _buildSummaryCard(context, arrears),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: EdgeInsets.all(16.w),
-                        itemCount: arrears.length,
-                        itemBuilder: (context, index) {
-                          final bill = arrears[index];
-                          return _buildArrearCard(context, bill);
-                        },
+      body: Column(
+        children: [
+          if (_flowStage != null && _flowStage != RentalFlowStage.complete)
+            RentalFlowValidator.buildStageBanner(
+                  stage: _flowStage!,
+                  context: context,
+                ) ??
+                const SizedBox.shrink(),
+          Expanded(
+            child: rentalProvider.isLoading && arrears.isEmpty
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                : arrears.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.check_circle,
+                                size: 64, color: ThemeConstants.successGreen),
+                            SizedBox(height: 16.h),
+                            Text("Hakuna deni!",
+                                style: TextStyle(
+                                    color: Colors.white54, fontSize: 16.sp)),
+                            Text("Wapangaji wote wamelipa",
+                                style: TextStyle(
+                                    color: Colors.white38, fontSize: 14.sp)),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          _buildSummaryCard(context, arrears),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: EdgeInsets.all(16.w),
+                              itemCount: arrears.length,
+                              itemBuilder: (context, index) {
+                                final bill = arrears[index];
+                                return _buildArrearCard(context, bill);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSummaryCard(BuildContext context, List arrears) {
     final totalArrears = arrears.fold<double>(
-        0, (sum, b) => sum + ((b['balance'] ?? 0).toDouble()));
+        0, (sum, b) => sum + TypeHelpers.toDouble(b['balance']));
     final overdueCount = arrears.where((b) => b['status'] == 'overdue').length;
     final partialCount = arrears.where((b) => b['status'] == 'partial').length;
 
@@ -173,7 +206,7 @@ class _RentalArrearsScreenState extends State<RentalArrearsScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "TSh ${_formatCurrency((bill['balance'] ?? 0).toDouble())}",
+                  "TSh ${_formatCurrency(TypeHelpers.toDouble(bill['balance']))}",
                   style: TextStyle(
                       color: statusColor,
                       fontSize: 16.sp,

@@ -226,6 +226,7 @@ class _HouseDetailsScreenState extends State<HouseDetailsScreen> {
               ).then((_) {
                 context.read<RentalProvider>().fetchPropertyDetails(
                     h['property_id']?.toString() ?? '');
+                _loadFullDetails();
               }),
             ),
           ),

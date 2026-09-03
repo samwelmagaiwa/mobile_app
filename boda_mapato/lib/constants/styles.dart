@@ -212,6 +212,8 @@ mixin AppStyles {
   // Responsive Input Decoration Theme
   static InputDecorationTheme inputDecorationTheme(BuildContext context) =>
       InputDecorationTheme(
+        hintStyle: const TextStyle(color: Colors.white54),
+        labelStyle: const TextStyle(color: Colors.white),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(
             ResponsiveUtils.getResponsiveBorderRadius(context, 8),

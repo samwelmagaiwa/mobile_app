@@ -101,15 +101,15 @@ class _OnboardTenantScreenState extends State<OnboardTenantScreen> {
         _amountController.text = rent;
       }
       
-      // Enforce wizard flow
+      // Enforce wizard flow: Must have at least one property with houses
       RentalFlowValidator.validateStep(
         context: context,
         fetchData: (p) => p.fetchProperties(),
         condition: (p) => RentalFlowValidator.hasHouses(p),
-        title: "No Houses Found",
-        message: "You need to create a property and add a house before you can onboard a tenant.",
-        actionLabel: "Add Property",
-        onAction: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CreatePropertyScreen())),
+        title: "Hakuna Nyumba",
+        message: "Unahitaji kuwa na mali na nyumba kabla ya kusajili mpangaji.",
+        actionLabel: "Ongeza Mali",
+        actionRoute: "/rental/add-property",
       );
       context.read<RentalProvider>().fetchTenants();
     });

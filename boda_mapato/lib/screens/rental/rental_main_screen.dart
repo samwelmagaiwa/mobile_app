@@ -9,7 +9,9 @@ import '../../services/localization_service.dart';
 import '../../services/navigation_builder.dart';
 import '../../widgets/service_switcher_dialog.dart';
 import 'billing_list_screen.dart';
+import 'rental_arrears_screen.dart';
 import 'rental_dashboard_screen.dart';
+import 'rental_receipts_screen.dart';
 import 'tenants_list_screen.dart';
 
 class RentalMainScreen extends StatefulWidget {
@@ -26,18 +28,12 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
   final List<Widget> _pages = [
     const RentalDashboardScreen(isSubView: true),
     const BillingListScreen(isSubView: true),
-    // Placeholder for Arrears/Debts
-    Center(
-        child: Text(
-            LocalizationService.instance.translate("coming_soon_arrears"),
-            style: const TextStyle(color: Colors.white))),
+    // Arrears Screen (Index 2)
+    const RentalArrearsScreen(),
     // Tenants List Screen (Index 3)
     const TenantsListScreen(isSubView: true),
-    // Placeholder for Receipts List
-    Center(
-        child: Text(
-            LocalizationService.instance.translate("coming_soon_receipts"),
-            style: const TextStyle(color: Colors.white))),
+    // Receipts Screen (Index 4)
+    const RentalReceiptsScreen(isSubView: true),
   ];
 
   void _onItemTapped(int index) {
@@ -109,15 +105,18 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                 // Left side: Rent Payments, Arrears
                 Row(
                   children: <Widget>[
-                    if (user?.hasPermission('manage_billing_rental') ?? false)
+                    if (user?.hasPermission('manage_properties_rental') ?? false)
                       _FooterIcon(
                         icon: Icons.payments_outlined,
                         isSelected: _selectedIndex == 1,
                         onTap: () => _onItemTapped(1),
                       ),
-                    if ((user?.hasPermission('manage_billing_rental') ?? false) && (user?.hasPermission('manage_debts_transport') ?? false))
+                    if ((user?.hasPermission('manage_properties_rental') ??
+                            false) &&
+                        (user?.hasPermission('manage_properties_rental') ??
+                            false))
                       SizedBox(width: 14.w),
-                    if (user?.hasPermission('manage_debts_transport') ?? false)
+                    if (user?.hasPermission('manage_properties_rental') ?? false)
                       _FooterIcon(
                         icon: Icons.pending_actions,
                         isSelected: _selectedIndex == 2,
@@ -144,9 +143,13 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                         isSelected: _selectedIndex == 3,
                         onTap: () => _onItemTapped(3),
                       ),
-                    if ((user?.hasPermission('onboard_tenants_rental') ?? false) && (user?.hasPermission('manage_receipts_transport') ?? false))
+                    if ((user?.hasPermission('onboard_tenants_rental') ??
+                            false) &&
+                        (user?.hasPermission('manage_receipts_transport') ??
+                            false))
                       SizedBox(width: 14.w),
-                    if (user?.hasPermission('manage_receipts_transport') ?? false)
+                    if (user?.hasPermission('manage_receipts_transport') ??
+                        false)
                       _FooterIcon(
                         icon: Icons.receipt_long_outlined,
                         isSelected: _selectedIndex == 4,
@@ -181,8 +184,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: ThemeConstants.cardColor,
-                    child: Text(
-                        user?.name.substring(0, 1).toUpperCase() ?? "L",
+                    child: Text(user?.name.substring(0, 1).toUpperCase() ?? "L",
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
@@ -192,7 +194,7 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold)),
-                  Text(user?.email ?? "landlord@mapato.com",
+                  Text(user?.email ?? "landlord@allinone.com",
                       style: const TextStyle(
                           color: ThemeConstants.textSecondary, fontSize: 14)),
                 ],
@@ -204,41 +206,51 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
               padding: EdgeInsets.zero,
               children: [
                 for (final item in NavigationConfig.rentalDrawerItems)
-                  if (item.isSystemItem || NavigationBuilder.getAvailableNavigationItems(user).any((i) => i.key == item.key))
+                  if (item.isSystemItem ||
+                      NavigationBuilder.getAvailableNavigationItems(user)
+                          .any((i) => i.key == item.key))
                     _DrawerItem(
-                    icon: item.icon,
-                    label: LocalizationService.instance.translate(item.key),
-                    onTap: () {
-                      final isTenant = user?.role == 'tenant';
-                      
-                      if (item.key == 'rental_dashboard') {
-                        _onItemTapped(0);
-                      } else if (item.key == 'rent_payments' || item.key == 'tenant_self_service' || item.key == 'billing_reports') {
-                        if (isTenant) {
-                          Navigator.pushNamed(context, '/rental/tenant-self-service');
-                        } else if (item.key == 'rent_payments') {
-                          _onItemTapped(1);
-                        } else if (item.key == 'billing_reports') {
+                      icon: item.icon,
+                      label: LocalizationService.instance.translate(item.key),
+                      onTap: () {
+                        final isTenant = user?.role == 'tenant';
+
+                        if (item.key == 'rental_dashboard') {
+                          _onItemTapped(0);
+                        } else if (item.key == 'rent_payments' ||
+                            item.key == 'tenant_self_service' ||
+                            item.key == 'billing_reports') {
+                          if (isTenant) {
+                            Navigator.pushNamed(
+                                context, '/rental/tenant-self-service');
+                          } else if (item.key == 'rent_payments') {
+                            _onItemTapped(1);
+                          } else if (item.key == 'billing_reports') {
+                            Navigator.pushNamed(context, item.route);
+                          }
+                        } else if (item.key == 'arrears') {
+                          _onItemTapped(2);
+                        } else if (item.key == 'tenants') {
+                          _onItemTapped(3);
+                        } else if (item.key == 'lease_agreements') {
+                          Navigator.pushNamed(
+                              context,
+                              isTenant
+                                  ? '/rental/tenant-self-service'
+                                  : '/rental/agreements');
+                        } else if (item.key == 'lease_templates') {
+                          Navigator.pushNamed(
+                              context, '/rental/lease-templates');
+                        } else if (item.key == 'switch_service') {
+                          showDialog(
+                              context: context,
+                              builder: (context) =>
+                                  const ServiceSwitcherDialog());
+                        } else {
                           Navigator.pushNamed(context, item.route);
                         }
-                      } else if (item.key == 'arrears') {
-                        _onItemTapped(2);
-                      } else if (item.key == 'tenants') {
-                        _onItemTapped(3);
-                      } else if (item.key == 'lease_agreements') {
-                        Navigator.pushNamed(context, isTenant ? '/rental/tenant-self-service' : '/rental/agreements');
-                      } else if (item.key == 'lease_templates') {
-                        Navigator.pushNamed(context, '/rental/lease-templates');
-                      } else if (item.key == 'switch_service') {
-                        showDialog(
-                            context: context,
-                            builder: (context) =>
-                                const ServiceSwitcherDialog());
-                      } else {
-                        Navigator.pushNamed(context, item.route);
-                      }
-                    },
-                  ),
+                      },
+                    ),
                 const Divider(color: Colors.white10),
                 _DrawerItem(
                   icon: Icons.logout,
@@ -260,10 +272,10 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
 }
 
 class _FooterIcon extends StatelessWidget {
-
   const _FooterIcon({
     required this.icon,
-    required this.onTap, this.isSelected = false,
+    required this.onTap,
+    this.isSelected = false,
     this.isCenter = false,
   });
   final IconData icon;
@@ -297,7 +309,6 @@ class _FooterIcon extends StatelessWidget {
 }
 
 class _DrawerItem extends StatelessWidget {
-
   const _DrawerItem({
     required this.icon,
     required this.label,

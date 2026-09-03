@@ -21,7 +21,8 @@ class InvCategory {
   final String description;
   final int? parentId; // nullable for root categories
   final String? imagePath; // local path or URL
-  final String status; // 'active' | 'inactive' (stored lower-case for consistency)
+  final String
+      status; // 'active' | 'inactive' (stored lower-case for consistency)
   final int totalProducts; // computed in provider
   final int createdBy;
   final DateTime createdAt;
