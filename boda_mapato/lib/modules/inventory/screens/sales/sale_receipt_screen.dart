@@ -332,19 +332,14 @@ class _ReceiptPaper extends StatelessWidget {
 
                 // ── Grand total ───────────────────────────────────────────
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D0D0D),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
                       Expanded(child: Text('JUMLA YOTE',
-                          style: _total.copyWith(color: Colors.white, fontSize: 14, letterSpacing: 1))),
+                          style: _total.copyWith(color: const Color(0xFF0D0D0D), fontSize: 14, letterSpacing: 1))),
                       Text('TZS ${_fmt(sale.total)}',
-                          style: _total.copyWith(color: Colors.white)),
+                          style: _total.copyWith(color: const Color(0xFF0D0D0D))),
                     ],
                   ),
                 ),
