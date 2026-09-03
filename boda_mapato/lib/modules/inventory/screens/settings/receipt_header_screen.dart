@@ -443,8 +443,20 @@ class _ReceiptPreview extends StatelessWidget {
     color: Color(0xFF111111),
   );
 
+  // Strip literal "null" or blank
+  static String _v(String s) => (s.trim() == 'null' || s.trim().isEmpty) ? '' : s.trim();
+
   @override
   Widget build(BuildContext context) {
+    final name    = _v(shopName).isEmpty ? 'JINA LA DUKA' : _v(shopName);
+    final tag     = _v(tagline);
+    final addr    = _v(address);
+    final ph      = _v(phone);
+    final em      = _v(email);
+    final web     = _v(website);
+    final tinVal  = showTin ? _v(tin) : '';
+    final footer  = _v(footerNote);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -454,96 +466,139 @@ class _ReceiptPreview extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFFAFAF8),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withOpacity(0.20), blurRadius: 18, offset: const Offset(0, 6)),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ── Header identity
-              Text(shopName, style: _header, textAlign: TextAlign.center),
-              if (tagline.isNotEmpty) ...[
+              // ── Logo + shop name side by side
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D0D0D),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(child: Text(name, style: _header, textAlign: TextAlign.left)),
+                ],
+              ),
+              if (tag.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text(tagline, style: _sub, textAlign: TextAlign.center),
+                Text(tag, style: _sub.copyWith(fontStyle: FontStyle.italic), textAlign: TextAlign.center),
               ],
-              if (address.isNotEmpty) ...[
+              // ── Phone left + TIN right
+              if (ph.isNotEmpty || tinVal.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (ph.isNotEmpty)
+                      Row(children: [
+                        const Icon(Icons.phone_rounded, size: 11, color: Color(0xFF0D0D0D)),
+                        const SizedBox(width: 3),
+                        Text(ph, style: _sub.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0D0D0D))),
+                      ]),
+                    const Spacer(),
+                    if (tinVal.isNotEmpty)
+                      Text('TIN: $tinVal', style: _sub.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0D0D0D))),
+                  ],
+                ),
+              ],
+              // ── Remaining contact (address, email, website)
+              if (addr.isNotEmpty || em.isNotEmpty || web.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text(address, style: _sub, textAlign: TextAlign.center),
+                for (final line in [
+                  if (addr.isNotEmpty) addr,
+                  if (em.isNotEmpty) em,
+                  if (web.isNotEmpty) web,
+                ])
+                  Text(line, style: _sub, textAlign: TextAlign.center),
               ],
-              if (phone.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text('Tel: $phone', style: _sub, textAlign: TextAlign.center),
-              ],
-              if (email.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(email, style: _sub, textAlign: TextAlign.center),
-              ],
-              if (website.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(website, style: _sub, textAlign: TextAlign.center),
-              ],
-              if (showTin && tin.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text('TIN: $tin', style: _sub, textAlign: TextAlign.center),
-              ],
-              const SizedBox(height: 10),
-              Text(_stars, style: _starStyle),
-              const SizedBox(height: 6),
-              const Text('RISITI YA MAUZO', style: _sectionHead),
-              const SizedBox(height: 6),
-              Text(_stars, style: _starStyle),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-              // ── Sample item rows
-              _row('Bidhaa', 'Bei', bold: true),
-              const Divider(height: 6, color: Color(0xFFCCCCCC)),
-              _row('Soda 300ml × 12', '14,400.00'),
-              _indented('12 × 1,200.00'),
-              _row('Maji × 6', '3,000.00'),
-              _indented('6 × 500.00'),
+              // ── Receipt title
+              Row(children: [
+                const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('RISITI YA MAUZO',
+                      style: TextStyle(fontFamily: 'Courier', fontSize: 11,
+                          fontWeight: FontWeight.w900, letterSpacing: 3, color: Color(0xFF0D0D0D))),
+                ),
+                const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+              ]),
+              const SizedBox(height: 8),
+
+              // ── Sample meta row
+              _metaRow('🧾', 'Nambari', 'S-20260903-0001', '📅', 'Tarehe', '03 Sep 2026'),
+              const SizedBox(height: 4),
+              _metaRow('⏰', 'Saa', '12:00', '💳', 'Hali ya Malipo', 'Imelipwa'),
+              const SizedBox(height: 8),
+
+              // ── Items header
+              Row(children: [
+                Expanded(child: Text('BIDHAA', style: _bodyBold.copyWith(fontSize: 10, letterSpacing: 1))),
+                Text('QTY', style: _sub.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                SizedBox(width: 64, child: Text('JUMLA', style: _sub.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+              ]),
+              _dash(),
+              _itemRow('Soda 300ml', '×12', '14,400'),
+              _itemRow('Maji Baridi', '×6',  '3,000'),
+              _dash(),
+
+              // ── Totals
+              _tRow('JUMLA YOTE', 'TZS 16,900', bold: true),
+              const SizedBox(height: 4),
+              Row(children: [
+                const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('MALIPO', style: TextStyle(fontFamily: 'Courier', fontSize: 10,
+                        fontWeight: FontWeight.w900, letterSpacing: 3, color: Color(0xFF0D0D0D)))),
+                const Expanded(child: Divider(color: Color(0xFF0D0D0D), thickness: 1)),
+              ]),
+              const SizedBox(height: 2),
+              _tRow('Njia ya Malipo', 'Taslimu'),
+              _tRow('Kilicholipwa', 'TZS 20,000', bold: true),
+              _tRow('Chenji', 'TZS 3,100'),
               const SizedBox(height: 6),
+              const Text('✓  MALIPO KAMILI',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontFamily: 'Courier', fontSize: 12,
+                      fontWeight: FontWeight.w900, letterSpacing: 2, color: Color(0xFF1B5E20))),
+              const SizedBox(height: 8),
+
+              // ── Footer
               Text(_stars, style: _starStyle),
               const SizedBox(height: 4),
-              _row('Punguzo', '- 500.00'),
-              _row('JUMLA', '16,900.00', bold: true, large: true),
-              Text(_stars, style: _starStyle),
-              const SizedBox(height: 6),
-              _row('Njia ya Malipo', 'Taslimu'),
-              _row('Kilicholipwa', '20,000.00', bold: true),
-              _row('Chenji', '3,100.00'),
-              const SizedBox(height: 8),
-              Text(_stars, style: _starStyle),
-              const SizedBox(height: 10),
-
-              // ── Footer note
-              if (footerNote.isNotEmpty) ...[
-                Text(
-                  footerNote,
-                  style: _sub.copyWith(fontSize: 10),
+              const Text('★  ASANTE SANA!  ★',
                   textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-              ],
-              const Text(
-                '* * ASANTE SANA! * *',
-                style: TextStyle(
-                  fontFamily: 'Courier',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 3,
-                  color: Color(0xFF111111),
-                ),
+                  style: TextStyle(fontFamily: 'Courier', fontSize: 13,
+                      fontWeight: FontWeight.w900, letterSpacing: 3, color: Color(0xFF0D0D0D))),
+              const SizedBox(height: 3),
+              Text(
+                footer.isNotEmpty ? footer : 'Bidhaa zilizouzwa haziruhusiwi kurudishwa bila risiti.',
+                style: _sub.copyWith(fontSize: 10, height: 1.4),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 4),
+              Text(_stars, style: _starStyle),
 
-              // ── Barcode
               if (showBarcode) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
                 _BarcodeStrip(),
-                const SizedBox(height: 4),
-                const Text('S-20260903-0001', style: _sub),
+                const SizedBox(height: 3),
+                const Text('S-20260903-0001', style: TextStyle(fontFamily: 'Courier', fontSize: 9,
+                    letterSpacing: 2, color: Color(0xFF333333))),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -552,27 +607,65 @@ class _ReceiptPreview extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false, bool large = false}) {
-    final style = bold ? _bodyBold : _body;
-    final sized = large ? style.copyWith(fontSize: 13, fontWeight: FontWeight.w900) : style;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: sized)),
-          Text(value, style: sized),
-        ],
-      ),
-    );
-  }
+  Widget _dash() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: CustomPaint(size: const Size(double.infinity, 1),
+            painter: _DashPainter()),
+      );
 
-  Widget _indented(String text) => Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 2),
-          child: Text(text, style: _sub),
+  Widget _itemRow(String name, String qty, String total) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            Expanded(child: Text(name, style: _body)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(color: const Color(0xFF0D0D0D), borderRadius: BorderRadius.circular(3)),
+              child: Text(qty, style: const TextStyle(fontFamily: 'Courier', fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(width: 64, child: Text('TZS $total', style: _body, textAlign: TextAlign.right)),
+          ],
         ),
       );
+
+  Widget _tRow(String label, String value, {bool bold = false}) {
+    final ts = TextStyle(fontFamily: 'Courier', fontSize: 11,
+        fontWeight: bold ? FontWeight.w800 : FontWeight.w400,
+        color: const Color(0xFF1A1A1A), height: 1.2);
+    return Row(children: [
+      Expanded(child: Text(label, style: ts.copyWith(color: const Color(0xFF2A2A2A), fontWeight: FontWeight.w600))),
+      Text(value, style: ts),
+    ]);
+  }
+
+  Widget _metaRow(String li, String ll, String lv, String ri, String rl, String rv) =>
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('$li  $ll', style: const TextStyle(fontFamily: 'Courier', fontSize: 9, color: Color(0xFF555555), fontWeight: FontWeight.w600)),
+          Text(lv, style: const TextStyle(fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D))),
+        ]),
+        Expanded(child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: CustomPaint(size: const Size(double.infinity, 1), painter: _DashPainter(color: const Color(0xFF999999))),
+        )),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('$rl  $ri', style: const TextStyle(fontFamily: 'Courier', fontSize: 9, color: Color(0xFF555555), fontWeight: FontWeight.w600)),
+          Text(rv, style: const TextStyle(fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF0D0D0D))),
+        ]),
+      ]);
+}
+
+class _DashPainter extends CustomPainter {
+  const _DashPainter({this.color = const Color(0xFFCCCCCC)});
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..color = color..strokeWidth = 1;
+    double x = 0;
+    while (x < size.width) { canvas.drawLine(Offset(x, 0), Offset(x + 4, 0), p); x += 8; }
+  }
+  @override bool shouldRepaint(covariant CustomPainter _) => false;
 }
 
 /// Minimal barcode stand-in (same painter as the real receipt screen).
