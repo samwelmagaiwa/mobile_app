@@ -105,28 +105,22 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                 // Left side: Rent Payments, Arrears
                 Row(
                   children: <Widget>[
-                    if (user?.hasPermission('manage_properties_rental') ?? false)
-                      _FooterIcon(
-                        icon: Icons.payments_outlined,
-                        isSelected: _selectedIndex == 1,
-                        onTap: () => _onItemTapped(1),
-                      ),
-                    if ((user?.hasPermission('manage_properties_rental') ??
-                            false) &&
-                        (user?.hasPermission('manage_properties_rental') ??
-                            false))
-                      SizedBox(width: 14.w),
-                    if (user?.hasPermission('manage_properties_rental') ?? false)
-                      _FooterIcon(
-                        icon: Icons.pending_actions,
-                        isSelected: _selectedIndex == 2,
-                        onTap: () => _onItemTapped(2),
-                      ),
+                    _FooterIcon(
+                      icon: Icons.payments_rounded,
+                      isSelected: _selectedIndex == 1,
+                      onTap: () => _onItemTapped(1),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.pending_actions_rounded,
+                      isSelected: _selectedIndex == 2,
+                      onTap: () => _onItemTapped(2),
+                    ),
                   ],
                 ),
                 // Center: Menu
                 _FooterIcon(
-                  icon: Icons.apps,
+                  icon: Icons.apps_rounded,
                   isCenter: true,
                   onTap: () =>
                       NavigationBuilder.showGridMenu(context, customItems: [
@@ -137,24 +131,17 @@ class _RentalMainScreenState extends State<RentalMainScreen> {
                 // Right side: Tenants, Receipts
                 Row(
                   children: <Widget>[
-                    if (user?.hasPermission('onboard_tenants_rental') ?? false)
-                      _FooterIcon(
-                        icon: Icons.people_alt_outlined,
-                        isSelected: _selectedIndex == 3,
-                        onTap: () => _onItemTapped(3),
-                      ),
-                    if ((user?.hasPermission('onboard_tenants_rental') ??
-                            false) &&
-                        (user?.hasPermission('manage_receipts_transport') ??
-                            false))
-                      SizedBox(width: 14.w),
-                    if (user?.hasPermission('manage_receipts_transport') ??
-                        false)
-                      _FooterIcon(
-                        icon: Icons.receipt_long_outlined,
-                        isSelected: _selectedIndex == 4,
-                        onTap: () => _onItemTapped(4),
-                      ),
+                    _FooterIcon(
+                      icon: Icons.people_alt_rounded,
+                      isSelected: _selectedIndex == 3,
+                      onTap: () => _onItemTapped(3),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.receipt_long_rounded,
+                      isSelected: _selectedIndex == 4,
+                      onTap: () => _onItemTapped(4),
+                    ),
                   ],
                 ),
               ],

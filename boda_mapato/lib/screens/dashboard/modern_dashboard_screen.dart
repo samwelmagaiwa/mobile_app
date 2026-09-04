@@ -1385,52 +1385,46 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 // Left side: Payments, Debts
                 Row(
                   children: <Widget>[
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_payments_transport') ?? false)
-                      _FooterIcon(
-                        icon: Icons.payments_outlined,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const PaymentsScreen()),
-                        ),
+                    _FooterIcon(
+                      icon: Icons.payments_rounded,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PaymentsScreen()),
                       ),
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_payments_transport') ?? false)
-                      SizedBox(width: 14.w),
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_debts_transport') ?? false)
-                      _FooterIcon(
-                        icon: Icons.pending_actions,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DebtsManagementScreen()),
-                        ),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.pending_actions_rounded,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const DebtsManagementScreen()),
                       ),
+                    ),
                   ],
                 ),
                 // Center: Menu
                 _FooterIcon(
-                  icon: Icons.apps,
+                  icon: Icons.apps_rounded,
                   onTap: () => NavigationBuilder.showGridMenu(context),
                 ),
                 // Right side: Drivers, Receipts
                 Row(
                   children: <Widget>[
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_drivers_transport') ?? false)
-                      _FooterIcon(
-                        icon: Icons.people_alt_outlined,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DriversManagementScreen()),
-                        ),
+                    _FooterIcon(
+                      icon: Icons.people_alt_rounded,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const DriversManagementScreen()),
                       ),
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_drivers_transport') ?? false)
-                      SizedBox(width: 14.w),
-                    if (context.read<AuthProvider>().user?.hasPermission('manage_receipts_transport') ?? false)
-                      _FooterIcon(
-                        icon: Icons.receipt_long_outlined,
-                        onTap: () => _navigateToReceiptsList(filter: 'generated'),
-                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    _FooterIcon(
+                      icon: Icons.receipt_long_rounded,
+                      onTap: () => _navigateToReceiptsList(filter: 'generated'),
+                    ),
                   ],
                 ),
               ],
