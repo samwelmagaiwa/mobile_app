@@ -74,6 +74,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _active = p.status == 'active';
       _categoryId = p.categoryId;
       _brandId = p.brandId;
+      _isRetail = !p.isWholesale;
     }
     _name.addListener(_onNameChanged);
     _sku.addListener(_onSkuChanged);
