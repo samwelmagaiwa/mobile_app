@@ -40,7 +40,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   String _unit = 'crate';
   bool _active = true;
-  bool _isRetail = false; // Default: turned off (Wholesale Mode)
+  bool _isWholesale = false; // OFF = retail (default), ON = wholesale
   int? _categoryId;
   int? _brandId;
   bool _saving = false;
@@ -74,7 +74,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _active = p.status == 'active';
       _categoryId = p.categoryId;
       _brandId = p.brandId;
-      _isRetail = !p.isWholesale;
+      _isWholesale = p.isWholesale;
     }
     _name.addListener(_onNameChanged);
     _sku.addListener(_onSkuChanged);
@@ -208,21 +208,21 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                       decoration: BoxDecoration(
-                        color: _isRetail 
-                            ? ThemeConstants.primaryOrange.withValues(alpha: 0.12)
-                            : ThemeConstants.primaryCyan.withValues(alpha: 0.12),
+                        color: _isWholesale
+                            ? ThemeConstants.primaryCyan.withValues(alpha: 0.12)
+                            : ThemeConstants.primaryOrange.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(14.r),
                         border: Border.all(
-                          color: _isRetail 
-                              ? ThemeConstants.primaryOrange.withValues(alpha: 0.35)
-                              : ThemeConstants.primaryCyan.withValues(alpha: 0.35),
+                          color: _isWholesale
+                              ? ThemeConstants.primaryCyan.withValues(alpha: 0.35)
+                              : ThemeConstants.primaryOrange.withValues(alpha: 0.35),
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            _isRetail ? Icons.shopping_cart_outlined : Icons.inventory_2_outlined,
-                            color: _isRetail ? ThemeConstants.primaryOrange : ThemeConstants.primaryCyan,
+                            _isWholesale ? Icons.inventory_2_outlined : Icons.shopping_cart_outlined,
+                            color: _isWholesale ? ThemeConstants.primaryCyan : ThemeConstants.primaryOrange,
                             size: 22.sp,
                           ),
                           SizedBox(width: 10.w),
@@ -231,30 +231,30 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _isRetail ? '🛒 Retail Mode (Rejareja)' : '🏬 Wholesale Mode (Jumla)',
+                                  _isWholesale ? '🏬 Wholesale Mode (Jumla)' : '🛒 Retail Mode (Rejareja)',
                                   style: ThemeConstants.bodyStyle.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: _isRetail ? ThemeConstants.primaryOrange : ThemeConstants.primaryCyan,
+                                    color: _isWholesale ? ThemeConstants.primaryCyan : ThemeConstants.primaryOrange,
                                   ),
                                 ),
                                 Text(
-                                  _isRetail
-                                      ? 'Rejareja: Inaonyesha vipimo vya moja moja na bei za Variants/Actual Price.'
-                                      : 'Jumla (Default): Haionyeshi Variants wala Actual Price. Inatumia bei za Crate/Carton.',
+                                  _isWholesale
+                                      ? 'Jumla: Haionyeshi Variants wala Actual Price. Inatumia bei za Crate/Carton.'
+                                      : 'Rejareja (Default): Inaonyesha vipimo vya moja moja na bei za Variants/Actual Price.',
                                   style: ThemeConstants.captionStyle.copyWith(fontSize: 10.sp),
                                 ),
                               ],
                             ),
                           ),
                           Switch(
-                            value: _isRetail,
-                            activeThumbColor: ThemeConstants.primaryOrange,
+                            value: _isWholesale,
+                            activeThumbColor: ThemeConstants.primaryCyan,
                             onChanged: (v) {
                               setState(() {
-                                _isRetail = v;
-                                if (!_isRetail && (_unit == 'pcs' || _unit == 'bottle')) {
+                                _isWholesale = v;
+                                if (_isWholesale && (_unit == 'pcs' || _unit == 'bottle')) {
                                   _unit = 'crate';
-                                } else if (_isRetail && _unit == 'crate') {
+                                } else if (!_isWholesale && _unit == 'crate') {
                                   _unit = 'pcs';
                                 }
                               });
@@ -277,7 +277,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                             padding: EdgeInsets.zero,
                           )),
                     ),
-                    if (_isRetail) ...[
+                    if (!_isWholesale) ...[
                       SizedBox(height: 8.h),
                       _variantBlock(loc),
                     ],
@@ -872,7 +872,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             unit: _unit,
             status: _active ? 'active' : 'inactive',
             barcode: barcode,
-            priceTier: _isRetail ? 'retail' : 'wholesale',
+            priceTier: _isWholesale ? 'wholesale' : 'retail',
           );
 
     if (!mounted) return;
