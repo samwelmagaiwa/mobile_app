@@ -324,12 +324,16 @@ class _StockInFormState extends State<_StockInForm> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
-                            Text(
-                              '📊 Jumla Mpya itakayokuwepo:',
-                              style: ThemeConstants.bodyStyle.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Text(
+                                '📊 Jumla Mpya itakayokuwepo:',
+                                style: ThemeConstants.bodyStyle.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            SizedBox(width: 8.w),
                             Text(
                               '$newTotalStock ${selectedProduct.unit}',
                               style: ThemeConstants.bodyStyle.copyWith(

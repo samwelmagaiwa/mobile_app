@@ -67,6 +67,7 @@ class UserData {
     this.avatarUrl,
     this.permissions,
     this.fullAccess = false,
+    this.serviceTypes = const <String>[],
   });
 
   factory UserData.fromJson(final Map<String, dynamic> json) => UserData(
@@ -96,6 +97,7 @@ class UserData {
             ? List<String>.from((json["permissions"] as List).map((e) => e.toString()))
             : null,
         fullAccess: (json["full_access"] as bool?) ?? false,
+        serviceTypes: _pickServiceTypes(json),
       );
   final String id;
   final String name;
@@ -110,6 +112,9 @@ class UserData {
   final String? avatarUrl;
   final List<String>? permissions;
   final bool fullAccess;
+  /// Services (rental/transport/inventory) this account is bound to.
+  /// Empty means an admin hasn't assigned one yet.
+  final List<String> serviceTypes;
 
   bool hasPermission(String permission) {
     if (isSuperAdmin || fullAccess) return true;
@@ -123,6 +128,23 @@ class UserData {
   bool get isDriver => role == "driver";
   bool get isVendor => role == "vendor";
   bool get canManageDrivers => isSuperAdmin || isAdmin;
+
+  static List<String> _pickServiceTypes(Map<String, dynamic> json) {
+    // `services` is the eager-loaded relation (login / /auth/user);
+    // `service_types` is the flat list some admin endpoints return.
+    final dynamic services = json['services'] ?? json['service_types'];
+    if (services is List) {
+      return services
+          .map((dynamic e) =>
+              e is Map ? (e['service_type']?.toString() ?? '') : e.toString())
+          .where((String s) => s.isNotEmpty)
+          .toSet()
+          .toList();
+    }
+    // Legacy single-value fallback.
+    final String? single = json['service_type'] as String?;
+    return single != null && single.isNotEmpty ? <String>[single] : <String>[];
+  }
 
   static String? _pickAvatarUrl(Map<String, dynamic> json) {
     final List<String> keys = <String>[
@@ -139,6 +161,12 @@ class UserData {
       if (v is String && v.trim().isNotEmpty) return v.trim();
     }
     return null;
+  }
+
+  static List<String> _pickServiceTypes(Map<String, dynamic> json) {
+    final dynamic v = json['service_types'] ?? json['serviceTypes'];
+    if (v is List) return v.map((e) => e.toString()).toList();
+    return const <String>[];
   }
 }
 
