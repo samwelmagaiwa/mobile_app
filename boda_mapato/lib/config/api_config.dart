@@ -48,7 +48,7 @@ mixin ApiConfig {
   }
 
   // Connection timeout
-  static const Duration timeoutDuration = Duration(seconds: 30);
+  static const Duration timeoutDuration = Duration(seconds: 12);
 
   // Headers
   static Map<String, String> get headers => <String, String>{

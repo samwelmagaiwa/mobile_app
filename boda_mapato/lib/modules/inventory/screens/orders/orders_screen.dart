@@ -76,76 +76,14 @@ class InventoryOrdersScreen extends StatefulWidget {
 class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
   String _statusFilter = 'All';
 
-  List<PurchaseOrder> _mock() {
-    final items = [
-      PurchaseOrderItem(
-        itemId: 45,
-        productName: 'Paracetamol 500mg',
-        sku: 'PRC-500',
-        category: 'Medicine',
-        qty: 100,
-        unitCost: 300,
-        received: 80,
-        receivedDate: DateTime.now().subtract(const Duration(days: 2)),
-        warehouse: 'Main Warehouse',
-        status: 'Partial',
-        createdBy: 'Sales Officer',
-      ),
-      PurchaseOrderItem(
-        itemId: 46,
-        productName: 'Glucose Saline 1L',
-        sku: 'GLC-1L',
-        category: 'Medicine',
-        qty: 40,
-        unitCost: 2500,
-        received: 40,
-        receivedDate: DateTime.now().subtract(const Duration(days: 1)),
-        warehouse: 'Main Warehouse',
-        status: 'Received',
-        createdBy: 'Sales Officer',
-      ),
-    ];
-    return [
-      PurchaseOrder(
-        id: 12,
-        referenceNo: 'PO-2025-0004',
-        supplier: 'Jumla Hardware Ltd',
-        warehouse: 'Main Warehouse',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        expectedDate: DateTime.now().add(const Duration(days: 3)),
-        status: 'Received',
-        totalCost: 450000,
-        paidAmount: 300000,
-        paymentStatus: 'Partial',
-        createdBy: 'Manager',
-        updatedAt: DateTime.now(),
-        notes: 'Received 3 out of 5 items',
-        items: items,
-      ),
-      PurchaseOrder(
-        id: 13,
-        referenceNo: 'PO-2025-0005',
-        supplier: 'MedSupply Co.',
-        warehouse: 'Main Warehouse',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        expectedDate: DateTime.now().add(const Duration(days: 5)),
-        status: 'Pending',
-        totalCost: 220000,
-        paidAmount: 0,
-        paymentStatus: 'Unpaid',
-        createdBy: 'Manager',
-        updatedAt: DateTime.now().subtract(const Duration(hours: 3)),
-        notes: 'Urgent delivery',
-        items: items.take(1).toList(),
-      ),
-    ];
-  }
+  // No mock data — orders come from the backend (not yet implemented).
+  final List<PurchaseOrder> _orders = [];
 
   String _formatMoney(num v) => 'TZS ${v.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
-    final orders = _mock();
+    final orders = _orders;
     final filtered = _statusFilter == 'All'
         ? orders
         : orders
@@ -221,22 +159,36 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
                   border: Border.all(color: Colors.white24),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 8.h),
-                child: ListView.separated(
-                  itemCount: filtered.length,
-                  padding: EdgeInsets.only(top: 4.h, bottom: 12.h),
-                  separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                  itemBuilder: (ctx, i) => _OrderListCard(
-                    order: filtered[i],
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => OrderDetailsScreen(order: orders[i]),
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.inbox_outlined,
+                                color: Colors.white24, size: 48.sp),
+                            SizedBox(height: 12.h),
+                            Text('Hakuna maagizo ya ununuzi',
+                                style: ThemeConstants.captionStyle),
+                          ],
                         ),
-                      );
-                    },
-                    money: _formatMoney,
-                  ),
-                ),
+                      )
+                    : ListView.separated(
+                        itemCount: filtered.length,
+                        padding: EdgeInsets.only(top: 4.h, bottom: 12.h),
+                        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                        itemBuilder: (ctx, i) => _OrderListCard(
+                          order: filtered[i],
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    OrderDetailsScreen(order: filtered[i]),
+                              ),
+                            );
+                          },
+                          money: _formatMoney,
+                        ),
+                      ),
               ),
             ),
           ],
