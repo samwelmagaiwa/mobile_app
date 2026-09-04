@@ -543,9 +543,9 @@ class AuthController extends Controller
                 return $user->load('driver', 'assignedDevice');
             case 'admin':
             case 'super_admin':
-                return $user->load('createdUsers');
+                return $user;
             case 'landlord':
-                return $user->load('ownedProperties.houses');
+                return $user->load('ownedProperties');
             case 'tenant':
                 return $user->load('tenantProfile', 'rentalAgreements.house.property');
             default:
