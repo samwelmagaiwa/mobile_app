@@ -300,17 +300,26 @@ class StockLedger
         int|string|null $userId,
         ?int $batchId,
     ): void {
-        DB::table('inventory_stock_movements')->insert([
+        // Detect which optional columns exist (cached per request to avoid
+        // repeated INFORMATION_SCHEMA hits when multiple movements are recorded).
+        static $cols = null;
+        if ($cols === null) {
+            $cols = DB::getSchemaBuilder()->getColumnListing('inventory_stock_movements');
+        }
+
+        $row = [
             'product_id' => $productId,
-            'batch_id' => $batchId,
-            'type' => $type,
-            'quantity' => $quantity,
-            'previous_quantity' => $previousQuantity,
-            'new_quantity' => $newQuantity,
-            'reason' => $reason,
-            'reference' => $reference,
-            'user_id' => $userId,
+            'type'       => $type,
+            'quantity'   => $quantity,
+            'reference'  => $reference,
+            'user_id'    => $userId,
             'created_at' => now(),
-        ]);
+        ];
+        if (in_array('batch_id', $cols, true))          $row['batch_id']          = $batchId;
+        if (in_array('reason', $cols, true))             $row['reason']             = $reason;
+        if (in_array('previous_quantity', $cols, true))  $row['previous_quantity']  = $previousQuantity;
+        if (in_array('new_quantity', $cols, true))       $row['new_quantity']       = $newQuantity;
+
+        DB::table('inventory_stock_movements')->insert($row);
     }
 }
