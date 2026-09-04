@@ -28,3 +28,26 @@ jobs:
           tags: |
             magaiwa/depot:latest
             magaiwa/depot:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 169.58.188.122
+          username: deploy
+          key: ${{ secrets.VPS_DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /www/depot
+            docker compose pull
+            docker compose up -d --remove-orphans
+            sleep 3
+            docker exec depot_backend php artisan migrate --force
+            docker exec depot_backend php artisan config:cache
+            docker exec depot_backend php artisan route:cache
+            docker exec depot_backend php artisan view:clear
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 https://depot.magrethschools.sc.tz/api/health || echo 000)
+            echo "Health check: HTTP $code"

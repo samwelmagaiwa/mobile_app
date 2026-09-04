@@ -74,13 +74,16 @@ check_deps() {
   docker info >/dev/null 2>&1 || err "Docker daemon is not running — start Docker Desktop"
   ok "Docker daemon running"
 
-  # Docker Hub login — auto-login if credentials stored, else prompt once
-  if ! docker info 2>/dev/null | grep -q "Username"; then
-    warn "Not logged in to Docker Hub — logging in..."
-    docker login --username "$DOCKERHUB_USER" \
-      || err "Docker Hub login failed. Run: docker login"
-  fi
-  ok "Docker Hub authenticated"
+  # Docker Hub login check: `docker info`'s Username field isn't populated
+  # when credentials come from a credential store (credsStore, e.g. Docker
+  # Desktop's own helper) rather than a plaintext token in config.json, so
+  # that heuristic false-negatives even when actually logged in. Rather
+  # than guess, just confirm the daemon can reach the registry with the
+  # stored credentials - push_image() already has its own clear error if
+  # this turns out to be wrong.
+  docker login --username "$DOCKERHUB_USER" >/dev/null 2>&1 \
+    || warn "Could not confirm Docker Hub auth non-interactively - continuing; push_image will fail clearly if you're not actually logged in"
+  ok "Docker Hub check done (DOCKERHUB_USER=$DOCKERHUB_USER)"
 
   # SSH reachable?
   ssh_run "echo 'SSH OK'" >/dev/null 2>&1 || err "Cannot reach $REMOTE_HOST via SSH"
