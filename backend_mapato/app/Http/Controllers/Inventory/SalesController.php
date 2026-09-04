@@ -38,11 +38,11 @@ class SalesController extends Controller
         }
 
         if ($from) {
-            $query->whereDate('s.created_at', '>=', $from);
+            $query->where('s.created_at', '>=', $from . ' 00:00:00');
         }
 
         if ($to) {
-            $query->whereDate('s.created_at', '<=', $to);
+            $query->where('s.created_at', '<=', $to . ' 23:59:59');
         }
 
         if (!empty($q)) {
