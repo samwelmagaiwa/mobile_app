@@ -427,6 +427,7 @@ class InventoryProvider extends ChangeNotifier {
     String? unit,
     String status = 'active',
     String? barcode,
+    String priceTier = 'retail',
   }) async {
     try {
       await _api.put('/inventory/products/$id', {
@@ -442,6 +443,7 @@ class InventoryProvider extends ChangeNotifier {
         'min_stock': minStock,
         'status': status,
         'barcode': barcode,
+        'price_tier': priceTier,
       });
       await fetchProducts();
       _refreshLowStockReminders();

@@ -40,7 +40,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   String _unit = 'crate';
   bool _active = true;
-  bool _isWholesale = false; // OFF = retail (default), ON = wholesale
+  bool _isWholesale = true; // ON = wholesale (default)
   int? _categoryId;
   int? _brandId;
   bool _saving = false;
@@ -857,6 +857,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             unit: _unit,
             status: _active ? 'active' : 'inactive',
             barcode: barcode,
+            priceTier: _isWholesale ? 'wholesale' : 'retail',
           )
         : await inv.createProduct(
             name: _name.text.trim(),

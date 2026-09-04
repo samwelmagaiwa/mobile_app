@@ -175,9 +175,29 @@ class ProductController extends Controller
             'price_tier' => 'nullable|in:retail,wholesale',
         ]);
 
-        DB::table('inventory_products')->where('id', $id)->update(array_merge($data, [
-            'updated_at' => now(),
-        ]));
+        DB::transaction(function () use ($id, $data) {
+            DB::table('inventory_products')->where('id', $id)->update(array_merge($data, [
+                'updated_at' => now(),
+            ]));
+
+            // Keep price-tier rows in sync: when the product's mode changes,
+            // flip the tier on every base-unit price row so the app reads real data.
+            if (isset($data['price_tier'])) {
+                $newTier = $data['price_tier'];
+                $oldTier = $newTier === 'wholesale' ? 'retail' : 'wholesale';
+                $baseUnitIds = DB::table('inventory_product_units')
+                    ->where('product_id', $id)
+                    ->where('is_base', true)
+                    ->pluck('id');
+                if ($baseUnitIds->isNotEmpty()) {
+                    DB::table('inventory_product_prices')
+                        ->whereIn('product_unit_id', $baseUnitIds)
+                        ->where('tier', $oldTier)
+                        ->whereNull('customer_id')
+                        ->update(['tier' => $newTier, 'updated_at' => now()]);
+                }
+            }
+        });
 
         return response()->json(['message' => 'Product updated']);
     }

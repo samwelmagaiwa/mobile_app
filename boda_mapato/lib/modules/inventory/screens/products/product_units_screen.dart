@@ -120,6 +120,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
                       baseUnitName: widget.product.unit,
                       canManage: canManage,
                       isWholesale: widget.product.isWholesale,
+                      productSellingPrice: widget.product.sellingPrice,
                       onEdit: () => _openUnitSheet(unit: unit),
                       onSetPrice: (InvPriceTier tier) =>
                           _openPriceSheet(unit, tier),
@@ -288,12 +289,14 @@ class _UnitCard extends StatelessWidget {
     required this.onSetPrice,
     required this.onHistory,
     this.onDelete,
+    this.productSellingPrice,
   });
 
   final InvProductUnit unit;
   final String baseUnitName;
   final bool canManage;
   final bool isWholesale;
+  final double? productSellingPrice;
   final VoidCallback onEdit;
   final ValueChanged<InvPriceTier> onSetPrice;
   final VoidCallback onHistory;
@@ -424,7 +427,7 @@ class _UnitCard extends StatelessWidget {
                 child: _PriceTile(
                   label: loc.translate('wholesale'),
                   // retail mode: wholesale is inactive — show dash
-                  price: !isWholesale ? null : unit.priceFor(InvPriceTier.wholesale),
+                  price: !isWholesale ? null : (unit.priceFor(InvPriceTier.wholesale) ?? productSellingPrice),
                   inactive: !isWholesale,
                   onTap: (isWholesale && canManage)
                       ? () => onSetPrice(InvPriceTier.wholesale)
