@@ -17,6 +17,7 @@ class InvProduct {
     this.brandId,
     this.categoryName,
     this.brandName,
+    this.priceTier = 'retail',
   });
 
   final int id;
@@ -36,6 +37,9 @@ class InvProduct {
   int? brandId;
   String? categoryName;
   String? brandName;
+  String priceTier; // 'retail' or 'wholesale'
+
+  bool get isWholesale => priceTier == 'wholesale';
 
   double get totalCostPrice => costPrice * quantity;
   double get totalSellingPrice => sellingPrice * quantity;

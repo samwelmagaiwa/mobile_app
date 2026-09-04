@@ -1558,6 +1558,7 @@ InvProduct _fromProductJson(Map<String, dynamic> j) => InvProduct(
       brandId: int.tryParse((j['brand_id'] ?? '').toString()),
       categoryName: j['category_name'] as String?,
       brandName: j['brand_name'] as String?,
+      priceTier: (j['price_tier'] ?? 'retail') as String,
     );
 
 InvCustomer _fromCustomerJson(Map<String, dynamic> j) => InvCustomer(

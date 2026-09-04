@@ -119,6 +119,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
                       unit: unit,
                       baseUnitName: widget.product.unit,
                       canManage: canManage,
+                      isWholesale: widget.product.isWholesale,
                       onEdit: () => _openUnitSheet(unit: unit),
                       onSetPrice: (InvPriceTier tier) =>
                           _openPriceSheet(unit, tier),
@@ -282,6 +283,7 @@ class _UnitCard extends StatelessWidget {
     required this.unit,
     required this.baseUnitName,
     required this.canManage,
+    required this.isWholesale,
     required this.onEdit,
     required this.onSetPrice,
     required this.onHistory,
@@ -291,6 +293,7 @@ class _UnitCard extends StatelessWidget {
   final InvProductUnit unit;
   final String baseUnitName;
   final bool canManage;
+  final bool isWholesale;
   final VoidCallback onEdit;
   final ValueChanged<InvPriceTier> onSetPrice;
   final VoidCallback onHistory;
@@ -408,17 +411,22 @@ class _UnitCard extends StatelessWidget {
               Expanded(
                 child: _PriceTile(
                   label: loc.translate('retail'),
-                  price: unit.priceFor(InvPriceTier.retail),
-                  onTap:
-                      canManage ? () => onSetPrice(InvPriceTier.retail) : null,
+                  // wholesale mode: retail is inactive — show dash
+                  price: isWholesale ? null : unit.priceFor(InvPriceTier.retail),
+                  inactive: isWholesale,
+                  onTap: (!isWholesale && canManage)
+                      ? () => onSetPrice(InvPriceTier.retail)
+                      : null,
                 ),
               ),
               SizedBox(width: 8.w),
               Expanded(
                 child: _PriceTile(
                   label: loc.translate('wholesale'),
-                  price: unit.priceFor(InvPriceTier.wholesale),
-                  onTap: canManage
+                  // retail mode: wholesale is inactive — show dash
+                  price: !isWholesale ? null : unit.priceFor(InvPriceTier.wholesale),
+                  inactive: !isWholesale,
+                  onTap: (isWholesale && canManage)
                       ? () => onSetPrice(InvPriceTier.wholesale)
                       : null,
                 ),
@@ -449,54 +457,59 @@ class _PriceTile extends StatelessWidget {
     required this.price,
     this.hint,
     this.onTap,
+    this.inactive = false,
   });
 
   final String label;
   final double? price;
   final String? hint;
   final VoidCallback? onTap;
+  final bool inactive;
 
   @override
   Widget build(BuildContext context) {
-    final String value = price != null
-        ? 'TSH ${price!.toStringAsFixed(0)}'
-        : (hint != null
-            ? '$hint ${LocalizationService.instance.translate(
-                'set',
-              )}'
-            : '—');
+    final String value = inactive
+        ? '—'
+        : price != null
+            ? 'TSH ${price!.toStringAsFixed(0)}'
+            : (hint != null
+                ? '$hint ${LocalizationService.instance.translate('set')}'
+                : '—');
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            AutoSizeText(
-              label,
-              maxLines: 1,
-              minFontSize: 9,
-              overflow: TextOverflow.ellipsis,
-              style: ThemeConstants.captionStyle,
-            ),
-            SizedBox(height: 2.h),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
+      child: Opacity(
+        opacity: inactive ? 0.4 : 1.0,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              AutoSizeText(
+                label,
                 maxLines: 1,
-                style: ThemeConstants.bodyStyle
-                    .copyWith(fontWeight: FontWeight.w700),
+                minFontSize: 9,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeConstants.captionStyle,
               ),
-            ),
-          ],
+              SizedBox(height: 2.h),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: ThemeConstants.bodyStyle
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
