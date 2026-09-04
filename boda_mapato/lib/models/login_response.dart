@@ -132,7 +132,8 @@ class UserData {
   static List<String> _pickServiceTypes(Map<String, dynamic> json) {
     // `services` is the eager-loaded relation (login / /auth/user);
     // `service_types` is the flat list some admin endpoints return.
-    final dynamic services = json['services'] ?? json['service_types'];
+    final dynamic services =
+        json['services'] ?? json['service_types'] ?? json['serviceTypes'];
     if (services is List) {
       return services
           .map((dynamic e) =>
@@ -161,12 +162,6 @@ class UserData {
       if (v is String && v.trim().isNotEmpty) return v.trim();
     }
     return null;
-  }
-
-  static List<String> _pickServiceTypes(Map<String, dynamic> json) {
-    final dynamic v = json['service_types'] ?? json['serviceTypes'];
-    if (v is List) return v.map((e) => e.toString()).toList();
-    return const <String>[];
   }
 }
 

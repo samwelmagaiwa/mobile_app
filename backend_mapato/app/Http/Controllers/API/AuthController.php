@@ -536,6 +536,8 @@ class AuthController extends Controller
      */
     private function getUserDataWithRelations(User $user): User
     {
+        $user->load('services');
+
         switch ($user->role) {
             case 'driver':
                 return $user->load('driver', 'assignedDevice');

@@ -121,6 +121,22 @@ class User extends Authenticatable
         return $this->belongsTo(Device::class, 'device_id');
     }
 
+    /**
+     * Services this user is bound to (rental/transport/inventory). A user
+     * can hold more than one - see user_services migration for why this
+     * replaced the old single `service_type` column as the source of truth.
+     */
+    public function services()
+    {
+        return $this->hasMany(\App\Models\UserService::class);
+    }
+
+    /** Plain list of service_type strings this user is bound to. */
+    public function serviceTypes(): array
+    {
+        return $this->services->pluck('service_type')->all();
+    }
+
 
 
     /**

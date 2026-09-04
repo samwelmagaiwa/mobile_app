@@ -429,15 +429,6 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _LanguageGateLoading extends StatelessWidget {
-  const _LanguageGateLoading();
-  @override
-  Widget build(BuildContext context) => const Scaffold(
-        backgroundColor: ThemeConstants.primaryBlue,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-}
-
 class _LanguageSelectionPage extends StatelessWidget {
   const _LanguageSelectionPage({required this.onSelected});
   final Future<void> Function(String code) onSelected;
@@ -566,41 +557,70 @@ class _AuthWrapperState extends State<AuthWrapper> {
             if (!_languageChosenThisSession) {
               return _LanguageSelectionPage(onSelected: _onLanguageChosen);
             }
-            // After choosing language, route by last selected service (persisted)
-            return FutureBuilder<SharedPreferences>(
-              future: SharedPreferences.getInstance(),
-              builder: (context, snap) {
-                if (!snap.hasData) return const _LanguageGateLoading();
-                final prefs = snap.data!;
-                final service = prefs.getString('selected_service');
-                // No service yet: ask user to choose
-                if (service == null) {
-                  return const ServiceSelectionScreen();
-                }
-                if (service == 'inventory') {
-                  return const InventoryHome();
-                }
-                if (service == 'transport') {
-                  return const ModernDashboardScreen();
-                }
-                if (service == 'rental') {
-                  return const RentalMainScreen();
-                }
-                // Fallback to existing role-based dashboards
-                if (authProvider.user!.role == "admin" ||
-                    authProvider.user!.role == "super_admin") {
-                  return const ModernDashboardScreen();
-                }
-                if (authProvider.user!.role == "vendor") {
-                  return const VendorDashboardScreen();
-                }
-                return const DriverDashboardScreen();
-              },
-            );
+            // Route by the services this account is actually bound to
+            // (server-side, via user_services) - never ask again once
+            // that's known. Only an account with zero bound services
+            // (not yet assigned by an admin) falls back to the manual
+            // picker, same as before.
+            final List<String> boundServices = authProvider.user!.serviceTypes;
+            if (boundServices.length == 1) {
+              return _ServiceHomeFor(
+                service: boundServices.first,
+                authProvider: authProvider,
+              );
+            }
+            if (boundServices.length > 1) {
+              return ServiceSelectionScreen(allowedServices: boundServices);
+            }
+            return const ServiceSelectionScreen();
           } else {
             // User is not authenticated, show public landing screen
             return const PublicLandingScreen();
           }
         },
       );
+}
+
+/// Routes straight to the one service this account is bound to - no
+/// picker. Persists the choice to `selected_service` too, since several
+/// other screens (permissions/user management, the service switcher)
+/// still read that pref as their context.
+class _ServiceHomeFor extends StatefulWidget {
+  const _ServiceHomeFor({required this.service, required this.authProvider});
+  final String service;
+  final AuthProvider authProvider;
+
+  @override
+  State<_ServiceHomeFor> createState() => _ServiceHomeForState();
+}
+
+class _ServiceHomeForState extends State<_ServiceHomeFor> {
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setString('selected_service', widget.service));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.service) {
+      case 'inventory':
+        return const InventoryHome();
+      case 'transport':
+        return const ModernDashboardScreen();
+      case 'rental':
+        return const RentalMainScreen();
+      default:
+        // Unrecognized value - fall back to the existing role-based routing.
+        final String role = widget.authProvider.user?.role ?? '';
+        if (role == 'admin' || role == 'super_admin') {
+          return const ModernDashboardScreen();
+        }
+        if (role == 'vendor') {
+          return const VendorDashboardScreen();
+        }
+        return const DriverDashboardScreen();
+    }
+  }
 }

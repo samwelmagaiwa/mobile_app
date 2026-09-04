@@ -7,9 +7,17 @@ import '../constants/theme_constants.dart';
 import '../services/localization_service.dart';
 
 class ServiceSelectionScreen extends StatelessWidget {
-  const ServiceSelectionScreen({super.key});
+  const ServiceSelectionScreen({super.key, this.allowedServices});
+
+  /// Restrict the tiles shown to these service types (the account is only
+  /// bound to these). Null shows every service - used as the fallback for
+  /// an account an admin hasn't assigned any service to yet.
+  final List<String>? allowedServices;
 
   static const String _serviceKey = 'selected_service';
+
+  bool _allows(String service) =>
+      allowedServices == null || allowedServices!.contains(service);
 
   Future<void> _selectService(BuildContext context, String service) async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,21 +74,24 @@ class ServiceSelectionScreen extends StatelessWidget {
                   mainAxisSpacing: 12.h,
                   childAspectRatio: 1.05,
                   children: [
-                    _ServiceTile(
-                      icon: Icons.inventory_2_rounded,
-                      label: loc.translate('inventory_service'),
-                      onTap: () => _selectService(context, 'inventory'),
-                    ),
-                    _ServiceTile(
-                      icon: Icons.apartment_rounded,
-                      label: loc.translate('rental_service'),
-                      onTap: () => _selectService(context, 'rental'),
-                    ),
-                    _ServiceTile(
-                      icon: Icons.local_shipping_rounded,
-                      label: loc.translate('transport_service'),
-                      onTap: () => _selectService(context, 'transport'),
-                    ),
+                    if (_allows('inventory'))
+                      _ServiceTile(
+                        icon: Icons.inventory_2_rounded,
+                        label: loc.translate('inventory_service'),
+                        onTap: () => _selectService(context, 'inventory'),
+                      ),
+                    if (_allows('rental'))
+                      _ServiceTile(
+                        icon: Icons.apartment_rounded,
+                        label: loc.translate('rental_service'),
+                        onTap: () => _selectService(context, 'rental'),
+                      ),
+                    if (_allows('transport'))
+                      _ServiceTile(
+                        icon: Icons.local_shipping_rounded,
+                        label: loc.translate('transport_service'),
+                        onTap: () => _selectService(context, 'transport'),
+                      ),
                   ],
                 ),
               ),

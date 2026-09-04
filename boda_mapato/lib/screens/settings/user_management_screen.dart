@@ -64,6 +64,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   String get _defaultRole => _isRental ? 'tenant' : 'admin';
 
+  String _serviceLabel(String service) {
+    switch (service) {
+      case 'inventory':
+        return _loc.translate('inventory_service');
+      case 'transport':
+        return _loc.translate('transport_service');
+      case 'rental':
+        return _loc.translate('rental_service');
+      default:
+        return service;
+    }
+  }
+
   Future<void> _loadMyUsers() async {
     setState(() => _loading = true);
     try {
@@ -120,6 +133,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String role = _defaultRole;
     bool isActive = true;
     bool fullAccess = false;
+    // Which services this new account is bound to. Defaults to the one
+    // the admin is currently managing, but a user can be bound to more
+    // than one (e.g. transport + inventory).
+    final Set<String> selectedServices = <String>{_activeService};
 
     await showDialog(
       context: context,
@@ -239,6 +256,36 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               onChanged: (v) => setDialogState(() => role = v ?? _defaultRole),
                             ),
                             const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _loc.isSwahili ? 'Huduma' : 'Services',
+                                style: const TextStyle(
+                                    color: ThemeConstants.textSecondary, fontSize: 12),
+                              ),
+                            ),
+                            Wrap(
+                              spacing: 4,
+                              children: <String>['inventory', 'transport', 'rental']
+                                  .map((String s) => FilterChip(
+                                        label: Text(_serviceLabel(s)),
+                                        selected: selectedServices.contains(s),
+                                        onSelected: (bool sel) => setDialogState(() {
+                                          sel
+                                              ? selectedServices.add(s)
+                                              : selectedServices.remove(s);
+                                        }),
+                                        labelStyle: TextStyle(
+                                          color: selectedServices.contains(s)
+                                              ? Colors.black
+                                              : ThemeConstants.textPrimary,
+                                        ),
+                                        selectedColor: ThemeConstants.primaryOrange,
+                                        backgroundColor: Colors.white.withOpacity(0.1),
+                                      ))
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 12),
                             SwitchListTile.adaptive(
                               value: isActive,
                               onChanged: (v) => setDialogState(() => isActive = v ?? true),
@@ -318,7 +365,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 'is_active': isActive,
                                 'password': password,
                                 'password_confirmation': password,
-                                'service_type': _activeService,
+                                'service_types': selectedServices.toList(),
                                 'full_access': fullAccess,
                               }..removeWhere((key, value) => value == null);
                               // Use admin users endpoint
