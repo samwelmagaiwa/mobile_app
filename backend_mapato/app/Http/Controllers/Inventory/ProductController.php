@@ -98,6 +98,7 @@ class ProductController extends Controller
                 'min_stock' => $data['min_stock'],
                 'status' => $data['status'],
                 'barcode' => $data['barcode'] ?? null,
+                'price_tier' => $data['price_tier'] ?? 'retail',
                 'created_by' => optional($request->user())->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -171,6 +172,7 @@ class ProductController extends Controller
             'min_stock' => 'sometimes|required|integer|min:0',
             'status' => 'sometimes|required|in:active,inactive',
             'barcode' => 'nullable|string|max:255',
+            'price_tier' => 'nullable|in:retail,wholesale',
         ]);
 
         DB::table('inventory_products')->where('id', $id)->update(array_merge($data, [
