@@ -67,17 +67,17 @@ class ServiceSelectionScreen extends StatelessWidget {
                   childAspectRatio: 1.05,
                   children: [
                     _ServiceTile(
-                      icon: Icons.storefront,
+                      icon: Icons.inventory_2_rounded,
                       label: loc.translate('inventory_service'),
                       onTap: () => _selectService(context, 'inventory'),
                     ),
                     _ServiceTile(
-                      icon: Icons.home_work_outlined,
+                      icon: Icons.apartment_rounded,
                       label: loc.translate('rental_service'),
                       onTap: () => _selectService(context, 'rental'),
                     ),
                     _ServiceTile(
-                      icon: Icons.local_shipping_outlined,
+                      icon: Icons.local_shipping_rounded,
                       label: loc.translate('transport_service'),
                       onTap: () => _selectService(context, 'transport'),
                     ),

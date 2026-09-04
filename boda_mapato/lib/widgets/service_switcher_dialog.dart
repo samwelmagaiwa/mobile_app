@@ -65,17 +65,17 @@ class ServiceSwitcherDialog extends StatelessWidget {
                 runSpacing: 12.h,
                 children: [
                   _ServiceOption(
-                    icon: Icons.storefront,
+                    icon: Icons.inventory_2_rounded,
                     label: loc.translate('inventory_service'),
                     onTap: () => _switchService(context, 'inventory'),
                   ),
                   _ServiceOption(
-                    icon: Icons.home_work_outlined,
+                    icon: Icons.apartment_rounded,
                     label: loc.translate('rental_service'),
                     onTap: () => _switchService(context, 'rental'),
                   ),
                   _ServiceOption(
-                    icon: Icons.local_shipping_outlined,
+                    icon: Icons.local_shipping_rounded,
                     label: loc.translate('transport_service'),
                     onTap: () => _switchService(context, 'transport'),
                   ),
