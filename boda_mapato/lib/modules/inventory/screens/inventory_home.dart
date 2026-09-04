@@ -439,20 +439,21 @@ class _InventoryHomeState extends State<InventoryHome> {
       ),
       bottomNavigationBar: _InventoryFooter(
         index: _index,
+        salesIndex: perms.has('inv_manage_stock') ? 4 : 3,
         onTap: (slot) {
-          // Map footer slots to tabs
           if (slot == 0) {
-            setState(() => _index = 0);
+            setState(() => _index = 0);                    // Dashboard
           } else if (slot == 1) {
-            setState(() => _index = 1); // Products
+            setState(() => _index = 1);                    // Products
           } else if (slot == 2) {
-            // Open quick menu grid
-            _openQuickMenu(context);
+            _openQuickMenu(context);                       // All sections grid
           } else if (slot == 3) {
-            // Stock Levels
-            setState(() => _index = 2);
+            // Sales — index shifts by 1 if inv_manage_stock present
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            final perms = UserPermissions.fromRole(auth.user?.role ?? '');
+            setState(() => _index = perms.has('inv_manage_stock') ? 4 : 3);
           } else if (slot == 4) {
-            Navigator.pushNamed(context, '/settings');
+            setState(() => _index = pages.length - 1);    // Settings
           }
         },
       ),
@@ -461,8 +462,9 @@ class _InventoryHomeState extends State<InventoryHome> {
 }
 
 class _InventoryFooter extends StatelessWidget {
-  const _InventoryFooter({required this.index, required this.onTap});
+  const _InventoryFooter({required this.index, required this.onTap, this.salesIndex = 4});
   final int index;
+  final int salesIndex;
   final ValueChanged<int> onTap;
   @override
   Widget build(BuildContext context) {
@@ -492,40 +494,34 @@ class _InventoryFooter extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Dashboard
                 _FooterIcon(
                   selected: index == 0,
-                  icon: Icons.calendar_today_outlined,
+                  icon: Icons.dashboard_rounded,
                   onTap: () => onTap(0),
                 ),
-                Stack(children: [
-                  _FooterIcon(
-                    selected: index == 1,
-                    icon: Icons.person_outline,
-                    onTap: () => onTap(1),
-                  ),
-                  Positioned(
-                    right: 2,
-                    top: 0,
-                    child: Container(
-                        width: 8.w,
-                        height: 8.w,
-                        decoration: const BoxDecoration(
-                            color: Colors.amber, shape: BoxShape.circle)),
-                  ),
-                ]),
+                // Products
+                _FooterIcon(
+                  selected: index == 1,
+                  icon: Icons.inventory_2_rounded,
+                  onTap: () => onTap(1),
+                ),
+                // Quick menu (all sections)
                 _FooterIcon(
                   selected: false,
-                  icon: Icons.menu,
+                  icon: Icons.grid_view_rounded,
                   onTap: () => onTap(2),
                 ),
+                // Sales
                 _FooterIcon(
-                  selected: index == 2,
-                  icon: Icons.pets_outlined,
+                  selected: index == salesIndex,
+                  icon: Icons.point_of_sale_rounded,
                   onTap: () => onTap(3),
                 ),
+                // Settings
                 _FooterIcon(
                   selected: false,
-                  icon: Icons.settings_outlined,
+                  icon: Icons.settings_rounded,
                   onTap: () => onTap(4),
                 ),
               ],
