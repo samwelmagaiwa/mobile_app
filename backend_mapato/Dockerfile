@@ -16,6 +16,7 @@ RUN composer dump-autoload --optimize \
 
 COPY docker/nginx-prod.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/php-fpm-pool.conf /usr/local/etc/php-fpm.d/zzz-pool-override.conf
 
 EXPOSE 80
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
