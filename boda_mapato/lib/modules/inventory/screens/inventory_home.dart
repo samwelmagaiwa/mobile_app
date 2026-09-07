@@ -19,7 +19,6 @@ import 'alerts/alerts_screen.dart';
 import 'cash/cash_sessions_screen.dart';
 import 'crates/crates_screen.dart';
 import 'credit/credit_screen.dart';
-import 'dispatch/dispatch_screen.dart';
 import 'purchasing/purchasing_screen.dart';
 import 'reports/reports_screen.dart';
 import 'sales/returns_screen.dart';
@@ -29,6 +28,7 @@ import 'stock/stock_counts_screen.dart';
 import 'stock/stock_levels_screen.dart';
 import 'stock/write_offs_screen.dart';
 import 'stock/stock_ops_screen.dart';
+import 'barcode_scanner_screen.dart';
 
 class InventoryHome extends StatefulWidget {
   const InventoryHome({super.key, this.initialIndex = 0});
@@ -46,8 +46,8 @@ class _InventoryHomeState extends State<InventoryHome> {
   int _pageCount(UserPermissions perms) {
     // dashboard, products, stock levels, sales, categories, orders,
     // batches, stock counts, write-offs, purchasing, credit, cash, crates,
-    // dispatch, returns, reports, alerts, settings
-    int count = 18;
+    // returns, reports, alerts, settings
+    int count = 17;
     if (perms.has('inv_manage_stock')) count++;
     if (perms.has('inv_view_reminders')) count++;
     return count;
@@ -189,7 +189,7 @@ class _InventoryHomeState extends State<InventoryHome> {
 
     // Area 3 - stock control entries. Indices are resolved from the same
     // page list the body builds, so they cannot drift out of step.
-    final int idxBatches = _pageCount(perms) - 12;
+    final int idxBatches = _pageCount(perms) - 11;
     items.add(_GridNavItem(
       label: loc.translate('batches_and_expiry'),
       icon: Icons.event_available_outlined,
@@ -224,18 +224,16 @@ class _InventoryHomeState extends State<InventoryHome> {
       <Object>['customers_and_credit', Icons.credit_card_outlined, 4],
       <Object>['daily_cash', Icons.point_of_sale_outlined, 5],
       <Object>['crates_and_empties', Icons.inbox_outlined, 6],
-      <Object>['deliveries', Icons.route_outlined, 7],
-      <Object>['returns_and_parked', Icons.assignment_return_outlined, 8],
-      <Object>['reports', Icons.bar_chart_outlined, 9],
-      <Object>['alerts', Icons.notifications_active_outlined, 10],
-      <Object>['depot_settings', Icons.settings_outlined, 11],
+      <Object>['returns_and_parked', Icons.assignment_return_outlined, 7],
+      <Object>['reports', Icons.bar_chart_outlined, 8],
+      <Object>['alerts', Icons.notifications_active_outlined, 9],
+      <Object>['depot_settings', Icons.settings_outlined, 10],
     ];
     const List<Color> depotColors = <Color>[
       Color(0xFF667eea),
       Color(0xFF20B8CE),
       Color(0xFF10B981),
       Color(0xFFF59E0B),
-      Color(0xFF764ba2),
       Color(0xFFEF4444),
       Color(0xFF00E5FF),
       Color(0xFFF97316),
@@ -363,7 +361,6 @@ class _InventoryHomeState extends State<InventoryHome> {
       const CreditScreen(),
       const CashSessionsScreen(),
       const CratesScreen(),
-      const DispatchScreen(),
       const ReturnsScreen(),
       const ReportsScreen(),
       const AlertsScreen(),
@@ -386,7 +383,6 @@ class _InventoryHomeState extends State<InventoryHome> {
       loc.translate('customers_and_credit'),
       loc.translate('daily_cash'),
       loc.translate('crates_and_empties'),
-      loc.translate('deliveries'),
       loc.translate('returns_and_parked'),
       loc.translate('reports'),
       loc.translate('alerts'),
@@ -411,6 +407,14 @@ class _InventoryHomeState extends State<InventoryHome> {
           },
         ),
         actions: [
+          IconButton(
+            icon: Icon(Icons.qr_code_scanner_rounded, size: 22.sp),
+            tooltip: loc.isSwahili ? 'Scan Barcode / QR' : 'Scan Barcode / QR',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+            ),
+          ),
           Builder(
             builder: (ctx) => IconButton(
               icon: Icon(Icons.menu, size: 20.sp),
@@ -435,7 +439,12 @@ class _InventoryHomeState extends State<InventoryHome> {
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(color: ThemeConstants.primaryBlue),
-        child: SafeArea(child: pages[_index.clamp(0, pages.length - 1)]),
+        child: SafeArea(
+          child: IndexedStack(
+            index: _index.clamp(0, pages.length - 1),
+            children: pages,
+          ),
+        ),
       ),
       bottomNavigationBar: _InventoryFooter(
         index: _index,
@@ -497,7 +506,7 @@ class _InventoryFooter extends StatelessWidget {
                 // Dashboard
                 _FooterIcon(
                   selected: index == 0,
-                  icon: Icons.dashboard_rounded,
+                  icon: Icons.bar_chart_rounded,
                   onTap: () => onTap(0),
                 ),
                 // Products

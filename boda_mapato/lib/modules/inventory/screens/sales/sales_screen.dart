@@ -31,6 +31,8 @@ class _SalesScreenState extends State<SalesScreen>
   final TextEditingController _custName = TextEditingController();
   final TextEditingController _custPhone = TextEditingController();
   final TextEditingController _custAddress = TextEditingController();
+  final TextEditingController _posPhone = TextEditingController(); // inline POS phone
+  final TextEditingController _posName  = TextEditingController(); // inline POS name
   String _status = 'all'; // all | paid | debt | partial
   DateTime? _from;
   DateTime? _to;
@@ -38,6 +40,13 @@ class _SalesScreenState extends State<SalesScreen>
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _searchDebounce;
   bool _loadingMore = false;
+
+  // Crate exchange at checkout: did the customer bring back their empty
+  // crates/bottles, or do they owe us crates now (crate debt, tracked
+  // separately from money owed)?
+  bool _customerBroughtCrates = true;
+  int? _oweCrateTypeId;
+  final TextEditingController _oweCrateQty = TextEditingController();
 
   @override
   void initState() {
@@ -51,6 +60,10 @@ class _SalesScreenState extends State<SalesScreen>
       final inv = context.read<InventoryProvider>();
       inv.fetchSales(status: _status, from: _from, to: _to);
       inv.fetchSalesSummary(status: _status, from: _from, to: _to);
+      final depot = context.read<DepotProvider>();
+      if (depot.crateTypes.isEmpty) {
+        depot.fetchCrateTypes();
+      }
     });
   }
 
@@ -60,9 +73,109 @@ class _SalesScreenState extends State<SalesScreen>
     _custName.dispose();
     _custPhone.dispose();
     _custAddress.dispose();
+    _posPhone.dispose();
+    _posName.dispose();
+    _oweCrateQty.dispose();
     _searchCtrl.dispose();
     _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  /// Crate exchange toggle: ON (default) = customer brought their own empty
+  /// crates back, normal exchange, nothing to track. OFF = customer did NOT
+  /// bring empties, so we issue them crates on credit -- that debt is
+  /// tracked in the crate ledger (separate from money owed) and must be
+  /// returned later.
+  Widget _crateExchangeCard(BuildContext context, InventoryProvider inv) {
+    final loc = LocalizationService.instance;
+    final depot = context.watch<DepotProvider>();
+
+    return Container(
+      decoration: ThemeConstants.invCardDecoration,
+      padding: EdgeInsets.all(12.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  loc.isSwahili
+                      ? 'Mteja amerudisha makreti/chupa zake tupu?'
+                      : 'Did the customer bring back their empty crates?',
+                  style: ThemeConstants.bodyStyle,
+                ),
+              ),
+              Switch(
+                value: _customerBroughtCrates,
+                activeThumbColor: ThemeConstants.invAccent,
+                onChanged: (bool v) => setState(() {
+                  _customerBroughtCrates = v;
+                  if (v) {
+                    _oweCrateTypeId = null;
+                    _oweCrateQty.clear();
+                  }
+                }),
+              ),
+            ],
+          ),
+          if (!_customerBroughtCrates) ...<Widget>[
+            SizedBox(height: 4.h),
+            Text(
+              loc.isSwahili
+                  ? 'Mteja anadaiwa makreti — atarudisha baadaye.'
+                  : 'Customer owes crates — to be returned later.',
+              style: ThemeConstants.captionStyle.copyWith(
+                color: ThemeConstants.warningAmber,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            DropdownButtonFormField<int>(
+              initialValue: _oweCrateTypeId,
+              isExpanded: true,
+              dropdownColor: ThemeConstants.primaryBlue,
+              style: ThemeConstants.bodyStyle,
+              decoration: ThemeConstants.invInputDecoration(
+                  loc.isSwahili ? 'Aina ya crate' : 'Crate type'),
+              items: depot.crateTypes
+                  .map((c) => DropdownMenuItem<int>(
+                        value: c.id,
+                        child: Text(c.name, style: ThemeConstants.bodyStyle),
+                      ))
+                  .toList(),
+              onChanged: (int? v) => setState(() => _oweCrateTypeId = v),
+            ),
+            SizedBox(height: 8.h),
+            InvTextField(
+              controller: _oweCrateQty,
+              label: loc.isSwahili ? 'Idadi ya makreti' : 'Number of crates',
+              hint: 'e.g. 5',
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// If the toggle says the customer didn't bring empties back, post the
+  /// crate debt now that the sale succeeded. Requires a saved customer --
+  /// crate debt is tracked per customer, not per anonymous walk-in.
+  Future<void> _recordCrateDebtIfNeeded(InventoryProvider inv) async {
+    if (_customerBroughtCrates) return;
+    final int? crateTypeId = _oweCrateTypeId;
+    final int? qty = int.tryParse(_oweCrateQty.text.trim());
+    final int? customerId = inv.selectedCustomerId;
+    if (crateTypeId == null || qty == null || qty < 1 || customerId == null) {
+      return;
+    }
+    await context.read<DepotProvider>().recordCrateMovement(
+          crateTypeId: crateTypeId,
+          direction: 'issued',
+          quantity: qty,
+          customerId: customerId,
+          note: 'Auto: crates owed from a sale (customer did not bring empties back)',
+        );
   }
 
   @override
@@ -365,7 +478,16 @@ class _SalesScreenState extends State<SalesScreen>
                               ),
                             ),
                           ],
-                          onChanged: inv.setCustomer,
+                          onChanged: (id) {
+                            inv.setCustomer(id);
+                            // Auto-fill name & phone from saved customer record
+                            final c = id == null
+                                ? null
+                                : inv.customers.where((c) => c.id == id).firstOrNull;
+                            _posName.text  = c?.name  ?? '';
+                            _posPhone.text = c?.phone ?? '';
+                            inv.setManualName(_posName.text);
+                          },
                         ),
                       ),
                       if (canManageCustomers) ...[
@@ -389,22 +511,68 @@ class _SalesScreenState extends State<SalesScreen>
                   ),
                 ],
 
-                // Paid Amount (if Partial)
+                // Customer name + phone (always shown, optional)
+                SizedBox(height: 10.h),
+                TextField(
+                  controller: _posName,
+                  onChanged: inv.setManualName,
+                  decoration: ThemeConstants.invInputDecoration(
+                    loc.translate('customer_name'),
+                  ).copyWith(
+                    hintText: loc.isSwahili ? 'Jina la mteja (hiari)' : 'Customer name (optional)',
+                    prefixIcon: const Icon(Icons.person_outline, color: Colors.white54, size: 18),
+                  ),
+                  style: ThemeConstants.bodyStyle,
+                ),
+                SizedBox(height: 8.h),
+                TextField(
+                  controller: _posPhone,
+                  keyboardType: TextInputType.phone,
+                  onChanged: inv.setManualPhone,
+                  decoration: ThemeConstants.invInputDecoration(
+                    loc.translate('phone_number'),
+                  ).copyWith(
+                    hintText: loc.isSwahili ? 'Nambari ya simu (hiari)' : 'Phone number (optional)',
+                    prefixIcon: const Icon(Icons.phone_outlined, color: Colors.white54, size: 18),
+                  ),
+                  style: ThemeConstants.bodyStyle,
+                ),
+
+                // Paid Amount + method (if Partial)
                 if (inv.paymentMode == 'partial') ...[
                   SizedBox(height: 10.h),
                   TextField(
-                    onChanged: (v) =>
-                        inv.setPaidAmount(parseAmount(v)),
+                    onChanged: (v) => inv.setPaidAmount(parseAmount(v)),
                     keyboardType: TextInputType.number,
                     inputFormatters: [ThousandsFormatter()],
                     decoration: ThemeConstants.invInputDecoration(
                         loc.translate('paid_amount')),
                     style: ThemeConstants.bodyStyle,
                   ),
+                  SizedBox(height: 8.h),
+                  DropdownButtonFormField<String>(
+                    initialValue: inv.partialPaymentMethod,
+                    isExpanded: true,
+                    dropdownColor: ThemeConstants.primaryBlue,
+                    style: ThemeConstants.bodyStyle,
+                    decoration: ThemeConstants.invInputDecoration(
+                        loc.translate('method')),
+                    items: const ['cash', 'mobile_money', 'bank_transfer']
+                        .map((m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(loc.translate(m),
+                                  style: ThemeConstants.bodyStyle),
+                            ))
+                        .toList(),
+                    onChanged: (v) =>
+                        inv.setPartialPaymentMethod(v ?? 'cash'),
+                  ),
                 ],
               ],
             ),
           ),
+          SizedBox(height: 10.h),
+          _crateExchangeCard(context, inv),
           SizedBox(height: 16.h),
 
           // Grand Total Breakdown & Checkout Button
@@ -465,16 +633,51 @@ class _SalesScreenState extends State<SalesScreen>
                     onPressed: (inv.cart.isEmpty || _checkingOut)
                         ? null
                         : () async {
+                            if (!_customerBroughtCrates) {
+                              final int? qty =
+                                  int.tryParse(_oweCrateQty.text.trim());
+                              if (_oweCrateTypeId == null ||
+                                  qty == null ||
+                                  qty < 1) {
+                                ThemeConstants.showWarningSnackBar(
+                                  context,
+                                  loc.isSwahili
+                                      ? 'Chagua aina ya crate na idadi ya makreti anayodaiwa mteja'
+                                      : 'Select the crate type and how many crates the customer owes',
+                                );
+                                return;
+                              }
+                              if (inv.selectedCustomerId == null) {
+                                ThemeConstants.showWarningSnackBar(
+                                  context,
+                                  loc.isSwahili
+                                      ? 'Chagua mteja aliyesajiliwa ili kufuatilia deni la makreti'
+                                      : 'Select a saved customer to track the crate debt',
+                                );
+                                return;
+                              }
+                            }
                             setState(() => _checkingOut = true);
                             final result = await inv.checkout(createdBy: userId);
                             if (!context.mounted) return;
-                            setState(() => _checkingOut = false);
                             final ok = result.$1;
                             final msgKey = result.$2;
+                            if (ok) {
+                              await _recordCrateDebtIfNeeded(inv);
+                            }
+                            if (!context.mounted) return;
+                            setState(() => _checkingOut = false);
                             if (!ok) {
                               ThemeConstants.showErrorSnackBar(
                                   context, loc.translate(msgKey));
                             } else {
+                              _posPhone.clear();
+                              _posName.clear();
+                              setState(() {
+                                _customerBroughtCrates = true;
+                                _oweCrateTypeId = null;
+                                _oweCrateQty.clear();
+                              });
                               ThemeConstants.showSuccessSnackBar(
                                   context, loc.translate('success'));
                             }
