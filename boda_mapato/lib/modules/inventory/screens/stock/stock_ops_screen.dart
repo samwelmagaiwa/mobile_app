@@ -369,7 +369,7 @@ class _StockInFormState extends State<_StockInForm> {
               InvTextField(
                 controller: _batchNumber,
                 label: loc.translate('batch_number'),
-                hint: 'e.g. BATCH-2026-09-01',
+                hint: loc.translate('batch_number_auto_hint'),
                 isOptional: true,
               ),
               SizedBox(height: 10.h),

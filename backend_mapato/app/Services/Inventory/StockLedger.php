@@ -107,7 +107,7 @@ class StockLedger
     public function receive(
         int $productId,
         int $quantity,
-        string $batchNumber,
+        ?string $batchNumber = null,
         ?string $expiryDate = null,
         ?float $costPrice = null,
         ?string $reference = null,
@@ -123,6 +123,10 @@ class StockLedger
         }
 
         $cost = $costPrice ?? (float) $product->cost_price;
+
+        if ($batchNumber === null || trim($batchNumber) === '') {
+            $batchNumber = $this->nextBatchNumber($productId, (string) $product->sku);
+        }
 
         $batch = DB::table('inventory_batches')
             ->where('product_id', $productId)
@@ -186,6 +190,28 @@ class StockLedger
         );
 
         return $batchId;
+    }
+
+    /**
+     * Next sequential batch number for a product, e.g. "SKU-0001", "SKU-0002".
+     * Product is already locked by the caller, so this is race-free.
+     */
+    private function nextBatchNumber(int $productId, string $sku): string
+    {
+        $prefix = $sku !== '' ? $sku : 'BATCH';
+
+        $lastSeq = DB::table('inventory_batches')
+            ->where('product_id', $productId)
+            ->where('batch_number', 'like', $prefix . '-%')
+            ->pluck('batch_number')
+            ->map(function (string $number) use ($prefix): int {
+                $suffix = substr($number, strlen($prefix) + 1);
+
+                return ctype_digit($suffix) ? (int) $suffix : 0;
+            })
+            ->max() ?? 0;
+
+        return sprintf('%s-%04d', $prefix, $lastSeq + 1);
     }
 
     /**

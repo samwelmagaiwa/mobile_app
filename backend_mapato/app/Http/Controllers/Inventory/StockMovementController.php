@@ -99,7 +99,7 @@ class StockMovementController extends Controller
                     $this->ledger->receive(
                         $productId,
                         $quantity,
-                        $request->input('batch_number') ?: 'ADJ-' . now()->format('Ymd'),
+                        $request->input('batch_number'),
                         $request->input('expiry_date'),
                         $request->filled('cost_price') ? (float) $request->input('cost_price') : null,
                         $request->input('reference'),
