@@ -311,7 +311,10 @@ class InventoryProvider extends ChangeNotifier {
           'expiry_date': expiryDate.toIso8601String().split('T').first,
         if (costPrice != null) 'cost_price': costPrice,
       });
-      await fetchProducts();
+      await Future.wait<void>(<Future<void>>[
+        fetchProducts(),
+        fetchBatches(),
+      ]);
       _refreshLowStockReminders();
       return true;
     } on Exception {
@@ -335,7 +338,10 @@ class InventoryProvider extends ChangeNotifier {
         if (reference != null) 'reference': reference,
         if (batchId != null) 'batch_id': batchId,
       });
-      await fetchProducts();
+      await Future.wait<void>(<Future<void>>[
+        fetchProducts(),
+        fetchBatches(),
+      ]);
       _refreshLowStockReminders();
       return true;
     } on Exception {
