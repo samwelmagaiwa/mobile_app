@@ -21,19 +21,25 @@ class UserPermissions {
   final List<String> _permissions;
   final String? role;
 
+  /// super_admin is the top role: full access to every service, matching
+  /// the backend's role_any middleware, which bypasses its role list
+  /// entirely for super_admin rather than relying on a maintained list.
+  bool get _isSuperAdmin =>
+      role?.toLowerCase() == 'super_admin' || role?.toLowerCase() == 'superadmin';
+
   /// Check if user has a specific permission
   bool has(String permission) {
-    return _permissions.contains(permission);
+    return _isSuperAdmin || _permissions.contains(permission);
   }
 
   /// Check if user has all of the given permissions
   bool hasAll(List<String> permissions) {
-    return permissions.every(_permissions.contains);
+    return _isSuperAdmin || permissions.every(_permissions.contains);
   }
 
   /// Check if user has any of the given permissions
   bool hasAny(List<String> permissions) {
-    return permissions.any(_permissions.contains);
+    return _isSuperAdmin || permissions.any(_permissions.contains);
   }
 
   /// Get all permissions as a list
