@@ -74,7 +74,12 @@ class AppLocalizations {
       'stock_in_note':
           'Use this when new stock arrives outside a formal purchase order — for example a small top-up bought in cash. Add a batch number and expiry date so the app can track it properly.',
       'stock_out_note':
-          'Use this to remove stock that was not sold — a sample, a gift, or a correction. Damaged or expired goods should go through Write-offs instead, since those need a manager to approve them.',
+          'Use this only for a sample, a gift, or a correction — these leave immediately, no approval needed. Damaged, expired, or stolen goods must go through Write-offs instead, since a manager has to approve those before stock is removed.',
+      'reason_sample': 'Sample',
+      'reason_gift': 'Gift',
+      'reason_correction': 'Correction',
+      'select_reason': 'Select a reason',
+      'note_optional': 'Note (optional)',
       'stock_transfer_note':
           'Use this to move stock from one batch into a new or existing one for the same product, for example after repacking. The total quantity in stock does not change.',
       'quantity_received': 'Quantity received',
@@ -839,6 +844,7 @@ class AppLocalizations {
       // Service selection
       'select_service': 'Select Service',
       'select_service_subtitle': 'Choose what you want to manage today',
+      'service_access_denied': 'You are not assigned to that service. Please choose one of your assigned services below.',
       'inventory_service': 'Inventory',
       'rental_service': 'All in One',
       'transport_service': 'Transport',
@@ -1216,7 +1222,12 @@ class AppLocalizations {
       'stock_in_note':
           'Tumia hii wakati hisa mpya inapowasili nje ya oda rasmi ya manunuzi — mfano nyongeza ndogo iliyonunuliwa kwa taslimu. Ongeza namba ya bechi na tarehe ya mwisho ili programu iweze kuifuatilia vizuri.',
       'stock_out_note':
-          'Tumia hii kuondoa hisa isiyouzwa — sampuli, zawadi, au marekebisho. Bidhaa zilizoharibika au zilizoisha muda zinapaswa kupitia Hasara za Bidhaa, kwani hizo zinahitaji idhini ya meneja.',
+          'Tumia hii kwa sampuli, zawadi, au marekebisho tu — hizi hutoka mara moja, hazihitaji idhini. Bidhaa zilizoharibika, zilizoisha muda, au zilizoibiwa lazima zipite kwenye Hasara za Bidhaa, kwani hizo zinahitaji meneja aidhinishe kabla hisa haijaondolewa.',
+      'reason_sample': 'Sampuli',
+      'reason_gift': 'Zawadi',
+      'reason_correction': 'Marekebisho',
+      'select_reason': 'Chagua sababu',
+      'note_optional': 'Maelezo (hiari)',
       'stock_transfer_note':
           'Tumia hii kuhamisha hisa kutoka bechi moja kwenda bechi mpya au iliyopo ya bidhaa hiyohiyo, mfano baada ya kufungasha upya. Jumla ya hisa haibadiliki.',
       'quantity_received': 'Idadi iliyopokelewa',
@@ -1996,6 +2007,7 @@ class AppLocalizations {
       // Uchaguzi wa huduma
       'select_service': 'Chagua Huduma',
       'select_service_subtitle': 'Chagua unachotaka kusimamia leo',
+      'service_access_denied': 'Hujapewa ruhusa ya huduma hiyo. Tafadhali chagua huduma uliyopewa hapa chini.',
       'inventory_service': 'Hesabu (Inventory)',
       'rental_service': 'All in One',
       'transport_service': 'Usafirishaji (Transport)',

@@ -415,6 +415,7 @@ class _StockOutFormState extends State<_StockOutForm> {
   final TextEditingController _ref = TextEditingController();
   int? _productId;
   int? _batchId;
+  String? _reason;
   bool _saving = false;
 
   @override
@@ -434,11 +435,17 @@ class _StockOutFormState extends State<_StockOutForm> {
           context, loc.translate('select_product'));
       return;
     }
+    if (_reason == null) {
+      ThemeConstants.showWarningSnackBar(
+          context, loc.translate('select_reason'));
+      return;
+    }
 
     setState(() => _saving = true);
     final bool ok = await context.read<InventoryProvider>().stockOut(
           _productId!,
           int.parse(_qty.text.trim()),
+          reason: _reason,
           reference: _ref.text.trim().isEmpty ? null : _ref.text.trim(),
           batchId: _batchId,
         );
@@ -451,6 +458,7 @@ class _StockOutFormState extends State<_StockOutForm> {
       setState(() {
         _batchId = null;
         _productId = null;
+        _reason = null;
       });
       ThemeConstants.showSuccessSnackBar(
           context, loc.translate('stock_updated'));
@@ -528,10 +536,33 @@ class _StockOutFormState extends State<_StockOutForm> {
                 },
               ),
               SizedBox(height: 10.h),
+              DropdownButtonFormField<String>(
+                initialValue: _reason,
+                isExpanded: true,
+                dropdownColor: ThemeConstants.primaryBlue,
+                style: ThemeConstants.bodyStyle,
+                decoration:
+                    ThemeConstants.invInputDecoration(loc.translate('reason')),
+                items: <String, String>{
+                  'sample': loc.translate('reason_sample'),
+                  'gift': loc.translate('reason_gift'),
+                  'correction': loc.translate('reason_correction'),
+                }
+                    .entries
+                    .map((MapEntry<String, String> e) => DropdownMenuItem<String>(
+                          value: e.key,
+                          child: Text(e.value, style: ThemeConstants.bodyStyle),
+                        ))
+                    .toList(),
+                onChanged: (String? v) => setState(() => _reason = v),
+                validator: (String? v) =>
+                    v == null ? loc.translate('select_reason') : null,
+              ),
+              SizedBox(height: 10.h),
               InvTextField(
                 controller: _ref,
-                label: loc.translate('reason'),
-                hint: 'e.g. Sample given to a new customer',
+                label: loc.translate('note_optional'),
+                hint: 'e.g. Given to which customer, or which correction',
                 isOptional: true,
               ),
               SizedBox(height: 16.h),

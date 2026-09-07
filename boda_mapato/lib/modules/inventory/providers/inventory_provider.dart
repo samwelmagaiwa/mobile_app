@@ -322,6 +322,7 @@ class InventoryProvider extends ChangeNotifier {
   Future<bool> stockOut(
     int productId,
     int qty, {
+    String? reason,
     String? reference,
     int? batchId,
   }) async {
@@ -330,6 +331,7 @@ class InventoryProvider extends ChangeNotifier {
         'product_id': productId,
         'type': 'out',
         'quantity': qty,
+        if (reason != null) 'reason': reason,
         if (reference != null) 'reference': reference,
         if (batchId != null) 'batch_id': batchId,
       });

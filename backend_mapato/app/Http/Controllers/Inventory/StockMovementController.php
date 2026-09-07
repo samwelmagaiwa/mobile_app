@@ -79,6 +79,10 @@ class StockMovementController extends Controller
             'product_id' => 'required|exists:inventory_products,id',
             'type' => 'required|in:in,out',
             'quantity' => 'required|integer|min:1',
+            // Damaged/expired/theft stock must go through the write-off
+            // approval flow instead — this endpoint only covers casual
+            // removals that don't need a manager's sign-off.
+            'reason' => 'nullable|in:sample,gift,correction',
             'reference' => 'nullable|string',
             'batch_id' => 'nullable|integer|exists:inventory_batches,id',
             'batch_number' => 'nullable|string|max:64',
@@ -113,7 +117,7 @@ class StockMovementController extends Controller
                     $productId,
                     $quantity,
                     $request->input('reference'),
-                    'adjustment',
+                    $request->input('reason', 'adjustment'),
                     $userId,
                     $request->filled('batch_id') ? (int) $request->input('batch_id') : null,
                 );
