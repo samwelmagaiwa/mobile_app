@@ -1701,6 +1701,7 @@ class InvStockMovement {
   final String reference;
   final String userName;
   final DateTime createdAt;
+  final String batchNumber;
 
   InvStockMovement({
     required this.id,
@@ -1715,6 +1716,7 @@ class InvStockMovement {
     required this.reference,
     required this.userName,
     required this.createdAt,
+    this.batchNumber = '',
   });
 
   bool get isStockIn => type.toLowerCase() == 'in';
@@ -1739,6 +1741,7 @@ InvStockMovement _fromStockMovementJson(Map<String, dynamic> j) {
     reference: (j['reference'] ?? '') as String,
     userName: (j['user_name'] ?? '') as String,
     createdAt: createdAt,
+    batchNumber: (j['batch_number'] ?? '').toString(),
   );
 }
 

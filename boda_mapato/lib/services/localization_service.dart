@@ -81,6 +81,10 @@ class AppLocalizations {
       'select_reason': 'Select a reason',
       'note_optional': 'Note (optional)',
       'new_batch_auto': 'New batch (auto-numbered)',
+      'batch_transfer_history': 'Batch transfer history',
+      'no_batch_transfers': 'No batch transfers yet for this product.',
+      'unknown_batch': 'Unknown batch',
+      'units': 'units',
       'stock_transfer_note':
           'Use this to move stock from one batch into a new or existing one for the same product, for example after repacking. The total quantity in stock does not change.',
       'quantity_received': 'Quantity received',
@@ -1230,6 +1234,10 @@ class AppLocalizations {
       'select_reason': 'Chagua sababu',
       'note_optional': 'Maelezo (hiari)',
       'new_batch_auto': 'Bechi mpya (namba kiotomatiki)',
+      'batch_transfer_history': 'Uhamisho wa Bechi',
+      'no_batch_transfers': 'Hakuna uhamisho wa bechi bado kwa bidhaa hii.',
+      'unknown_batch': 'Bechi haijulikani',
+      'units': 'vipimo',
       'stock_transfer_note':
           'Tumia hii kuhamisha hisa kutoka bechi moja kwenda bechi mpya au iliyopo ya bidhaa hiyohiyo, mfano baada ya kufungasha upya. Jumla ya hisa haibadiliki.',
       'quantity_received': 'Idadi iliyopokelewa',

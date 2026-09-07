@@ -624,6 +624,11 @@ class _StockTransferFormState extends State<_StockTransferForm> {
     final InventoryProvider inv = context.read<InventoryProvider>();
     final int qty = int.parse(_qty.text.trim());
     final bool toNewBatch = _destBatchChoice == _kNewBatchOption;
+    final List<InvBatch> sourceBatches = inv.batchesOf(_productId!);
+    final String sourceBatchNumber = sourceBatches
+        .firstWhere((InvBatch b) => b.id == _sourceBatchId,
+            orElse: () => sourceBatches.first)
+        .batchNumber;
 
     final bool outOk = await inv.stockOut(
       _productId!,
@@ -639,7 +644,7 @@ class _StockTransferFormState extends State<_StockTransferForm> {
             qty,
             batchNumber: toNewBatch ? null : _destBatchChoice,
             expiryDate: toNewBatch ? _destExpiry : null,
-            reference: 'Transfer from batch',
+            reference: 'Transfer from $sourceBatchNumber',
           )
         : false;
 

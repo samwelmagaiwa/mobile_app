@@ -11,6 +11,7 @@ import '../../../../services/localization_service.dart';
 import '../../models/inv_product.dart';
 import '../../models/inv_product_unit.dart';
 import '../../providers/inventory_provider.dart';
+import '../stock/batch_transfer_history_screen.dart';
 import '../widgets/inventory_widgets.dart';
 import 'add_edit_product_screen.dart';
 
@@ -125,6 +126,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
                       onSetPrice: (InvPriceTier tier) =>
                           _openPriceSheet(unit, tier),
                       onHistory: () => _openHistory(unit),
+                      onTransferHistory: _openTransferHistory,
                       onDelete: unit.isBase ? null : () => _confirmDelete(unit),
                     );
                   },
@@ -172,6 +174,13 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
         builder: (_) => _PriceHistorySheet(
           productId: widget.product.id,
           unit: unit,
+        ),
+      );
+
+  void _openTransferHistory() => Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => BatchTransferHistoryScreen(product: widget.product),
         ),
       );
 
@@ -288,6 +297,7 @@ class _UnitCard extends StatelessWidget {
     required this.onEdit,
     required this.onSetPrice,
     required this.onHistory,
+    required this.onTransferHistory,
     this.onDelete,
     this.productSellingPrice,
   });
@@ -300,6 +310,7 @@ class _UnitCard extends StatelessWidget {
   final VoidCallback onEdit;
   final ValueChanged<InvPriceTier> onSetPrice;
   final VoidCallback onHistory;
+  final VoidCallback onTransferHistory;
   final VoidCallback? onDelete;
 
   @override
@@ -354,6 +365,8 @@ class _UnitCard extends StatelessWidget {
                         onEdit();
                       case 'history':
                         onHistory();
+                      case 'transfers':
+                        onTransferHistory();
                       case 'delete':
                         onDelete?.call();
                     }
@@ -367,6 +380,11 @@ class _UnitCard extends StatelessWidget {
                     PopupMenuItem<String>(
                       value: 'history',
                       child: Text(loc.translate('price_history'),
+                          style: ThemeConstants.bodyStyle),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'transfers',
+                      child: Text(loc.translate('batch_transfer_history'),
                           style: ThemeConstants.bodyStyle),
                     ),
                     if (onDelete != null)
