@@ -1,5 +1,22 @@
 import 'package:flutter/foundation.dart';
 
+// MySQL DECIMAL columns come back through PDO as strings (e.g. "15000.00"),
+// so `as num?` throws instead of falling through to `??` — the cast itself
+// fails before the fallback ever runs. Check the runtime type instead.
+int _toInt(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString()) ?? 0;
+}
+
+double? _toDoubleOrNull(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  return double.tryParse(v.toString());
+}
+
+double _toDouble(dynamic v) => _toDoubleOrNull(v) ?? 0;
+
 /// Price tiers a selling unit can carry (Area 2).
 enum InvPriceTier { retail, wholesale, special }
 
@@ -134,13 +151,10 @@ class InvPriceChange {
   });
 
   factory InvPriceChange.fromJson(Map<String, dynamic> json) => InvPriceChange(
-        id: (json['id'] as num?)?.toInt() ?? 0,
+        id: _toInt(json['id']),
         tier: InvPriceTierX.parse((json['tier'] ?? 'retail').toString()),
-        oldPrice: (json['old_price'] as num?)?.toDouble() ??
-            double.tryParse('${json['old_price']}'),
-        newPrice: (json['new_price'] as num?)?.toDouble() ??
-            double.tryParse('${json['new_price']}') ??
-            0,
+        oldPrice: _toDoubleOrNull(json['old_price']),
+        newPrice: _toDouble(json['new_price']),
         reason: (json['reason'] ?? '').toString(),
         changedByName: (json['changed_by_name'] ?? '').toString(),
         createdAt: DateTime.tryParse('${json['created_at']}') ?? DateTime.now(),

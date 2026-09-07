@@ -437,7 +437,9 @@ class DepotProvider extends ChangeNotifier {
       if (meta is Map) {
         _debtorTotals = meta.map((key, value) => MapEntry(
               key.toString(),
-              (value as num?)?.toDouble() ?? 0,
+              value is num
+                  ? value.toDouble()
+                  : double.tryParse(value.toString()) ?? 0,
             ));
       }
       notifyListeners();

@@ -3,10 +3,20 @@ import 'package:flutter/foundation.dart';
 /// Models for Areas 4–13. All are immutable value types parsed defensively:
 /// the API is the source of truth, and a missing field must never crash a screen.
 
-double _toDouble(dynamic v) =>
-    (v as num?)?.toDouble() ?? double.tryParse('$v') ?? 0;
+// MySQL DECIMAL columns come back through PDO as strings (e.g. "15000.00"),
+// so `as num?` throws instead of falling through to `??` — the cast itself
+// fails before the fallback ever runs. Check the runtime type instead.
+double _toDouble(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toDouble();
+  return double.tryParse(v.toString()) ?? 0;
+}
 
-int _toInt(dynamic v) => (v as num?)?.toInt() ?? int.tryParse('$v') ?? 0;
+int _toInt(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString()) ?? 0;
+}
 
 String _toStr(dynamic v) => (v ?? '').toString();
 

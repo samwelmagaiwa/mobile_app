@@ -573,7 +573,10 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
       return;
     }
 
-    final double difference = (result['difference'] as num?)?.toDouble() ?? 0;
+    final dynamic rawDifference = result['difference'];
+    final double difference = rawDifference is num
+        ? rawDifference.toDouble()
+        : double.tryParse('$rawDifference') ?? 0;
     ThemeConstants.showInfoSnackBar(
       context,
       difference.abs() < 0.01

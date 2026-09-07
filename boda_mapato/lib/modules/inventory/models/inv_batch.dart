@@ -1,5 +1,20 @@
 import 'package:flutter/foundation.dart';
 
+// MySQL DECIMAL columns come back through PDO as strings (e.g. "15000.00"),
+// so `as num?` throws instead of falling through to `??` — the cast itself
+// fails before the fallback ever runs. Check the runtime type instead.
+int _toInt(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString()) ?? 0;
+}
+
+double _toDouble(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toDouble();
+  return double.tryParse(v.toString()) ?? 0;
+}
+
 /// A received lot of one product, with its own expiry date and buying cost.
 /// Stock is issued first-expiring-first, so [expiryDate] drives allocation.
 @immutable
@@ -20,13 +35,11 @@ class InvBatch {
   });
 
   factory InvBatch.fromJson(Map<String, dynamic> json) => InvBatch(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        productId: (json['product_id'] as num?)?.toInt() ?? 0,
+        id: _toInt(json['id']),
+        productId: _toInt(json['product_id']),
         batchNumber: (json['batch_number'] ?? '').toString(),
-        quantity: (json['quantity'] as num?)?.toInt() ?? 0,
-        costPrice: (json['cost_price'] as num?)?.toDouble() ??
-            double.tryParse('${json['cost_price']}') ??
-            0,
+        quantity: _toInt(json['quantity']),
+        costPrice: _toDouble(json['cost_price']),
         expiryDate: DateTime.tryParse('${json['expiry_date']}'),
         receivedAt: DateTime.tryParse('${json['received_at']}'),
         status: (json['status'] ?? 'active').toString(),
@@ -101,16 +114,14 @@ class InvWriteOff {
   });
 
   factory InvWriteOff.fromJson(Map<String, dynamic> json) => InvWriteOff(
-        id: (json['id'] as num?)?.toInt() ?? 0,
+        id: _toInt(json['id']),
         reference: (json['reference'] ?? '').toString(),
-        productId: (json['product_id'] as num?)?.toInt() ?? 0,
-        batchId: (json['batch_id'] as num?)?.toInt(),
+        productId: _toInt(json['product_id']),
+        batchId: json['batch_id'] == null ? null : _toInt(json['batch_id']),
         batchNumber: (json['batch_number'] ?? '').toString(),
         reason: (json['reason'] ?? 'other').toString(),
-        quantity: (json['quantity'] as num?)?.toInt() ?? 0,
-        costValue: (json['cost_value'] as num?)?.toDouble() ??
-            double.tryParse('${json['cost_value']}') ??
-            0,
+        quantity: _toInt(json['quantity']),
+        costValue: _toDouble(json['cost_value']),
         status: (json['status'] ?? 'pending').toString(),
         note: (json['note'] ?? '').toString(),
         productName: (json['product_name'] ?? '').toString(),
@@ -160,13 +171,14 @@ class InvStockCount {
         (json['lines'] is List) ? json['lines'] as List<dynamic> : const [];
 
     return InvStockCount(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _toInt(json['id']),
       reference: (json['reference'] ?? '').toString(),
       status: (json['status'] ?? 'draft').toString(),
       note: (json['note'] ?? '').toString(),
       countedByName: (json['counted_by_name'] ?? '').toString(),
-      linesCount: (json['lines_count'] as num?)?.toInt() ?? rawLines.length,
-      totalVariance: (json['total_variance'] as num?)?.toInt() ?? 0,
+      linesCount:
+          json['lines_count'] == null ? rawLines.length : _toInt(json['lines_count']),
+      totalVariance: _toInt(json['total_variance']),
       createdAt: DateTime.tryParse('${json['created_at']}') ?? DateTime.now(),
       lines: rawLines
           .map((l) => InvStockCountLine.fromJson(l as Map<String, dynamic>))
@@ -204,15 +216,15 @@ class InvStockCountLine {
 
   factory InvStockCountLine.fromJson(Map<String, dynamic> json) =>
       InvStockCountLine(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        productId: (json['product_id'] as num?)?.toInt() ?? 0,
-        batchId: (json['batch_id'] as num?)?.toInt(),
+        id: _toInt(json['id']),
+        productId: _toInt(json['product_id']),
+        batchId: json['batch_id'] == null ? null : _toInt(json['batch_id']),
         batchNumber: (json['batch_number'] ?? '').toString(),
         productName: (json['product_name'] ?? '').toString(),
         productSku: (json['product_sku'] ?? '').toString(),
-        systemQuantity: (json['system_quantity'] as num?)?.toInt() ?? 0,
-        countedQuantity: (json['counted_quantity'] as num?)?.toInt() ?? 0,
-        variance: (json['variance'] as num?)?.toInt() ?? 0,
+        systemQuantity: _toInt(json['system_quantity']),
+        countedQuantity: _toInt(json['counted_quantity']),
+        variance: _toInt(json['variance']),
         note: (json['note'] ?? '').toString(),
       );
 

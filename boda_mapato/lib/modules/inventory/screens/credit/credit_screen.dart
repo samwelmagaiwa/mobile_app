@@ -414,7 +414,10 @@ class _ReceivePaymentSheetState extends State<ReceivePaymentSheet> {
     }
 
     Navigator.pop(context, true);
-    final double unallocated = (result['unallocated'] as num?)?.toDouble() ?? 0;
+    final dynamic rawUnallocated = result['unallocated'];
+    final double unallocated = rawUnallocated is num
+        ? rawUnallocated.toDouble()
+        : double.tryParse('$rawUnallocated') ?? 0;
     ThemeConstants.showSuccessSnackBar(
       context,
       unallocated > 0

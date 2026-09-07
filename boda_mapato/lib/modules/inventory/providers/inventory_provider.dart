@@ -1365,8 +1365,12 @@ class InventoryProvider extends ChangeNotifier {
           await _api.getOrNull('/inventory/expiry-summary?days=$days');
       final dynamic data = res?['data'];
       if (data is! Map) return;
-      _expiredCount = (data['expired'] as num?)?.toInt() ?? 0;
-      _expiringSoonCount = (data['expiring_soon'] as num?)?.toInt() ?? 0;
+      _expiredCount = data['expired'] is num
+          ? (data['expired'] as num).toInt()
+          : int.tryParse('${data['expired']}') ?? 0;
+      _expiringSoonCount = data['expiring_soon'] is num
+          ? (data['expiring_soon'] as num).toInt()
+          : int.tryParse('${data['expiring_soon']}') ?? 0;
       notifyListeners();
     } on Exception {
       // leave the previous counts

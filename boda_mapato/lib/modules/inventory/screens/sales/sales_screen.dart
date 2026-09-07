@@ -1036,7 +1036,7 @@ class _SalesScreenState extends State<SalesScreen>
   }
 
   String _fmt(dynamic v) {
-    final n = (v as num?)?.toDouble() ?? 0.0;
+    final n = v is num ? v.toDouble() : double.tryParse('$v') ?? 0.0;
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
     return n.toStringAsFixed(0);
