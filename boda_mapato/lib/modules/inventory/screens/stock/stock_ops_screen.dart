@@ -590,19 +590,22 @@ class _StockTransferForm extends StatefulWidget {
   State<_StockTransferForm> createState() => _StockTransferFormState();
 }
 
+/// Sentinel for "create a new batch (auto-numbered)" in the destination
+/// dropdown — an actual batch number is never blank, so this can't collide.
+const String _kNewBatchOption = '__new__';
+
 class _StockTransferFormState extends State<_StockTransferForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _qty = TextEditingController();
-  final TextEditingController _destBatchNumber = TextEditingController();
   int? _productId;
   int? _sourceBatchId;
+  String _destBatchChoice = _kNewBatchOption;
   DateTime? _destExpiry;
   bool _saving = false;
 
   @override
   void dispose() {
     _qty.dispose();
-    _destBatchNumber.dispose();
     super.dispose();
   }
 
@@ -620,19 +623,22 @@ class _StockTransferFormState extends State<_StockTransferForm> {
     setState(() => _saving = true);
     final InventoryProvider inv = context.read<InventoryProvider>();
     final int qty = int.parse(_qty.text.trim());
+    final bool toNewBatch = _destBatchChoice == _kNewBatchOption;
 
     final bool outOk = await inv.stockOut(
       _productId!,
       qty,
       batchId: _sourceBatchId,
-      reference: 'Transfer to ${_destBatchNumber.text.trim()}',
+      reference: toNewBatch
+          ? 'Transfer to a new batch'
+          : 'Transfer to $_destBatchChoice',
     );
     final bool inOk = outOk
         ? await inv.stockIn(
             _productId!,
             qty,
-            batchNumber: _destBatchNumber.text.trim(),
-            expiryDate: _destExpiry,
+            batchNumber: toNewBatch ? null : _destBatchChoice,
+            expiryDate: toNewBatch ? _destExpiry : null,
             reference: 'Transfer from batch',
           )
         : false;
@@ -641,10 +647,10 @@ class _StockTransferFormState extends State<_StockTransferForm> {
     setState(() => _saving = false);
     if (inOk) {
       _qty.clear();
-      _destBatchNumber.clear();
       setState(() {
         _sourceBatchId = null;
         _productId = null;
+        _destBatchChoice = _kNewBatchOption;
         _destExpiry = null;
       });
       ThemeConstants.showSuccessSnackBar(
@@ -721,20 +727,48 @@ class _StockTransferFormState extends State<_StockTransferForm> {
                 },
               ),
               SizedBox(height: 10.h),
-              InvTextField(
-                controller: _destBatchNumber,
-                label: loc.translate('to_batch'),
-                hint: 'e.g. BATCH-2026-09-02-B',
-                validator: (String? v) => (v == null || v.trim().isEmpty)
-                    ? loc.translate('field_required')
-                    : null,
+              DropdownButtonFormField<String>(
+                initialValue: _destBatchChoice,
+                isExpanded: true,
+                dropdownColor: ThemeConstants.primaryBlue,
+                style: ThemeConstants.bodyStyle,
+                decoration:
+                    ThemeConstants.invInputDecoration(loc.translate('to_batch')),
+                items: <DropdownMenuItem<String>>[
+                  DropdownMenuItem<String>(
+                    value: _kNewBatchOption,
+                    child: Text(
+                      loc.translate('new_batch_auto'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ThemeConstants.bodyStyle,
+                    ),
+                  ),
+                  ...batches
+                      .where((InvBatch b) => b.id != _sourceBatchId)
+                      .map(
+                        (InvBatch b) => DropdownMenuItem<String>(
+                          value: b.batchNumber,
+                          child: Text(
+                            '${b.batchNumber} — ${b.quantity} ${loc.translate('left')}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: ThemeConstants.bodyStyle,
+                          ),
+                        ),
+                      ),
+                ],
+                onChanged: (String? v) =>
+                    setState(() => _destBatchChoice = v ?? _kNewBatchOption),
               ),
-              SizedBox(height: 10.h),
-              InvDateField(
-                label: loc.translate('expiry_date'),
-                value: _destExpiry,
-                onChanged: (DateTime? d) => setState(() => _destExpiry = d),
-              ),
+              if (_destBatchChoice == _kNewBatchOption) ...<Widget>[
+                SizedBox(height: 10.h),
+                InvDateField(
+                  label: loc.translate('expiry_date'),
+                  value: _destExpiry,
+                  onChanged: (DateTime? d) => setState(() => _destExpiry = d),
+                ),
+              ],
               SizedBox(height: 16.h),
               InvPrimaryButton(
                 busy: _saving,
