@@ -42,7 +42,19 @@ jobs:
           script: |
             set -e
             cd /www/depot
-            docker compose pull
+            # Docker Hub occasionally 500s on a blob read mid-pull; retry
+            # with backoff rather than failing the whole deploy on a blip.
+            for attempt in 1 2 3 4 5; do
+              if docker compose pull; then
+                break
+              fi
+              if [ "$attempt" = "5" ]; then
+                echo "docker compose pull failed after 5 attempts"
+                exit 1
+              fi
+              echo "pull attempt $attempt failed, retrying in $((attempt * 5))s..."
+              sleep $((attempt * 5))
+            done
             docker compose up -d --remove-orphans
             sleep 3
             docker exec depot_backend php artisan migrate --force

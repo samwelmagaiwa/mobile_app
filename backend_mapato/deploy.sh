@@ -135,8 +135,15 @@ push_image() {
 
 deploy_server() {
   step "Server — pull new image & restart"
-  ssh_run "cd $REMOTE_DIR && docker compose pull" \
-    || err "docker compose pull failed on server"
+  # Docker Hub occasionally 500s on a blob read mid-pull; retry with
+  # backoff rather than failing the whole deploy on a blip.
+  ssh_run "cd $REMOTE_DIR && for attempt in 1 2 3 4 5; do \
+      docker compose pull && break; \
+      [ \"\$attempt\" = 5 ] && exit 1; \
+      echo pull attempt \$attempt failed, retrying...; \
+      sleep \$((attempt * 5)); \
+    done" \
+    || err "docker compose pull failed on server after retries"
   ok "Image pulled on server"
 
   ssh_run "cd $REMOTE_DIR && docker compose up -d --remove-orphans" \
