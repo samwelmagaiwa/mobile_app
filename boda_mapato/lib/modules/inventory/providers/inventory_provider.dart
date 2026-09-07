@@ -1521,6 +1521,9 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  String? _lastStockCountError;
+  String? get lastStockCountError => _lastStockCountError;
+
   Future<bool> saveStockCountLine(
     int countId, {
     required int productId,
@@ -1528,6 +1531,7 @@ class InventoryProvider extends ChangeNotifier {
     int? batchId,
     String? note,
   }) async {
+    _lastStockCountError = null;
     try {
       await _api.post(
         '/inventory/stock-counts/$countId/lines',
@@ -1539,6 +1543,9 @@ class InventoryProvider extends ChangeNotifier {
         },
       );
       return true;
+    } on ApiException catch (e) {
+      _lastStockCountError = e.message;
+      return false;
     } on Exception {
       return false;
     }
@@ -1555,6 +1562,7 @@ class InventoryProvider extends ChangeNotifier {
 
   /// Apply every variance to stock and freeze the count.
   Future<bool> postStockCount(int countId) async {
+    _lastStockCountError = null;
     try {
       await _api.post(
           '/inventory/stock-counts/$countId/post', const <String, dynamic>{});
@@ -1565,6 +1573,9 @@ class InventoryProvider extends ChangeNotifier {
       ]);
       _refreshLowStockReminders();
       return true;
+    } on ApiException catch (e) {
+      _lastStockCountError = e.message;
+      return false;
     } on Exception {
       return false;
     }

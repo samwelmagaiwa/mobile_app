@@ -429,16 +429,18 @@ class _StockCountDetailScreenState extends State<StockCountDetailScreen> {
     }
 
     setState(() => _busy = true);
-    final bool done =
-        await context.read<InventoryProvider>().postStockCount(widget.countId);
+    final InventoryProvider inv = context.read<InventoryProvider>();
+    final bool done = await inv.postStockCount(widget.countId);
     if (!mounted) {
       return;
     }
     setState(() => _busy = false);
     ThemeConstants.showInfoSnackBar(
       context,
-      LocalizationService.instance
-          .translate(done ? 'stock_count_posted' : 'operation_failed'),
+      done
+          ? LocalizationService.instance.translate('stock_count_posted')
+          : (inv.lastStockCountError ??
+              LocalizationService.instance.translate('operation_failed')),
     );
     await _load();
   }
@@ -589,13 +591,14 @@ class _CountLineSheetState extends State<_CountLineSheet> {
     }
 
     setState(() => _saving = true);
-    final bool ok = await context.read<InventoryProvider>().saveStockCountLine(
-          widget.countId,
-          productId: _productId!,
-          countedQuantity: int.parse(_counted.text.trim()),
-          batchId: _batchId,
-          note: _note.text.trim(),
-        );
+    final InventoryProvider inv = context.read<InventoryProvider>();
+    final bool ok = await inv.saveStockCountLine(
+      widget.countId,
+      productId: _productId!,
+      countedQuantity: int.parse(_counted.text.trim()),
+      batchId: _batchId,
+      note: _note.text.trim(),
+    );
 
     if (!mounted) {
       return;
@@ -606,7 +609,7 @@ class _CountLineSheetState extends State<_CountLineSheet> {
     } else {
       ThemeConstants.showErrorSnackBar(
         context,
-        loc.translate('operation_failed'),
+        inv.lastStockCountError ?? loc.translate('operation_failed'),
       );
     }
   }

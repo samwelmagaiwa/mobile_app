@@ -101,6 +101,27 @@ class StockCountController extends Controller
         ]);
 
         $batchId = $data['batch_id'] ?? null;
+
+        // A product can be counted as one whole-product line OR as one line
+        // per batch, never both -- mixing them corrupts the total, since a
+        // whole-product line overwrites quantity directly while a batch
+        // line only adjusts by variance. Whichever mode is already in use
+        // for this product in this count wins.
+        $conflict = DB::table('inventory_stock_count_lines')
+            ->where('stock_count_id', $id)
+            ->where('product_id', $data['product_id'])
+            ->where(fn ($w) => $batchId === null
+                ? $w->whereNotNull('batch_id')
+                : $w->whereNull('batch_id'))
+            ->exists();
+        if ($conflict) {
+            return response()->json([
+                'message' => $batchId === null
+                    ? 'This product already has batch-specific lines in this count. Remove them first, or add this count by batch instead.'
+                    : 'This product already has a whole-product line in this count. Remove it first, or count the whole product instead.',
+            ], 422);
+        }
+
         $systemQty = $batchId !== null
             ? (int) DB::table('inventory_batches')->where('id', $batchId)->value('quantity')
             : (int) DB::table('inventory_products')->where('id', $data['product_id'])->value('quantity');
@@ -167,6 +188,20 @@ class StockCountController extends Controller
         $lines = DB::table('inventory_stock_count_lines')->where('stock_count_id', $id)->get();
         if ($lines->isEmpty()) {
             return response()->json(['message' => 'Nothing counted yet'], 422);
+        }
+
+        // Defensive: a product must not have both a whole-product line and a
+        // batch-specific line in the same count (see saveLine) -- posting
+        // that combination would silently corrupt the product's total.
+        $byProduct = $lines->groupBy('product_id');
+        foreach ($byProduct as $productLines) {
+            $hasWholeProduct = $productLines->contains(fn ($l) => $l->batch_id === null);
+            $hasBatch = $productLines->contains(fn ($l) => $l->batch_id !== null);
+            if ($hasWholeProduct && $hasBatch) {
+                return response()->json([
+                    'message' => 'One product has both a whole-product line and batch lines in this count. Remove one before posting.',
+                ], 422);
+            }
         }
 
         $userId = optional($request->user())->id;
