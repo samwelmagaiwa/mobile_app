@@ -714,7 +714,7 @@ class _ReceiveGoodsSheetState extends State<ReceiveGoodsSheet> {
           'product_id': _productId,
           'quantity': int.parse(_quantity.text.trim()),
           'unit_cost': double.tryParse(_cost.text.trim()) ?? 0,
-          'batch_number': _batch.text.trim(),
+          if (_batch.text.trim().isNotEmpty) 'batch_number': _batch.text.trim(),
           if (_expiry != null)
             'expiry_date': _expiry!.toIso8601String().split('T').first,
         },
@@ -815,10 +815,8 @@ class _ReceiveGoodsSheetState extends State<ReceiveGoodsSheet> {
               InvTextField(
                 controller: _batch,
                 label: loc.translate('batch_number'),
-                hint: 'e.g. BATCH-2026-09-01',
-                validator: (String? v) => (v == null || v.trim().isEmpty)
-                    ? loc.translate('field_required')
-                    : null,
+                hint: loc.translate('batch_number_auto_hint'),
+                isOptional: true,
               ),
               SizedBox(height: 10.h),
               Row(

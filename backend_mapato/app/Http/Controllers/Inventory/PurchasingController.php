@@ -228,7 +228,7 @@ class PurchasingController extends Controller
             'lines.*.product_id' => 'required|integer|exists:inventory_products,id',
             'lines.*.quantity' => 'required|integer|min:1',
             'lines.*.unit_cost' => 'required|numeric|min:0',
-            'lines.*.batch_number' => 'required|string|max:64',
+            'lines.*.batch_number' => 'nullable|string|max:64',
             'lines.*.expiry_date' => 'nullable|date',
         ]);
 
@@ -260,7 +260,7 @@ class PurchasingController extends Controller
                     $batchId = $this->ledger->receive(
                         (int) $line['product_id'],
                         (int) $line['quantity'],
-                        $line['batch_number'],
+                        $line['batch_number'] ?? null,
                         $line['expiry_date'] ?? null,
                         (float) $line['unit_cost'],
                         $reference,
