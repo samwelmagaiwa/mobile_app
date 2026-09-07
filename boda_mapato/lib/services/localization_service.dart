@@ -165,6 +165,9 @@ class AppLocalizations {
       'post_count': 'Post count',
       'post_count_confirm':
           'Posting applies every variance to stock. This cannot be undone.',
+      'remove_line': 'Remove line',
+      'remove_line_confirm':
+          'Remove {product} from this count?',
       'stock_count_posted': 'Stock count posted',
       'posted': 'Posted',
       'draft': 'Draft',
@@ -1427,6 +1430,9 @@ class AppLocalizations {
       'post_count': 'Thibitisha hesabu',
       'post_count_confirm':
           'Kuthibitisha kutabadilisha bidhaa kulingana na tofauti. Haiwezi kurudishwa.',
+      'remove_line': 'Ondoa safu',
+      'remove_line_confirm':
+          'Una uhakika unataka kuondoa {product} kutoka hesabu hii?',
       'stock_count_posted': 'Hesabu ya bidhaa imethibitishwa',
       'posted': 'Imethibitishwa',
       'draft': 'Rasimu',

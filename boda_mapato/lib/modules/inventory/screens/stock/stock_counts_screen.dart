@@ -346,6 +346,43 @@ class _StockCountDetailScreenState extends State<StockCountDetailScreen> {
   }
 
   Future<void> _deleteLine(InvStockCountLine line) async {
+    final LocalizationService loc = LocalizationService.instance;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: ThemeConstants.primaryBlue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(loc.translate('remove_line'),
+            style: ThemeConstants.headingStyle),
+        content: Text(
+          loc.translate('remove_line_confirm').replaceAll(
+                '{product}',
+                line.productName,
+              ),
+          style: ThemeConstants.bodyStyle,
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.translate('cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              loc.translate('delete'),
+              style: const TextStyle(color: ThemeConstants.errorRed),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) {
+      return;
+    }
+
     setState(() => _busy = true);
     await context
         .read<InventoryProvider>()
