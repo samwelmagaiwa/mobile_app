@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('description');
             $table->decimal('amount', 15, 2);
             $table->date('expense_date');
-            $table->unsignedBigInteger('created_by')->nullable();
+            $table->uuid('created_by')->nullable();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             $table->timestamps();
 
