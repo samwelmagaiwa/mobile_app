@@ -78,7 +78,7 @@ class BatchController extends Controller
     {
         $data = $request->validate([
             'product_id' => 'required|integer|exists:inventory_products,id',
-            'batch_number' => 'required|string|max:64',
+            'batch_number' => 'nullable|string|max:64',
             'quantity' => 'required|integer|min:1',
             'expiry_date' => 'nullable|date',
             'cost_price' => 'nullable|numeric|min:0',
@@ -89,7 +89,7 @@ class BatchController extends Controller
             $batchId = DB::transaction(fn () => $this->ledger->receive(
                 (int) $data['product_id'],
                 (int) $data['quantity'],
-                $data['batch_number'],
+                $data['batch_number'] ?? null,
                 $data['expiry_date'] ?? null,
                 isset($data['cost_price']) ? (float) $data['cost_price'] : null,
                 $data['reference'] ?? null,

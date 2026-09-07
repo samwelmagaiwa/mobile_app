@@ -392,7 +392,9 @@ class _ReceiveStockSheetState extends State<_ReceiveStockSheet> {
     setState(() => _saving = true);
     final bool ok = await context.read<InventoryProvider>().receiveBatch(
           productId: _productId!,
-          batchNumber: _batchNumber.text.trim(),
+          batchNumber: _batchNumber.text.trim().isEmpty
+              ? null
+              : _batchNumber.text.trim(),
           quantity: int.parse(_quantity.text.trim()),
           expiryDate: _expiry,
           costPrice: double.tryParse(_cost.text.trim()),
@@ -452,10 +454,8 @@ class _ReceiveStockSheetState extends State<_ReceiveStockSheet> {
               InvTextField(
                 controller: _batchNumber,
                 label: loc.translate('batch_number'),
-                hint: 'e.g. BATCH-2026-09-01',
-                validator: (String? v) => (v == null || v.trim().isEmpty)
-                    ? loc.translate('field_required')
-                    : null,
+                hint: loc.translate('batch_number_auto_hint'),
+                isOptional: true,
               ),
               SizedBox(height: 10.h),
               Row(

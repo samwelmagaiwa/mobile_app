@@ -41,6 +41,9 @@ class InventoryProvider extends ChangeNotifier {
   final List<InvSaleItem> _cart = <InvSaleItem>[];
   String _paymentMode = 'cash'; // cash | debt | partial
   int? _selectedCustomerId;
+  String _selectedCustomerPhone = '';
+  String _manualPhone = '';  // optional phone for walk-in sales
+  String _manualName = '';   // optional name  for walk-in sales
   double _paidAmount = 0;
 
   // Sales history pagination + summary
@@ -105,6 +108,9 @@ class InventoryProvider extends ChangeNotifier {
   List<InvSaleItem> get cart => List.unmodifiable(_cart);
   String get paymentMode => _paymentMode;
   int? get selectedCustomerId => _selectedCustomerId;
+  String get selectedCustomerPhone => _selectedCustomerPhone;
+  String get manualPhone => _manualPhone;
+  String get manualName => _manualName;
   double get paidAmount => _paidAmount;
 
   double get cartSubtotal => _cart.fold(0, (sum, it) => sum + it.total);
@@ -706,6 +712,19 @@ class InventoryProvider extends ChangeNotifier {
 
   void setCustomer(int? customerId) {
     _selectedCustomerId = customerId;
+    _selectedCustomerPhone = customerId == null
+        ? ''
+        : (_customers.where((c) => c.id == customerId).firstOrNull?.phone ?? '');
+    notifyListeners();
+  }
+
+  void setManualPhone(String phone) {
+    _manualPhone = phone;
+    notifyListeners();
+  }
+
+  void setManualName(String name) {
+    _manualName = name;
     notifyListeners();
   }
 
@@ -762,6 +781,12 @@ class InventoryProvider extends ChangeNotifier {
 
     final payload = {
       'customer_id': _selectedCustomerId,
+      // Walk-in overrides: only sent when no linked customer
+      if (_selectedCustomerId == null && _manualName.trim().isNotEmpty)
+        'customer_name_override': _manualName.trim(),
+      'customer_phone': _selectedCustomerId != null
+          ? (_selectedCustomerPhone.isNotEmpty ? _selectedCustomerPhone : null)
+          : (_manualPhone.trim().isNotEmpty ? _manualPhone.trim() : null),
       'payment_status': status,
       'subtotal': subtotal,
       'discount': cartDiscount,
@@ -790,6 +815,9 @@ class InventoryProvider extends ChangeNotifier {
       _cart.clear();
       _paymentMode = 'cash';
       _selectedCustomerId = null;
+      _selectedCustomerPhone = '';
+      _manualPhone = '';
+      _manualName = '';
       _paidAmount = 0;
       notifyListeners();
 
@@ -1313,8 +1341,8 @@ class InventoryProvider extends ChangeNotifier {
   /// Receive stock into a batch. Creates the batch when the number is new.
   Future<bool> receiveBatch({
     required int productId,
-    required String batchNumber,
     required int quantity,
+    String? batchNumber,
     DateTime? expiryDate,
     double? costPrice,
     String? reference,
@@ -1322,7 +1350,8 @@ class InventoryProvider extends ChangeNotifier {
     try {
       await _api.post('/inventory/batches', <String, dynamic>{
         'product_id': productId,
-        'batch_number': batchNumber,
+        if (batchNumber != null && batchNumber.isNotEmpty)
+          'batch_number': batchNumber,
         'quantity': quantity,
         if (expiryDate != null)
           'expiry_date': expiryDate.toIso8601String().split('T').first,
