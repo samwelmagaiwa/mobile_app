@@ -16,6 +16,11 @@ class PaymentsManagementScreen extends StatefulWidget {
 }
 
 class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ThemeConstants.showErrorSnackBar(context, message);
+  }
+
   final ApiService _api = ApiService();
 
   // Helper method to convert various types to double
@@ -1344,8 +1349,7 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final ScaffoldMessengerState messenger =
-                  ScaffoldMessenger.of(context);
+              final OverlayState overlay = Overlay.of(context);
               final String paymentId = payment['id'].toString();
               setState(() {
                 _rowActionLoading[paymentId] = 'delete';
@@ -1358,21 +1362,25 @@ class _PaymentsManagementScreenState extends State<PaymentsManagementScreen> {
                   );
                 });
                 _filterPayments();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text("Malipo ya ${payment["driver_name"]} yamefutwa"),
-                    backgroundColor: ThemeConstants.errorRed,
-                  ),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "Malipo ya ${payment["driver_name"]} yamefutwa",
+                  backgroundColor: ThemeConstants.errorRed,
+                  icon: Icons.check_circle,
                 );
               } on ApiException catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(
-                      content:
-                          Text("Imeshindikana kufuta malipo: ${e.message}")),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "Imeshindikana kufuta malipo: ${e.message}",
+                  backgroundColor: ThemeConstants.errorRed,
+                  icon: Icons.error,
                 );
               } on Exception catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text("Hitilafu: $e")),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "Hitilafu: $e",
+                  backgroundColor: ThemeConstants.errorRed,
+                  icon: Icons.error,
                 );
               } finally {
                 if (mounted) {
@@ -1838,7 +1846,6 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                     return;
                   }
                   Navigator.pop(context);
-                  final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
                   try {
                     final Map<String, dynamic> payload = <String, dynamic>{
 'driver_id': selectedDriverId!.trim(),
@@ -1945,8 +1952,7 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
   }
 
   Future<void> _importPayments() async {
-    final ScaffoldMessengerState messenger =
-        ScaffoldMessenger.of(context);
+    final OverlayState overlay = Overlay.of(context);
     try {
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -2048,12 +2054,12 @@ labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
         }
       }
 
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text("Uingizaji wa malipo: $success mafanikio, $failed imeshindikana"),
-          backgroundColor:
-              failed == 0 ? ThemeConstants.successGreen : ThemeConstants.warningAmber,
-        ),
+      ThemeConstants.showTopBanner(
+        overlay,
+        "Uingizaji wa malipo: $success mafanikio, $failed imeshindikana",
+        backgroundColor:
+            failed == 0 ? ThemeConstants.successGreen : ThemeConstants.warningAmber,
+        icon: failed == 0 ? Icons.check_circle : Icons.warning,
       );
 
       await _loadPayments(refresh: true);

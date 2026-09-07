@@ -855,10 +855,8 @@ class _AddHouseBottomSheetState extends State<AddHouseBottomSheet> {
       final remaining = _targetRent - _currentHousesSum - rentAmt;
       if (remaining < 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Kiasi cha kodi kinazidi lengo la jengo."),
-            backgroundColor: ThemeConstants.errorRed,
-          ));
+          ThemeConstants.showErrorSnackBar(
+              context, "Kiasi cha kodi kinazidi lengo la jengo.");
         }
         setState(() => _attemptedSubmit = false);
         return;

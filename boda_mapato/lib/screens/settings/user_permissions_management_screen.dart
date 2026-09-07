@@ -98,13 +98,9 @@ class _UserPermissionsManagementScreenState
 
       if (res['success'] == true) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_loc.isSwahili
-                  ? 'Mabadiliko yamehifadhiwa'
-                  : 'Permissions updated'),
-              backgroundColor: Colors.green,
-            ),
+          ThemeConstants.showSuccessSnackBar(
+            context,
+            _loc.isSwahili ? 'Mabadiliko yamehifadhiwa' : 'Permissions updated',
           );
           Navigator.pop(context);
         }
@@ -113,12 +109,7 @@ class _UserPermissionsManagementScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ThemeConstants.showErrorSnackBar(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

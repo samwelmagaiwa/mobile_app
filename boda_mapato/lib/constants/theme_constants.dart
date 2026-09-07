@@ -233,6 +233,26 @@ class ThemeConstants {
   }) {
     final OverlayState? overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
+    showTopBanner(
+      overlay,
+      message,
+      backgroundColor: backgroundColor,
+      duration: duration,
+      icon: icon,
+    );
+  }
+
+  /// Same top banner as [_showTopSnackBar], but takes an [OverlayState]
+  /// captured before an `await` instead of a [BuildContext] — for call
+  /// sites that pop a dialog (invalidating their context) before showing
+  /// the result, mirroring the ScaffoldMessenger-capture pattern.
+  static void showTopBanner(
+    OverlayState overlay,
+    String message, {
+    Color? backgroundColor,
+    Duration? duration,
+    IconData? icon,
+  }) {
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(

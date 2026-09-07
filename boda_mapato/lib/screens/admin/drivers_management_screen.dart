@@ -1409,8 +1409,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
-              // Capture messenger before any awaits to avoid context-after-await lint
-              final messenger = ScaffoldMessenger.of(context);
+              // Capture the overlay before any awaits to avoid context-after-await lint
+              final overlay = Overlay.of(context);
               Navigator.pop(context);
 
               try {
@@ -1435,20 +1435,19 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 final String message = isActive
                     ? "${driver.name} amezimwa"
                     : "${driver.name} amewashwa";
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(message),
-                    backgroundColor:
-                        isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
-                  ),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  message,
+                  backgroundColor:
+                      isActive ? ThemeConstants.errorRed : ThemeConstants.successGreen,
+                  icon: isActive ? Icons.block : Icons.check_circle,
                 );
               } on Exception catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content:
-                        Text("Hitilafu katika kubadilisha hali: $e"),
-                    backgroundColor: ThemeConstants.errorRed,
-                  ),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "Hitilafu katika kubadilisha hali: $e",
+                  backgroundColor: ThemeConstants.errorRed,
+                  icon: Icons.error,
                 );
               }
             },
@@ -1490,8 +1489,8 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
           ),
           TextButton(
             onPressed: () async {
-              // Capture messenger before any awaits to avoid context-after-await lint
-              final messenger = ScaffoldMessenger.of(context);
+              // Capture the overlay before any awaits to avoid context-after-await lint
+              final overlay = Overlay.of(context);
               Navigator.pop(context);
 
               try {
@@ -1505,16 +1504,17 @@ class _DriversManagementScreenState extends State<DriversManagementScreen>
                 });
                 _filterDrivers();
 
-                messenger.showSnackBar(
-                  SnackBar(content: Text("${driver.name} amefutwa")),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "${driver.name} amefutwa",
+                  icon: Icons.check_circle,
                 );
               } on Exception catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content:
-                        Text("Hitilafu katika kufuta dereva: $e"),
-                    backgroundColor: ThemeConstants.errorRed,
-                  ),
+                ThemeConstants.showTopBanner(
+                  overlay,
+                  "Hitilafu katika kufuta dereva: $e",
+                  backgroundColor: ThemeConstants.errorRed,
+                  icon: Icons.error,
                 );
               }
             },
