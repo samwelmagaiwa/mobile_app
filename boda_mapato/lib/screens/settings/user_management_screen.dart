@@ -25,6 +25,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   List<Map<String, dynamic>> _users = <Map<String, dynamic>>[];
   String _activeService = 'transport'; // default
 
+  // Super admin only: view all users grouped by service, then by the admin
+  // managing them within that service.
+  bool _groupedView = false;
+  bool _loadingGrouped = false;
+  Map<String, dynamic>? _groupedData;
+
   @override
   void initState() {
     super.initState();
@@ -81,8 +87,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     setState(() => _loading = true);
     try {
       final isSuperAdmin = Provider.of<AuthProvider>(context, listen: false).user?.isSuperAdmin == true;
+      // super_admin sees ALL users across all services (no service filter)
+      // so they can manage admins who may not yet have any service bound.
       final Map<String, dynamic> res = isSuperAdmin
-          ? await _api.getUsers(limit: 100, serviceType: _activeService)
+          ? await _api.getUsers(limit: 200)
           : await _api.getMyUsers(limit: 100, serviceType: _activeService);
       final List<Map<String, dynamic>> items = _extractUsers(res);
       setState(() {
@@ -92,6 +100,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
+      ThemeConstants.showErrorSnackBar(context, e.toString());
+    }
+  }
+
+  Future<void> _loadGrouped() async {
+    setState(() => _loadingGrouped = true);
+    try {
+      final Map<String, dynamic> res = await _api.getUsersByService();
+      final dynamic data = res['data'];
+      if (!mounted) return;
+      setState(() {
+        _groupedData = data is Map ? Map<String, dynamic>.from(data) : null;
+        _loadingGrouped = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingGrouped = false);
       ThemeConstants.showErrorSnackBar(context, e.toString());
     }
   }
@@ -429,6 +454,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   void _showUserActions(Map<String, dynamic> user) {
     final bool active = user['is_active'] == true || user['is_active'] == 1;
+    final authUser = Provider.of<AuthProvider>(context, listen: false).user;
+    final bool isSuperAdmin = authUser?.isSuperAdmin == true;
 
     showDialog(
       context: context,
@@ -479,6 +506,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   await _changeUserRole(user);
                 },
               ),
+              // Service bindings: super_admin can edit anyone's; admin can edit their own created users
+              const Divider(height: 1, color: Colors.white24),
+              ListTile(
+                leading: const Icon(Icons.apps_rounded, color: Colors.lightBlueAccent),
+                title: Text(
+                  _loc.isSwahili ? 'Badilisha Huduma' : 'Edit Service Access',
+                  style: const TextStyle(color: Colors.lightBlueAccent),
+                ),
+                subtitle: isSuperAdmin
+                    ? Text(
+                        _loc.isSwahili
+                            ? 'Super Admin: weka huduma zozote'
+                            : 'Super Admin: assign any services',
+                        style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 11),
+                      )
+                    : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _editServiceBindings(user);
+                },
+              ),
               const Divider(height: 1, color: Colors.white24),
               ListTile(
                 leading: const Icon(Icons.security, color: Colors.green),
@@ -516,6 +564,137 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _editServiceBindings(Map<String, dynamic> user) async {
+    // Parse the current bound services from the user map
+    final List<dynamic> raw = (user['service_types'] as List?) ?? [];
+    final Set<String> selected = raw.map((e) => e.toString()).toSet();
+    // If none bound yet, default to showing all unselected
+    final authUser = Provider.of<AuthProvider>(context, listen: false).user;
+    final bool isSuperAdmin = authUser?.isSuperAdmin == true;
+
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: ThemeConstants.primaryBlue,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _loc.isSwahili ? 'Huduma za ${user['name']}' : '${user['name']}\'s Services',
+                style: const TextStyle(color: ThemeConstants.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              if (isSuperAdmin)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade800.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.orange.shade600, width: 1),
+                  ),
+                  child: Text(
+                    _loc.isSwahili ? '🔑 Mamlaka ya Super Admin' : '🔑 Super Admin Authority',
+                    style: const TextStyle(color: Colors.orangeAccent, fontSize: 11),
+                  ),
+                ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _loc.isSwahili
+                    ? 'Chagua huduma ambazo mtumiaji huyu atapata ufikiaji:'
+                    : 'Select which services this user can access:',
+                style: const TextStyle(color: ThemeConstants.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              ...<String>['inventory', 'transport', 'rental'].map((s) {
+                final bool on = selected.contains(s);
+                return CheckboxListTile(
+                  value: on,
+                  onChanged: (v) => setDialogState(() {
+                    v == true ? selected.add(s) : selected.remove(s);
+                  }),
+                  title: Row(
+                    children: [
+                      Icon(
+                        s == 'inventory'
+                            ? Icons.inventory_2_rounded
+                            : s == 'transport'
+                                ? Icons.local_shipping_rounded
+                                : Icons.apartment_rounded,
+                        color: on ? ThemeConstants.primaryOrange : Colors.white54,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _serviceLabel(s),
+                        style: TextStyle(
+                          color: on ? ThemeConstants.textPrimary : Colors.white54,
+                          fontWeight: on ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  activeColor: ThemeConstants.primaryOrange,
+                  checkColor: Colors.white,
+                  controlAffinity: ListTileControlAffinity.trailing,
+                  contentPadding: EdgeInsets.zero,
+                );
+              }),
+              if (selected.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _loc.isSwahili
+                        ? '⚠️ Mtumiaji hataona huduma yoyote'
+                        : '⚠️ User will see no services on login',
+                    style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(_loc.translate('cancel'),
+                  style: const TextStyle(color: ThemeConstants.textSecondary)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: ThemeConstants.primaryOrange),
+              child: Text(_loc.isSwahili ? 'Hifadhi' : 'Save',
+                  style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      final String id = (user['id'] ?? user['user_id'] ?? '').toString();
+      await _api.updateUser(id, <String, dynamic>{
+        'service_types': selected.toList(),
+      });
+      await _loadMyUsers();
+      if (mounted) {
+        ThemeConstants.showSuccessSnackBar(
+          context,
+          _loc.isSwahili ? 'Huduma zimesasishwa' : 'Service access updated',
+        );
+      }
+    } catch (e) {
+      if (mounted) ThemeConstants.showErrorSnackBar(context, e.toString());
+    }
   }
 
   Future<void> _changeUserRole(Map<String, dynamic> user) async {
@@ -762,8 +941,33 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ),
                 ),
               ),
+              if (user?.isSuperAdmin == true) ...<Widget>[
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    ChoiceChip(
+                      label: Text(_loc.isSwahili ? 'Orodha' : 'List'),
+                      selected: !_groupedView,
+                      onSelected: (bool v) {
+                        if (v) setState(() => _groupedView = false);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: Text(_loc.isSwahili ? 'Kwa Huduma' : 'By Service'),
+                      selected: _groupedView,
+                      onSelected: (bool v) {
+                        setState(() => _groupedView = v);
+                        if (v && _groupedData == null) _loadGrouped();
+                      },
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
-              if (_loading)
+              if (user?.isSuperAdmin == true && _groupedView)
+                Expanded(child: _groupedUsersView())
+              else if (_loading)
                 ThemeConstants.buildLoadingWidget()
               else
                 Expanded(
@@ -781,48 +985,165 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           itemCount: _users.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final m = _users[index];
-                            final String name = (m['name'] ?? '').toString();
-                            final String email = (m['email'] ?? '').toString();
-                            final String role = (m['role'] ?? '').toString();
-                            final bool active =
-                                m['is_active'] == true || m['is_active'] == 1;
-                            return ThemeConstants.buildGlassCard(
-                              onTap: () => _showUserActions(m),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 6),
-                                leading: CircleAvatar(
-                                  backgroundColor: ThemeConstants.primaryOrange,
-                                  child: Text(
-                                    name.isNotEmpty
-                                        ? name.substring(0, 1).toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                title: Text(name,
-                                    style: const TextStyle(
-                                        color: ThemeConstants.textPrimary,
-                                        fontWeight: FontWeight.w600)),
-                                subtitle: Text(
-                                    '$email • ${role.toUpperCase()}${active ? '' : ' • INACTIVE'}',
-                                    style: const TextStyle(
-                                        color: ThemeConstants.textSecondary)),
-                                trailing: const Icon(Icons.more_vert,
-                                    color: Colors.white70),
-                              ),
-                            );
-                          },
+                          itemBuilder: (context, index) => _userCard(_users[index]),
                         ),
                 ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _userCard(Map<String, dynamic> m) {
+    final String name = (m['name'] ?? '').toString();
+    final String email = (m['email'] ?? '').toString();
+    final String role = (m['role'] ?? '').toString();
+    final bool active = m['is_active'] == true || m['is_active'] == 1;
+    final String? createdByName = m['created_by_name']?.toString();
+    return ThemeConstants.buildGlassCard(
+      onTap: () => _showUserActions(m),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: ThemeConstants.primaryOrange,
+          child: Text(
+            name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        title: Text(name,
+            style: const TextStyle(
+                color: ThemeConstants.textPrimary,
+                fontWeight: FontWeight.w600)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$email • ${role.toUpperCase()}${active ? '' : ' • INACTIVE'}',
+              style: const TextStyle(color: ThemeConstants.textSecondary),
+            ),
+            if ((m['service_types'] as List?)?.isNotEmpty == true)
+              Text(
+                ((m['service_types'] as List)
+                    .map((s) => _serviceLabel(s.toString()))
+                    .join(', ')),
+                style: const TextStyle(
+                    color: Colors.lightBlueAccent, fontSize: 11),
+              )
+            else
+              Text(
+                _loc.isSwahili ? 'Huduma: hakuna' : 'Services: none',
+                style: const TextStyle(color: Colors.orange, fontSize: 11),
+              ),
+            if (createdByName != null && createdByName.isNotEmpty)
+              Text(
+                (_loc.isSwahili ? 'Meneja: ' : 'Managed by: ') + createdByName,
+                style: const TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+          ],
+        ),
+        trailing: const Icon(Icons.more_vert, color: Colors.white70),
+      ),
+    );
+  }
+
+  Widget _groupedUsersView() {
+    if (_loadingGrouped) {
+      return ThemeConstants.buildLoadingWidget();
+    }
+    final Map<String, dynamic> data = _groupedData ?? const <String, dynamic>{};
+    final Map<String, dynamic> byService =
+        (data['by_service'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final List<dynamic> generalAdmins =
+        (data['general_admins'] as List?) ?? const [];
+
+    final List<Widget> sections = <Widget>[];
+    for (final String service in <String>['transport', 'rental', 'inventory']) {
+      final List<dynamic> groups = (byService[service] as List?) ?? const [];
+      if (groups.isEmpty) continue;
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          child: Text(
+            _serviceLabel(service),
+            style: const TextStyle(
+              color: ThemeConstants.primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      );
+      for (final dynamic g in groups) {
+        final Map<String, dynamic> group = Map<String, dynamic>.from(g as Map);
+        final Map<String, dynamic>? admin = group['admin'] is Map
+            ? Map<String, dynamic>.from(group['admin'] as Map)
+            : null;
+        final List<dynamic> users = (group['users'] as List?) ?? const [];
+        sections.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 8, top: 6, bottom: 4),
+            child: Text(
+              admin != null
+                  ? '${_loc.isSwahili ? "Meneja" : "Admin"}: ${admin['name']} (${admin['email']})'
+                  : (_loc.isSwahili ? 'Hakuna meneja aliyewekwa' : 'No admin assigned'),
+              style: const TextStyle(
+                  color: Colors.lightBlueAccent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13),
+            ),
+          ),
+        );
+        for (final dynamic u in users) {
+          sections.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _userCard(Map<String, dynamic>.from(u as Map)),
+            ),
+          );
+        }
+      }
+    }
+
+    if (generalAdmins.isNotEmpty) {
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          child: Text(
+            _loc.isSwahili ? 'Wasimamizi wakuu (bila huduma maalum)' : 'General admins (no specific service)',
+            style: const TextStyle(
+              color: ThemeConstants.primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      );
+      for (final dynamic u in generalAdmins) {
+        sections.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _userCard(Map<String, dynamic>.from(u as Map)),
+          ),
+        );
+      }
+    }
+
+    if (sections.isEmpty) {
+      return Center(
+        child: Text(
+          _loc.isSwahili ? 'Hakuna watumiaji' : 'No users',
+          style: const TextStyle(color: ThemeConstants.textSecondary),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadGrouped,
+      child: ListView(children: sections),
     );
   }
 }

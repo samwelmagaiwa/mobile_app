@@ -836,6 +836,15 @@ class ApiService {
     return _getFirst(endpoints);
   }
 
+  /// Super admin only: every user grouped by service, then by the admin who
+  /// manages them within that service.
+  Future<Map<String, dynamic>> getUsersByService() async {
+    final List<String> endpoints = <String>[
+      "/admin/users/by-service",
+    ];
+    return _getFirst(endpoints);
+  }
+
   Future<Map<String, dynamic>> createUser(Map<String, dynamic> userData) async {
     if (kDebugMode) {
       debugPrint(

@@ -45,14 +45,16 @@ class UserManagementController extends Controller
         $limit = max((int) $request->query('limit', 20), 1);
 
         $total = (clone $query)->count();
-        $items = $query->with('services')
+        $items = $query->with(['services', 'creator:id,name,email'])
             ->orderByDesc('created_at')
             ->skip(($page - 1) * $limit)
             ->take($limit)
-            ->get(['id', 'name', 'email', 'phone_number', 'role', 'is_active', 'service_type', 'full_access', 'permissions', 'created_at'])
+            ->get(['id', 'name', 'email', 'phone_number', 'role', 'is_active', 'service_type', 'full_access', 'permissions', 'created_by', 'created_at'])
             ->each(function ($u) {
                 $u->service_types = $u->services->pluck('service_type')->all();
-                unset($u->services);
+                $u->created_by_name = $u->creator->name ?? null;
+                $u->created_by_email = $u->creator->email ?? null;
+                unset($u->services, $u->creator);
             });
 
         return response()->json([
@@ -65,6 +67,59 @@ class UserManagementController extends Controller
                     'total' => $total,
                     'has_more_pages' => ($page * $limit) < $total,
                 ],
+            ],
+        ]);
+    }
+
+    /**
+     * Super admin only: every user grouped by service, then by the admin who
+     * manages them within that service -- "see all users as per service and
+     * as per admins of that service."
+     */
+    public function usersByService(Request $request)
+    {
+        $auth = $request->user();
+        if (!$auth->isSuperAdmin()) {
+            abort(403, 'Only super admin can view users grouped by service.');
+        }
+
+        $users = User::with(['services', 'creator:id,name,email'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone_number', 'role', 'is_active', 'full_access', 'created_by', 'created_at']);
+
+        $services = ['transport', 'rental', 'inventory'];
+        $grouped = [];
+
+        foreach ($services as $service) {
+            // Admins are grouped by service via their OWN service_types
+            // binding, same as staff -- an admin with no service binding at
+            // all is treated as a general/company-wide admin and listed
+            // separately, not duplicated under every service.
+            $usersInService = $users->filter(
+                fn ($u) => $u->services->pluck('service_type')->contains($service)
+            );
+
+            $byAdmin = [];
+            foreach ($usersInService as $u) {
+                $adminId = $u->created_by ?? 'unassigned';
+                $byAdmin[$adminId]['admin'] = $u->creator
+                    ? ['id' => $u->creator->id, 'name' => $u->creator->name, 'email' => $u->creator->email]
+                    : null;
+                $byAdmin[$adminId]['users'][] = $this->userPayload($u, $u->services->pluck('service_type')->all());
+            }
+
+            $grouped[$service] = array_values($byAdmin);
+        }
+
+        $generalAdmins = $users->filter(
+            fn ($u) => in_array($u->role, ['admin', 'super_admin'], true) && $u->services->isEmpty()
+        )->map(fn ($u) => $this->userPayload($u, []))->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'by_service' => $grouped,
+                'general_admins' => $generalAdmins,
             ],
         ]);
     }
@@ -99,6 +154,31 @@ class UserManagementController extends Controller
         }
 
         $serviceTypes = $this->resolveServiceTypes($data);
+
+        if (!$auth->isSuperAdmin()) {
+            // Only super admin may grant admin-level roles -- a plain admin
+            // creating staff cannot escalate them to their own level or above.
+            if (in_array($data['role'] ?? 'driver', ['admin', 'super_admin'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only a super admin can create admin accounts.',
+                ], 403);
+            }
+
+            // An admin scoped to specific service(s) can only create staff
+            // within those same service(s); an admin with no service binding
+            // is treated as general/company-wide and unrestricted.
+            $ownServices = $auth->services()->pluck('service_type')->all();
+            if (!empty($ownServices)) {
+                $outOfScope = array_diff($serviceTypes, $ownServices);
+                if (!empty($outOfScope)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You can only create staff for your own service(s): ' . implode(', ', $ownServices),
+                    ], 403);
+                }
+            }
+        }
 
         $user = new User();
         $user->name = $data['name'];
@@ -143,10 +223,10 @@ class UserManagementController extends Controller
         }
     }
 
-    private function userPayload(User $user): array
+    private function userPayload(User $user, ?array $serviceTypes = null): array
     {
         $payload = $user->only(['id', 'name', 'email', 'phone_number', 'role', 'is_active', 'service_type', 'full_access', 'permissions']);
-        $payload['service_types'] = $user->services()->pluck('service_type')->all();
+        $payload['service_types'] = $serviceTypes ?? $user->services()->pluck('service_type')->all();
         return $payload;
     }
 

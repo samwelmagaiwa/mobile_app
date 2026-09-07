@@ -113,6 +113,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Users management
     Route::prefix('users')->group(function () {
         Route::get('mine', [\App\Http\Controllers\API\UserManagementController::class, 'myUsers']);
+        Route::get('by-service', [\App\Http\Controllers\API\UserManagementController::class, 'usersByService']);
         Route::get('', [\App\Http\Controllers\API\UserManagementController::class, 'myUsers']); // fallback with created_by=me assumption
         Route::post('', [\App\Http\Controllers\API\UserManagementController::class, 'store']);
         Route::put('{id}', [\App\Http\Controllers\API\UserManagementController::class, 'update']);
