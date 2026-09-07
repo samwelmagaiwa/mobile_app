@@ -29,6 +29,7 @@ import 'stock/stock_levels_screen.dart';
 import 'stock/write_offs_screen.dart';
 import 'stock/stock_ops_screen.dart';
 import 'barcode_scanner_screen.dart';
+import 'expenses/expenses_screen.dart';
 
 class InventoryHome extends StatefulWidget {
   const InventoryHome({super.key, this.initialIndex = 0});
@@ -46,8 +47,8 @@ class _InventoryHomeState extends State<InventoryHome> {
   int _pageCount(UserPermissions perms) {
     // dashboard, products, stock levels, sales, categories, orders,
     // batches, stock counts, write-offs, purchasing, credit, cash, crates,
-    // returns, reports, alerts, settings
-    int count = 17;
+    // returns, reports, alerts, expenses, settings
+    int count = 18;
     if (perms.has('inv_manage_stock')) count++;
     if (perms.has('inv_view_reminders')) count++;
     return count;
@@ -227,7 +228,8 @@ class _InventoryHomeState extends State<InventoryHome> {
       <Object>['returns_and_parked', Icons.assignment_return_outlined, 7],
       <Object>['reports', Icons.bar_chart_outlined, 8],
       <Object>['alerts', Icons.notifications_active_outlined, 9],
-      <Object>['depot_settings', Icons.settings_outlined, 10],
+      <Object>['expenses', Icons.receipt_long_outlined, 10],
+      <Object>['depot_settings', Icons.settings_outlined, 11],
     ];
     const List<Color> depotColors = <Color>[
       Color(0xFF667eea),
@@ -237,6 +239,7 @@ class _InventoryHomeState extends State<InventoryHome> {
       Color(0xFFEF4444),
       Color(0xFF00E5FF),
       Color(0xFFF97316),
+      Color(0xFFEC4899),
       Color(0xFF64748B),
     ];
     for (int k = 0; k < depotEntries.length; k++) {
@@ -364,6 +367,7 @@ class _InventoryHomeState extends State<InventoryHome> {
       const ReturnsScreen(),
       const ReportsScreen(),
       const AlertsScreen(),
+      const ExpensesScreen(),
       const DepotSettingsScreen(),
     ];
 
@@ -386,6 +390,7 @@ class _InventoryHomeState extends State<InventoryHome> {
       loc.translate('returns_and_parked'),
       loc.translate('reports'),
       loc.translate('alerts'),
+      'Matumizi ya Ghala',
       loc.translate('depot_settings'),
     ];
 

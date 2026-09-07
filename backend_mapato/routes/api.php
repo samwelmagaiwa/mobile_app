@@ -39,6 +39,7 @@ use App\Http\Controllers\Inventory\CustomerController as InventoryCustomerContro
 use App\Http\Controllers\Inventory\SalesController as InventorySalesController;
 use App\Http\Controllers\Inventory\StockMovementController as InventoryStockMovementController;
 use App\Http\Controllers\Inventory\ReminderController as InventoryReminderController;
+use App\Http\Controllers\Inventory\ExpenseController as InventoryExpenseController;
 use App\Http\Controllers\API\Rental\PropertyController;
 use App\Http\Controllers\API\Rental\BlockController;
 use App\Http\Controllers\API\Rental\HouseController;
@@ -383,6 +384,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('inventory/reminders', [InventoryReminderController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
     Route::put('inventory/reminders/{id}/done', [InventoryReminderController::class, 'markDone'])->middleware('role_any:admin,manager,sales_officer');
     Route::put('inventory/reminders/{id}/snooze', [InventoryReminderController::class, 'snooze'])->middleware('role_any:admin,manager,sales_officer');
+
+    // Expenses (Area 8)
+    Route::get('inventory/expenses/summary', [InventoryExpenseController::class, 'summary'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('inventory/expenses/categories', [InventoryExpenseController::class, 'categories'])->middleware('role_any:admin,manager,sales_officer');
+    Route::get('inventory/expenses', [InventoryExpenseController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
+    Route::post('inventory/expenses', [InventoryExpenseController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
+    Route::put('inventory/expenses/{id}', [InventoryExpenseController::class, 'update'])->middleware('role_any:admin,manager');
+    Route::delete('inventory/expenses/{id}', [InventoryExpenseController::class, 'destroy'])->middleware('role_any:admin,manager');
 
     // Admin routes (Vehicle Owner/Admin only)
     Route::middleware(['role:admin'])->group(function () {
