@@ -355,6 +355,7 @@ class _WriteOffFormSheetState extends State<_WriteOffFormSheet> {
   final TextEditingController _note = TextEditingController();
   int? _productId;
   int? _batchId;
+  bool _countByBatch = false;
   String _reason = 'damage';
   bool _saving = false;
 
@@ -391,6 +392,7 @@ class _WriteOffFormSheetState extends State<_WriteOffFormSheet> {
     setState(() {
       _productId = matches.first.id;
       _batchId = null;
+      _countByBatch = false;
     });
   }
 
@@ -471,6 +473,7 @@ class _WriteOffFormSheetState extends State<_WriteOffFormSheet> {
                       onChanged: (int? v) => setState(() {
                         _productId = v;
                         _batchId = null;
+                        _countByBatch = false;
                       }),
                     ),
                   ),
@@ -485,14 +488,45 @@ class _WriteOffFormSheetState extends State<_WriteOffFormSheet> {
               ),
               if (batches.isNotEmpty) ...<Widget>[
                 SizedBox(height: 10.h),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12.r),
+                  onTap: () => setState(() {
+                    _countByBatch = !_countByBatch;
+                    if (!_countByBatch) _batchId = null;
+                  }),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4.h),
+                    child: Row(
+                      children: <Widget>[
+                        Switch(
+                          value: _countByBatch,
+                          activeThumbColor: ThemeConstants.primaryOrange,
+                          onChanged: (bool v) => setState(() {
+                            _countByBatch = v;
+                            if (!v) _batchId = null;
+                          }),
+                        ),
+                        SizedBox(width: 4.w),
+                        Expanded(
+                          child: Text(
+                            loc.translate('count_by_batch'),
+                            style: ThemeConstants.bodyStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (_countByBatch && batches.isNotEmpty) ...<Widget>[
+                SizedBox(height: 6.h),
                 DropdownButtonFormField<int>(
                   initialValue: _batchId,
                   isExpanded: true,
                   dropdownColor: ThemeConstants.primaryBlue,
                   style: ThemeConstants.bodyStyle,
-                  decoration: ThemeConstants.invInputDecoration(
-                    '${loc.translate('batch')} (${loc.translate('optional')})',
-                  ),
+                  decoration:
+                      ThemeConstants.invInputDecoration(loc.translate('batch')),
                   items: batches
                       .map(
                         (InvBatch b) => DropdownMenuItem<int>(
