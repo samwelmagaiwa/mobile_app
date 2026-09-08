@@ -146,10 +146,14 @@ class ProductController extends Controller
         ], 201);
     }
 
-    /** Auto-generate a SKU from the product name. */
+    /** Auto-generate a structured SKU: BRAND-PRODUCT-SIZE-UNIT. */
     private function generateSku(array $data): string
     {
-        return $this->skuGenerator->generate($data['name']);
+        return $this->skuGenerator->generate(
+            $data['name'],
+            $data['brand_id'] ?? null,
+            $data['unit'] ?? null,
+        );
     }
 
     public function update(Request $request, int $id)

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
@@ -204,14 +205,22 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
     }
   }
 
+  static final NumberFormat _numberFmt = NumberFormat('#,##0.##');
+
   String _cell(dynamic value) {
     if (value == null) {
       return '—';
     }
-    if (value is num) {
-      return value % 1 == 0
-          ? value.toInt().toString()
-          : value.toStringAsFixed(2);
+    // Backend numeric columns arrive as real num when PHP computed them
+    // (e.g. a Collection::sum() total) but as numeric STRINGS when they
+    // come straight off a raw SQL aggregate like SUM(...) -- MySQL/PDO
+    // returns those unquoted-looking values as strings (e.g. "14640000.00").
+    // Parse either shape the same way so rows and totals format identically
+    // instead of one being a clean number and the other falling through to
+    // raw, undertrimmed text.
+    final num? n = value is num ? value : num.tryParse(value.toString());
+    if (n != null) {
+      return _numberFmt.format(n);
     }
     final String text = value.toString();
     // Trim ISO timestamps down to the date.
