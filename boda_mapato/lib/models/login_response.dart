@@ -1,3 +1,5 @@
+import '../config/navigation_config.dart';
+
 class LoginResponse {
   LoginResponse({
     required this.status,
@@ -120,7 +122,13 @@ class UserData {
     if (isSuperAdmin || fullAccess) return true;
     if (role == 'tenant' && (permission == 'view_maintenance' || permission == 'view_vendors' || permission == 'tenant_self_service')) return true;
     if (role == 'vendor' && (permission == 'vendor_access' || permission == 'view_maintenance')) return true;
-    return permissions?.contains(permission) ?? false;
+    if (permissions != null && permissions!.contains(permission)) return true;
+    // Most accounts are never given an explicit permissions array (it's
+    // null in the DB by default), so without this fallback every
+    // permission-gated nav item silently disappears for a plain admin --
+    // fall back to the role's default set instead of treating "no array"
+    // as "no permissions at all".
+    return DefaultPermissions.getPermissionsForRole(role).contains(permission);
   }
 
   bool get isSuperAdmin => role == "super_admin";
