@@ -1,5 +1,13 @@
 ﻿// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes, avoid_dynamic_calls
-/// User permissions model for role-based access control
+/// User permissions model for role-based access control.
+///
+/// Resolution order (highest to lowest priority):
+///   1. super_admin / fullAccess flag → unrestricted
+///   2. Per-user explicit grants stored in `users.permissions` (DB column)
+///   3. Role-default permission set
+///
+/// Use [UserPermissions.fromUser] whenever you have a full [UserData] object.
+/// Use [UserPermissions.fromRole] only for role-only checks (no user context).
 class UserPermissions {
   const UserPermissions({
     List<String>? permissions,
@@ -9,15 +17,33 @@ class UserPermissions {
   /// Create empty permissions (most restrictive)
   const UserPermissions.empty() : this();
 
-  /// Create permissions from role
+  /// Create permissions from role defaults only.
   UserPermissions.fromRole(String userRole)
       : role = userRole,
         _permissions = _getPermissionsForRole(userRole);
 
-  /// Create permissions from explicit list
+  /// Create permissions from explicit list only (no role fallback).
   const UserPermissions.fromList(List<String> permissions)
       : _permissions = permissions,
         role = null;
+
+  /// Hybrid constructor — role defaults UNION per-user explicit grants.
+  /// This is the correct constructor to use for any real logged-in user.
+  UserPermissions.fromUser({
+    required String userRole,
+    List<String>? explicitGrants,
+  })  : role = userRole,
+        _permissions = _merge(
+          _getPermissionsForRole(userRole),
+          explicitGrants ?? const [],
+        );
+
+  /// Merge two permission lists, deduplicating.
+  static List<String> _merge(List<String> base, List<String> extra) {
+    final Set<String> merged = {...base, ...extra};
+    return merged.toList();
+  }
+
   final List<String> _permissions;
   final String? role;
 
@@ -108,13 +134,21 @@ class UserPermissions {
           'manage_communications',
           'generate_receipts',
           'manage_settings',
-          // Inventory
+          // Inventory — full access
           'inv_view_products',
           'inv_manage_products',
           'inv_manage_stock',
           'inv_create_sales',
           'inv_manage_sales',
           'inv_view_reminders',
+          'inv_view_purchasing',
+          'inv_view_credit',
+          'inv_view_cash',
+          'inv_view_crates',
+          'inv_view_reports',
+          'inv_view_expenses',
+          'inv_manage_expenses',
+          'inv_manage_settings',
           // Rental
           'view_tenants',
           'view_properties',
@@ -140,13 +174,20 @@ class UserPermissions {
           'view_reminders',
           'view_communications',
           'generate_receipts',
-          // Inventory
+          // Inventory — manager has full operational access
           'inv_view_products',
           'inv_manage_products',
           'inv_manage_stock',
           'inv_create_sales',
           'inv_manage_sales',
           'inv_view_reminders',
+          'inv_view_purchasing',
+          'inv_view_credit',
+          'inv_view_cash',
+          'inv_view_crates',
+          'inv_view_reports',
+          'inv_view_expenses',
+          'inv_manage_expenses',
           // Rental
           'view_tenants',
           'view_properties',
@@ -156,19 +197,21 @@ class UserPermissions {
           'view_sms_history',
         ];
       case 'sales_officer':
-        // Full day-to-day inventory operational access -- matches the
-        // ~70 inventory routes already gated with
-        // role_any:admin,manager,sales_officer on the backend. An admin
-        // can still narrow an individual account further via its
-        // explicit `permissions` array (Users Management -> per-user
-        // permissions), which UserData.hasPermission() checks first.
+        // Point-of-sale focused: sell against stock that already exists,
+        // check a customer's credit standing before selling on debt, run
+        // their own cash till, and see crate deposits when relevant.
+        // Deliberately NOT included (admin/manager only): catalog
+        // management (categories, product edits, past orders), physical
+        // stock control (stock in/out/transfer, batches, stock counts,
+        // write-offs), broader sales management/returns, purchasing,
+        // reports, and the depot's own operating-expense ledger.
         return const [
           'inv_view_products',
-          'inv_manage_products',
-          'inv_manage_stock',
           'inv_create_sales',
-          'inv_manage_sales',
           'inv_view_reminders',
+          'inv_view_credit',
+          'inv_view_cash',
+          'inv_view_crates',
         ];
       case 'operator':
         return const [
@@ -215,25 +258,24 @@ class UserPermissions {
   }
 }
 
-/// Extension on UserData to add permissions
+/// Extension on dynamic (Map / UserData) to resolve the effective permissions.
+/// Always prefer calling this over constructing UserPermissions directly.
 extension UserDataPermissions on dynamic {
-  /// Get user permissions from user data
   UserPermissions get permissions {
-    // Try to get role from user data
-    if (this is Map && this['role'] != null) {
-      return UserPermissions.fromRole(this['role'].toString());
-    }
-
-    // Try to get explicit permissions from user data
-    if (this is Map &&
-        this['permissions'] != null &&
-        this['permissions'] is List) {
-      return UserPermissions.fromList(
-        List<String>.from(this['permissions']),
+    if (this is Map) {
+      final String role = (this['role'] as String?) ?? '';
+      final dynamic raw = this['permissions'];
+      List<String>? explicit;
+      if (raw is List) {
+        explicit = List<String>.from(raw.map((e) => e.toString()));
+      }
+      // fullAccess / super_admin are handled inside UserPermissions._isSuperAdmin
+      // and the has() method, so just pass them through.
+      return UserPermissions.fromUser(
+        userRole: role,
+        explicitGrants: explicit,
       );
     }
-
-    // Default to admin for now (you can change this based on your needs)
-    return UserPermissions.fromRole('admin');
+    return UserPermissions.fromRole('viewer');
   }
 }

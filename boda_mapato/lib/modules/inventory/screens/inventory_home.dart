@@ -77,6 +77,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.inventory_2_outlined,
         color: ThemeConstants.primaryOrange,
         pageBuilder: () => const ProductsScreen(),
+        visible: (UserPermissions p) => p.has('inv_view_products'),
       ),
       _InvMenuEntry(
         key: 'stock_levels',
@@ -84,6 +85,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.track_changes_outlined,
         color: ThemeConstants.successGreen,
         pageBuilder: () => const StockLevelsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
       ),
       _InvMenuEntry(
         key: 'stock_ops',
@@ -99,6 +101,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.point_of_sale_outlined,
         color: ThemeConstants.primaryGradientEnd,
         pageBuilder: () => const SalesScreen(),
+        visible: (UserPermissions p) => p.has('inv_create_sales'),
       ),
       _InvMenuEntry(
         key: 'reminders',
@@ -154,7 +157,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.local_shipping_outlined,
         color: const Color(0xFF667eea),
         pageBuilder: () => const PurchasingScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_products'),
+        visible: (UserPermissions p) => p.has('inv_view_purchasing'),
       ),
       _InvMenuEntry(
         key: 'credit',
@@ -162,7 +165,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.credit_card_outlined,
         color: const Color(0xFF20B8CE),
         pageBuilder: () => const CreditScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+        visible: (UserPermissions p) => p.has('inv_view_credit'),
       ),
       _InvMenuEntry(
         key: 'cash',
@@ -170,7 +173,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.point_of_sale_outlined,
         color: const Color(0xFF10B981),
         pageBuilder: () => const CashSessionsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+        visible: (UserPermissions p) => p.has('inv_view_cash'),
       ),
       _InvMenuEntry(
         key: 'crates',
@@ -178,7 +181,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.inbox_outlined,
         color: const Color(0xFFF59E0B),
         pageBuilder: () => const CratesScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+        visible: (UserPermissions p) => p.has('inv_view_crates'),
       ),
       _InvMenuEntry(
         key: 'returns',
@@ -194,7 +197,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.bar_chart_outlined,
         color: const Color(0xFF00E5FF),
         pageBuilder: () => const ReportsScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_products'),
+        visible: (UserPermissions p) => p.has('inv_view_reports'),
       ),
       _InvMenuEntry(
         key: 'alerts',
@@ -210,7 +213,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.receipt_long_outlined,
         color: const Color(0xFFEC4899),
         pageBuilder: () => const ExpensesScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+        visible: (UserPermissions p) => p.has('inv_view_expenses'),
       ),
       _InvMenuEntry(
         key: 'settings',
@@ -218,6 +221,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.settings_outlined,
         color: const Color(0xFF64748B),
         pageBuilder: () => const DepotSettingsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_settings'),
       ),
     ];
 
@@ -238,9 +242,15 @@ class _InventoryHomeState extends State<InventoryHome> {
     _index = widget.initialIndex;
   }
 
+  /// Returns effective permissions = role defaults UNION per-user explicit grants.
   UserPermissions _perms(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    return UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+    final user = auth.user;
+    if (user == null) return UserPermissions.empty();
+    return UserPermissions.fromUser(
+      userRole: user.role,
+      explicitGrants: user.permissions,
+    );
   }
 
   Future<void> _openQuickMenu(BuildContext context) async {
