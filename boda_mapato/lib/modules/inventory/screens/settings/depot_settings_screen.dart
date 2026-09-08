@@ -8,6 +8,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_depot_models.dart';
 import '../../providers/depot_provider.dart';
+import '../../../../screens/settings/user_management_screen.dart';
 import '../widgets/inventory_widgets.dart';
 import 'receipt_header_screen.dart';
 
@@ -222,6 +223,66 @@ class _SettingsTabState extends State<_SettingsTab> {
                 ),
               ),
             ),
+          ),
+          // ── Quick-link to user management (admin / super_admin only) ──
+          // Lets an admin create staff for their own bound service, and a
+          // super_admin manage every account across every service.
+          Builder(
+            builder: (context) {
+              final user = context.watch<AuthProvider>().user;
+              if (user?.isAdmin != true && user?.isSuperAdmin != true) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const UserManagementScreen(),
+                    ),
+                  ),
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: ThemeConstants.primaryBlue.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(Icons.people_alt_rounded, color: Colors.white, size: 20.sp),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                loc.translate('users_management'),
+                                style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                loc.translate('users_subtitle'),
+                                style: ThemeConstants.captionStyle,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14.sp),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           // ── Quick-link to receipt header settings (admin / manager only) ──
           Builder(
