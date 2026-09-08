@@ -245,7 +245,11 @@ class AuthController extends Controller
                 Device::where('id', $request->device_id)->update(['driver_id' => $driver->id]);
             }
 
-            $user->load('driver', 'assignedDevice');
+            // Bind driver to transport service so they only see that module on login
+            $user->services()->delete();
+            $user->services()->create(['service_type' => 'transport']);
+
+            $user->load('driver', 'assignedDevice', 'services');
 
             return ResponseHelper::success([
                 'user' => $user,

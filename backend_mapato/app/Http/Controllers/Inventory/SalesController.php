@@ -14,7 +14,8 @@ class SalesController extends Controller
     public function __construct(
         private readonly StockLedger $ledger,
         private readonly AuditTrail  $audit,
-    ) {
+    )
+     {
     }
 
     public function index(Request $request)
@@ -28,10 +29,9 @@ class SalesController extends Controller
             ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
             ->select(
                 's.*',
-                'c.name as customer_name',
-                'c.phone as customer_phone'
-            )
-            ->orderByDesc('s.id');
+                DB::raw("COALESCE(c.name,  s.customer_name_override)  as customer_name"),
+                DB::raw("COALESCE(c.phone, s.customer_phone_override) as customer_phone"),
+            )->orderByDesc('s.id');
 
         if ($status && in_array($status, ['paid', 'debt', 'partial'])) {
             $query->where('s.payment_status', $status);
@@ -71,7 +71,18 @@ class SalesController extends Controller
             $itemsBySale = $rawItems;
         }
 
-        $data = collect($sales->items())->map(function ($s) use ($itemsBySale) {
+        // Also batch-load payments for these sales
+        $paymentsBySale = [];
+        if ($saleIds->isNotEmpty()) {
+            $rawPayments = DB::table('inventory_sale_payments')
+                ->whereIn('sale_id', $saleIds)
+                ->orderBy('id')
+                ->get()
+                ->groupBy('sale_id');
+            $paymentsBySale = $rawPayments;
+        }
+
+        $data = collect($sales->items())->map(function ($s) use ($itemsBySale, $paymentsBySale) {
             $sArray = (array) $s;
             $sArray['subtotal']   = (int) $s->subtotal;
             $sArray['discount']   = (int) $s->discount;
@@ -89,6 +100,16 @@ class SalesController extends Controller
                     'unit_price' => (int) $it->unit_price,
                     'unit_cost_snapshot' => (int) $it->unit_cost_snapshot,
                     'total' => (int) $it->total,
+                ];
+            })->values()->all();
+            $sPayments = $paymentsBySale[$s->id] ?? collect();
+            $sArray['payments'] = $sPayments->map(function ($p) {
+                return [
+                    'id' => (int) $p->id,
+                    'amount' => (int) $p->amount,
+                    'method' => $p->method_extended ?? $p->method,
+                    'reference' => $p->reference,
+                    'paid_at' => $p->paid_at,
                 ];
             })->values()->all();
             return $sArray;
@@ -111,8 +132,8 @@ class SalesController extends Controller
             ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
             ->select(
                 's.*',
-                'c.name as customer_name',
-                'c.phone as customer_phone',
+                DB::raw("COALESCE(c.name,  s.customer_name_override)  as customer_name"),
+                DB::raw("COALESCE(c.phone, s.customer_phone_override) as customer_phone"),
                 'c.address as customer_address'
             )
             ->where('s.id', $id)
@@ -159,7 +180,7 @@ class SalesController extends Controller
             return [
                 'id' => (int) $p->id,
                 'amount' => (int) $p->amount,
-                'method' => $p->method,
+                'method' => $p->method_extended ?? $p->method,
                 'reference' => $p->reference,
                 'paid_at' => $p->paid_at,
             ];
@@ -451,6 +472,8 @@ class SalesController extends Controller
     {
         $v = Validator::make($request->all(), [
             'customer_id' => 'nullable|exists:inventory_customers,id',
+            'customer_name_override' => 'nullable|string|max:120',
+            'customer_phone' => 'nullable|string|max:30',
             'payment_status' => 'required|in:paid,debt,partial',
             'subtotal' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
@@ -485,6 +508,8 @@ class SalesController extends Controller
             $saleId = DB::table('inventory_sales')->insertGetId([
                 'number' => 'PENDING',
                 'customer_id' => $request->customer_id,
+                'customer_name_override' => $request->customer_id ? null : $request->customer_name_override,
+                'customer_phone_override' => $request->customer_phone,
                 'payment_status' => $request->payment_status,
                 'subtotal' => $request->subtotal,
                 'discount' => $request->discount ?? 0,

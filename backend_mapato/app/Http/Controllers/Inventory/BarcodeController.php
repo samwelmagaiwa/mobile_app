@@ -123,11 +123,72 @@ class BarcodeController extends Controller
             return response()->json(['data' => [
                 'entity_type' => 'product',
                 'entity_id' => (int) $product->id,
-                'detail' => $product,
+                'detail' => $this->describeProduct((int) $product->id),
+            ]]);
+        }
+
+        // Also resolve by SKU — products auto-assign barcode = SKU on creation.
+        $bySku = DB::table('inventory_products')->where('sku', $code)->first();
+        if ($bySku) {
+            return response()->json(['data' => [
+                'entity_type' => 'product',
+                'entity_id' => (int) $bySku->id,
+                'detail' => $this->describeProduct((int) $bySku->id),
+            ]]);
+        }
+
+        // Resolve a sale/receipt QR — encodes the sale number.
+        $sale = DB::table('inventory_sales')->where('number', $code)->first();
+        if ($sale) {
+            return response()->json(['data' => [
+                'entity_type' => 'sale',
+                'entity_id' => (int) $sale->id,
+                'detail' => $this->describeSale((int) $sale->id),
             ]]);
         }
 
         return response()->json(['message' => 'Unknown barcode'], 404);
+    }
+
+    private function describeProduct(int $id): ?object
+    {
+        return DB::table('inventory_products as p')
+            ->leftJoin('inventory_categories as c', 'c.id', '=', 'p.category_id')
+            ->leftJoin('inventory_brands as b', 'b.id', '=', 'p.brand_id')
+            ->where('p.id', $id)
+            ->select(
+                'p.*',
+                'c.name as category_name',
+                'b.name as brand_name',
+            )
+            ->first();
+    }
+
+    private function describeSale(int $id): array
+    {
+        $sale = DB::table('inventory_sales as s')
+            ->leftJoin('inventory_customers as cu', 'cu.id', '=', 's.customer_id')
+            ->where('s.id', $id)
+            ->select('s.*', 'cu.name as customer_name', 'cu.phone as customer_phone')
+            ->first();
+
+        if (! $sale) return [];
+
+        $items = DB::table('inventory_sale_items as si')
+            ->leftJoin('inventory_products as p', 'p.id', '=', 'si.product_id')
+            ->where('si.sale_id', $id)
+            ->select('si.*', 'p.name as product_name', 'p.sku as product_sku')
+            ->get();
+
+        $payments = DB::table('inventory_sale_payments')
+            ->where('sale_id', $id)
+            ->get();
+
+        return [
+            'sale' => $sale,
+            'items' => $items,
+            'payments' => $payments,
+        ];
     }
 
     private function describe(string $type, int $id): ?object
