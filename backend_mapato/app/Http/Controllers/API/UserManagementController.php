@@ -4,12 +4,18 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class UserManagementController extends Controller
 {
+    public function __construct(private readonly AuditTrail $audit)
+    {
+    }
+
     // List users created by the authenticated admin
     public function myUsers(Request $request)
     {
@@ -133,8 +139,12 @@ class UserManagementController extends Controller
         $validator = Validator::make($data, [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-            'phone_number' => 'nullable|string|max:50',
+            // Length-only: the app's own default-password generator
+            // (surname repeated to 8 chars, e.g. "MAGAIWA" -> "MAGAIWAM")
+            // is letters-only, so a letters()+numbers() complexity
+            // requirement here would reject the app's own UX pattern.
+            'password' => ['required', 'confirmed', Password::min(8)],
+            'phone_number' => 'nullable|string|max:50|unique:users,phone_number',
             'role' => 'nullable|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'nullable|boolean',
             // Legacy single value - still accepted for old clients.
@@ -153,12 +163,23 @@ class UserManagementController extends Controller
             ], 422);
         }
 
+        $role = $data['role'] ?? 'driver';
         $serviceTypes = $this->resolveServiceTypes($data);
+
+        // An account bound to no service and with no admin-level role can
+        // never do anything useful once created -- catch that at creation
+        // time instead of shipping a silently broken login.
+        if (empty($serviceTypes) && !in_array($role, ['admin', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Select at least one service for this account.',
+            ], 422);
+        }
 
         if (!$auth->isSuperAdmin()) {
             // Only super admin may grant admin-level roles -- a plain admin
             // creating staff cannot escalate them to their own level or above.
-            if (in_array($data['role'] ?? 'driver', ['admin', 'super_admin'], true)) {
+            if (in_array($role, ['admin', 'super_admin'], true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Only a super admin can create admin accounts.',
@@ -185,7 +206,7 @@ class UserManagementController extends Controller
         $user->email = $data['email'];
         $user->password = Hash::make($data['password']);
         $user->phone_number = $data['phone_number'] ?? null;
-        $user->role = $data['role'] ?? 'driver';
+        $user->role = $role;
         $user->service_type = $serviceTypes[0] ?? null;
         $user->full_access = array_key_exists('full_access', $data) ? (bool) $data['full_access'] : false;
         $user->permissions = $data['permissions'] ?? [];
@@ -194,6 +215,12 @@ class UserManagementController extends Controller
         $user->save();
 
         $this->syncServiceTypes($user, $serviceTypes);
+
+        $this->audit->record(
+            $request, 'user', null, 'created', null,
+            ['name' => $user->name, 'email' => $user->email, 'role' => $role, 'service_types' => $serviceTypes],
+            "{$auth->name} created {$role} account \"{$user->name}\" ({$user->email})",
+        );
 
         return response()->json([
             'success' => true,
@@ -243,7 +270,7 @@ class UserManagementController extends Controller
         $validator = Validator::make($data, [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id . ',id',
-            'phone_number' => 'nullable|string|max:50',
+            'phone_number' => 'nullable|string|max:50|unique:users,phone_number,' . $user->id . ',id',
             'role' => 'sometimes|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'sometimes|boolean',
             'service_type' => 'nullable|string|in:rental,transport,inventory',
@@ -259,6 +286,20 @@ class UserManagementController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+
+        // Same escalation guard as store(): a plain admin editing an existing
+        // account cannot promote it to admin/super_admin either.
+        if (!$auth->isSuperAdmin() && array_key_exists('role', $data)
+            && in_array($data['role'], ['admin', 'super_admin'], true)
+            && $user->role !== $data['role']
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only a super admin can grant admin accounts.',
+            ], 403);
+        }
+
+        $before = ['is_active' => $user->is_active, 'role' => $user->role, 'name' => $user->name];
 
         $touchesServices = array_key_exists('service_types', $data) || array_key_exists('service_type', $data);
         $validated = $validator->validated();
@@ -276,6 +317,22 @@ class UserManagementController extends Controller
             $this->syncServiceTypes($user, $this->resolveServiceTypes($data));
         }
 
+        // Deactivating/reactivating an account is the kind of action that
+        // needs a clear "who and when" trail, not just a silent flag flip.
+        if (array_key_exists('is_active', $data) && $before['is_active'] !== $user->is_active) {
+            $this->audit->record(
+                $request, 'user', null, $user->is_active ? 'activated' : 'deactivated', $before,
+                ['is_active' => $user->is_active],
+                "{$auth->name} " . ($user->is_active ? 'activated' : 'deactivated') . " \"{$user->name}\" ({$user->email})",
+            );
+        } elseif (array_key_exists('role', $data) && $before['role'] !== $user->role) {
+            $this->audit->record(
+                $request, 'user', null, 'role_changed', $before,
+                ['role' => $user->role],
+                "{$auth->name} changed \"{$user->name}\"'s role from {$before['role']} to {$user->role}",
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'User updated',
@@ -291,7 +348,15 @@ class UserManagementController extends Controller
         if (!$auth->isSuperAdmin() && $user->created_by !== $auth->id) {
             abort(403, 'Unauthorized action.');
         }
+
+        $summary = "{$auth->name} deleted {$user->role} account \"{$user->name}\" ({$user->email})";
         $user->delete();
+
+        $this->audit->record(
+            $request, 'user', null, 'deleted',
+            ['name' => $user->name, 'email' => $user->email, 'role' => $user->role],
+            null, $summary,
+        );
 
         return response()->json([
             'success' => true,
@@ -310,7 +375,7 @@ class UserManagementController extends Controller
 
         $data = $request->only(['password', 'password_confirmation']);
         $validator = Validator::make($data, [
-            'password' => 'required|string|min:6|confirmed',
+            'password' => ['required', 'confirmed', Password::min(8)],
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -322,6 +387,11 @@ class UserManagementController extends Controller
 
         $user->password = Hash::make($data['password']);
         $user->save();
+
+        $this->audit->record(
+            $request, 'user', null, 'password_reset', null, null,
+            "{$auth->name} reset the password for \"{$user->name}\" ({$user->email})",
+        );
 
         return response()->json([
             'success' => true,

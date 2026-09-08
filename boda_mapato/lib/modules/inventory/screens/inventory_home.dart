@@ -31,6 +31,196 @@ import 'stock/stock_ops_screen.dart';
 import 'barcode_scanner_screen.dart';
 import 'expenses/expenses_screen.dart';
 
+/// One entry in the inventory navigation (bottom-bar pages, quick menu grid,
+/// and drawer all read from the same list) so a role's visible sections stay
+/// consistent everywhere instead of three independently hand-computed index
+/// schemes drifting apart.
+class _InvMenuEntry {
+  const _InvMenuEntry({
+    required this.key,
+    required this.icon,
+    required this.color,
+    required this.pageBuilder,
+    this.titleKey,
+    this.staticTitle,
+    this.visible,
+  }) : assert(titleKey != null || staticTitle != null);
+
+  final String key;
+  final String? titleKey;
+  final String? staticTitle;
+  final IconData icon;
+  final Color color;
+  final Widget Function() pageBuilder;
+
+  /// Null means always visible (used for the four items anchored to fixed
+  /// footer slots: dashboard, products, sales, settings).
+  final bool Function(UserPermissions perms)? visible;
+
+  String title(LocalizationService loc) =>
+      staticTitle ?? loc.translate(titleKey!);
+
+  bool isVisible(UserPermissions perms) => visible?.call(perms) ?? true;
+}
+
+List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
+      _InvMenuEntry(
+        key: 'dashboard',
+        titleKey: 'inventory_dashboard',
+        icon: Icons.dashboard,
+        color: ThemeConstants.footerBarColor,
+        pageBuilder: () => const InventoryDashboardScreen(),
+      ),
+      _InvMenuEntry(
+        key: 'products',
+        titleKey: 'products',
+        icon: Icons.inventory_2_outlined,
+        color: ThemeConstants.primaryOrange,
+        pageBuilder: () => const ProductsScreen(),
+      ),
+      _InvMenuEntry(
+        key: 'stock_levels',
+        titleKey: 'stock_levels',
+        icon: Icons.track_changes_outlined,
+        color: ThemeConstants.successGreen,
+        pageBuilder: () => const StockLevelsScreen(),
+      ),
+      _InvMenuEntry(
+        key: 'stock_ops',
+        titleKey: 'stock_in_out_transfer',
+        icon: Icons.sync_alt_outlined,
+        color: ThemeConstants.warningAmber,
+        pageBuilder: () => const StockOpsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+      ),
+      _InvMenuEntry(
+        key: 'sales',
+        titleKey: 'sales',
+        icon: Icons.point_of_sale_outlined,
+        color: ThemeConstants.primaryGradientEnd,
+        pageBuilder: () => const SalesScreen(),
+      ),
+      _InvMenuEntry(
+        key: 'reminders',
+        titleKey: 'reminders',
+        icon: Icons.notifications_active_outlined,
+        color: ThemeConstants.errorRed,
+        pageBuilder: () => const InventoryRemindersScreen(),
+        visible: (UserPermissions p) => p.has('inv_view_reminders'),
+      ),
+      _InvMenuEntry(
+        key: 'categories',
+        staticTitle: 'Categories',
+        icon: Icons.category_outlined,
+        color: ThemeConstants.primaryGradientStart,
+        pageBuilder: () => const InventoryCategoriesScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_products'),
+      ),
+      _InvMenuEntry(
+        key: 'orders',
+        staticTitle: 'Past Orders',
+        icon: Icons.receipt_long_outlined,
+        color: ThemeConstants.primaryGradientStart,
+        pageBuilder: () => const InventoryOrdersScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_products'),
+      ),
+      _InvMenuEntry(
+        key: 'batches',
+        titleKey: 'batches_and_expiry',
+        icon: Icons.event_available_outlined,
+        color: ThemeConstants.primaryCyan,
+        pageBuilder: () => const BatchesScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+      ),
+      _InvMenuEntry(
+        key: 'stock_counts',
+        titleKey: 'stock_counts',
+        icon: Icons.fact_check_outlined,
+        color: ThemeConstants.successGreen,
+        pageBuilder: () => const StockCountsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+      ),
+      _InvMenuEntry(
+        key: 'write_offs',
+        titleKey: 'write_offs',
+        icon: Icons.report_problem_outlined,
+        color: ThemeConstants.errorRed,
+        pageBuilder: () => const WriteOffsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+      ),
+      _InvMenuEntry(
+        key: 'purchasing',
+        titleKey: 'purchasing',
+        icon: Icons.local_shipping_outlined,
+        color: const Color(0xFF667eea),
+        pageBuilder: () => const PurchasingScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_products'),
+      ),
+      _InvMenuEntry(
+        key: 'credit',
+        titleKey: 'customers_and_credit',
+        icon: Icons.credit_card_outlined,
+        color: const Color(0xFF20B8CE),
+        pageBuilder: () => const CreditScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+      ),
+      _InvMenuEntry(
+        key: 'cash',
+        titleKey: 'daily_cash',
+        icon: Icons.point_of_sale_outlined,
+        color: const Color(0xFF10B981),
+        pageBuilder: () => const CashSessionsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+      ),
+      _InvMenuEntry(
+        key: 'crates',
+        titleKey: 'crates_and_empties',
+        icon: Icons.inbox_outlined,
+        color: const Color(0xFFF59E0B),
+        pageBuilder: () => const CratesScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+      ),
+      _InvMenuEntry(
+        key: 'returns',
+        titleKey: 'returns_and_parked',
+        icon: Icons.assignment_return_outlined,
+        color: const Color(0xFFEF4444),
+        pageBuilder: () => const ReturnsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+      ),
+      _InvMenuEntry(
+        key: 'reports',
+        titleKey: 'reports',
+        icon: Icons.bar_chart_outlined,
+        color: const Color(0xFF00E5FF),
+        pageBuilder: () => const ReportsScreen(),
+        visible: (UserPermissions p) => p.has('inv_view_products'),
+      ),
+      _InvMenuEntry(
+        key: 'alerts',
+        titleKey: 'alerts',
+        icon: Icons.notifications_active_outlined,
+        color: const Color(0xFFF97316),
+        pageBuilder: () => const AlertsScreen(),
+        visible: (UserPermissions p) => p.has('inv_view_products'),
+      ),
+      _InvMenuEntry(
+        key: 'expenses',
+        staticTitle: 'Matumizi ya Ghala',
+        icon: Icons.receipt_long_outlined,
+        color: const Color(0xFFEC4899),
+        pageBuilder: () => const ExpensesScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+      ),
+      _InvMenuEntry(
+        key: 'settings',
+        titleKey: 'depot_settings',
+        icon: Icons.settings_outlined,
+        color: const Color(0xFF64748B),
+        pageBuilder: () => const DepotSettingsScreen(),
+      ),
+    ];
+
 class InventoryHome extends StatefulWidget {
   const InventoryHome({super.key, this.initialIndex = 0});
   final int initialIndex;
@@ -42,218 +232,36 @@ class InventoryHome extends StatefulWidget {
 class _InventoryHomeState extends State<InventoryHome> {
   int _index = 0;
 
-  /// Number of pages the body builds for these permissions. Keeps the quick
-  /// menu's indices aligned with the conditional page list.
-  int _pageCount(UserPermissions perms) {
-    // dashboard, products, stock levels, sales, categories, orders,
-    // batches, stock counts, write-offs, purchasing, credit, cash, crates,
-    // returns, reports, alerts, expenses, settings
-    int count = 18;
-    if (perms.has('inv_manage_stock')) count++;
-    if (perms.has('inv_view_reminders')) count++;
-    return count;
-  }
-
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex;
   }
 
-
+  UserPermissions _perms(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    return UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+  }
 
   Future<void> _openQuickMenu(BuildContext context) async {
     final loc = LocalizationService.instance;
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final role = auth.user?.role ?? 'viewer';
-    final perms = UserPermissions.fromRole(role);
+    final perms = _perms(context);
+    final List<_InvMenuEntry> visible =
+        _invEntries(loc).where((e) => e.isVisible(perms)).toList();
 
-    // Build the same navigation items as the drawer, but as a 3-column grid
-    final List<_GridNavItem> items = [];
-    items.add(_GridNavItem(
-      label: loc.translate('dashboard'),
-      icon: Icons.dashboard,
-      color: ThemeConstants.footerBarColor.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = 0);
-        Navigator.of(context).pop();
-      },
-    ));
-    items.add(_GridNavItem(
-      label: loc.translate('products'),
-      icon: Icons.inventory_2_outlined,
-      color: ThemeConstants.primaryOrange.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = 1);
-        Navigator.of(context).pop();
-      },
-    ));
-    items.add(_GridNavItem(
-      label: loc.translate('stock_levels'),
-      icon: Icons.track_changes_outlined,
-      color: ThemeConstants.successGreen.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = 2);
-        Navigator.of(context).pop();
-      },
-    ));
-    if (perms.has('inv_manage_stock')) {
-      items.add(_GridNavItem(
-        label: loc.translate('stock_in_out_transfer'),
-        icon: Icons.sync_alt_outlined,
-        color: ThemeConstants.warningAmber.withOpacity(0.85),
-        onTap: () {
-          setState(() => _index = 3);
-          Navigator.of(context).pop();
-        },
-      ));
-      items.add(_GridNavItem(
-        label: loc.translate('sales'),
-        icon: Icons.point_of_sale_outlined,
-        color: ThemeConstants.primaryGradientEnd.withOpacity(0.85),
-        onTap: () {
-          setState(() => _index = 4);
-          Navigator.of(context).pop();
-        },
-      ));
-      if (perms.has('inv_view_reminders')) {
-        items.add(_GridNavItem(
-          label: loc.translate('reminders'),
-          icon: Icons.notifications_active_outlined,
-          color: ThemeConstants.errorRed.withOpacity(0.85),
+    // Build the same navigation items as the drawer, but as a 3-column grid.
+    final List<_GridNavItem> items = <_GridNavItem>[
+      for (int i = 0; i < visible.length; i++)
+        _GridNavItem(
+          label: visible[i].title(loc),
+          icon: visible[i].icon,
+          color: visible[i].color.withOpacity(0.85),
           onTap: () {
-            setState(() => _index = 5);
+            setState(() => _index = i);
             Navigator.of(context).pop();
           },
-        ));
-        items.add(_GridNavItem(
-          label: 'Categories',
-          icon: Icons.category_outlined,
-          color: ThemeConstants.primaryGradientStart.withOpacity(0.85),
-          onTap: () {
-            setState(() => _index = 6);
-            Navigator.of(context).pop();
-          },
-        ));
-      } else {
-        items.add(_GridNavItem(
-          label: 'Categories',
-          icon: Icons.category_outlined,
-          color: const Color(0xFF26C6DA).withOpacity(0.35),
-          onTap: () {
-            setState(() => _index = 5);
-            Navigator.of(context).pop();
-          },
-        ));
-      }
-    } else {
-      items.add(_GridNavItem(
-        label: loc.translate('sales'),
-        icon: Icons.point_of_sale_outlined,
-        color: ThemeConstants.primaryGradientEnd.withOpacity(0.85),
-        onTap: () {
-          setState(() => _index = 3);
-          Navigator.of(context).pop();
-        },
-      ));
-      if (perms.has('inv_view_reminders')) {
-        items.add(_GridNavItem(
-          label: loc.translate('reminders'),
-          icon: Icons.notifications_active_outlined,
-          color: ThemeConstants.errorRed.withOpacity(0.85),
-          onTap: () {
-            setState(() => _index = 4);
-            Navigator.of(context).pop();
-          },
-        ));
-        items.add(_GridNavItem(
-          label: 'Categories',
-          icon: Icons.category_outlined,
-          color: ThemeConstants.primaryGradientStart.withOpacity(0.85),
-          onTap: () {
-            setState(() => _index = 5);
-            Navigator.of(context).pop();
-          },
-        ));
-      } else {
-        items.add(_GridNavItem(
-          label: 'Categories',
-          icon: Icons.category_outlined,
-          color: ThemeConstants.primaryGradientStart.withOpacity(0.85),
-          onTap: () {
-            setState(() => _index = 4);
-            Navigator.of(context).pop();
-          },
-        ));
-      }
-    } // This closes the main perms check or else block
-
-    // Area 3 - stock control entries. Indices are resolved from the same
-    // page list the body builds, so they cannot drift out of step.
-    final int idxBatches = _pageCount(perms) - 11;
-    items.add(_GridNavItem(
-      label: loc.translate('batches_and_expiry'),
-      icon: Icons.event_available_outlined,
-      color: ThemeConstants.primaryCyan.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = idxBatches);
-        Navigator.of(context).pop();
-      },
-    ));
-    items.add(_GridNavItem(
-      label: loc.translate('stock_counts'),
-      icon: Icons.fact_check_outlined,
-      color: ThemeConstants.successGreen.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = idxBatches + 1);
-        Navigator.of(context).pop();
-      },
-    ));
-    items.add(_GridNavItem(
-      label: loc.translate('write_offs'),
-      icon: Icons.report_problem_outlined,
-      color: ThemeConstants.errorRed.withOpacity(0.85),
-      onTap: () {
-        setState(() => _index = idxBatches + 2);
-        Navigator.of(context).pop();
-      },
-    ));
-
-    // Depot areas 4-13. Offsets follow the same page list as above.
-    const List<List<Object>> depotEntries = <List<Object>>[
-      <Object>['purchasing', Icons.local_shipping_outlined, 3],
-      <Object>['customers_and_credit', Icons.credit_card_outlined, 4],
-      <Object>['daily_cash', Icons.point_of_sale_outlined, 5],
-      <Object>['crates_and_empties', Icons.inbox_outlined, 6],
-      <Object>['returns_and_parked', Icons.assignment_return_outlined, 7],
-      <Object>['reports', Icons.bar_chart_outlined, 8],
-      <Object>['alerts', Icons.notifications_active_outlined, 9],
-      <Object>['expenses', Icons.receipt_long_outlined, 10],
-      <Object>['depot_settings', Icons.settings_outlined, 11],
+        ),
     ];
-    const List<Color> depotColors = <Color>[
-      Color(0xFF667eea),
-      Color(0xFF20B8CE),
-      Color(0xFF10B981),
-      Color(0xFFF59E0B),
-      Color(0xFFEF4444),
-      Color(0xFF00E5FF),
-      Color(0xFFF97316),
-      Color(0xFFEC4899),
-      Color(0xFF64748B),
-    ];
-    for (int k = 0; k < depotEntries.length; k++) {
-      final int target = idxBatches + (depotEntries[k][2] as int);
-      items.add(_GridNavItem(
-        label: loc.translate(depotEntries[k][0] as String),
-        icon: depotEntries[k][1] as IconData,
-        color: depotColors[k].withOpacity(0.85),
-        onTap: () {
-          setState(() => _index = target);
-          Navigator.of(context).pop();
-        },
-      ));
-    }
 
     // Add Switch Service to quick menu
     items.add(_GridNavItem(
@@ -344,55 +352,14 @@ class _InventoryHomeState extends State<InventoryHome> {
   Widget build(BuildContext context) {
     final loc = LocalizationService.instance;
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final role = auth.user?.role ?? 'viewer';
-    final perms = UserPermissions.fromRole(role);
+    final perms = _perms(context);
+    final List<_InvMenuEntry> visible =
+        _invEntries(loc).where((e) => e.isVisible(perms)).toList();
 
-    final pages = <Widget>[
-      const InventoryDashboardScreen(),
-      const ProductsScreen(),
-      const StockLevelsScreen(),
-      if (perms.has('inv_manage_stock')) const StockOpsScreen(),
-      const SalesScreen(),
-      if (perms.has('inv_view_reminders')) const InventoryRemindersScreen(),
-      const InventoryCategoriesScreen(),
-      const InventoryOrdersScreen(),
-      const BatchesScreen(),
-      const StockCountsScreen(),
-      const WriteOffsScreen(),
-      const PurchasingScreen(),
-      const CreditScreen(),
-      const CashSessionsScreen(),
-      const CratesScreen(),
-      const ReturnsScreen(),
-      const ReportsScreen(),
-      const AlertsScreen(),
-      const ExpensesScreen(),
-      const DepotSettingsScreen(),
-    ];
-
-    final titles = <String>[
-      loc.translate('inventory_dashboard'),
-      loc.translate('products'),
-      loc.translate('stock_levels'),
-      if (perms.has('inv_manage_stock')) loc.translate('stock_in_out_transfer'),
-      loc.translate('sales'),
-      if (perms.has('inv_view_reminders')) loc.translate('reminders'),
-      'Categories',
-      'Past Orders',
-      loc.translate('batches_and_expiry'),
-      loc.translate('stock_counts'),
-      loc.translate('write_offs'),
-      loc.translate('purchasing'),
-      loc.translate('customers_and_credit'),
-      loc.translate('daily_cash'),
-      loc.translate('crates_and_empties'),
-      loc.translate('returns_and_parked'),
-      loc.translate('reports'),
-      loc.translate('alerts'),
-      'Matumizi ya Ghala',
-      loc.translate('depot_settings'),
-    ];
+    final pages = visible.map((e) => e.pageBuilder()).toList(growable: false);
+    final titles = visible.map((e) => e.title(loc)).toList(growable: false);
+    final int salesIndex = visible.indexWhere((e) => e.key == 'sales');
+    final int settingsIndex = visible.indexWhere((e) => e.key == 'settings');
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -453,21 +420,20 @@ class _InventoryHomeState extends State<InventoryHome> {
       ),
       bottomNavigationBar: _InventoryFooter(
         index: _index,
-        salesIndex: perms.has('inv_manage_stock') ? 4 : 3,
+        salesIndex: salesIndex,
         onTap: (slot) {
           if (slot == 0) {
-            setState(() => _index = 0);                    // Dashboard
+            setState(() => _index = 0); // Dashboard
           } else if (slot == 1) {
-            setState(() => _index = 1);                    // Products
+            setState(() => _index = 1); // Products
           } else if (slot == 2) {
-            _openQuickMenu(context);                       // All sections grid
+            _openQuickMenu(context); // All sections grid
           } else if (slot == 3) {
-            // Sales — index shifts by 1 if inv_manage_stock present
-            final auth = Provider.of<AuthProvider>(context, listen: false);
-            final perms = UserPermissions.fromRole(auth.user?.role ?? '');
-            setState(() => _index = perms.has('inv_manage_stock') ? 4 : 3);
+            setState(() => _index = salesIndex); // Sales
           } else if (slot == 4) {
-            setState(() => _index = pages.length - 1);    // Settings
+            setState(() => _index = settingsIndex >= 0
+                ? settingsIndex
+                : pages.length - 1); // Settings
           }
         },
       ),
@@ -593,19 +559,9 @@ class _InventoryDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = LocalizationService.instance;
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final role = auth.user?.role ?? 'viewer';
-    final perms = UserPermissions.fromRole(role);
-
-    const idxDashboard = 0;
-    const idxProducts = 1;
-    const idxStockLevels = 2;
-    final hasStockOps = perms.has('inv_manage_stock');
-    final idxStockOps = hasStockOps ? 3 : -1;
-    final idxSales = hasStockOps ? 4 : 3;
-    final hasRem = perms.has('inv_view_reminders');
-    final idxRem = hasRem ? (hasStockOps ? 5 : 4) : -1;
-    final idxCategory = hasRem ? (hasStockOps ? 6 : 5) : (hasStockOps ? 5 : 4);
-    final idxOrders = idxCategory + 1;
+    final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+    final List<_InvMenuEntry> visible =
+        _invEntries(loc).where((e) => e.isVisible(perms)).toList();
 
     return Drawer(
       backgroundColor: ThemeConstants.primaryBlue,
@@ -615,86 +571,15 @@ class _InventoryDrawer extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  // 1. Dashboard
-                  ListTile(
-                    leading:
-                        Icon(Icons.dashboard, color: Colors.white, size: 22.sp),
-                    title: Text(loc.translate('dashboard'),
-                        style: ThemeConstants.bodyStyle),
-                    selected: index == idxDashboard,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxDashboard),
-                  ),
-                  // 2. Categories
-                  ListTile(
-                    leading: Icon(Icons.category_outlined,
-                        color: Colors.white, size: 22.sp),
-                    title: Text('Categories', style: ThemeConstants.bodyStyle),
-                    selected: index == idxCategory,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxCategory),
-                  ),
-                  // 3. Products
-                  ListTile(
-                    leading: Icon(Icons.inventory_2_outlined,
-                        color: Colors.white, size: 22.sp),
-                    title: Text(loc.translate('products'),
-                        style: ThemeConstants.bodyStyle),
-                    selected: index == idxProducts,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxProducts),
-                  ),
-                  // 4. Stock Levels
-                  ListTile(
-                    leading: Icon(Icons.track_changes_outlined,
-                        color: Colors.white, size: 22.sp),
-                    title: Text(loc.translate('stock_levels'),
-                        style: ThemeConstants.bodyStyle),
-                    selected: index == idxStockLevels,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxStockLevels),
-                  ),
-                  // 5. Stock In / Out / Transfer
-                  if (hasStockOps)
+                  for (int i = 0; i < visible.length; i++)
                     ListTile(
-                      leading: Icon(Icons.sync_alt_outlined,
+                      leading: Icon(visible[i].icon,
                           color: Colors.white, size: 22.sp),
-                      title: Text(loc.translate('stock_in_out_transfer'),
+                      title: Text(visible[i].title(loc),
                           style: ThemeConstants.bodyStyle),
-                      selected: index == idxStockOps,
+                      selected: index == i,
                       selectedTileColor: Colors.white10,
-                      onTap: () => onSelected(idxStockOps),
-                    ),
-                  // 6. Orders (Purchase Orders)
-                  ListTile(
-                    leading: Icon(Icons.receipt_long_outlined,
-                        color: Colors.white, size: 22.sp),
-                    title: const Text('Orders',
-                        style: TextStyle(color: Colors.white)),
-                    selected: index == idxOrders,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxOrders),
-                  ),
-                  // 7. Sales
-                  ListTile(
-                    leading: Icon(Icons.point_of_sale_outlined,
-                        color: Colors.white, size: 22.sp),
-                    title: Text(loc.translate('sales'),
-                        style: ThemeConstants.bodyStyle),
-                    selected: index == idxSales,
-                    selectedTileColor: Colors.white10,
-                    onTap: () => onSelected(idxSales),
-                  ),
-                  // 8. Reminders
-                  if (hasRem)
-                    ListTile(
-                      leading: Icon(Icons.notifications_active_outlined,
-                          color: Colors.white, size: 22.sp),
-                      title: Text(loc.translate('reminders'),
-                          style: ThemeConstants.bodyStyle),
-                      selected: index == idxRem,
-                      selectedTileColor: Colors.white10,
-                      onTap: () => onSelected(idxRem),
+                      onTap: () => onSelected(i),
                     ),
                 ],
               ),
