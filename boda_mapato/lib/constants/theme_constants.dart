@@ -98,7 +98,16 @@ class ThemeConstants {
               borderRadius: BorderRadius.circular(20.r),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: child,
+                // A DecoratedBox with a background sits between the outer
+                // Material and `child` above, so a ListTile (or anything
+                // else that paints ink on "the nearest Material ancestor")
+                // inside `child` would have its splash hidden behind that
+                // background. Give it a nearer, transparent Material to
+                // paint on instead.
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: child,
+                ),
               ),
             ),
           ),
