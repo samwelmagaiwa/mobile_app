@@ -287,6 +287,17 @@ class DefaultPermissions {
     'manage_communications',
     'generate_receipts',
     'manage_settings',
+    // The transport drawer items (drivers/vehicles/payments/debt_records/
+    // reports/receipts) actually gate on these _transport-suffixed names,
+    // not the plain ones above -- without these, an admin with no explicit
+    // permissions array (the common case) sees those items disappear even
+    // though the plain-named equivalents are already granted.
+    'manage_drivers_transport',
+    'manage_vehicles_transport',
+    'manage_payments_transport',
+    'manage_debts_transport',
+    'view_reports_transport',
+    'manage_receipts_transport',
     // Rental permissions
     'view_tenants',
     'manage_properties_rental',
