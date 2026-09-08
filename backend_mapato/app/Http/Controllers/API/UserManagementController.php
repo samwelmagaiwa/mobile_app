@@ -135,7 +135,7 @@ class UserManagementController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
             'phone_number' => 'nullable|string|max:50',
-            'role' => 'nullable|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator',
+            'role' => 'nullable|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'nullable|boolean',
             // Legacy single value - still accepted for old clients.
             'service_type' => 'nullable|string|in:rental,transport,inventory',
@@ -244,7 +244,7 @@ class UserManagementController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id . ',id',
             'phone_number' => 'nullable|string|max:50',
-            'role' => 'sometimes|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator',
+            'role' => 'sometimes|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'sometimes|boolean',
             'service_type' => 'nullable|string|in:rental,transport,inventory',
             'service_types' => 'nullable|array',

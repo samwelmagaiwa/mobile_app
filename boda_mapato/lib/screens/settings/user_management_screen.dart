@@ -48,6 +48,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   bool get _isRental => _activeService == 'rental';
+  bool get _isInventory => _activeService == 'inventory';
 
   List<DropdownMenuItem<String>> get _roleDropdownItems {
     if (_isRental) {
@@ -56,6 +57,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         DropdownMenuItem(value: 'landlord', child: Text('Landlord')),
         DropdownMenuItem(value: 'caretaker', child: Text('Caretaker')),
         DropdownMenuItem(value: 'tenant', child: Text('Tenant')),
+        DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
+      ];
+    }
+    if (_isInventory) {
+      return const [
+        DropdownMenuItem(value: 'admin', child: Text('Admin')),
+        DropdownMenuItem(value: 'manager', child: Text('Manager')),
+        DropdownMenuItem(value: 'sales_officer', child: Text('Sales Officer')),
+        DropdownMenuItem(value: 'operator', child: Text('Operator')),
         DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
       ];
     }

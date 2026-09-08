@@ -155,6 +155,21 @@ class UserPermissions {
           'view_rental_reports',
           'view_sms_history',
         ];
+      case 'sales_officer':
+        // Full day-to-day inventory operational access -- matches the
+        // ~70 inventory routes already gated with
+        // role_any:admin,manager,sales_officer on the backend. An admin
+        // can still narrow an individual account further via its
+        // explicit `permissions` array (Users Management -> per-user
+        // permissions), which UserData.hasPermission() checks first.
+        return const [
+          'inv_view_products',
+          'inv_manage_products',
+          'inv_manage_stock',
+          'inv_create_sales',
+          'inv_manage_sales',
+          'inv_view_reminders',
+        ];
       case 'operator':
         return const [
           'view_drivers',
@@ -162,7 +177,7 @@ class UserPermissions {
           'view_payments',
           'view_debts',
           'generate_receipts',
-          // Inventory (Sales Officer)
+          // Inventory
           'inv_view_products',
           'inv_manage_products',
           'inv_create_sales',
