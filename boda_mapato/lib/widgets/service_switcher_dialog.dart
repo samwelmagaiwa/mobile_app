@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/theme_constants.dart';
+import '../providers/auth_provider.dart';
 import '../services/localization_service.dart';
+import '../utils/role_services.dart';
 
 class ServiceSwitcherDialog extends StatelessWidget {
   const ServiceSwitcherDialog({super.key});
@@ -34,7 +37,17 @@ class ServiceSwitcherDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = LocalizationService.instance;
-    
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+
+    // Compute which services this user may actually switch to —
+    // same logic as the initial routing: explicit bindings take
+    // priority, then role-based defaults.
+    final List<String> bound = user?.serviceTypes ?? [];
+    final List<String> allowed = bound.isNotEmpty
+        ? bound
+        : servicesForRole(user?.role ?? '');
+
     return Dialog(
       backgroundColor: ThemeConstants.primaryBlue,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
@@ -64,21 +77,24 @@ class ServiceSwitcherDialog extends StatelessWidget {
                 spacing: 4.w,
                 runSpacing: 12.h,
                 children: [
-                  _ServiceOption(
-                    icon: Icons.inventory_2_rounded,
-                    label: loc.translate('inventory_service'),
-                    onTap: () => _switchService(context, 'inventory'),
-                  ),
-                  _ServiceOption(
-                    icon: Icons.apartment_rounded,
-                    label: loc.translate('rental_service'),
-                    onTap: () => _switchService(context, 'rental'),
-                  ),
-                  _ServiceOption(
-                    icon: Icons.local_shipping_rounded,
-                    label: loc.translate('transport_service'),
-                    onTap: () => _switchService(context, 'transport'),
-                  ),
+                  if (allowed.contains('inventory'))
+                    _ServiceOption(
+                      icon: Icons.inventory_2_rounded,
+                      label: loc.translate('inventory_service'),
+                      onTap: () => _switchService(context, 'inventory'),
+                    ),
+                  if (allowed.contains('rental'))
+                    _ServiceOption(
+                      icon: Icons.apartment_rounded,
+                      label: loc.translate('rental_service'),
+                      onTap: () => _switchService(context, 'rental'),
+                    ),
+                  if (allowed.contains('transport'))
+                    _ServiceOption(
+                      icon: Icons.local_shipping_rounded,
+                      label: loc.translate('transport_service'),
+                      onTap: () => _switchService(context, 'transport'),
+                    ),
                 ],
               ),
             ),

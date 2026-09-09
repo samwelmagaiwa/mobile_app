@@ -9,6 +9,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../models/user_permissions.dart';
+import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../../../utils/responsive_helper.dart';
 import '../../models/inv_sale.dart';
@@ -101,6 +103,15 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     ResponsiveHelper.init(context);
     final LocalizationService loc = LocalizationService.instance;
     final InventoryProvider inv = context.watch<InventoryProvider>();
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    final perms = user == null
+        ? UserPermissions.empty()
+        : UserPermissions.fromUser(
+            userRole: user.role ?? '',
+            explicitGrants: user.permissions,
+          );
+    final bool canViewReports = perms.has('inv_view_reports');
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -119,7 +130,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ResponsiveHelper.verticalSpace(2),
               _buildProductStatsRow(loc, inv),
               ResponsiveHelper.verticalSpace(2),
-              _buildJoinedSections(loc, inv),
+              _buildJoinedSections(loc, inv, canViewReports: canViewReports),
             ],
           ),
         ),
@@ -888,7 +899,11 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
         ),
       );
 
-  Widget _buildJoinedSections(LocalizationService loc, InventoryProvider inv) =>
+  Widget _buildJoinedSections(
+    LocalizationService loc,
+    InventoryProvider inv, {
+    bool canViewReports = false,
+  }) =>
       DecoratedBox(
         decoration: BoxDecoration(
           color: cardColor,
@@ -920,8 +935,8 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _buildInventoryValuationContent(loc, inv),
-              _sectionDivider(),
+              if (canViewReports) _buildInventoryValuationContent(loc, inv),
+              if (canViewReports) _sectionDivider(),
               _buildProductsOverviewContent(loc, inv),
               _sectionDivider(),
               _buildChartSectionContent(loc, inv),
