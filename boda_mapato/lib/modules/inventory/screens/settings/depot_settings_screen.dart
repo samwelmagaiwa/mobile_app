@@ -368,21 +368,24 @@ class _AppSettingsTab extends StatelessWidget {
         );
 
     Widget tile(IconData icon, String title, String subtitle, VoidCallback onTap) =>
-        ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          leading: Icon(icon, color: ThemeConstants.textSecondary, size: 24),
-          title: Text(title,
-              style: const TextStyle(
-                  color: ThemeConstants.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500)),
-          subtitle: Text(subtitle,
-              style: const TextStyle(
-                  color: ThemeConstants.textSecondary, fontSize: 13)),
-          trailing: const Icon(Icons.chevron_right,
-              color: ThemeConstants.textSecondary, size: 20),
-          onTap: onTap,
+        Material(
+          color: Colors.transparent,
+          child: ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            leading: Icon(icon, color: ThemeConstants.textSecondary, size: 24),
+            title: Text(title,
+                style: const TextStyle(
+                    color: ThemeConstants.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500)),
+            subtitle: Text(subtitle,
+                style: const TextStyle(
+                    color: ThemeConstants.textSecondary, fontSize: 13)),
+            trailing: const Icon(Icons.chevron_right,
+                color: ThemeConstants.textSecondary, size: 20),
+            onTap: onTap,
+          ),
         );
 
     const d = Divider(color: Colors.white24, height: 1);
