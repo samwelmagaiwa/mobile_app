@@ -16,7 +16,13 @@ class UserManagementController extends Controller
     {
     }
 
-    // List users created by the authenticated admin
+    // List users visible to the authenticated user.
+    //
+    // super_admin → sees everyone.
+    // admin       → sees all users bound to their own service(s); if they
+    //               somehow have no service binding they see only themselves
+    //               (an unbound admin cannot manage staff).
+    // others      → only their own created_by records.
     public function myUsers(Request $request)
     {
         $user = $request->user();
@@ -24,13 +30,24 @@ class UserManagementController extends Controller
 
         if ($request->query('created_by') === 'me') {
             $query->where('created_by', $user->id);
-        } else if ($request->query('role') === 'super_admin') {
+        } elseif ($request->query('role') === 'super_admin') {
             // Only super admins may enumerate other super admin accounts.
             if (!$user->isSuperAdmin()) {
                 return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
             }
             $query->where('role', 'super_admin');
-        } else if (!$user->isSuperAdmin() && !$user->full_access) {
+        } elseif ($user->isSuperAdmin() || $user->full_access) {
+            // no extra filter — see everyone
+        } elseif (strtolower($user->role ?? '') === 'admin' || strtolower($user->role ?? '') === 'administrator') {
+            // Admin sees all users whose service bindings overlap with their own.
+            $ownServices = $user->services()->pluck('service_type')->all();
+            if (empty($ownServices)) {
+                // Unbound admin: no service assigned yet — see only themselves.
+                $query->where('id', $user->id);
+            } else {
+                $query->whereHas('services', fn ($q) => $q->whereIn('service_type', $ownServices));
+            }
+        } else {
             $query->where('created_by', $user->id);
         }
 
@@ -195,18 +212,24 @@ class UserManagementController extends Controller
                 ], 403);
             }
 
-            // An admin scoped to specific service(s) can only create staff
-            // within those same service(s); an admin with no service binding
-            // is treated as general/company-wide and unrestricted.
+            // Admin must have been bound to at least one service by a super_admin
+            // before they can create staff. An unbound admin has no service scope
+            // and therefore cannot create users for any service.
             $ownServices = $auth->services()->pluck('service_type')->all();
-            if (!empty($ownServices)) {
-                $outOfScope = array_diff($serviceTypes, $ownServices);
-                if (!empty($outOfScope)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You can only create staff for your own service(s): ' . implode(', ', $ownServices),
-                    ], 403);
-                }
+            if (empty($ownServices)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has no service assigned. Ask your super admin to bind you to a service before you can create staff.',
+                ], 403);
+            }
+
+            // Admin can only create staff within their assigned service(s).
+            $outOfScope = array_diff($serviceTypes, $ownServices);
+            if (!empty($outOfScope)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only create staff for your assigned service(s): ' . implode(', ', $ownServices),
+                ], 403);
             }
         }
 
@@ -271,8 +294,20 @@ class UserManagementController extends Controller
     {
         $auth = $request->user();
         $user = User::where('id', $id)->firstOrFail();
-        if (!$auth->isSuperAdmin() && $user->created_by !== $auth->id) {
-            abort(403, 'Unauthorized action.');
+
+        // Super admin can update anyone.
+        // Admin can only update users they personally created AND who are not
+        // admins/super_admins (peer-level accounts are super_admin territory).
+        if (!$auth->isSuperAdmin()) {
+            if ($user->created_by !== $auth->id) {
+                abort(403, 'Unauthorized action.');
+            }
+            if (in_array(strtolower($user->role ?? ''), ['admin', 'administrator', 'super_admin'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only a super admin can edit admin accounts.',
+                ], 403);
+            }
         }
 
         $data = $request->only(['name', 'email', 'phone_number', 'role', 'is_active', 'service_type', 'service_types', 'full_access', 'permissions']);
@@ -369,8 +404,17 @@ class UserManagementController extends Controller
     {
         $auth = $request->user();
         $user = User::where('id', $id)->firstOrFail();
-        if (!$auth->isSuperAdmin() && $user->created_by !== $auth->id) {
-            abort(403, 'Unauthorized action.');
+
+        if (!$auth->isSuperAdmin()) {
+            if ($user->created_by !== $auth->id) {
+                abort(403, 'Unauthorized action.');
+            }
+            if (in_array(strtolower($user->role ?? ''), ['admin', 'administrator', 'super_admin'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only a super admin can delete admin accounts.',
+                ], 403);
+            }
         }
 
         $summary = "{$auth->name} deleted {$user->role} account \"{$user->name}\" ({$user->email})";
@@ -385,6 +429,67 @@ class UserManagementController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User deleted',
+        ]);
+    }
+
+    /**
+     * Super admin only: replace a user's service bindings with the supplied set.
+     *
+     * PUT /users/{id}/services   body: { "service_types": ["inventory","rental"] }
+     *
+     * Passing an empty array removes all bindings (effectively locks the user out
+     * of all services until re-bound). This is intentional — super_admin can use
+     * this to revoke an admin's access to a service without deleting the account.
+     */
+    public function bindServices(Request $request, string $id)
+    {
+        $auth = $request->user();
+
+        if (!$auth->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only a super admin can manage service bindings.',
+            ], 403);
+        }
+
+        $target = User::where('id', $id)->firstOrFail();
+
+        $validator = Validator::make($request->all(), [
+            'service_types'   => 'required|array',
+            'service_types.*' => 'string|in:rental,transport,inventory',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $before   = $target->services()->pluck('service_type')->all();
+        $newTypes = array_values(array_unique($request->input('service_types', [])));
+
+        $this->syncServiceTypes($target, $newTypes);
+
+        // Keep legacy single-value column in sync for older code paths.
+        $target->service_type = $newTypes[0] ?? null;
+        $target->save();
+
+        $this->audit->record(
+            $request, 'user', null, 'services_changed',
+            ['service_types' => $before],
+            ['service_types' => $newTypes],
+            "{$auth->name} updated service bindings for \"{$target->name}\" ({$target->email}): "
+            . (empty($newTypes) ? 'none' : implode(', ', $newTypes)),
+        );
+
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Service bindings updated.',
+            'data'         => [
+                'user'         => $this->userPayload($target, $newTypes),
+                'is_unbound'   => empty($newTypes),
+            ],
         ]);
     }
 

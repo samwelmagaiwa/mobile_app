@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\User;
+use App\Models\UserService;
 
 class SuperAdminSeeder extends Seeder
 {
@@ -19,7 +20,7 @@ class SuperAdminSeeder extends Seeder
         $superAdminPhone = '0743519100';
 
         if (!$user) {
-            User::create([
+            $user = User::create([
                 'id' => Str::uuid(),
                 'name' => 'Super Admin',
                 'email' => 'superadmin@gmail.com',
@@ -45,5 +46,15 @@ class SuperAdminSeeder extends Seeder
             ]);
             echo "ℹ️ Super Admin updated: superadmin@gmail.com\n";
         }
+
+        // Super admin is bound to ALL services by default so the services
+        // relation is never empty and API responses are consistent.
+        foreach (['inventory', 'rental', 'transport'] as $service) {
+            UserService::firstOrCreate([
+                'user_id'      => $user->id,
+                'service_type' => $service,
+            ]);
+        }
+        echo "✅ Super Admin services: inventory, rental, transport\n";
     }
 }
