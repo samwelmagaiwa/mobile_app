@@ -15,36 +15,38 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::where('email', 'superadmin@gmail.com')->first();
+        $email    = env('SUPER_ADMIN_EMAIL', 'superadmin@example.com');
+        $phone    = env('SUPER_ADMIN_PHONE', '');
+        $password = env('SUPER_ADMIN_PASSWORD', Str::random(16));
 
-        $superAdminPhone = '0743519100';
+        $user = User::where('email', $email)->first();
 
         if (!$user) {
             $user = User::create([
-                'id' => Str::uuid(),
-                'name' => 'Super Admin',
-                'email' => 'superadmin@gmail.com',
-                'password' => Hash::make('12345678'),
-                'phone_number' => $superAdminPhone,
-                'role' => 'super_admin',
-                'is_active' => true,
-                'email_verified' => true,
-                'phone_verified' => true,
-                'email_verified_at' => now(),
+                'id'               => Str::uuid(),
+                'name'             => 'Super Admin',
+                'email'            => $email,
+                'password'         => Hash::make($password),
+                'phone_number'     => $phone ?: null,
+                'role'             => 'super_admin',
+                'is_active'        => true,
+                'email_verified'   => true,
+                'phone_verified'   => true,
+                'email_verified_at'=> now(),
             ]);
-            echo "✅ Super Admin created: superadmin@gmail.com / 12345678\n";
+            echo "✅ Super Admin created: {$email}\n";
         } else {
             $user->update([
-                'name' => 'Super Admin',
-                'password' => Hash::make('12345678'),
-                'phone_number' => $superAdminPhone,
-                'role' => 'super_admin',
-                'is_active' => true,
-                'email_verified' => true,
-                'phone_verified' => true,
-                'email_verified_at' => now(),
+                'name'             => 'Super Admin',
+                'password'         => Hash::make($password),
+                'phone_number'     => $phone ?: $user->phone_number,
+                'role'             => 'super_admin',
+                'is_active'        => true,
+                'email_verified'   => true,
+                'phone_verified'   => true,
+                'email_verified_at'=> now(),
             ]);
-            echo "ℹ️ Super Admin updated: superadmin@gmail.com\n";
+            echo "ℹ️ Super Admin updated: {$email}\n";
         }
 
         // Super admin is bound to ALL services by default so the services
