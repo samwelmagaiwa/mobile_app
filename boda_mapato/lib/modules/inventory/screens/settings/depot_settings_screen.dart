@@ -367,291 +367,217 @@ class _AppSettingsTab extends StatelessWidget {
           MaterialPageRoute<void>(builder: (_) => screen),
         );
 
-    Widget sectionLabel(String text, {Color? color, IconData? icon}) => Padding(
-          padding: EdgeInsets.only(left: 2.w, bottom: 8.h),
-          child: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 13.sp,
-                    color: color ?? ThemeConstants.textSecondary),
-                SizedBox(width: 5.w),
-              ],
-              Text(
-                text.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10.5.sp,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  color: color ?? ThemeConstants.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        );
-
     Widget tile(IconData icon, String title, String subtitle, VoidCallback onTap) =>
         ListTile(
           contentPadding:
-              EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-          leading: Icon(icon, color: ThemeConstants.textSecondary, size: 22.sp),
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Icon(icon, color: ThemeConstants.textSecondary, size: 24),
           title: Text(title,
-              style: ThemeConstants.bodyStyle.copyWith(
-                  fontSize: 15.sp, fontWeight: FontWeight.w500)),
-          subtitle: Text(subtitle, style: ThemeConstants.captionStyle),
-          trailing: Icon(Icons.chevron_right_rounded,
-              color: ThemeConstants.textSecondary, size: 18.sp),
+              style: const TextStyle(
+                  color: ThemeConstants.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
+          subtitle: Text(subtitle,
+              style: const TextStyle(
+                  color: ThemeConstants.textSecondary, fontSize: 13)),
+          trailing: const Icon(Icons.chevron_right,
+              color: ThemeConstants.textSecondary, size: 20),
           onTap: onTap,
         );
 
-    Widget divider() => const Divider(color: Colors.white24, height: 1);
+    const d = Divider(color: Colors.white24, height: 1);
 
-    Widget glassCard(List<Widget> children) => Container(
-          decoration: ThemeConstants.glassCardDecoration,
-          child: Column(children: children),
-        );
+    // All settings tiles in ONE card — exactly like the main settings page.
+    final allTiles = <Widget>[
+      tile(Icons.notifications, loc.translate('notifications'),
+          loc.translate('notifications_subtitle'),
+          () => go(const NotificationsScreen())),
+      d,
+      tile(Icons.language, loc.translate('language'),
+          loc.translate('language_subtitle'),
+          () => go(const LanguageScreen())),
+      d,
+      tile(Icons.security, loc.translate('security'),
+          loc.translate('security_subtitle'),
+          () => go(const SecurityScreen())),
+      if (isAdmin || isSuperAdmin) ...[
+        d,
+        tile(Icons.people, loc.translate('users'),
+            isSuperAdmin
+                ? (loc.isSwahili
+                    ? 'Dhibiti watumiaji wote kwenye huduma zote'
+                    : 'Manage all users across every service')
+                : loc.translate('users_subtitle'),
+            () => go(const UserManagementScreen())),
+        if (isSuperAdmin) ...[
+          d,
+          tile(Icons.admin_panel_settings, 'Permissions',
+              'Manage service module permissions',
+              () => go(const PermissionsScreen())),
+        ],
+        d,
+        tile(Icons.backup, loc.translate('backup'),
+            loc.translate('backup_subtitle'),
+            () => go(const BackupScreen())),
+      ],
+    ];
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
+      padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Profile Card ─────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            decoration: ThemeConstants.glassCardDecoration,
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              children: [
-                // Avatar
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 40.r,
-                      backgroundColor: isSuperAdmin
-                          ? const Color(0xFFB8860B)
-                          : ThemeConstants.primaryOrange,
-                      backgroundImage: _avatarImage(auth),
-                      child: _avatarImage(auth) == null
-                          ? (user?.name.isNotEmpty == true
-                              ? Text(
-                                  user!.name.substring(0, 1).toUpperCase(),
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24.sp,
-                                      fontWeight: FontWeight.bold),
-                                )
-                              : Icon(Icons.person,
-                                  color: Colors.white, size: 40.sp))
-                          : null,
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.camera_alt_outlined,
-                            color: Colors.white, size: 15.sp),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  user?.name ?? '',
-                  style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: ThemeConstants.textPrimary),
-                ),
-                SizedBox(height: 3.h),
-                Text(user?.email ?? '',
-                    style: TextStyle(
-                        fontSize: 13.sp,
-                        color: ThemeConstants.textSecondary)),
-                SizedBox(height: 10.h),
-                // Role badge
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 14.w, vertical: 5.h),
-                  decoration: BoxDecoration(
-                    color: isSuperAdmin
-                        ? const Color(0xFFB8860B).withOpacity(0.22)
-                        : Colors.blueGrey.shade700.withOpacity(0.35),
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: isSuperAdmin
-                          ? const Color(0xFFB8860B).withOpacity(0.6)
-                          : Colors.blueGrey.shade400.withOpacity(0.5),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+          // ── Profile Card — matches main settings exactly ───────────────
+          ThemeConstants.buildGlassCard(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.bottomRight,
                     children: [
-                      Icon(
-                        isSuperAdmin
-                            ? Icons.verified_user_rounded
-                            : Icons.manage_accounts_rounded,
-                        size: 13.sp,
-                        color: isSuperAdmin
-                            ? const Color(0xFFFFD700)
-                            : Colors.blueGrey.shade200,
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: isSuperAdmin
+                            ? const Color(0xFFB8860B)
+                            : ThemeConstants.primaryOrange,
+                        backgroundImage: _avatarImage(auth),
+                        child: _avatarImage(auth) == null
+                            ? (user?.name.isNotEmpty == true
+                                ? Text(
+                                    user!.name.substring(0, 1).toUpperCase(),
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                : const Icon(Icons.person,
+                                    color: Colors.white, size: 40))
+                            : null,
                       ),
-                      SizedBox(width: 6.w),
-                      Text(
-                        isSuperAdmin
-                            ? 'SUPER ADMIN'
-                            : isAdmin
-                                ? 'ADMIN'
-                                : (user?.role?.toUpperCase() ?? ''),
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                          color: isSuperAdmin
-                              ? const Color(0xFFFFD700)
-                              : Colors.blueGrey.shade200,
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              color: Colors.white, size: 18),
                         ),
                       ),
                     ],
                   ),
-                ),
-                // Admin: show assigned services
-                if (isAdmin && !isSuperAdmin) ...[
-                  SizedBox(height: 8.h),
-                  Builder(builder: (_) {
-                    final svcs = user?.serviceTypes ?? [];
-                    if (svcs.isEmpty) return const SizedBox.shrink();
-                    return Wrap(
-                      spacing: 6,
-                      children: svcs
-                          .map((s) => Chip(
-                                label: Text(s,
-                                    style: TextStyle(
-                                        fontSize: 10.sp,
-                                        color: Colors.white70)),
-                                backgroundColor:
-                                    Colors.white.withOpacity(0.08),
-                                padding: EdgeInsets.zero,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ))
-                          .toList(),
-                    );
-                  }),
+                  const SizedBox(height: 16),
+                  Text(user?.name ?? '',
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ThemeConstants.textPrimary)),
+                  Text(user?.email ?? '',
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: ThemeConstants.textSecondary)),
+                  const SizedBox(height: 10),
+                  // Role badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isSuperAdmin
+                          ? const Color(0xFFB8860B).withOpacity(0.22)
+                          : Colors.blueGrey.shade700.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSuperAdmin
+                            ? const Color(0xFFB8860B).withOpacity(0.6)
+                            : Colors.blueGrey.shade400.withOpacity(0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSuperAdmin
+                              ? Icons.verified_user_rounded
+                              : Icons.manage_accounts_rounded,
+                          size: 14,
+                          color: isSuperAdmin
+                              ? const Color(0xFFFFD700)
+                              : Colors.blueGrey.shade200,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isSuperAdmin
+                              ? 'SUPER ADMIN'
+                              : isAdmin
+                                  ? 'ADMIN'
+                                  : (user?.role?.toUpperCase() ?? ''),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
+                            color: isSuperAdmin
+                                ? const Color(0xFFFFD700)
+                                : Colors.blueGrey.shade200,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Admin: assigned service chips
+                  if (isAdmin && !isSuperAdmin) ...[
+                    const SizedBox(height: 8),
+                    Builder(builder: (_) {
+                      final svcs = user?.serviceTypes ?? [];
+                      if (svcs.isEmpty) return const SizedBox.shrink();
+                      return Wrap(
+                        spacing: 6,
+                        children: svcs
+                            .map((s) => Chip(
+                                  label: Text(s,
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.white70)),
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.08),
+                                  padding: EdgeInsets.zero,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ))
+                            .toList(),
+                      );
+                    }),
+                  ],
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── All settings tiles in one card ────────────────────────────
+          ThemeConstants.buildGlassCard(
+            child: Column(children: allTiles),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── About card ────────────────────────────────────────────────
+          ThemeConstants.buildGlassCard(
+            child: Column(
+              children: [
+                tile(Icons.info, loc.translate('about_app'),
+                    loc.translate('about_app_subtitle'), () {}),
+                d,
+                tile(Icons.help, loc.translate('help'),
+                    loc.translate('help_subtitle'), () {}),
               ],
             ),
           ),
 
-          SizedBox(height: 20.h),
-
-          // ── Personal (all roles) ──────────────────────────────────────
-          sectionLabel(loc.isSwahili ? 'Binafsi' : 'Personal'),
-          glassCard([
-            tile(Icons.notifications_outlined, loc.translate('notifications'),
-                loc.translate('notifications_subtitle'),
-                () => go(const NotificationsScreen())),
-            divider(),
-            tile(Icons.language_outlined, loc.translate('language'),
-                loc.translate('language_subtitle'),
-                () => go(const LanguageScreen())),
-            divider(),
-            tile(Icons.shield_outlined, loc.translate('security'),
-                loc.translate('security_subtitle'),
-                () => go(const SecurityScreen())),
-          ]),
-
-          // ── Super Admin Controls ──────────────────────────────────────
-          if (isSuperAdmin) ...[
-            SizedBox(height: 20.h),
-            sectionLabel(
-              loc.isSwahili ? 'Udhibiti wa Super Admin' : 'Super Admin Controls',
-              color: const Color(0xFFFFD700),
-              icon: Icons.verified_user_rounded,
-            ),
-            glassCard([
-              tile(
-                Icons.people_alt_outlined,
-                loc.translate('users'),
-                loc.isSwahili
-                    ? 'Dhibiti watumiaji wote kwenye huduma zote'
-                    : 'Manage all users across every service',
-                () => go(const UserManagementScreen()),
-              ),
-              divider(),
-              tile(
-                Icons.admin_panel_settings_outlined,
-                loc.isSwahili ? 'Ruhusa' : 'Permissions',
-                loc.isSwahili
-                    ? 'Dhibiti ruhusa za moduli za huduma'
-                    : 'Manage service module permissions',
-                () => go(const PermissionsScreen()),
-              ),
-              divider(),
-              tile(
-                Icons.cloud_sync_outlined,
-                loc.translate('backup'),
-                loc.isSwahili
-                    ? 'Hifadhi na rejesha data ya mfumo wote'
-                    : 'Backup and restore entire system data',
-                () => go(const BackupScreen()),
-              ),
-            ]),
-          ],
-
-          // ── Admin Tools ───────────────────────────────────────────────
-          if (isAdmin && !isSuperAdmin) ...[
-            SizedBox(height: 20.h),
-            sectionLabel(
-              loc.isSwahili ? 'Zana za Msimamizi' : 'Admin Tools',
-              color: Colors.blueGrey.shade200,
-              icon: Icons.manage_accounts_rounded,
-            ),
-            glassCard([
-              tile(
-                Icons.people_outlined,
-                loc.translate('users'),
-                loc.isSwahili
-                    ? 'Dhibiti watumiaji wa huduma yako'
-                    : 'Manage users in your assigned service(s)',
-                () => go(const UserManagementScreen()),
-              ),
-              divider(),
-              tile(
-                Icons.cloud_upload_outlined,
-                loc.translate('backup'),
-                loc.translate('backup_subtitle'),
-                () => go(const BackupScreen()),
-              ),
-            ]),
-          ],
-
-          SizedBox(height: 20.h),
-
-          // ── About ─────────────────────────────────────────────────────
-          sectionLabel(loc.isSwahili ? 'Kuhusu' : 'About'),
-          glassCard([
-            tile(
-              Icons.info_outline_rounded,
-              loc.translate('about_app'),
-              loc.translate('about_app_subtitle'),
-              () {},
-            ),
-            divider(),
-            tile(
-              Icons.help_outline_rounded,
-              loc.translate('help'),
-              loc.translate('help_subtitle'),
-              () {},
-            ),
-          ]),
-
-          SizedBox(height: 20.h),
+          const SizedBox(height: 20),
         ],
       ),
     );
