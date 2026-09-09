@@ -89,12 +89,27 @@ class User extends Authenticatable
      * User roles
      */
     const ROLES = [
-        'super_admin' => 'Super Admin',
-        'admin' => 'Admin',
-        'driver' => 'Driver',
-        'landlord' => 'Landlord',
-        'caretaker' => 'Caretaker',
-        'tenant' => 'Tenant',
+        'super_admin'   => 'Super Admin',
+        'admin'         => 'Admin',
+        'manager'       => 'Manager',
+        'sales_officer' => 'Sales Officer',
+        'operator'      => 'Operator',
+        'viewer'        => 'Viewer',
+        'driver'        => 'Driver',
+        'landlord'      => 'Landlord',
+        'caretaker'     => 'Caretaker',
+        'tenant'        => 'Tenant',
+    ];
+
+    /** All known inventory permission keys. Used to validate explicit grants. */
+    const INV_PERMISSIONS = [
+        'inv_view_products',   'inv_manage_products',
+        'inv_manage_stock',    'inv_create_sales',
+        'inv_manage_sales',    'inv_view_reminders',
+        'inv_view_purchasing', 'inv_view_credit',
+        'inv_view_cash',       'inv_view_crates',
+        'inv_view_reports',    'inv_view_expenses',
+        'inv_manage_expenses', 'inv_manage_settings',
     ];
 
     /**

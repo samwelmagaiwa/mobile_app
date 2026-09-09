@@ -25,7 +25,10 @@ class UserManagementController extends Controller
         if ($request->query('created_by') === 'me') {
             $query->where('created_by', $user->id);
         } else if ($request->query('role') === 'super_admin') {
-            // Allow fetching superadmin for support contact purposes
+            // Only super admins may enumerate other super admin accounts.
+            if (!$user->isSuperAdmin()) {
+                return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
+            }
             $query->where('role', 'super_admin');
         } else if (!$user->isSuperAdmin() && !$user->full_access) {
             $query->where('created_by', $user->id);
@@ -154,6 +157,7 @@ class UserManagementController extends Controller
             'service_types.*' => 'string|in:rental,transport,inventory',
             'full_access' => 'nullable|boolean',
             'permissions' => 'nullable|array',
+            'permissions.*' => 'string|in:' . implode(',', User::INV_PERMISSIONS),
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -161,6 +165,11 @@ class UserManagementController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
             ], 422);
+        }
+
+        // Non-super-admins cannot grant full_access flag.
+        if (!$auth->isSuperAdmin() && !empty($data['full_access'])) {
+            return response()->json(['success' => false, 'message' => 'Only super admin can grant full access.'], 403);
         }
 
         $role = $data['role'] ?? 'driver';
@@ -278,6 +287,7 @@ class UserManagementController extends Controller
             'service_types.*' => 'string|in:rental,transport,inventory',
             'full_access' => 'sometimes|boolean',
             'permissions' => 'nullable|array',
+            'permissions.*' => 'string|in:' . implode(',', User::INV_PERMISSIONS),
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -285,6 +295,11 @@ class UserManagementController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
             ], 422);
+        }
+
+        // Non-super-admins cannot grant full_access flag.
+        if (!$auth->isSuperAdmin() && array_key_exists('full_access', $data) && $data['full_access']) {
+            return response()->json(['success' => false, 'message' => 'Only super admin can grant full access.'], 403);
         }
 
         // Same escalation guard as store(): a plain admin editing an existing
@@ -299,7 +314,7 @@ class UserManagementController extends Controller
             ], 403);
         }
 
-        $before = ['is_active' => $user->is_active, 'role' => $user->role, 'name' => $user->name];
+        $before = ['is_active' => $user->is_active, 'role' => $user->role, 'name' => $user->name, 'permissions' => $user->permissions];
 
         $touchesServices = array_key_exists('service_types', $data) || array_key_exists('service_type', $data);
         $validated = $validator->validated();
@@ -330,6 +345,15 @@ class UserManagementController extends Controller
                 $request, 'user', null, 'role_changed', $before,
                 ['role' => $user->role],
                 "{$auth->name} changed \"{$user->name}\"'s role from {$before['role']} to {$user->role}",
+            );
+        }
+
+        if (array_key_exists('permissions', $data)) {
+            $this->audit->record(
+                $request, 'user', null, 'permissions_changed',
+                ['permissions' => $before['permissions'] ?? []],
+                ['permissions' => $user->permissions ?? []],
+                "{$auth->name} updated explicit permissions for \"{$user->name}\"",
             );
         }
 

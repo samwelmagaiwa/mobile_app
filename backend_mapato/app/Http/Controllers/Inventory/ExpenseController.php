@@ -33,10 +33,10 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'category'     => 'required|string|max:60',
+            'category'     => 'required|string|in:' . implode(',', self::CATEGORIES),
             'description'  => 'required|string|max:255',
             'amount'       => 'required|numeric|min:0.01',
-            'expense_date' => 'required|date',
+            'expense_date' => 'required|date_format:Y-m-d',
         ]);
 
         $id = DB::table('inventory_expenses')->insertGetId([
@@ -63,11 +63,19 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Not found'], 404);
         }
 
+        // Only the creator or a manager/admin may edit an expense.
+        $user = $request->user();
+        $role = strtolower($user->role ?? '');
+        $isManager = in_array($role, ['admin', 'super_admin', 'manager'], true) || $user->full_access;
+        if (!$isManager && (int) $expense->created_by !== (int) $user->id) {
+            return response()->json(['message' => 'You can only edit your own expenses.'], 403);
+        }
+
         $data = $request->validate([
-            'category'     => 'sometimes|string|max:60',
+            'category'     => 'sometimes|string|in:' . implode(',', self::CATEGORIES),
             'description'  => 'sometimes|string|max:255',
             'amount'       => 'sometimes|numeric|min:0.01',
-            'expense_date' => 'sometimes|date',
+            'expense_date' => 'sometimes|date_format:Y-m-d',
         ]);
 
         DB::table('inventory_expenses')->where('id', $id)->update(
@@ -78,8 +86,20 @@ class ExpenseController extends Controller
     }
 
     /** DELETE /inventory/expenses/{id} */
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
+        $expense = DB::table('inventory_expenses')->find($id);
+        if (! $expense) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $user = $request->user();
+        $role = strtolower($user->role ?? '');
+        $isManager = in_array($role, ['admin', 'super_admin', 'manager'], true) || $user->full_access;
+        if (!$isManager && (int) $expense->created_by !== (int) $user->id) {
+            return response()->json(['message' => 'You can only delete your own expenses.'], 403);
+        }
+
         DB::table('inventory_expenses')->where('id', $id)->delete();
         return response()->json(['message' => 'Deleted']);
     }
@@ -147,7 +167,11 @@ class ExpenseController extends Controller
         $from   = $request->query('from');
         $to     = $request->query('to');
 
+        // Validate that any caller-supplied dates are real calendar dates
+        // before they reach a whereBetween() clause.
         if ($from && $to) {
+            $from = \Carbon\Carbon::hasFormat($from, 'Y-m-d') ? $from : now()->toDateString();
+            $to   = \Carbon\Carbon::hasFormat($to,   'Y-m-d') ? $to   : now()->toDateString();
             return [$from, $to];
         }
 

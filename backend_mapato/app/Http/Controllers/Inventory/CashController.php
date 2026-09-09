@@ -273,6 +273,14 @@ class CashController extends Controller
             return response()->json(['message' => 'Session is already closed'], 422);
         }
 
+        // Only the session owner or a manager/admin may close a cash session.
+        $user = $request->user();
+        $role = strtolower($user->role ?? '');
+        $isManager = in_array($role, ['admin', 'super_admin', 'manager'], true) || $user->full_access;
+        if (!$isManager && (int) $session->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'You can only close your own cash session.'], 403);
+        }
+
         $data = $request->validate([
             'counted_cash' => 'required|numeric|min:0',
             'difference_reason' => 'nullable|string|max:255',
