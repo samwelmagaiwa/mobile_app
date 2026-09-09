@@ -46,8 +46,12 @@ class ReportController extends Controller
             return response()->json(['message' => 'Unknown report'], 404);
         }
 
-        $from = $request->query('from', now()->startOfMonth()->toDateString());
-        $to = $request->query('to', now()->toDateString());
+        $from = \Carbon\Carbon::hasFormat($request->query('from', ''), 'Y-m-d')
+            ? $request->query('from')
+            : now()->startOfMonth()->toDateString();
+        $to = \Carbon\Carbon::hasFormat($request->query('to', ''), 'Y-m-d')
+            ? $request->query('to')
+            : now()->toDateString();
 
         [$columns, $rows, $meta] = match ($key) {
             'daily_sales' => $this->dailySales($from, $to),
@@ -80,10 +84,11 @@ class ReportController extends Controller
     private function dailySales(string $from, string $to): array
     {
         $rows = DB::table('inventory_sales')
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+            ->where('created_at', '>=', $from . ' 00:00:00')
+            ->where('created_at', '<=', $to   . ' 23:59:59')
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy(DB::raw('DATE(created_at)'))
+            ->limit(500)
             ->get([
                 DB::raw('DATE(created_at) as day'),
                 DB::raw('COUNT(*) as sales_count'),
@@ -106,8 +111,8 @@ class ReportController extends Controller
             ->join('inventory_sales as s', 's.id', '=', 'i.sale_id')
             ->join('inventory_products as p', 'p.id', '=', 'i.product_id')
             ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
-            ->whereDate('s.created_at', '>=', $from)
-            ->whereDate('s.created_at', '<=', $to)
+            ->where('s.created_at', '>=', $from . ' 00:00:00')
+            ->where('s.created_at', '<=', $to   . ' 23:59:59')
             ->orderByDesc('s.created_at')
             ->limit(1000)
             ->get([
@@ -129,8 +134,8 @@ class ReportController extends Controller
         $rows = DB::table('inventory_sale_items as i')
             ->join('inventory_sales as s', 's.id', '=', 'i.sale_id')
             ->join('inventory_products as p', 'p.id', '=', 'i.product_id')
-            ->whereDate('s.created_at', '>=', $from)
-            ->whereDate('s.created_at', '<=', $to)
+            ->where('s.created_at', '>=', $from . ' 00:00:00')
+            ->where('s.created_at', '<=', $to   . ' 23:59:59')
             ->groupBy('p.id', 'p.name', 'p.sku')
             ->orderByDesc(DB::raw('SUM(i.total - (i.unit_cost_snapshot * i.quantity))'))
             ->get([
@@ -176,8 +181,8 @@ class ReportController extends Controller
             ->join('inventory_products as p', 'p.id', '=', 'm.product_id')
             ->leftJoin('inventory_batches as b', 'b.id', '=', 'm.batch_id')
             ->leftJoin('users as u', 'u.id', '=', 'm.user_id')
-            ->whereDate('m.created_at', '>=', $from)
-            ->whereDate('m.created_at', '<=', $to)
+            ->where('m.created_at', '>=', $from . ' 00:00:00')
+            ->where('m.created_at', '<=', $to   . ' 23:59:59')
             ->orderByDesc('m.id')
             ->limit(1000)
             ->get([
@@ -199,8 +204,8 @@ class ReportController extends Controller
         $rows = DB::table('inventory_stock_count_lines as l')
             ->join('inventory_stock_counts as c', 'c.id', '=', 'l.stock_count_id')
             ->join('inventory_products as p', 'p.id', '=', 'l.product_id')
-            ->whereDate('c.created_at', '>=', $from)
-            ->whereDate('c.created_at', '<=', $to)
+            ->where('c.created_at', '>=', $from . ' 00:00:00')
+            ->where('c.created_at', '<=', $to   . ' 23:59:59')
             ->where('l.variance', '!=', 0)
             ->orderByDesc('c.id')
             ->get([
@@ -221,8 +226,8 @@ class ReportController extends Controller
     {
         $rows = DB::table('inventory_write_offs as w')
             ->join('inventory_products as p', 'p.id', '=', 'w.product_id')
-            ->whereDate('w.created_at', '>=', $from)
-            ->whereDate('w.created_at', '<=', $to)
+            ->where('w.created_at', '>=', $from . ' 00:00:00')
+            ->where('w.created_at', '<=', $to   . ' 23:59:59')
             ->orderByDesc('w.id')
             ->get([
                 'w.reference', 'w.created_at as date', 'p.name as product',
@@ -257,8 +262,8 @@ class ReportController extends Controller
         $rows = DB::table('inventory_sale_payments as p')
             ->join('inventory_sales as s', 's.id', '=', 'p.sale_id')
             ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
-            ->whereDate('p.paid_at', '>=', $from)
-            ->whereDate('p.paid_at', '<=', $to)
+            ->where('p.paid_at', '>=', $from . ' 00:00:00')
+            ->where('p.paid_at', '<=', $to   . ' 23:59:59')
             ->orderByDesc('p.paid_at')
             ->limit(1000)
             ->get([
@@ -295,8 +300,8 @@ class ReportController extends Controller
             ->join('inventory_goods_receipts as g', 'g.id', '=', 'l.goods_receipt_id')
             ->join('inventory_suppliers as s', 's.id', '=', 'g.supplier_id')
             ->join('inventory_products as p', 'p.id', '=', 'l.product_id')
-            ->whereDate('g.received_on', '>=', $from)
-            ->whereDate('g.received_on', '<=', $to)
+            ->where('g.received_on', '>=', $from)
+            ->where('g.received_on', '<=', $to)
             ->orderByDesc('g.id')
             ->limit(1000)
             ->get([
@@ -317,9 +322,10 @@ class ReportController extends Controller
     {
         $rows = DB::table('inventory_cash_sessions as cs')
             ->leftJoin('users as u', 'u.id', '=', 'cs.user_id')
-            ->whereDate('cs.business_date', '>=', $from)
-            ->whereDate('cs.business_date', '<=', $to)
+            ->where('cs.business_date', '>=', $from)
+            ->where('cs.business_date', '<=', $to)
             ->orderByDesc('cs.id')
+            ->limit(500)
             ->get([
                 'cs.reference', 'cs.business_date as date', 'u.name as user',
                 'cs.opening_float', 'cs.expected_cash', 'cs.counted_cash',

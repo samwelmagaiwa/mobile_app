@@ -33,8 +33,9 @@ class AuthProvider extends ChangeNotifier {
   late final StreamSubscription<AuthEvent> _authSub;
   Timer? _refreshTimer;
 
-  // Background refresh interval
-  static const Duration _refreshInterval = Duration(minutes: 1);
+  // Background refresh interval — 5 min is frequent enough to catch
+  // permission changes while avoiding a network hit every 60 seconds.
+  static const Duration _refreshInterval = Duration(minutes: 5);
 
   // Getters
   UserData? get user => _user;
@@ -74,15 +75,21 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isAuthenticated = await AuthService.isAuthenticated();
       if (_isAuthenticated) {
-        final Map<String, dynamic>? userData = await AuthService.getUserData();
+        // Run cached-data load and token validation in parallel — they are
+        // independent reads and together were the two slowest sequential steps.
+        final results = await Future.wait([
+          AuthService.getUserData(),
+          AuthService.validateToken(),
+        ]);
+        final Map<String, dynamic>? userData = results[0] as Map<String, dynamic>?;
+        final bool isValid = results[1] as bool;
         if (userData != null) {
           _user = UserData.fromJson(userData);
         }
-        final bool isValid = await AuthService.validateToken();
         if (isValid) {
           _startRefreshTimer();
         }
-        // Fetch superadmin contact info dynamically
+        // Fire-and-forget: support contact fetch doesn't block the UI.
         unawaited(fetchSuperAdminContact());
       }
     } on Exception catch (e) {
@@ -243,46 +250,45 @@ class AuthProvider extends ChangeNotifier {
     AppMessenger.show('Muda wa kikao umeisha, tafadhali ingia tena.');
   }
 
-  // Refresh user data
+  // Refresh user data — called on the background timer and after permission edits.
   Future<void> refreshUser() async {
-    if (!_isAuthenticated) {
-      return;
-    }
+    if (!_isAuthenticated) return;
 
     try {
       final oldPermissions = _user?.permissions?.join(',') ?? '';
+      final oldRole = _user?.role ?? '';
       final oldActive = _user?.isActive ?? true;
 
       final Map<String, dynamic>? userData = await AuthService.getCurrentUser();
-      if (userData != null) {
-        final newUser = UserData.fromJson(userData);
+      if (userData == null) return;
 
-        // Check if user is now inactive
-        if (!newUser.isActive && oldActive) {
-          AppMessenger.show(
-              'Akaunti yako imezimwa. Tafadhali wasiliana na msimamizi.');
-          await logout();
-          return;
-        }
+      final newUser = UserData.fromJson(userData);
 
-        final newPermissions = newUser.permissions?.join(',') ?? '';
-
-        // Check if permissions changed
-        if (oldPermissions != newPermissions) {
-          _user = newUser;
-          await _checkServiceAccess(newUser);
-          notifyListeners();
-          
-          // Inform the user
-          AppMessenger.show(
-              localization.isSwahili 
-              ? 'Ruhusa zako zimebadilika. Ukurasa umevifanywa upya.' 
-              : 'Your permissions have been updated. Page refreshed.');
-        } else {
-          _user = newUser;
-          notifyListeners();
-        }
+      // Force-logout if account was deactivated remotely.
+      if (!newUser.isActive && oldActive) {
+        AppMessenger.show('Akaunti yako imezimwa. Tafadhali wasiliana na msimamizi.');
+        await logout();
+        return;
       }
+
+      final newPermissions = newUser.permissions?.join(',') ?? '';
+      final permissionsChanged = oldPermissions != newPermissions;
+      final roleChanged = oldRole != (newUser.role ?? '');
+
+      _user = newUser;
+
+      if (permissionsChanged || roleChanged) {
+        // Something security-relevant changed — rebuild all permission-gated UI.
+        await _checkServiceAccess(newUser);
+        notifyListeners();
+        AppMessenger.show(
+          localization.isSwahili
+              ? 'Ruhusa zako zimebadilika. Ukurasa umevifanywa upya.'
+              : 'Your permissions have been updated. Page refreshed.',
+        );
+      }
+      // If nothing changed we intentionally skip notifyListeners() to avoid
+      // rebuilding every watch-subscribed widget on every 5-minute tick.
     } on Exception catch (e) {
       debugPrint("Failed to refresh user data: $e");
     }
