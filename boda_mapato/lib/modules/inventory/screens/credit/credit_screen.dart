@@ -373,36 +373,85 @@ class ReceivePaymentSheet extends StatefulWidget {
 }
 
 class _ReceivePaymentSheetState extends State<ReceivePaymentSheet> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _amount = TextEditingController();
   final TextEditingController _reference = TextEditingController();
   String _method = 'cash';
+  bool _loading = true;
   bool _saving = false;
+
+  // Each unpaid sale gets its own amount controller + selected flag
+  List<Map<String, dynamic>> _sales = [];
+  final List<TextEditingController> _amountCtrls = [];
+  final List<bool> _selected = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSales();
+  }
+
+  Future<void> _loadSales() async {
+    final sales = await context
+        .read<DepotProvider>()
+        .fetchCustomerDebtSales(widget.customer.id);
+    if (!mounted) return;
+    for (final _ in sales) {
+      _amountCtrls.add(TextEditingController());
+      _selected.add(false);
+    }
+    setState(() {
+      _sales = sales;
+      _loading = false;
+    });
+  }
 
   @override
   void dispose() {
-    _amount.dispose();
     _reference.dispose();
+    for (final c in _amountCtrls) c.dispose();
     super.dispose();
   }
 
+  double get _totalEntered {
+    double total = 0;
+    for (int i = 0; i < _sales.length; i++) {
+      if (_selected[i]) {
+        total += double.tryParse(_amountCtrls[i].text.trim()) ?? 0;
+      }
+    }
+    return total;
+  }
+
   Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
+    final allocations = <Map<String, dynamic>>[];
+    for (int i = 0; i < _sales.length; i++) {
+      if (!_selected[i]) continue;
+      final amount = double.tryParse(_amountCtrls[i].text.trim()) ?? 0;
+      if (amount <= 0) continue;
+      allocations.add({'sale_id': _sales[i]['id'], 'amount': amount});
+    }
+
+    if (allocations.isEmpty) {
+      ThemeConstants.showErrorSnackBar(
+        context,
+        'Select at least one debt and enter an amount.',
+      );
       return;
     }
+
     setState(() => _saving = true);
+
+    final double total = allocations.fold(0, (s, a) => s + (a['amount'] as double));
 
     final Map<String, dynamic>? result =
         await context.read<DepotProvider>().receivePayment(
               customerId: widget.customer.id,
-              amount: double.parse(_amount.text.trim()),
+              amount: total,
               method: _method,
               reference: _reference.text.trim(),
+              allocations: allocations,
             );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() => _saving = false);
 
     if (result == null) {
@@ -414,17 +463,9 @@ class _ReceivePaymentSheetState extends State<ReceivePaymentSheet> {
     }
 
     Navigator.pop(context, true);
-    final dynamic rawUnallocated = result['unallocated'];
-    final double unallocated = rawUnallocated is num
-        ? rawUnallocated.toDouble()
-        : double.tryParse('$rawUnallocated') ?? 0;
     ThemeConstants.showSuccessSnackBar(
       context,
-      unallocated > 0
-          ? '${LocalizationService.instance.translate('payment_recorded')} · '
-              '${LocalizationService.instance.translate('unallocated')}: '
-              'TSH ${unallocated.toStringAsFixed(0)}'
-          : LocalizationService.instance.translate('payment_recorded'),
+      LocalizationService.instance.translate('payment_recorded'),
     );
   }
 
@@ -434,73 +475,231 @@ class _ReceivePaymentSheetState extends State<ReceivePaymentSheet> {
 
     return InvSheetShell(
       title: '${loc.translate('receive_payment')} — ${widget.customer.name}',
-      children: <Widget>[
-        Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              InvKeyValueWrap(entries: <String, String>{
-                loc.translate('owes'):
-                    'TSH ${widget.customer.balance.toStringAsFixed(0)}',
-              }),
-              SizedBox(height: 10.h),
-              InvTextField(
-                controller: _amount,
-                label: '${loc.translate('amount')} (TSH)',
-                hint: 'e.g. 20,000',
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (String? v) {
-                  final double? n = double.tryParse((v ?? '').trim());
-                  return (n == null || n <= 0)
-                      ? loc.translate('enter_valid_number')
-                      : null;
-                },
-              ),
-              SizedBox(height: 10.h),
-              DropdownButtonFormField<String>(
-                initialValue: _method,
-                isExpanded: true,
-                dropdownColor: ThemeConstants.primaryBlue,
-                style: ThemeConstants.bodyStyle,
-                decoration:
-                    ThemeConstants.invInputDecoration(loc.translate('method')),
-                items: const <String>[
-                  'cash',
-                  'mobile_money',
-                  'bank_transfer',
-                  'cheque',
-                ]
-                    .map((String m) => DropdownMenuItem<String>(
-                          value: m,
-                          child: Text(
-                            loc.translate(m),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: ThemeConstants.bodyStyle,
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (String? v) => setState(() => _method = v ?? 'cash'),
-              ),
-              SizedBox(height: 10.h),
-              InvTextField(
-                controller: _reference,
-                label: loc.translate('reference'),
-                hint: 'e.g. M-Pesa code or receipt no.',
-                isOptional: true,
-              ),
-              SizedBox(height: 8.h),
+      children: [
+        // Total owed summary
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: ThemeConstants.warningAmber.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: ThemeConstants.warningAmber.withOpacity(0.4)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(loc.translate('owes'), style: ThemeConstants.captionStyle),
               Text(
-                loc.translate('payment_allocation_note'),
-                style: ThemeConstants.captionStyle,
+                'TSH ${widget.customer.balance.toStringAsFixed(0)}',
+                style: ThemeConstants.bodyStyle.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: ThemeConstants.warningAmber,
+                ),
               ),
-              SizedBox(height: 16.h),
-              InvPrimaryButton(busy: _saving, onPressed: _save),
             ],
           ),
         ),
+        SizedBox(height: 14.h),
+
+        // Debt list
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+          )
+        else if (_sales.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: Text(
+              'No outstanding debts found.',
+              style: ThemeConstants.captionStyle,
+              textAlign: TextAlign.center,
+            ),
+          )
+        else ...[
+          Text(
+            'Select debts to pay:',
+            style: ThemeConstants.captionStyle.copyWith(color: Colors.white70),
+          ),
+          SizedBox(height: 8.h),
+          ...List.generate(_sales.length, (i) {
+            final sale = _sales[i];
+            final double saleTotal = double.tryParse(sale['total']?.toString() ?? '') ?? 0;
+            final double paidTotal = double.tryParse(sale['paid_total']?.toString() ?? '') ?? 0;
+            final double outstanding = (saleTotal - paidTotal).clamp(0, double.infinity);
+            final String number = sale['number']?.toString() ?? '—';
+            final String status = sale['payment_status']?.toString() ?? '';
+            final String? dueDateRaw = sale['due_date']?.toString();
+            final String? createdRaw = sale['created_at']?.toString();
+            final DateTime? date = createdRaw != null ? DateTime.tryParse(createdRaw) : null;
+            final DateTime? due  = dueDateRaw != null ? DateTime.tryParse(dueDateRaw) : null;
+            final bool overdue = due != null && due.isBefore(DateTime.now()) && status != 'paid';
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              decoration: BoxDecoration(
+                color: _selected[i]
+                    ? ThemeConstants.successGreen.withOpacity(0.12)
+                    : ThemeConstants.invFill,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: _selected[i]
+                      ? ThemeConstants.successGreen.withOpacity(0.5)
+                      : ThemeConstants.invBorder,
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Sale header row — tap to toggle
+                  InkWell(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
+                    onTap: () => setState(() {
+                      _selected[i] = !_selected[i];
+                      if (_selected[i] && _amountCtrls[i].text.isEmpty) {
+                        // Pre-fill with full outstanding amount
+                        _amountCtrls[i].text = outstanding.toStringAsFixed(0);
+                      }
+                    }),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _selected[i]
+                                ? Icons.check_circle_rounded
+                                : Icons.radio_button_unchecked,
+                            color: _selected[i]
+                                ? ThemeConstants.successGreen
+                                : Colors.white38,
+                            size: 20.sp,
+                          ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  number,
+                                  style: ThemeConstants.bodyStyle.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Row(
+                                  children: [
+                                    if (date != null)
+                                      Text(
+                                        '${date.day}/${date.month}/${date.year}',
+                                        style: ThemeConstants.captionStyle,
+                                      ),
+                                    if (due != null) ...[
+                                      Text(' · ', style: ThemeConstants.captionStyle),
+                                      Text(
+                                        'Due: ${due.day}/${due.month}/${due.year}',
+                                        style: ThemeConstants.captionStyle.copyWith(
+                                          color: overdue
+                                              ? ThemeConstants.errorRed
+                                              : Colors.white54,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'TSH ${outstanding.toStringAsFixed(0)}',
+                                style: ThemeConstants.bodyStyle.copyWith(
+                                  color: overdue
+                                      ? ThemeConstants.errorRed
+                                      : ThemeConstants.warningAmber,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (status == 'partial')
+                                Text(
+                                  'Partial · paid ${paidTotal.toStringAsFixed(0)}',
+                                  style: ThemeConstants.captionStyle.copyWith(
+                                    fontSize: 10.sp,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Amount input — only when selected
+                  if (_selected[i])
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
+                      child: TextField(
+                        controller: _amountCtrls[i],
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setState(() {}),
+                        decoration: ThemeConstants.invInputDecoration(
+                          'Amount to pay (TSH)',
+                        ).copyWith(
+                          hintText: 'Max: ${outstanding.toStringAsFixed(0)}',
+                        ),
+                        style: ThemeConstants.bodyStyle,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+
+          // Running total
+          if (_totalEntered > 0) ...[
+            SizedBox(height: 4.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Total payment: ', style: ThemeConstants.captionStyle),
+                Text(
+                  'TSH ${_totalEntered.toStringAsFixed(0)}',
+                  style: ThemeConstants.bodyStyle.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ThemeConstants.successGreen,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          SizedBox(height: 14.h),
+        ],
+
+        // Method
+        DropdownButtonFormField<String>(
+          initialValue: _method,
+          isExpanded: true,
+          dropdownColor: ThemeConstants.primaryBlue,
+          style: ThemeConstants.bodyStyle,
+          decoration: ThemeConstants.invInputDecoration(loc.translate('method')),
+          items: const ['cash', 'mobile_money', 'bank_transfer', 'cheque']
+              .map((m) => DropdownMenuItem(
+                    value: m,
+                    child: Text(loc.translate(m),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ThemeConstants.bodyStyle),
+                  ))
+              .toList(),
+          onChanged: (v) => setState(() => _method = v ?? 'cash'),
+        ),
+        SizedBox(height: 10.h),
+        InvTextField(
+          controller: _reference,
+          label: loc.translate('reference'),
+          hint: 'e.g. M-Pesa code or receipt no.',
+          isOptional: true,
+        ),
+        SizedBox(height: 16.h),
+        InvPrimaryButton(busy: _saving, onPressed: _save),
       ],
     );
   }

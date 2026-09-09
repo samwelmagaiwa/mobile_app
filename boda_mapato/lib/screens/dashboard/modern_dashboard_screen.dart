@@ -1386,7 +1386,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                 Row(
                   children: <Widget>[
                     _FooterIcon(
-                      icon: Icons.payments_rounded,
+                      icon: Icons.account_balance_wallet_rounded,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

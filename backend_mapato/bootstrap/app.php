@@ -20,8 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role'     => \App\Http\Middleware\RoleMiddleware::class,
             'role_any' => \App\Http\Middleware\RoleAny::class,
+            'inv_perm' => \App\Http\Middleware\CheckInventoryPermission::class,
         ]);
         
         $middleware->validateCsrfTokens(except: [

@@ -536,7 +536,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Get user data with appropriate relations based on role
+     * Get user data with appropriate relations based on role.
+     * Always appends effective_permissions so the client has the fully
+     * resolved list (role defaults ∪ explicit grants) without a second call.
      */
     private function getUserDataWithRelations(User $user): User
     {
@@ -544,17 +546,21 @@ class AuthController extends Controller
 
         switch ($user->role) {
             case 'driver':
-                return $user->load('driver', 'assignedDevice');
-            case 'admin':
-            case 'super_admin':
-                return $user;
+                $user->load('driver', 'assignedDevice');
+                break;
             case 'landlord':
-                return $user->load('ownedProperties');
+                $user->load('ownedProperties');
+                break;
             case 'tenant':
-                return $user->load('tenantProfile', 'rentalAgreements.house.property');
-            default:
-                return $user;
+                $user->load('tenantProfile', 'rentalAgreements.house.property');
+                break;
         }
+
+        // Append resolved permission set as a virtual attribute so the app
+        // knows the full effective access without calling a separate endpoint.
+        $user->setAttribute('effective_permissions', $user->effectiveInventoryPermissions());
+
+        return $user;
     }
 
     /**

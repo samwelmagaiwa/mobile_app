@@ -86,6 +86,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
       ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
+              heroTag: 'product_units_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: () => _openUnitSheet(),
               icon: const Icon(Icons.add, color: Colors.white),

@@ -117,6 +117,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       backgroundColor: Colors.transparent,
       floatingActionButton: canAdd
           ? FloatingActionButton.small(
+              heroTag: 'expenses_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: () => _showAddSheet(context),
               child: const Icon(Icons.add, color: Colors.white),
@@ -612,6 +613,23 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   DateTime _date = DateTime.now();
   bool _saving = false;
 
+  // Formats digits with commas while keeping a clean numeric value for saving
+  void _onAmountChanged(String value) {
+    final digits = value.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      _amountCtrl.value = const TextEditingValue(text: '');
+      return;
+    }
+    final formatted = NumberFormat('#,##0', 'en').format(int.parse(digits));
+    _amountCtrl.value = TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  double get _parsedAmount =>
+      double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
+
   @override
   void initState() {
     super.initState();
@@ -692,11 +710,10 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 controller: _amountCtrl,
                 style: const TextStyle(color: Colors.white),
                 decoration: _inputDeco('Kiasi (TZS)'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.number,
+                onChanged: _onAmountChanged,
                 validator: (v) {
-                  final n = double.tryParse(v ?? '');
-                  if (n == null || n <= 0) return 'Jaza kiasi sahihi';
+                  if (_parsedAmount <= 0) return 'Jaza kiasi sahihi';
                   return null;
                 },
               ),
@@ -785,7 +802,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
       await widget.api.post('/inventory/expenses', {
         'category': _category,
         'description': _descCtrl.text.trim(),
-        'amount': double.parse(_amountCtrl.text.trim()),
+        'amount': _parsedAmount,
         'expense_date': DateFormat('yyyy-MM-dd').format(_date),
       });
       if (mounted) Navigator.of(context).pop(true);

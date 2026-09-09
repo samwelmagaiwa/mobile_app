@@ -48,6 +48,7 @@ class _StockCountsScreenState extends State<StockCountsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'stock_counts_fab',
         backgroundColor: ThemeConstants.primaryOrange,
         onPressed: _openNewCount,
         icon: const Icon(Icons.playlist_add_check, color: Colors.white),
@@ -249,6 +250,7 @@ class _StockCountDetailScreenState extends State<StockCountDetailScreen> {
       ),
       floatingActionButton: isDraft
           ? FloatingActionButton.extended(
+              heroTag: 'stock_count_line_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: _busy ? null : _openLineSheet,
               icon: const Icon(Icons.add, color: Colors.white),

@@ -687,7 +687,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         return Colors.grey;
     }
   }
-
+  
   String _formatCurrency(double amount) {
     return NumberFormat('#,##0', 'sw_TZ').format(amount);
   }

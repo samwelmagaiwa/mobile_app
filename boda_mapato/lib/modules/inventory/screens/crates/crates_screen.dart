@@ -65,6 +65,7 @@ class _CratesScreenState extends State<CratesScreen> {
         _CustomerHoldingsTab(onRefresh: _load),
       ],
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'crates_fab',
         backgroundColor: ThemeConstants.primaryOrange,
         onPressed: () async {
           final bool? saved = await showModalBottomSheet<bool>(

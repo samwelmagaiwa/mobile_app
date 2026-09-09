@@ -119,11 +119,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ResponsiveHelper.verticalSpace(2),
               _buildProductStatsRow(loc, inv),
               ResponsiveHelper.verticalSpace(2),
-              _buildInventoryValuation(loc, inv),
-              ResponsiveHelper.verticalSpace(2),
-              _buildProductsOverview(loc, inv),
-              ResponsiveHelper.verticalSpace(2),
-              _buildChartSection(loc, inv),
+              _buildJoinedSections(loc, inv),
             ],
           ),
         ),
@@ -131,24 +127,62 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     );
   }
 
-  Widget _buildGlassCard({required Widget child}) => DecoratedBox(
+  Widget _buildGlassCard({required Widget child}) {
+    const radius = 20.0;
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(radius),
+        // Outer glow border using gradient
+        border: Border.all(
+          color: Colors.transparent,
+          width: 0,
+        ),
+        boxShadow: <BoxShadow>[
+          // Cyan top-edge glow
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.35),
+            blurRadius: 14,
+            spreadRadius: 0,
+            offset: const Offset(0, -1),
+          ),
+          // Cyan side glow
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.20),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: Offset.zero,
+          ),
+          // Strong primaryBlue bottom shadow
+          BoxShadow(
+            color: primaryBlue.withOpacity(1.0),
+            blurRadius: 28,
+            spreadRadius: 8,
+            offset: const Offset(0, 18),
+          ),
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.90),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Container(
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: Colors.cyanAccent.withOpacity(0.42),
+            width: 1.8,
+          ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(radius),
           child: child,
         ),
-      );
+      ),
+    );
+  }
 
   // ── Filter helpers ────────────────────────────────────────────────────────
 
@@ -609,8 +643,10 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
       );
 
   Widget _buildChartSection(LocalizationService loc, InventoryProvider inv) =>
-      _buildGlassCard(
-        child: Padding(
+      _buildGlassCard(child: _buildChartSectionContent(loc, inv));
+
+  Widget _buildChartSectionContent(LocalizationService loc, InventoryProvider inv) =>
+      Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -775,8 +811,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ),
             ],
           ),
-        ),
-      );
+        );
 
   Widget _buildMonthSelector() => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -819,7 +854,89 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
         ),
       );
 
+  // Divider between joined sections
+  Widget _sectionDivider() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Container(
+          height: 2.5,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: <Color>[
+                Colors.transparent,
+                Colors.cyanAccent.withOpacity(0.5),
+                Colors.white.withOpacity(0.7),
+                Colors.cyanAccent.withOpacity(0.5),
+                Colors.transparent,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.cyanAccent.withOpacity(0.6),
+                blurRadius: 12,
+                spreadRadius: 2,
+                offset: Offset.zero,
+              ),
+              BoxShadow(
+                color: primaryBlue.withOpacity(1.0),
+                blurRadius: 20,
+                spreadRadius: 8,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildJoinedSections(LocalizationService loc, InventoryProvider inv) =>
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: primaryBlue.withOpacity(1.0),
+              blurRadius: 60,
+              spreadRadius: 20,
+              offset: const Offset(0, 30),
+            ),
+            BoxShadow(
+              color: primaryBlue.withOpacity(1.0),
+              blurRadius: 30,
+              spreadRadius: 10,
+              offset: const Offset(0, 12),
+            ),
+            BoxShadow(
+              color: primaryBlue.withOpacity(0.95),
+              blurRadius: 10,
+              spreadRadius: 4,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _buildInventoryValuationContent(loc, inv),
+              _sectionDivider(),
+              _buildProductsOverviewContent(loc, inv),
+              _sectionDivider(),
+              _buildChartSectionContent(loc, inv),
+            ],
+          ),
+        ),
+      );
+
   Widget _buildInventoryValuation(
+    LocalizationService loc,
+    InventoryProvider inv,
+  ) =>
+      _buildGlassCard(child: _buildInventoryValuationContent(loc, inv));
+
+  Widget _buildInventoryValuationContent(
     LocalizationService loc,
     InventoryProvider inv,
   ) {
@@ -829,15 +946,14 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     final int totalProducts = inv.products.length;
     final int totalUnits = inv.products.fold<int>(0, (s, p) => s + p.quantity);
 
-    return _buildGlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                const Icon(Icons.assessment_outlined,
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(Icons.assessment_outlined,
                     color: Colors.white, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1083,34 +1199,62 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 )),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _valuationTile(
       String label, String value, Color color, IconData icon) =>
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.25)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              color.withOpacity(0.18),
+              color.withOpacity(0.07),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.4), width: 1.2),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: color.withOpacity(0.30),
+              blurRadius: 16,
+              spreadRadius: 1,
+              offset: Offset.zero,
+            ),
+            BoxShadow(
+              color: primaryBlue.withOpacity(0.95),
+              blurRadius: 20,
+              spreadRadius: 6,
+              offset: const Offset(0, 12),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 color: textSecondary,
                 fontSize: ResponsiveHelper.bodyS,
+                fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -1120,6 +1264,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   color: color,
                   fontSize: ResponsiveHelper.bodyL,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
                 ),
               ),
             ),
@@ -1131,8 +1276,13 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     LocalizationService loc,
     InventoryProvider inv,
   ) =>
-      _buildGlassCard(
-        child: Padding(
+      _buildGlassCard(child: _buildProductsOverviewContent(loc, inv));
+
+  Widget _buildProductsOverviewContent(
+    LocalizationService loc,
+    InventoryProvider inv,
+  ) =>
+      Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1256,8 +1406,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                     ),
             ],
           ),
-        ),
-      );
+        );
 
   // ---- data helpers -------------------------------------------------------
 

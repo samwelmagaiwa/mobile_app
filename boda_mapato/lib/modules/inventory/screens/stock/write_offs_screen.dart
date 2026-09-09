@@ -60,6 +60,7 @@ class _WriteOffsScreenState extends State<WriteOffsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'write_offs_fab',
         backgroundColor: ThemeConstants.primaryOrange,
         onPressed: _openCreateSheet,
         icon: const Icon(Icons.report_problem_outlined, color: Colors.white),

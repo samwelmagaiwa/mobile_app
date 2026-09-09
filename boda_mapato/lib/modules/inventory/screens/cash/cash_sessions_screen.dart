@@ -47,6 +47,7 @@ class _CashSessionsScreenState extends State<CashSessionsScreen> {
       floatingActionButton: hasOpen
           ? null
           : FloatingActionButton.extended(
+              heroTag: 'cash_open_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: _openSession,
               icon: const Icon(Icons.point_of_sale, color: Colors.white),
@@ -284,6 +285,7 @@ class _CashSessionDetailScreenState extends State<CashSessionDetailScreen> {
       ),
       floatingActionButton: isOpen
           ? FloatingActionButton.extended(
+              heroTag: 'cash_expense_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: _busy ? null : _addExpense,
               icon:

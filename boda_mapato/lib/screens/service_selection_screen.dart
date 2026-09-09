@@ -7,12 +7,20 @@ import '../constants/theme_constants.dart';
 import '../services/localization_service.dart';
 
 class ServiceSelectionScreen extends StatelessWidget {
-  const ServiceSelectionScreen({super.key, this.allowedServices});
+  const ServiceSelectionScreen({
+    super.key,
+    this.allowedServices,
+    this.deniedService,
+  });
 
   /// Restrict the tiles shown to these service types (the account is only
   /// bound to these). Null shows every service - used as the fallback for
   /// an account an admin hasn't assigned any service to yet.
   final List<String>? allowedServices;
+
+  /// When set, a warning banner is shown explaining that the user tried to
+  /// access a service they are not bound to.
+  final String? deniedService;
 
   static const String _serviceKey = 'selected_service';
 
@@ -61,6 +69,30 @@ class ServiceSelectionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (deniedService != null)
+                Container(
+                  margin: EdgeInsets.only(bottom: 12.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade800.withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_outline,
+                          color: Colors.white, size: 18),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          loc.translate('service_access_denied'),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               AutoSizeText(
                 loc.translate('select_service_subtitle'),
                 maxLines: 2,

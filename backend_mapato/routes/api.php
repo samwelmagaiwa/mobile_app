@@ -243,155 +243,191 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('login-history', [\App\Http\Controllers\API\SecurityController::class, 'getLoginHistory']);
     });
 
-    // Inventory (all authenticated roles)
-    Route::get('inventory/products', [InventoryProductController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('products', [InventoryProductController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/products', [InventoryProductController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/products/{id}', [InventoryProductController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/products/{id}', [InventoryProductController::class, 'destroy'])->middleware('role_any:admin,manager');
+    // =========================================================================
+    // INVENTORY — granular permission gates via inv_perm middleware.
+    // Every route checks User::hasInventoryPermission() which resolves:
+    //   1. super_admin / admin / full_access       → always allowed
+    //   2. Explicit per-user grant (users.permissions JSON column)
+    //   3. Role-default permission set (User::$INV_ROLE_DEFAULTS)
+    // Admin can extend any individual's access via UserManagement → Permissions.
+    // =========================================================================
 
-    // Product units — selling units (bottle / pack / crate) and tiered prices (Area 2)
-    Route::get('inventory/products/{productId}/units', [InventoryProductUnitController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/products/{productId}/units', [InventoryProductUnitController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/products/{productId}/units/{unitId}', [InventoryProductUnitController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/products/{productId}/units/{unitId}', [InventoryProductUnitController::class, 'destroy'])->middleware('role_any:admin,manager');
-    Route::post('inventory/products/{productId}/units/{unitId}/price', [InventoryProductUnitController::class, 'setPrice'])->middleware('role_any:admin,manager');
-    Route::get('inventory/products/{productId}/units/{unitId}/price-history', [InventoryProductUnitController::class, 'priceHistory'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Products & Catalog (inv_view_products / inv_manage_products) ──────────
+    Route::middleware('inv_perm:inv_view_products')->group(function () {
+        Route::get('inventory/products', [InventoryProductController::class, 'index']);
+        Route::get('products',           [InventoryProductController::class, 'index']);
+        Route::get('inventory/categories', [InventoryCategoryController::class, 'index']);
+        Route::get('categories',           [InventoryCategoryController::class, 'index']);
+        Route::get('inventory/brands',     [InventoryBrandController::class, 'index']);
+        Route::get('inventory/alerts',     [InventoryAlertController::class, 'index']);
+        Route::post('inventory/alerts/{id}/acknowledge', [InventoryAlertController::class, 'acknowledge']);
+    });
 
+    Route::middleware('inv_perm:inv_manage_products')->group(function () {
+        Route::post('inventory/products',        [InventoryProductController::class, 'store']);
+        Route::put('inventory/products/{id}',    [InventoryProductController::class, 'update']);
+        Route::delete('inventory/products/{id}', [InventoryProductController::class, 'destroy']);
+        Route::post('inventory/categories',        [InventoryCategoryController::class, 'store']);
+        Route::put('inventory/categories/{id}',    [InventoryCategoryController::class, 'update']);
+        Route::delete('inventory/categories/{id}', [InventoryCategoryController::class, 'destroy']);
+        Route::post('inventory/brands',        [InventoryBrandController::class, 'store']);
+        Route::put('inventory/brands/{id}',    [InventoryBrandController::class, 'update']);
+        Route::delete('inventory/brands/{id}', [InventoryBrandController::class, 'destroy']);
+        Route::get('inventory/customers',  [InventoryCustomerController::class, 'index']);
+        Route::get('customers',            [InventoryCustomerController::class, 'index']);
+        Route::post('inventory/customers', [InventoryCustomerController::class, 'store']);
+        Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update']);
+    });
 
-    Route::get('inventory/suppliers', [InventoryPurchasingController::class, 'suppliers'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/suppliers', [InventoryPurchasingController::class, 'storeSupplier'])->middleware('role_any:admin,manager');
-    Route::put('inventory/suppliers/{id}', [InventoryPurchasingController::class, 'updateSupplier'])->middleware('role_any:admin,manager');
-    Route::get('inventory/purchase-orders', [InventoryPurchasingController::class, 'purchaseOrders'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/purchase-orders/{id}', [InventoryPurchasingController::class, 'showPurchaseOrder'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/purchase-orders', [InventoryPurchasingController::class, 'storePurchaseOrder'])->middleware('role_any:admin,manager');
-    Route::post('inventory/purchase-orders/{id}/status', [InventoryPurchasingController::class, 'setPurchaseOrderStatus'])->middleware('role_any:admin,manager');
-    Route::get('inventory/goods-receipts', [InventoryPurchasingController::class, 'goodsReceipts'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/goods-receipts', [InventoryPurchasingController::class, 'receiveGoods'])->middleware('role_any:admin,manager');
-    Route::get('inventory/supplier-invoices', [InventoryPurchasingController::class, 'supplierInvoices'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/supplier-payments', [InventoryPurchasingController::class, 'paySupplier'])->middleware('role_any:admin,manager');
+    // ── Product units & pricing ───────────────────────────────────────────────
+    Route::middleware('inv_perm:inv_view_products')->group(function () {
+        Route::get('inventory/products/{productId}/units', [InventoryProductUnitController::class, 'index']);
+        Route::get('inventory/products/{product}/units',   [InventoryProductUnitController::class, 'index']);
+        Route::get('inventory/products/{productId}/units/{unitId}/price-history', [InventoryProductUnitController::class, 'priceHistory']);
+        Route::get('inventory/products/{product}/units/{unit}/price-history',     [InventoryProductUnitController::class, 'priceHistory']);
+    });
+    Route::middleware('inv_perm:inv_manage_products')->group(function () {
+        Route::post('inventory/products/{productId}/units',              [InventoryProductUnitController::class, 'store']);
+        Route::put('inventory/products/{productId}/units/{unitId}',      [InventoryProductUnitController::class, 'update']);
+        Route::delete('inventory/products/{productId}/units/{unitId}',   [InventoryProductUnitController::class, 'destroy']);
+        Route::post('inventory/products/{productId}/units/{unitId}/price',[InventoryProductUnitController::class, 'setPrice']);
+        Route::post('inventory/products/{product}/units',                [InventoryProductUnitController::class, 'store']);
+        Route::put('inventory/products/{product}/units/{unit}',          [InventoryProductUnitController::class, 'update']);
+        Route::delete('inventory/products/{product}/units/{unit}',       [InventoryProductUnitController::class, 'destroy']);
+        Route::post('inventory/products/{product}/units/{unit}/price',   [InventoryProductUnitController::class, 'setPrice']);
+    });
 
-    // Customers & credit (Area 6)
-    Route::get('inventory/credit/customers', [InventoryCreditController::class, 'customers'])->middleware('role_any:admin,manager,sales_officer');
-    Route::put('inventory/credit/customers/{id}', [InventoryCreditController::class, 'updateCredit'])->middleware('role_any:admin,manager');
-    Route::get('inventory/credit/customers/{id}/check', [InventoryCreditController::class, 'creditCheck'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/credit/customers/{id}/statement', [InventoryCreditController::class, 'statement'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/credit/debtors-ageing', [InventoryCreditController::class, 'debtorsAgeing'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Stock management (inv_manage_stock) ───────────────────────────────────
+    Route::middleware('inv_perm:inv_manage_stock')->group(function () {
+        Route::get('inventory/stock-movements',   [InventoryStockMovementController::class, 'index']);
+        Route::get('stock-movements',             [InventoryStockMovementController::class, 'index']);
+        Route::post('inventory/stock-movements',  [InventoryStockMovementController::class, 'store']);
+        Route::post('stock-movements',            [InventoryStockMovementController::class, 'store']);
+        Route::get('inventory/batches',           [InventoryBatchController::class, 'index']);
+        Route::post('inventory/batches',          [InventoryBatchController::class, 'store']);
+        Route::put('inventory/batches/{id}',      [InventoryBatchController::class, 'update']);
+        Route::get('inventory/expiry-summary',    [InventoryBatchController::class, 'expirySummary']);
+        Route::get('inventory/stock-counts',              [InventoryStockCountController::class, 'index']);
+        Route::post('inventory/stock-counts',             [InventoryStockCountController::class, 'store']);
+        Route::get('inventory/stock-counts/{id}',         [InventoryStockCountController::class, 'show']);
+        Route::post('inventory/stock-counts/{id}/lines',  [InventoryStockCountController::class, 'saveLine']);
+        Route::delete('inventory/stock-counts/{id}/lines/{line}', [InventoryStockCountController::class, 'deleteLine']);
+        Route::post('inventory/stock-counts/{id}/post',   [InventoryStockCountController::class, 'post']);
+        Route::post('inventory/stock-counts/{id}/cancel', [InventoryStockCountController::class, 'cancel']);
+        Route::get('inventory/write-offs',           [InventoryWriteOffController::class, 'index']);
+        Route::post('inventory/write-offs',          [InventoryWriteOffController::class, 'store']);
+        Route::post('inventory/write-offs/{id}/decide', [InventoryWriteOffController::class, 'decide']);
+        // Barcodes: generate needs manage_stock; resolve/labels only need view_products (above)
+        Route::post('inventory/barcodes',        [InventoryBarcodeController::class, 'generate']);
+    });
+    Route::middleware('inv_perm:inv_view_products')->group(function () {
+        Route::get('inventory/barcodes/resolve', [InventoryBarcodeController::class, 'resolve']);
+        Route::post('inventory/barcodes/labels', [InventoryBarcodeController::class, 'labels']);
+    });
 
-    // Payments & daily cash (Area 7)
-    Route::post('inventory/payments', [InventoryCashController::class, 'receivePayment'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/cash-sessions', [InventoryCashController::class, 'sessions'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/cash-sessions', [InventoryCashController::class, 'openSession'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/cash-sessions/{id}', [InventoryCashController::class, 'sessionSummary'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/cash-sessions/{id}/expenses', [InventoryCashController::class, 'addExpense'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/cash-sessions/{id}/close', [InventoryCashController::class, 'closeSession'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Sales (inv_create_sales / inv_manage_sales) ───────────────────────────
+    Route::middleware('inv_perm:inv_create_sales')->group(function () {
+        Route::get('inventory/kpis',           [InventorySalesController::class, 'kpis']);
+        Route::get('inventory/sales/summary',  [InventorySalesController::class, 'summary']);
+        Route::get('inventory/sales',          [InventorySalesController::class, 'index']);
+        Route::get('sales',                    [InventorySalesController::class, 'index']);
+        Route::get('inventory/sales/{id}',     [InventorySalesController::class, 'show']);
+        Route::get('sales/{id}',               [InventorySalesController::class, 'show']);
+        Route::post('inventory/sales',         [InventorySalesController::class, 'store']);
+        Route::post('sales',                   [InventorySalesController::class, 'store']);
+        Route::post('inventory/sales/{id}/payments', [InventorySalesController::class, 'recordPayment']);
+        Route::get('inventory/parked-sales',           [InventoryPosController::class, 'parkedSales']);
+        Route::post('inventory/parked-sales',          [InventoryPosController::class, 'parkSale']);
+        Route::post('inventory/parked-sales/{id}/resume',  [InventoryPosController::class, 'resumeParkedSale']);
+        Route::delete('inventory/parked-sales/{id}',       [InventoryPosController::class, 'discardParkedSale']);
+        Route::get('inventory/returns',        [InventoryPosController::class, 'returns']);
+        Route::post('inventory/returns',       [InventoryPosController::class, 'storeReturn']);
+        Route::get('inventory/discount-check', [InventoryPosController::class, 'checkDiscount']);
+    });
+    Route::middleware('inv_perm:inv_manage_sales')->group(function () {
+        Route::post('inventory/sales/{id}/cancel',      [InventorySalesController::class, 'cancel']);
+        Route::post('inventory/returns/{id}/decide',    [InventoryPosController::class, 'decideReturn']);
+        Route::get('inventory/dispatches',              [InventoryDispatchController::class, 'index']);
+        Route::get('inventory/dispatches/{id}',         [InventoryDispatchController::class, 'show']);
+        Route::post('inventory/dispatches',             [InventoryDispatchController::class, 'store']);
+        Route::post('inventory/dispatches/{id}/reconcile', [InventoryDispatchController::class, 'reconcile']);
+    });
 
-    // Crates & empties (Area 8)
-    Route::get('inventory/crate-types', [InventoryCrateController::class, 'types'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/crate-types', [InventoryCrateController::class, 'storeType'])->middleware('role_any:admin,manager');
-    Route::get('inventory/crate-movements', [InventoryCrateController::class, 'movements'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/crate-movements', [InventoryCrateController::class, 'move'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/crate-balances', [InventoryCrateController::class, 'customerBalances'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/crate-position', [InventoryCrateController::class, 'depotPosition'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Reminders (inv_view_reminders) ────────────────────────────────────────
+    Route::middleware('inv_perm:inv_view_reminders')->group(function () {
+        Route::get('inventory/reminders',              [InventoryReminderController::class, 'index']);
+        Route::put('inventory/reminders/{id}/done',    [InventoryReminderController::class, 'markDone']);
+        Route::put('inventory/reminders/{id}/snooze',  [InventoryReminderController::class, 'snooze']);
+    });
 
-    // POS extras: parked sales, returns, discount limits (Area 5)
-    Route::get('inventory/parked-sales', [InventoryPosController::class, 'parkedSales'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/parked-sales', [InventoryPosController::class, 'parkSale'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/parked-sales/{id}/resume', [InventoryPosController::class, 'resumeParkedSale'])->middleware('role_any:admin,manager,sales_officer');
-    Route::delete('inventory/parked-sales/{id}', [InventoryPosController::class, 'discardParkedSale'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/returns', [InventoryPosController::class, 'returns'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/returns', [InventoryPosController::class, 'storeReturn'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/returns/{id}/decide', [InventoryPosController::class, 'decideReturn'])->middleware('role_any:admin,manager');
-    Route::get('inventory/discount-check', [InventoryPosController::class, 'checkDiscount'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Purchasing / Supply chain (inv_view_purchasing) ───────────────────────
+    Route::middleware('inv_perm:inv_view_purchasing')->group(function () {
+        Route::get('inventory/suppliers',           [InventoryPurchasingController::class, 'suppliers']);
+        Route::post('inventory/suppliers',          [InventoryPurchasingController::class, 'storeSupplier']);
+        Route::put('inventory/suppliers/{id}',      [InventoryPurchasingController::class, 'updateSupplier']);
+        Route::get('inventory/purchase-orders',     [InventoryPurchasingController::class, 'purchaseOrders']);
+        Route::get('inventory/purchase-orders/{id}',[InventoryPurchasingController::class, 'showPurchaseOrder']);
+        Route::post('inventory/purchase-orders',               [InventoryPurchasingController::class, 'storePurchaseOrder']);
+        Route::post('inventory/purchase-orders/{id}/status',   [InventoryPurchasingController::class, 'setPurchaseOrderStatus']);
+        Route::get('inventory/goods-receipts',      [InventoryPurchasingController::class, 'goodsReceipts']);
+        Route::post('inventory/goods-receipts',     [InventoryPurchasingController::class, 'receiveGoods']);
+        Route::get('inventory/supplier-invoices',   [InventoryPurchasingController::class, 'supplierInvoices']);
+        Route::post('inventory/supplier-payments',  [InventoryPurchasingController::class, 'paySupplier']);
+    });
 
-    // Deliveries & dispatch (Area 9)
-    Route::get('inventory/dispatches', [InventoryDispatchController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/dispatches/{id}', [InventoryDispatchController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/dispatches', [InventoryDispatchController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::post('inventory/dispatches/{id}/reconcile', [InventoryDispatchController::class, 'reconcile'])->middleware('role_any:admin,manager');
+    // ── Credit / Customers (inv_view_credit) ──────────────────────────────────
+    Route::middleware('inv_perm:inv_view_credit')->group(function () {
+        Route::get('inventory/credit/customers',            [InventoryCreditController::class, 'customers']);
+        Route::put('inventory/credit/customers/{id}',       [InventoryCreditController::class, 'updateCredit']);
+        Route::get('inventory/credit/customers/{id}/check', [InventoryCreditController::class, 'creditCheck']);
+        Route::get('inventory/credit/customers/{id}/statement', [InventoryCreditController::class, 'statement']);
+        Route::get('inventory/credit/debtors-ageing',       [InventoryCreditController::class, 'debtorsAgeing']);
+    });
 
-    // Barcodes, labels & scanning (Area 10)
-    Route::post('inventory/barcodes', [InventoryBarcodeController::class, 'generate'])->middleware('role_any:admin,manager');
-    Route::get('inventory/barcodes/resolve', [InventoryBarcodeController::class, 'resolve'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/barcodes/labels', [InventoryBarcodeController::class, 'labels'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Daily Cash (inv_view_cash) ────────────────────────────────────────────
+    Route::middleware('inv_perm:inv_view_cash')->group(function () {
+        Route::post('inventory/payments',                    [InventoryCashController::class, 'receivePayment']);
+        Route::get('inventory/cash-sessions',                [InventoryCashController::class, 'sessions']);
+        Route::post('inventory/cash-sessions',               [InventoryCashController::class, 'openSession']);
+        Route::get('inventory/cash-sessions/{id}',           [InventoryCashController::class, 'sessionSummary']);
+        Route::post('inventory/cash-sessions/{id}/expenses', [InventoryCashController::class, 'addExpense']);
+        Route::post('inventory/cash-sessions/{id}/close',    [InventoryCashController::class, 'closeSession']);
+    });
 
-    // Reports (Area 11)
-    Route::get('inventory/reports', [InventoryReportController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/reports/{key}', [InventoryReportController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Crates & Empties (inv_view_crates) ────────────────────────────────────
+    Route::middleware('inv_perm:inv_view_crates')->group(function () {
+        Route::get('inventory/crate-types',       [InventoryCrateController::class, 'types']);
+        Route::post('inventory/crate-types',      [InventoryCrateController::class, 'storeType']);
+        Route::get('inventory/crate-movements',   [InventoryCrateController::class, 'movements']);
+        Route::post('inventory/crate-movements',  [InventoryCrateController::class, 'move']);
+        Route::get('inventory/crate-balances',    [InventoryCrateController::class, 'customerBalances']);
+        Route::get('inventory/crate-position',    [InventoryCrateController::class, 'depotPosition']);
+    });
 
-    // Alerts, audit trail & settings (Areas 12 and 13)
-    Route::get('inventory/alerts', [InventoryAlertController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/alerts/{id}/acknowledge', [InventoryAlertController::class, 'acknowledge'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/audit-log', [InventoryAlertController::class, 'auditLog'])->middleware('role_any:admin,manager');
-    Route::get('inventory/settings', [InventoryAlertController::class, 'settings'])->middleware('role_any:admin,manager,sales_officer');
-    Route::put('inventory/settings', [InventoryAlertController::class, 'updateSettings'])->middleware('role_any:admin,manager');
+    // ── Reports (inv_view_reports) ────────────────────────────────────────────
+    Route::middleware('inv_perm:inv_view_reports')->group(function () {
+        Route::get('inventory/reports',      [InventoryReportController::class, 'index']);
+        Route::get('inventory/reports/{key}',[InventoryReportController::class, 'show']);
+        Route::get('inventory/audit-log',    [InventoryAlertController::class, 'auditLog']);
+    });
 
-    // Inventory stock control: batches, expiry, counts & write-offs (Area 3)
-    Route::get('inventory/batches', [InventoryBatchController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/batches', [InventoryBatchController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/batches/{id}', [InventoryBatchController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::get('inventory/expiry-summary', [InventoryBatchController::class, 'expirySummary'])->middleware('role_any:admin,manager,sales_officer');
+    // ── Expenses (inv_view_expenses / inv_manage_expenses) ────────────────────
+    Route::middleware('inv_perm:inv_view_expenses')->group(function () {
+        Route::get('inventory/expenses/summary',    [InventoryExpenseController::class, 'summary']);
+        Route::get('inventory/expenses/categories', [InventoryExpenseController::class, 'categories']);
+        Route::get('inventory/expenses',            [InventoryExpenseController::class, 'index']);
+    });
+    Route::middleware('inv_perm:inv_manage_expenses')->group(function () {
+        Route::post('inventory/expenses',       [InventoryExpenseController::class, 'store']);
+        Route::put('inventory/expenses/{id}',   [InventoryExpenseController::class, 'update']);
+        Route::delete('inventory/expenses/{id}',[InventoryExpenseController::class, 'destroy']);
+    });
 
-    Route::get('inventory/stock-counts', [InventoryStockCountController::class, 'index'])->middleware('role_any:admin,manager');
-    Route::post('inventory/stock-counts', [InventoryStockCountController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::get('inventory/stock-counts/{id}', [InventoryStockCountController::class, 'show'])->middleware('role_any:admin,manager');
-    Route::post('inventory/stock-counts/{id}/lines', [InventoryStockCountController::class, 'saveLine'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/stock-counts/{id}/lines/{line}', [InventoryStockCountController::class, 'deleteLine'])->middleware('role_any:admin,manager');
-    Route::post('inventory/stock-counts/{id}/post', [InventoryStockCountController::class, 'post'])->middleware('role_any:admin,manager');
-    Route::post('inventory/stock-counts/{id}/cancel', [InventoryStockCountController::class, 'cancel'])->middleware('role_any:admin,manager');
-
-    Route::get('inventory/write-offs', [InventoryWriteOffController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/write-offs', [InventoryWriteOffController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/write-offs/{id}/decide', [InventoryWriteOffController::class, 'decide'])->middleware('role_any:admin,manager');
-
-    // Inventory catalog: categories, brands, selling units & tiered pricing (Area 2)
-    Route::get('inventory/categories', [InventoryCategoryController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('categories', [InventoryCategoryController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/categories', [InventoryCategoryController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/categories/{id}', [InventoryCategoryController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/categories/{id}', [InventoryCategoryController::class, 'destroy'])->middleware('role_any:admin,manager');
-
-    Route::get('inventory/brands', [InventoryBrandController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/brands', [InventoryBrandController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/brands/{id}', [InventoryBrandController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/brands/{id}', [InventoryBrandController::class, 'destroy'])->middleware('role_any:admin,manager');
-
-    Route::get('inventory/products/{product}/units', [InventoryProductUnitController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/products/{product}/units', [InventoryProductUnitController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/products/{product}/units/{unit}', [InventoryProductUnitController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/products/{product}/units/{unit}', [InventoryProductUnitController::class, 'destroy'])->middleware('role_any:admin,manager');
-    Route::post('inventory/products/{product}/units/{unit}/price', [InventoryProductUnitController::class, 'setPrice'])->middleware('role_any:admin,manager');
-    Route::get('inventory/products/{product}/units/{unit}/price-history', [InventoryProductUnitController::class, 'priceHistory'])->middleware('role_any:admin,manager');
-
-    Route::get('inventory/customers', [InventoryCustomerController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('customers', [InventoryCustomerController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/customers', [InventoryCustomerController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::get('inventory/kpis', [InventorySalesController::class, 'kpis'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/sales/summary', [InventorySalesController::class, 'summary'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('sales', [InventorySalesController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/sales/{id}', [InventorySalesController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('sales/{id}', [InventorySalesController::class, 'show'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('sales', [InventorySalesController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/sales/{id}/payments', [InventorySalesController::class, 'recordPayment'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/sales/{id}/cancel', [InventorySalesController::class, 'cancel'])->middleware('role_any:admin,manager');
-    Route::get('inventory/stock-movements', [InventoryStockMovementController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('stock-movements', [InventoryStockMovementController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/stock-movements', [InventoryStockMovementController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::post('stock-movements', [InventoryStockMovementController::class, 'store'])->middleware('role_any:admin,manager');
-    Route::get('inventory/reminders', [InventoryReminderController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::put('inventory/reminders/{id}/done', [InventoryReminderController::class, 'markDone'])->middleware('role_any:admin,manager,sales_officer');
-    Route::put('inventory/reminders/{id}/snooze', [InventoryReminderController::class, 'snooze'])->middleware('role_any:admin,manager,sales_officer');
-
-    // Expenses (Area 8)
-    Route::get('inventory/expenses/summary', [InventoryExpenseController::class, 'summary'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/expenses/categories', [InventoryExpenseController::class, 'categories'])->middleware('role_any:admin,manager,sales_officer');
-    Route::get('inventory/expenses', [InventoryExpenseController::class, 'index'])->middleware('role_any:admin,manager,sales_officer');
-    Route::post('inventory/expenses', [InventoryExpenseController::class, 'store'])->middleware('role_any:admin,manager,sales_officer');
-    Route::put('inventory/expenses/{id}', [InventoryExpenseController::class, 'update'])->middleware('role_any:admin,manager');
-    Route::delete('inventory/expenses/{id}', [InventoryExpenseController::class, 'destroy'])->middleware('role_any:admin,manager');
+    // ── Depot Settings (inv_manage_settings) ──────────────────────────────────
+    Route::middleware('inv_perm:inv_manage_settings')->group(function () {
+        Route::get('inventory/settings',  [InventoryAlertController::class, 'settings']);
+        Route::put('inventory/settings',  [InventoryAlertController::class, 'updateSettings']);
+    });
 
     // Admin routes (Vehicle Owner/Admin only)
     Route::middleware(['role:admin'])->group(function () {

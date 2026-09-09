@@ -95,9 +95,7 @@ class UserData {
             : null,
         // Flexible avatar/profile image keys from backend
         avatarUrl: _pickAvatarUrl(json),
-        permissions: json["permissions"] != null
-            ? List<String>.from((json["permissions"] as List).map((e) => e.toString()))
-            : null,
+        permissions: _pickPermissions(json),
         fullAccess: (json["full_access"] as bool?) ?? false,
         serviceTypes: _pickServiceTypes(json),
       );
@@ -112,6 +110,8 @@ class UserData {
   final DriverData? driver;
   final DeviceData? assignedDevice;
   final String? avatarUrl;
+  /// Per-user explicit grants stored in users.permissions (DB column).
+  /// May be null when admin hasn't assigned any extras yet.
   final List<String>? permissions;
   final bool fullAccess;
   /// Services (rental/transport/inventory) this account is bound to.
@@ -136,6 +136,20 @@ class UserData {
   bool get isDriver => role == "driver";
   bool get isVendor => role == "vendor";
   bool get canManageDrivers => isSuperAdmin || isAdmin;
+
+  /// Prefer server-resolved effective_permissions (role defaults ∪ explicit
+  /// grants) when present; fall back to the raw explicit-only permissions list.
+  static List<String>? _pickPermissions(Map<String, dynamic> json) {
+    for (final String key in ['effective_permissions', 'permissions']) {
+      final dynamic raw = json[key];
+      if (raw is List && raw.isNotEmpty) {
+        final List<String> list =
+            raw.map((e) => e.toString()).where((s) => s != '__all__').toList();
+        if (list.isNotEmpty) return list;
+      }
+    }
+    return null;
+  }
 
   static List<String> _pickServiceTypes(Map<String, dynamic> json) {
     // `services` is the eager-loaded relation (login / /auth/user);

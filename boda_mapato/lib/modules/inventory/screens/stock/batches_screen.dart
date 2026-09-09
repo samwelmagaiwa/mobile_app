@@ -81,6 +81,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
       backgroundColor: Colors.transparent,
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
+              heroTag: 'batches_fab',
               backgroundColor: ThemeConstants.primaryOrange,
               onPressed: _openReceiveSheet,
               icon: const Icon(Icons.add, color: Colors.white),

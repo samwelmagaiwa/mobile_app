@@ -65,6 +65,7 @@ import 'screens/rental/vendor_dashboard_screen.dart';
 import 'screens/rental/lease_agreement_wizard_screen.dart';
 import 'screens/reports/report_screen.dart';
 import 'screens/service_selection_screen.dart';
+import 'widgets/service_guard.dart';
 import 'screens/settings/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_messenger.dart';
@@ -222,7 +223,7 @@ class BodaMapatoApp extends StatelessWidget {
                 "/admin/dashboard": (final BuildContext context) =>
                     const AdminDashboardScreen(),
                 "/modern-dashboard": (final BuildContext context) =>
-                    const ModernDashboardScreen(),
+                    const ServiceGuard(service: 'transport', child: ModernDashboardScreen()),
                 "/admin/drivers": (final BuildContext context) =>
                     const DriversManagementScreen(),
                 "/admin/vehicles": (final BuildContext context) =>
@@ -248,11 +249,11 @@ class BodaMapatoApp extends StatelessWidget {
                 "/select-service": (final BuildContext context) =>
                     const ServiceSelectionScreen(),
                 "/inventory": (final BuildContext context) =>
-                    const InventoryHome(),
+                    const ServiceGuard(service: 'inventory', child: InventoryHome()),
                 "/coming-soon": (final BuildContext context) =>
                     const ComingSoonScreen(),
                 "/rental/dashboard": (final BuildContext context) =>
-                    const RentalMainScreen(),
+                    const ServiceGuard(service: 'rental', child: RentalMainScreen()),
                 "/rental/properties": (final BuildContext context) =>
                     const PropertiesListScreen(),
                 "/rental/property-details": (final BuildContext context) {
@@ -572,6 +573,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
             if (boundServices.length > 1) {
               return ServiceSelectionScreen(allowedServices: boundServices);
             }
+            // No service binding yet — route by role rather than showing
+            // the full service picker (which would confuse limited roles).
+            final String role = authProvider.user!.role ?? '';
+            if (role == 'sales_officer' || role == 'manager' || role == 'operator') {
+              return const InventoryHome();
+            }
             return const ServiceSelectionScreen();
           } else {
             // User is not authenticated, show public landing screen
@@ -612,10 +619,13 @@ class _ServiceHomeForState extends State<_ServiceHomeFor> {
       case 'rental':
         return const RentalMainScreen();
       default:
-        // Unrecognized value - fall back to the existing role-based routing.
+        // Unrecognized service value — fall back to role-based routing.
         final String role = widget.authProvider.user?.role ?? '';
-        if (role == 'admin' || role == 'super_admin') {
+        if (role == 'admin' || role == 'super_admin' || role == 'administrator') {
           return const ModernDashboardScreen();
+        }
+        if (role == 'sales_officer' || role == 'manager' || role == 'operator') {
+          return const InventoryHome();
         }
         if (role == 'vendor') {
           return const VendorDashboardScreen();

@@ -45,6 +45,7 @@ class InventoryProvider extends ChangeNotifier {
   String _manualPhone = '';  // optional phone for walk-in sales
   String _manualName = '';   // optional name  for walk-in sales
   double _paidAmount = 0;
+  String _partialPaymentMethod = 'cash'; // method for the deposit on a partial sale
 
   // Sales history pagination + summary
   int _salesPage = 1;
@@ -112,6 +113,7 @@ class InventoryProvider extends ChangeNotifier {
   String get manualPhone => _manualPhone;
   String get manualName => _manualName;
   double get paidAmount => _paidAmount;
+  String get partialPaymentMethod => _partialPaymentMethod;
 
   double get cartSubtotal => _cart.fold(0, (sum, it) => sum + it.total);
   double get cartDiscount => 0; // MVP
@@ -728,6 +730,11 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPartialPaymentMethod(String method) {
+    _partialPaymentMethod = method;
+    notifyListeners();
+  }
+
   void setPaidAmount(double amount) {
     _paidAmount = amount < 0 ? 0 : amount;
     notifyListeners();
@@ -768,7 +775,7 @@ class InventoryProvider extends ChangeNotifier {
         payments = [
           {
             'amount': paidTotal,
-            'method': 'cash',
+            'method': _partialPaymentMethod,
             'reference': null,
             'paid_at': DateTime.now().toIso8601String(),
           }
@@ -819,6 +826,7 @@ class InventoryProvider extends ChangeNotifier {
       _manualPhone = '';
       _manualName = '';
       _paidAmount = 0;
+      _partialPaymentMethod = 'cash';
       notifyListeners();
 
       // Refresh data in the background â€” don't block the return.
@@ -1670,6 +1678,19 @@ InvSale _fromSaleJson(Map<String, dynamic> j) {
     cancellationReason: j['cancellation_reason']?.toString(),
     createdBy: int.tryParse((j['created_by'] ?? 0).toString()) ?? 0,
     createdAt: createdAt,
+    payments: j['payments'] is List
+        ? (j['payments'] as List).whereType<Map>().map((p) {
+            final paidAtStr = p['paid_at']?.toString();
+            return InvPayment(
+              amount: _n(p['amount']),
+              method: (p['method'] ?? 'cash').toString(),
+              reference: (p['reference'] ?? '').toString(),
+              paidAt: paidAtStr != null
+                  ? DateTime.tryParse(paidAtStr) ?? DateTime.now()
+                  : DateTime.now(),
+            );
+          }).toList()
+        : [],
   );
 }
 

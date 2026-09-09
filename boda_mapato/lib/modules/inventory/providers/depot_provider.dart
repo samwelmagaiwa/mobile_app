@@ -363,6 +363,23 @@ class DepotProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns the unpaid sales for a customer (debt + partial), newest first.
+  Future<List<Map<String, dynamic>>> fetchCustomerDebtSales(int customerId) async {
+    try {
+      final Map<String, dynamic> res =
+          await _api.get('/inventory/credit/customers/$customerId/statement');
+      final dynamic salesRaw = (res['data'] as Map?)?['sales'];
+      if (salesRaw is! List) return [];
+      return salesRaw
+          .whereType<Map>()
+          .where((s) => s['payment_status'] == 'debt' || s['payment_status'] == 'partial')
+          .map((s) => Map<String, dynamic>.from(s))
+          .toList();
+    } on Exception {
+      return [];
+    }
+  }
+
   Future<bool> updateCredit(
     int customerId, {
     double? creditLimit,

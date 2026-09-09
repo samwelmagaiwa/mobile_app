@@ -47,6 +47,7 @@ class _DispatchScreenState extends State<DispatchScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'dispatch_fab',
         backgroundColor: ThemeConstants.primaryOrange,
         onPressed: () async {
           final bool? saved = await showModalBottomSheet<bool>(

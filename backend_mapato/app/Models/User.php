@@ -139,6 +139,90 @@ class User extends Authenticatable
 
 
 
+    // ── Inventory role defaults ──────────────────────────────────────────────
+    // Mirrors UserPermissions._getPermissionsForRole() in Flutter so the
+    // server-side and client-side checks are always in sync.
+    private static array $INV_ROLE_DEFAULTS = [
+        'super_admin'  => null, // null = unrestricted
+        'admin'        => null,
+        'administrator'=> null,
+        'manager'      => [
+            'inv_view_products','inv_manage_products','inv_manage_stock',
+            'inv_create_sales','inv_manage_sales','inv_view_reminders',
+            'inv_view_purchasing','inv_view_credit','inv_view_cash',
+            'inv_view_crates','inv_view_reports','inv_view_expenses',
+            'inv_manage_expenses',
+        ],
+        // Point-of-sale only -- deliberately excludes catalog management,
+        // physical stock control, sales management/returns, purchasing,
+        // reports, and the expense ledger. Mirrors the narrowed set in
+        // UserPermissions._getPermissionsForRole() (Flutter), which was
+        // scoped down from a broader default after an admin reported a
+        // sales_officer account seeing near-admin-level quick menus.
+        'sales_officer'=> [
+            'inv_view_products','inv_create_sales','inv_view_reminders',
+            'inv_view_credit','inv_view_cash','inv_view_crates',
+        ],
+        'operator'     => [
+            'inv_view_products','inv_manage_products',
+            'inv_create_sales','inv_view_reminders',
+        ],
+        'viewer'       => ['inv_view_products'],
+    ];
+
+    /**
+     * Check whether this user has a given inventory permission.
+     *
+     * Resolution order:
+     *  1. super_admin / admin / full_access → always yes
+     *  2. Explicit per-user grant in users.permissions
+     *  3. Role default set (INV_ROLE_DEFAULTS)
+     */
+    public function hasInventoryPermission(string $permission): bool
+    {
+        // Unrestricted roles
+        $role = strtolower($this->role ?? '');
+        if ($this->full_access || in_array($role, ['super_admin', 'admin', 'administrator'], true)) {
+            return true;
+        }
+
+        // Explicit per-user grant
+        $explicit = is_array($this->permissions) ? $this->permissions : [];
+        if (in_array($permission, $explicit, true)) {
+            return true;
+        }
+
+        // Role defaults
+        $defaults = self::$INV_ROLE_DEFAULTS[$role] ?? [];
+        if ($defaults === null) return true; // unrestricted role
+        return in_array($permission, $defaults, true);
+    }
+
+    /**
+     * Returns the merged effective inventory permission set for this user:
+     * role defaults ∪ explicit grants. Used in the auth/user response so
+     * the Flutter client always gets the resolved list.
+     */
+    public function effectiveInventoryPermissions(): array
+    {
+        $role = strtolower($this->role ?? '');
+        if ($this->full_access || in_array($role, ['super_admin', 'admin', 'administrator'], true)) {
+            // Sentinel for "unrestricted" -- the Flutter client strips this
+            // value out and relies on isSuperAdmin/isAdmin/fullAccess
+            // instead, so nothing here should return actual permission
+            // strings for an unrestricted role (a prior version accidentally
+            // returned the *role names* from INV_ROLE_DEFAULTS's keys via a
+            // botched array union with ['__all__'], e.g. "manager",
+            // "sales_officer" -- meaningless as permission strings, and the
+            // union silently dropped the sentinel itself).
+            return ['__all__'];
+        }
+        $defaults = self::$INV_ROLE_DEFAULTS[$role] ?? [];
+        if ($defaults === null) return ['__all__'];
+        $explicit = is_array($this->permissions) ? $this->permissions : [];
+        return array_values(array_unique(array_merge($defaults, $explicit)));
+    }
+
     /**
      * Check if user has specific role
      */

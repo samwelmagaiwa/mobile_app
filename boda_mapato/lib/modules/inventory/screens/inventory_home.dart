@@ -242,13 +242,20 @@ class _InventoryHomeState extends State<InventoryHome> {
     _index = widget.initialIndex;
   }
 
-  /// Returns effective permissions = role defaults UNION per-user explicit grants.
+  /// Returns effective permissions for this user.
+  /// When the server returned effective_permissions (role defaults ∪ explicit
+  /// grants already merged), use those directly via fromUser so the role is
+  /// still tracked for admin-bypass logic. Local role defaults fill the gap
+  /// when the server omits the resolved list (older API, cached login).
   UserPermissions _perms(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final user = auth.user;
     if (user == null) return UserPermissions.empty();
     return UserPermissions.fromUser(
       userRole: user.role,
+      // user.permissions now holds effective_permissions from the server
+      // (role defaults ∪ explicit grants), or null if the server hasn't
+      // sent it yet — fromUser handles both cases correctly.
       explicitGrants: user.permissions,
     );
   }
