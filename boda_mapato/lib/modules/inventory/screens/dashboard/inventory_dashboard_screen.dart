@@ -105,13 +105,30 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
     final user = auth.user;
+
+    // ── Resolve effective permissions once ────────────────────────────────────
     final perms = user == null
         ? UserPermissions.empty()
         : UserPermissions.fromUser(
             userRole: user.role ?? '',
             explicitGrants: user.permissions,
           );
-    final bool canViewReports = perms.has('inv_view_reports');
+
+    final bool canViewProducts = perms.has('inv_view_products');
+    final bool canCreateSales  = perms.has('inv_create_sales');
+    final bool canViewReports  = perms.has('inv_view_reports');
+    final bool canViewStock    = perms.has('inv_manage_stock');
+    final bool canViewCash     = perms.has('inv_view_cash');
+    final bool canViewCredit   = perms.has('inv_view_credit');
+    final bool canViewCrates   = perms.has('inv_view_crates');
+    final bool canViewExpenses = perms.has('inv_view_expenses');
+    final bool canViewPurchasing = perms.has('inv_view_purchasing');
+
+    // Show a greeting banner for non-admin roles so the dashboard feels
+    // personally relevant rather than a generic data wall.
+    final String role = user?.role ?? '';
+    final bool isPrivileged =
+        role == 'admin' || role == 'super_admin' || role == 'administrator';
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -126,17 +143,277 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _buildSalesTopCard(loc, inv),
-              ResponsiveHelper.verticalSpace(2),
-              _buildProductStatsRow(loc, inv),
-              ResponsiveHelper.verticalSpace(2),
-              _buildJoinedSections(loc, inv, canViewReports: canViewReports),
+              // Role-branded greeting for non-admin staff
+              if (!isPrivileged)
+                _buildRoleWelcome(loc, user?.name ?? '', role, perms),
+              if (!isPrivileged) ResponsiveHelper.verticalSpace(2),
+
+              // Sales summary — visible to anyone who can create/view sales
+              if (canCreateSales) _buildSalesTopCard(loc, inv),
+              if (canCreateSales) ResponsiveHelper.verticalSpace(2),
+
+              // Product + low-stock stats — visible to anyone with product access
+              if (canViewProducts) _buildProductStatsRow(loc, inv),
+              if (canViewProducts) ResponsiveHelper.verticalSpace(2),
+
+              // Joined scrollable sections (valuation / products list / chart)
+              _buildJoinedSections(
+                loc, inv,
+                canViewReports: canViewReports,
+                canViewProducts: canViewProducts,
+                canViewSalesChart: canCreateSales,
+              ),
+
+              // Extra insight row for privileged roles
+              if (isPrivileged || canViewCash || canViewCredit) ...[
+                ResponsiveHelper.verticalSpace(2),
+                _buildInsightRow(
+                  loc, inv,
+                  canViewCash: canViewCash,
+                  canViewCredit: canViewCredit,
+                  canViewCrates: canViewCrates,
+                  canViewExpenses: canViewExpenses,
+                  canViewPurchasing: canViewPurchasing,
+                  canViewStock: canViewStock,
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+
+  // ── Role greeting banner ────────────────────────────────────────────────────
+  Widget _buildRoleWelcome(
+    LocalizationService loc,
+    String name,
+    String role,
+    UserPermissions perms,
+  ) {
+    final String roleLabel = _roleDisplay(role);
+    final List<_QuickChip> chips = _quickChipsFor(perms);
+
+    return _buildGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(19),
+                  ),
+                  child: const Icon(Icons.person_rounded,
+                      color: Colors.white70, size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Karibu, $name 👋',
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontSize: ResponsiveHelper.bodyL,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        roleLabel,
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.cyanAccent.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.cyanAccent.withOpacity(0.4), width: 1),
+                  ),
+                  child: Text(
+                    roleLabel,
+                    style: TextStyle(
+                      color: Colors.cyanAccent.shade200,
+                      fontSize: ResponsiveHelper.bodyS,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (chips.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: chips
+                    .map((c) => _quickChipWidget(context, c))
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _roleDisplay(String role) {
+    switch (role.toLowerCase()) {
+      case 'sales_officer': return 'Sales Officer';
+      case 'manager':       return 'Manager';
+      case 'operator':      return 'Operator';
+      case 'viewer':        return 'Viewer';
+      default:              return role.replaceAll('_', ' ');
+    }
+  }
+
+  List<_QuickChip> _quickChipsFor(UserPermissions perms) {
+    final chips = <_QuickChip>[];
+    if (perms.has('inv_create_sales')) { chips.add(_QuickChip('Uza', Icons.point_of_sale_rounded, '/inventory/sales/new')); }
+    if (perms.has('inv_view_products')) { chips.add(_QuickChip('Bidhaa', Icons.inventory_2_outlined, '/inventory/products')); }
+    if (perms.has('inv_view_reminders')) { chips.add(_QuickChip('Vikumbusho', Icons.notifications_outlined, '/inventory/reminders')); }
+    if (perms.has('inv_view_cash')) { chips.add(_QuickChip('Pesa Taslimu', Icons.account_balance_wallet_outlined, '/inventory/cash')); }
+    if (perms.has('inv_view_credit')) { chips.add(_QuickChip('Madeni', Icons.people_outline_rounded, '/inventory/credit')); }
+    if (perms.has('inv_view_expenses')) { chips.add(_QuickChip('Matumizi', Icons.receipt_outlined, '/inventory/expenses')); }
+    if (perms.has('inv_manage_stock')) { chips.add(_QuickChip('Hisa', Icons.layers_outlined, '/inventory/stock')); }
+    return chips.take(5).toList();
+  }
+
+  Widget _quickChipWidget(BuildContext context, _QuickChip chip) {
+    return InkWell(
+      onTap: () {
+        if (chip.route.isNotEmpty) {
+          Navigator.pushNamed(context, chip.route);
+        }
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border:
+              Border.all(color: Colors.white.withOpacity(0.18), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(chip.icon, color: Colors.white70, size: 14),
+            const SizedBox(width: 5),
+            Text(
+              chip.label,
+              style: TextStyle(
+                color: textPrimary,
+                fontSize: ResponsiveHelper.bodyS,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Insight row: cash / credit / crates / expenses quick glance ─────────────
+  Widget _buildInsightRow(
+    LocalizationService loc,
+    InventoryProvider inv, {
+    required bool canViewCash,
+    required bool canViewCredit,
+    required bool canViewCrates,
+    required bool canViewExpenses,
+    required bool canViewPurchasing,
+    required bool canViewStock,
+  }) {
+    final tiles = <Widget>[];
+    if (canViewCash) {
+      tiles.add(_insightTile(
+        Icons.account_balance_wallet_outlined,
+        Colors.greenAccent.shade400,
+        loc.translate('cash'),
+        'TSH ${_formatCurrency(inv.cashToday)}',
+      ));
+    }
+    if (canViewCredit) {
+      tiles.add(_insightTile(
+        Icons.people_outline_rounded,
+        Colors.lightBlueAccent.shade200,
+        loc.translate('credit'),
+        'TSH ${_formatCurrency(inv.creditOutstanding)}',
+      ));
+    }
+    if (canViewExpenses) {
+      tiles.add(_insightTile(
+        Icons.receipt_outlined,
+        Colors.orangeAccent.shade200,
+        loc.translate('expenses'),
+        'TSH ${_formatCurrency(inv.expensesToday)}',
+      ));
+    }
+    if (tiles.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      children: tiles.asMap().entries.map((e) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(left: e.key == 0 ? 0 : 4),
+            child: e.value,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _insightTile(
+      IconData icon, Color color, String label, String value) =>
+      _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(children: <Widget>[
+                Icon(icon, color: color, size: 16),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: textSecondary,
+                          fontSize: ResponsiveHelper.bodyS)),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value,
+                    style: TextStyle(
+                        color: textPrimary,
+                        fontSize: ResponsiveHelper.bodyM,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
 
   Widget _buildGlassCard({required Widget child}) {
     const radius = 20.0;
@@ -903,6 +1180,8 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     LocalizationService loc,
     InventoryProvider inv, {
     bool canViewReports = false,
+    bool canViewProducts = true,
+    bool canViewSalesChart = true,
   }) =>
       DecoratedBox(
         decoration: BoxDecoration(
@@ -937,9 +1216,9 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
             children: <Widget>[
               if (canViewReports) _buildInventoryValuationContent(loc, inv),
               if (canViewReports) _sectionDivider(),
-              _buildProductsOverviewContent(loc, inv),
-              _sectionDivider(),
-              _buildChartSectionContent(loc, inv),
+              if (canViewProducts) _buildProductsOverviewContent(loc, inv),
+              if (canViewProducts && canViewSalesChart) _sectionDivider(),
+              if (canViewSalesChart) _buildChartSectionContent(loc, inv),
             ],
           ),
         ),
@@ -1497,6 +1776,14 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     final double step = _niceStep(raw / 5);
     return (raw / step).ceil() * step;
   }
+}
+
+// ── Quick-chip data model ─────────────────────────────────────────────────────
+class _QuickChip {
+  const _QuickChip(this.label, this.icon, this.route);
+  final String label;
+  final IconData icon;
+  final String route;
 }
 
 // ── Date filter bottom sheet ──────────────────────────────────────────────────

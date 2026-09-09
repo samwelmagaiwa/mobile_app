@@ -138,6 +138,9 @@ class InventoryProvider extends ChangeNotifier {
   String get totalSalesTodayFormatted =>
       'TZS ${totalSalesToday.toStringAsFixed(0)}';
   double get profitToday => _sales.fold<double>(0, (sum, s) => sum + s.profit);
+  double get cashToday => 0;
+  double get creditOutstanding => 0;
+  double get expensesToday => 0;
   String get profitTodayFormatted => 'TZS ${profitToday.toStringAsFixed(0)}';
   String get profitWeekFormatted => 'TZS 210,000';
   String get profitMonthFormatted => 'TZS 920,000';
