@@ -6,9 +6,14 @@ import 'package:provider/provider.dart';
 import '../../../../constants/theme_constants.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
+import '../../../../screens/settings/backup_screen.dart';
+import '../../../../screens/settings/language_screen.dart';
+import '../../../../screens/settings/notifications_screen.dart';
+import '../../../../screens/settings/permissions_management_screen.dart';
+import '../../../../screens/settings/security_screen.dart';
+import '../../../../screens/settings/user_management_screen.dart';
 import '../../models/inv_depot_models.dart';
 import '../../providers/depot_provider.dart';
-import '../../../../screens/settings/user_management_screen.dart';
 import '../widgets/inventory_widgets.dart';
 import 'receipt_header_screen.dart';
 
@@ -336,11 +341,114 @@ class _SettingsTabState extends State<_SettingsTab> {
               );
             },
           ),
+          // ── General App Settings ──────────────────────────────────────
+          // All app-wide settings are accessible here so super_admin and
+          // admin don't have to leave the inventory service to reach them.
+          _AppSettingsSection(),
+          SizedBox(height: 8.h),
           InvPrimaryButton(busy: _saving, onPressed: _save),
         ],
       ),
     );
   }
+}
+
+/// App-wide settings tiles rendered inside the depot settings screen.
+/// Mirrors SettingsScreen but scoped to what each role should see.
+class _AppSettingsSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
+    final user = context.watch<AuthProvider>().user;
+    final isSuperAdmin = user?.isSuperAdmin ?? false;
+    final isAdmin = user?.isAdmin ?? false;
+
+    void go(Widget screen) => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => screen),
+        );
+
+    // Build the list of tiles visible to this user.
+    final tiles = <_AppTile>[
+      _AppTile(Icons.notifications_outlined, loc.translate('notifications'),
+          loc.translate('notifications_subtitle'), () => go(const NotificationsScreen())),
+      _AppTile(Icons.language_outlined, loc.translate('language'),
+          loc.translate('language_subtitle'), () => go(const LanguageScreen())),
+      _AppTile(Icons.shield_outlined, loc.translate('security'),
+          loc.translate('security_subtitle'), () => go(const SecurityScreen())),
+      if (isAdmin || isSuperAdmin)
+        _AppTile(Icons.people_alt_outlined, loc.translate('users'),
+            loc.translate('users_subtitle'), () => go(const UserManagementScreen())),
+      if (isSuperAdmin)
+        _AppTile(Icons.admin_panel_settings_outlined, 'Permissions',
+            'Manage service module permissions', () => go(const PermissionsScreen())),
+      if (isAdmin || isSuperAdmin)
+        _AppTile(Icons.cloud_upload_outlined, loc.translate('backup'),
+            loc.translate('backup_subtitle'), () => go(const BackupScreen())),
+    ];
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Container(
+        decoration: ThemeConstants.glassCardDecoration,
+        padding: EdgeInsets.all(12.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              loc.isSwahili ? 'Mipangilio ya Programu' : 'App Settings',
+              style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: 8.h),
+            ...tiles.map((t) => _buildTile(context, t)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, _AppTile t) {
+    return InkWell(
+      onTap: t.onTap,
+      borderRadius: BorderRadius.circular(10.r),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 4.w),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(t.icon, color: Colors.white70, size: 18.sp),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.title,
+                      style: ThemeConstants.bodyStyle
+                          .copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp)),
+                  SizedBox(height: 2.h),
+                  Text(t.subtitle, style: ThemeConstants.captionStyle),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16.sp),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AppTile {
+  const _AppTile(this.icon, this.title, this.subtitle, this.onTap);
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 }
 
 class _Field {
