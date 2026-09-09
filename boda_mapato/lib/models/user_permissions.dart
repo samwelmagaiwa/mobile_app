@@ -53,19 +53,23 @@ class UserPermissions {
   bool get _isSuperAdmin =>
       role?.toLowerCase() == 'super_admin' || role?.toLowerCase() == 'superadmin';
 
+  /// True only for super_admin — the one role that bypasses every gate
+  /// across all services without needing explicit service bindings.
+  bool get _isSuperAdminOrFullAccess => _isSuperAdmin;
+
   /// Check if user has a specific permission
   bool has(String permission) {
-    return _isSuperAdmin || _permissions.contains(permission);
+    return _isSuperAdminOrFullAccess || _permissions.contains(permission);
   }
 
   /// Check if user has all of the given permissions
   bool hasAll(List<String> permissions) {
-    return _isSuperAdmin || permissions.every(_permissions.contains);
+    return _isSuperAdminOrFullAccess || permissions.every(_permissions.contains);
   }
 
   /// Check if user has any of the given permissions
   bool hasAny(List<String> permissions) {
-    return _isSuperAdmin || permissions.any(_permissions.contains);
+    return _isSuperAdminOrFullAccess || permissions.any(_permissions.contains);
   }
 
   /// Get all permissions as a list
@@ -112,54 +116,47 @@ class UserPermissions {
   /// Helper method to get permissions for a role
   static List<String> _getPermissionsForRole(String userRole) {
     switch (userRole.toLowerCase()) {
-      case 'admin':
-      case 'administrator':
+      // super_admin has full access across all services — no restrictions.
+      // The _isSuperAdmin bypass in has() makes this list irrelevant for
+      // permission checks, but it is returned for completeness.
       case 'super_admin':
       case 'superadmin':
         return const [
-          'view_drivers',
-          'manage_drivers',
-          'view_vehicles',
-          'manage_vehicles',
-          'view_payments',
-          'manage_payments',
-          'view_debts',
-          'manage_debts',
-          'view_analytics',
-          'view_reports',
-          'generate_reports',
-          'view_reminders',
-          'manage_reminders',
-          'view_communications',
-          'manage_communications',
-          'generate_receipts',
-          'manage_settings',
-          // Inventory — full access
-          'inv_view_products',
-          'inv_manage_products',
-          'inv_manage_stock',
-          'inv_create_sales',
-          'inv_manage_sales',
-          'inv_view_reminders',
-          'inv_view_purchasing',
-          'inv_view_credit',
-          'inv_view_cash',
-          'inv_view_crates',
-          'inv_view_reports',
-          'inv_view_expenses',
-          'inv_manage_expenses',
-          'inv_manage_settings',
-          // Rental
-          'view_tenants',
-          'view_properties',
-          'view_rent_payments',
-          'view_arrears',
-          'view_rental_reports',
-          'view_sms_history',
-          'view_maintenance',
-          'manage_maintenance',
-          'view_vendors',
-          'manage_vendors',
+          'view_drivers', 'manage_drivers', 'view_vehicles', 'manage_vehicles',
+          'view_payments', 'manage_payments', 'view_debts', 'manage_debts',
+          'view_analytics', 'view_reports', 'generate_reports', 'view_reminders',
+          'manage_reminders', 'view_communications', 'manage_communications',
+          'generate_receipts', 'manage_settings',
+          'inv_view_products', 'inv_manage_products', 'inv_manage_stock',
+          'inv_create_sales', 'inv_manage_sales', 'inv_view_reminders',
+          'inv_view_purchasing', 'inv_view_credit', 'inv_view_cash',
+          'inv_view_crates', 'inv_view_reports', 'inv_view_expenses',
+          'inv_manage_expenses', 'inv_manage_settings',
+          'view_tenants', 'view_properties', 'view_rent_payments', 'view_arrears',
+          'view_rental_reports', 'view_sms_history', 'view_maintenance',
+          'manage_maintenance', 'view_vendors', 'manage_vendors',
+        ];
+
+      // admin has full permissions within the service(s) assigned to them by a
+      // super_admin, but service access is enforced via service bindings — not by
+      // a bypass.  They see the same permission set as super_admin so every feature
+      // inside their assigned service works; the service guard is what limits scope.
+      case 'admin':
+      case 'administrator':
+        return const [
+          'view_drivers', 'manage_drivers', 'view_vehicles', 'manage_vehicles',
+          'view_payments', 'manage_payments', 'view_debts', 'manage_debts',
+          'view_analytics', 'view_reports', 'generate_reports', 'view_reminders',
+          'manage_reminders', 'view_communications', 'manage_communications',
+          'generate_receipts', 'manage_settings',
+          'inv_view_products', 'inv_manage_products', 'inv_manage_stock',
+          'inv_create_sales', 'inv_manage_sales', 'inv_view_reminders',
+          'inv_view_purchasing', 'inv_view_credit', 'inv_view_cash',
+          'inv_view_crates', 'inv_view_reports', 'inv_view_expenses',
+          'inv_manage_expenses', 'inv_manage_settings',
+          'view_tenants', 'view_properties', 'view_rent_payments', 'view_arrears',
+          'view_rental_reports', 'view_sms_history', 'view_maintenance',
+          'manage_maintenance', 'view_vendors', 'manage_vendors',
         ];
       case 'manager':
         return const [

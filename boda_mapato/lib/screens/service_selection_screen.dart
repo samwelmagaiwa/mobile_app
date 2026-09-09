@@ -13,9 +13,8 @@ class ServiceSelectionScreen extends StatelessWidget {
     this.deniedService,
   });
 
-  /// Restrict the tiles shown to these service types (the account is only
-  /// bound to these). Null shows every service - used as the fallback for
-  /// an account an admin hasn't assigned any service to yet.
+  /// Services this user may access. Null is treated as empty — no tiles shown.
+  /// Always pass a non-null list derived from the user's role or bindings.
   final List<String>? allowedServices;
 
   /// When set, a warning banner is shown explaining that the user tried to
@@ -25,7 +24,10 @@ class ServiceSelectionScreen extends StatelessWidget {
   static const String _serviceKey = 'selected_service';
 
   bool _allows(String service) =>
-      allowedServices == null || allowedServices!.contains(service);
+      allowedServices != null && allowedServices!.contains(service);
+
+  bool get _hasAnyVisible =>
+      _allows('inventory') || _allows('rental') || _allows('transport');
 
   Future<void> _selectService(BuildContext context, String service) async {
     final prefs = await SharedPreferences.getInstance();
@@ -100,32 +102,57 @@ class ServiceSelectionScreen extends StatelessWidget {
               ),
               SizedBox(height: 16.h),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.05,
-                  children: [
-                    if (_allows('inventory'))
-                      _ServiceTile(
-                        icon: Icons.inventory_2_rounded,
-                        label: loc.translate('inventory_service'),
-                        onTap: () => _selectService(context, 'inventory'),
+                child: _hasAnyVisible
+                    ? GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12.w,
+                        mainAxisSpacing: 12.h,
+                        childAspectRatio: 1.05,
+                        children: [
+                          if (_allows('inventory'))
+                            _ServiceTile(
+                              icon: Icons.inventory_2_rounded,
+                              label: loc.translate('inventory_service'),
+                              onTap: () => _selectService(context, 'inventory'),
+                            ),
+                          if (_allows('rental'))
+                            _ServiceTile(
+                              icon: Icons.apartment_rounded,
+                              label: loc.translate('rental_service'),
+                              onTap: () => _selectService(context, 'rental'),
+                            ),
+                          if (_allows('transport'))
+                            _ServiceTile(
+                              icon: Icons.local_shipping_rounded,
+                              label: loc.translate('transport_service'),
+                              onTap: () =>
+                                  _selectService(context, 'transport'),
+                            ),
+                        ],
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock_outline,
+                                size: 56.sp,
+                                color: ThemeConstants.textSecondary
+                                    .withOpacity(0.4)),
+                            SizedBox(height: 16.h),
+                            Text(
+                              loc.isSwahili
+                                  ? 'Huna ruhusa ya huduma yoyote.\nWasiliana na msimamizi.'
+                                  : 'You have no access to any service.\nContact your administrator.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: ThemeConstants.textSecondary
+                                    .withOpacity(0.6),
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    if (_allows('rental'))
-                      _ServiceTile(
-                        icon: Icons.apartment_rounded,
-                        label: loc.translate('rental_service'),
-                        onTap: () => _selectService(context, 'rental'),
-                      ),
-                    if (_allows('transport'))
-                      _ServiceTile(
-                        icon: Icons.local_shipping_rounded,
-                        label: loc.translate('transport_service'),
-                        onTap: () => _selectService(context, 'transport'),
-                      ),
-                  ],
-                ),
               ),
             ],
           ),

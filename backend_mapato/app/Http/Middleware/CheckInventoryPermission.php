@@ -12,9 +12,12 @@ use Symfony\Component\HttpFoundation\Response;
  * Usage in routes:   ->middleware('inv_perm:inv_view_reports')
  *
  * Resolution order (mirrors Flutter UserPermissions.fromUser):
- *   1. super_admin / admin / full_access   → always allowed
+ *   1. super_admin / full_access           → always allowed
  *   2. Explicit per-user grant in users.permissions (JSON column)
  *   3. Role-default permission set (User::hasInventoryPermission)
+ *
+ * admin is NOT in the bypass — they go through the role-default list so
+ * their inventory access is scoped to their assigned service(s).
  *
  * Multiple comma-separated permissions = ANY of them grants access:
  *   ->middleware('inv_perm:inv_view_expenses,inv_manage_expenses')

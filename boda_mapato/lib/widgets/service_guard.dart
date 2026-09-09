@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../screens/service_selection_screen.dart';
+import '../utils/role_services.dart';
 
 /// Wraps a service home screen. If the authenticated user has explicit service
 /// bindings and [service] is NOT one of them, the user is redirected to the
@@ -32,25 +33,25 @@ class ServiceGuard extends StatelessWidget {
     // replaced on the next frame.
     if (user == null) return child;
 
-    // Admins and super_admins have full cross-service access by role.
-    // Their service bindings are managed by super_admin but never enforced
-    // here — they can always navigate anywhere.
-    if (user.isAdmin || user.isSuperAdmin) return child;
+    // Only super_admin bypasses service binding enforcement entirely.
+    // admin must be explicitly assigned services by a super_admin and is
+    // checked through the same binding path as every other role.
+    if (user.isSuperAdmin) return child;
 
     final bound = user.serviceTypes;
 
-    // No explicit bindings yet (e.g. freshly created account not yet assigned
-    // by admin). Allow through — the picker already handled showing the right
-    // tiles; blocking here would create an infinite redirect loop.
-    if (bound.isEmpty) return child;
+    // Determine the effective allowed list: explicit bindings take priority;
+    // if none assigned yet, fall back to role-based access.
+    final List<String> allowed =
+        bound.isNotEmpty ? bound : servicesForRole(user.role ?? '');
 
     // Access granted.
-    if (bound.contains(service)) return child;
+    if (allowed.contains(service)) return child;
 
-    // Access denied — redirect to the picker filtered to bound services only,
-    // with a warning banner explaining why.
+    // Access denied — redirect to the picker filtered to the effective
+    // allowed list, with a warning banner explaining why.
     return ServiceSelectionScreen(
-      allowedServices: bound,
+      allowedServices: allowed,
       deniedService: service,
     );
   }

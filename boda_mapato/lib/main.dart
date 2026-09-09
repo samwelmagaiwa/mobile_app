@@ -70,6 +70,7 @@ import 'screens/settings/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
+import 'utils/role_services.dart';
 import 'utils/web_keyboard_fix_stub.dart'
     if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
 
@@ -573,13 +574,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
             if (boundServices.length > 1) {
               return ServiceSelectionScreen(allowedServices: boundServices);
             }
-            // No service binding yet — route by role rather than showing
-            // the full service picker (which would confuse limited roles).
-            final String role = authProvider.user!.role ?? '';
-            if (role == 'sales_officer' || role == 'manager' || role == 'operator') {
-              return const InventoryHome();
+            // No explicit service binding — derive allowed services from role
+            // so the picker only shows what this user can actually access.
+            final List<String> roleServices =
+                _servicesForRole(authProvider.user!.role ?? '');
+            if (roleServices.length == 1) {
+              return _ServiceHomeFor(
+                service: roleServices.first,
+                authProvider: authProvider,
+              );
             }
-            return const ServiceSelectionScreen();
+            return ServiceSelectionScreen(allowedServices: roleServices);
           } else {
             // User is not authenticated, show public landing screen
             return const PublicLandingScreen();
@@ -620,8 +625,10 @@ class _ServiceHomeForState extends State<_ServiceHomeFor> {
         return const RentalMainScreen();
       default:
         // Unrecognized service value — fall back to role-based routing.
+        // super_admin only goes directly to ModernDashboard; admin follows the
+        // same service-binding path as other roles (enforced by ServiceGuard).
         final String role = widget.authProvider.user?.role ?? '';
-        if (role == 'admin' || role == 'super_admin' || role == 'administrator') {
+        if (role == 'super_admin') {
           return const ModernDashboardScreen();
         }
         if (role == 'sales_officer' || role == 'manager' || role == 'operator') {
@@ -634,3 +641,7 @@ class _ServiceHomeForState extends State<_ServiceHomeFor> {
     }
   }
 }
+
+// Role → allowed services mapping lives in utils/role_services.dart.
+// Alias so existing call-sites in this file don't need changing.
+List<String> _servicesForRole(String role) => servicesForRole(role);

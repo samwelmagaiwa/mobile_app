@@ -158,9 +158,26 @@ class User extends Authenticatable
     // Mirrors UserPermissions._getPermissionsForRole() in Flutter so the
     // server-side and client-side checks are always in sync.
     private static array $INV_ROLE_DEFAULTS = [
-        'super_admin'  => null, // null = unrestricted
-        'admin'        => null,
-        'administrator'=> null,
+        // super_admin has unrestricted access to everything across all services.
+        'super_admin'  => null,
+        // admin has full permissions within their assigned service(s), but their
+        // service access is enforced by service bindings — not by bypassing the
+        // permission check.  Using a null here would give them a cross-service
+        // bypass identical to super_admin, which is intentionally NOT the case.
+        'admin'        => [
+            'inv_view_products','inv_manage_products','inv_manage_stock',
+            'inv_create_sales','inv_manage_sales','inv_view_reminders',
+            'inv_view_purchasing','inv_view_credit','inv_view_cash',
+            'inv_view_crates','inv_view_reports','inv_view_expenses',
+            'inv_manage_expenses','inv_manage_settings',
+        ],
+        'administrator'=> [
+            'inv_view_products','inv_manage_products','inv_manage_stock',
+            'inv_create_sales','inv_manage_sales','inv_view_reminders',
+            'inv_view_purchasing','inv_view_credit','inv_view_cash',
+            'inv_view_crates','inv_view_reports','inv_view_expenses',
+            'inv_manage_expenses','inv_manage_settings',
+        ],
         'manager'      => [
             'inv_view_products','inv_manage_products','inv_manage_stock',
             'inv_create_sales','inv_manage_sales','inv_view_reminders',
@@ -195,9 +212,11 @@ class User extends Authenticatable
      */
     public function hasInventoryPermission(string $permission): bool
     {
-        // Unrestricted roles
+        // Only super_admin and full_access users bypass the permission check entirely.
+        // admin/administrator go through the role-default list so their access is
+        // scoped to the service(s) assigned to them by a super_admin.
         $role = strtolower($this->role ?? '');
-        if ($this->full_access || in_array($role, ['super_admin', 'admin', 'administrator'], true)) {
+        if ($this->full_access || $role === 'super_admin') {
             return true;
         }
 
@@ -221,7 +240,7 @@ class User extends Authenticatable
     public function effectiveInventoryPermissions(): array
     {
         $role = strtolower($this->role ?? '');
-        if ($this->full_access || in_array($role, ['super_admin', 'admin', 'administrator'], true)) {
+        if ($this->full_access || $role === 'super_admin') {
             // Sentinel for "unrestricted" -- the Flutter client strips this
             // value out and relies on isSuperAdmin/isAdmin/fullAccess
             // instead, so nothing here should return actual permission
