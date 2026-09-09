@@ -1,9 +1,11 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/theme_constants.dart';
+import '../providers/auth_provider.dart';
 import '../services/localization_service.dart';
 
 class ServiceSelectionScreen extends StatelessWidget {
@@ -130,33 +132,108 @@ class ServiceSelectionScreen extends StatelessWidget {
                             ),
                         ],
                       )
-                    : Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.lock_outline,
-                                size: 56.sp,
-                                color: ThemeConstants.textSecondary
-                                    .withOpacity(0.4)),
-                            SizedBox(height: 16.h),
-                            Text(
-                              loc.isSwahili
-                                  ? 'Huna ruhusa ya huduma yoyote.\nWasiliana na msimamizi.'
-                                  : 'You have no access to any service.\nContact your administrator.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: ThemeConstants.textSecondary
-                                    .withOpacity(0.6),
-                                fontSize: 14.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    : _NoServiceAccess(loc: loc),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown when the user has no service bindings at all.
+/// Provides a logout button so they are not stuck on a dead screen.
+class _NoServiceAccess extends StatefulWidget {
+  const _NoServiceAccess({required this.loc});
+  final LocalizationService loc;
+
+  @override
+  State<_NoServiceAccess> createState() => _NoServiceAccessState();
+}
+
+class _NoServiceAccessState extends State<_NoServiceAccess> {
+  bool _loggingOut = false;
+
+  Future<void> _logout() async {
+    setState(() => _loggingOut = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      await auth.logout();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (r) => false);
+      }
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSwahili = widget.loc.isSwahili;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.lock_outline,
+            size: 64.sp,
+            color: ThemeConstants.textSecondary.withOpacity(0.35),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            isSwahili
+                ? 'Huna ruhusa ya huduma yoyote.'
+                : 'You have no access to any service.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ThemeConstants.textSecondary.withOpacity(0.8),
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            isSwahili
+                ? 'Wasiliana na msimamizi wako\nkupata ufikiaji wa huduma.'
+                : 'Contact your administrator\nto get access to a service.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ThemeConstants.textSecondary.withOpacity(0.55),
+              fontSize: 13.sp,
+            ),
+          ),
+          SizedBox(height: 32.h),
+          SizedBox(
+            width: 200.w,
+            child: ElevatedButton.icon(
+              onPressed: _loggingOut ? null : _logout,
+              icon: _loggingOut
+                  ? SizedBox(
+                      width: 16.w,
+                      height: 16.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.logout_rounded, size: 18),
+              label: Text(
+                isSwahili ? 'Rudi Kuingia' : 'Back to Login',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey.shade700,
+                foregroundColor: Colors.white,
+                padding:
+                    EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

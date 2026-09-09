@@ -564,6 +564,47 @@ class AuthController extends Controller
     }
 
     /**
+     * Return the authenticated user's service bindings.
+     *
+     * Lightweight alternative to /user when the app only needs to know which
+     * services the user can access (e.g. on the service selection screen).
+     * super_admin always gets all three services; everyone else gets their
+     * explicit bindings from the user_services table.
+     */
+    public function myServices(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $role = strtolower($user->role ?? '');
+
+        // super_admin is unrestricted — return all services without a DB lookup.
+        if ($user->full_access || $role === 'super_admin') {
+            return response()->json([
+                'services'    => ['inventory', 'rental', 'transport'],
+                'is_unbound'  => false,
+                'role'        => $user->role,
+            ]);
+        }
+
+        $bound = $user->services()->pluck('service_type')->all();
+
+        return response()->json([
+            'services'    => $bound,
+            'is_unbound'  => empty($bound),
+            'role'        => $user->role,
+            // Hint to the client: if is_unbound is true, display the
+            // "no service access" screen and offer a logout button.
+            'message'     => empty($bound)
+                ? 'No services assigned. Contact your administrator.'
+                : null,
+        ]);
+    }
+
+    /**
      * Get dashboard route based on user role
      */
     private function getDashboardRoute(string $role): string

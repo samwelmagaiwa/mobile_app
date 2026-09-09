@@ -231,6 +231,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('user', [AuthController::class, 'user']);
+        Route::get('user/services', [AuthController::class, 'myServices']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         // Profile avatar upload (multipart)
         Route::post('profile/avatar', [AuthController::class, 'uploadAvatar']);
