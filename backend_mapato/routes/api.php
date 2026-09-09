@@ -243,6 +243,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('security', [\App\Http\Controllers\API\SecurityController::class, 'getSecuritySettings']);
         Route::post('two-factor', [\App\Http\Controllers\API\SecurityController::class, 'setTwoFactor']);
         Route::get('login-history', [\App\Http\Controllers\API\SecurityController::class, 'getLoginHistory']);
+        Route::delete('login-history', [\App\Http\Controllers\API\SecurityController::class, 'clearLoginHistory']);
+
+        // Backup / Restore — super_admin only
+        Route::prefix('admin')->group(function () {
+            Route::get('backup', [\App\Http\Controllers\API\BackupController::class, 'status']);
+            Route::post('backup', [\App\Http\Controllers\API\BackupController::class, 'create']);
+            Route::post('restore', [\App\Http\Controllers\API\BackupController::class, 'restore']);
+        });
     });
 
     // =========================================================================
