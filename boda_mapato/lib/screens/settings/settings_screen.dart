@@ -39,18 +39,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final AuthProvider authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
+    final isSuperAdmin = user?.isSuperAdmin ?? false;
+    final isAdmin = user?.isAdmin ?? false;
+    final loc = _localizationService;
 
     return Scaffold(
       backgroundColor: ThemeConstants.primaryBlue,
-      appBar: ThemeConstants.buildAppBar(
-        _localizationService.translate('settings'),
-      ),
+      appBar: ThemeConstants.buildAppBar(loc.translate('settings')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Profile Card
+              // ── Profile Card ───────────────────────────────────────────
               ThemeConstants.buildGlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -61,26 +64,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: ThemeConstants.primaryOrange,
+                            backgroundColor: isSuperAdmin
+                                ? const Color(0xFFB8860B) // dark gold
+                                : ThemeConstants.primaryOrange,
                             backgroundImage: _buildAvatarImage(authProvider),
                             child: _buildAvatarImage(authProvider) == null
-                                ? (authProvider.user?.name != null &&
-                                        authProvider.user!.name.isNotEmpty)
+                                ? (user?.name != null && user!.name.isNotEmpty)
                                     ? Text(
-                                        authProvider.user!.name
-                                            .substring(0, 1)
-                                            .toUpperCase(),
+                                        user.name.substring(0, 1).toUpperCase(),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       )
-                                    : const Icon(
-                                        Icons.person,
-                                        color: Colors.white,
-                                        size: 40,
-                                      )
+                                    : const Icon(Icons.person,
+                                        color: Colors.white, size: 40)
                                 : null,
                           ),
                           Positioned(
@@ -101,22 +100,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
-                        authProvider.user?.name ?? "Admin User",
+                        user?.name ?? 'User',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: ThemeConstants.textPrimary,
                         ),
                       ),
+                      const SizedBox(height: 4),
                       Text(
-                        authProvider.user?.email ?? "admin@bodamapato.com",
+                        user?.email ?? '',
                         style: const TextStyle(
-                          fontSize: 14,
-                          color: ThemeConstants.textSecondary,
+                            fontSize: 13, color: ThemeConstants.textSecondary),
+                      ),
+                      const SizedBox(height: 10),
+                      // Role badge — visually distinguishes the two admin levels
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isSuperAdmin
+                              ? const Color(0xFFB8860B).withOpacity(0.25)
+                              : Colors.blueGrey.shade700.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSuperAdmin
+                                ? const Color(0xFFB8860B).withOpacity(0.6)
+                                : Colors.blueGrey.shade400.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSuperAdmin
+                                  ? Icons.verified_user_rounded
+                                  : Icons.manage_accounts_rounded,
+                              size: 14,
+                              color: isSuperAdmin
+                                  ? const Color(0xFFFFD700)
+                                  : Colors.blueGrey.shade200,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isSuperAdmin ? 'SUPER ADMIN' : isAdmin ? 'ADMIN' : (user?.role?.toUpperCase() ?? ''),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isSuperAdmin
+                                    ? const Color(0xFFFFD700)
+                                    : Colors.blueGrey.shade200,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      // Admin: show assigned services under the badge
+                      if (isAdmin && !isSuperAdmin) ...[
+                        const SizedBox(height: 8),
+                        Builder(builder: (_) {
+                          final svcs = user?.serviceTypes ?? [];
+                          if (svcs.isEmpty) return const SizedBox.shrink();
+                          return Wrap(
+                            spacing: 6,
+                            children: svcs
+                                .map((s) => Chip(
+                                      label: Text(s,
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white70)),
+                                      backgroundColor:
+                                          Colors.white.withOpacity(0.08),
+                                      padding: EdgeInsets.zero,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ))
+                                .toList(),
+                          );
+                        }),
+                      ],
                     ],
                   ),
                 ),
@@ -124,98 +189,147 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 20),
 
-              // Settings Options
+              // ── Personal Settings (all roles) ──────────────────────────
+              _sectionLabel(loc.isSwahili ? 'Binafsi' : 'Personal'),
+              const SizedBox(height: 8),
               ThemeConstants.buildGlassCard(
                 child: Column(
                   children: [
                     _buildSettingsTile(
-                      Icons.notifications,
-                      _localizationService.translate('notifications'),
-                      _localizationService.translate('notifications_subtitle'),
+                      Icons.notifications_outlined,
+                      loc.translate('notifications'),
+                      loc.translate('notifications_subtitle'),
                       () => _navigateToScreen(const NotificationsScreen()),
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
-                      Icons.language,
-                      _localizationService.translate('language'),
-                      _localizationService.translate('language_subtitle'),
+                      Icons.language_outlined,
+                      loc.translate('language'),
+                      loc.translate('language_subtitle'),
                       () => _navigateToScreen(const LanguageScreen()),
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
-                      Icons.security,
-                      _localizationService.translate('security'),
-                      _localizationService.translate('security_subtitle'),
+                      Icons.shield_outlined,
+                      loc.translate('security'),
+                      loc.translate('security_subtitle'),
                       () => _navigateToScreen(const SecurityScreen()),
-                    ),
-                    // Users management (admins only)
-                    if ((authProvider.user?.isAdmin ?? false) ||
-                        (authProvider.user?.isSuperAdmin ?? false)) ...[
-                      const Divider(color: Colors.white24, height: 1),
-                      _buildSettingsTile(
-                        Icons.people,
-                        _localizationService.translate('users'),
-                        _localizationService.translate('users_subtitle'),
-                        () => _navigateToScreen(const UserManagementScreen()),
-                      ),
-                      if (authProvider.user?.isSuperAdmin ?? false) ...[
-                        const Divider(color: Colors.white24, height: 1),
-                        _buildSettingsTile(
-                          Icons.admin_panel_settings,
-                          'Permissions',
-                          'Manage service module permissions',
-                          () => _navigateToScreen(const PermissionsScreen()),
-                        ),
-                      ],
-                    ],
-                    const Divider(color: Colors.white24, height: 1),
-                    _buildSettingsTile(
-                      Icons.backup,
-                      _localizationService.translate('backup'),
-                      _localizationService.translate('backup_subtitle'),
-                      () => _navigateToScreen(const BackupScreen()),
                     ),
                   ],
                 ),
               ),
 
+              // ── Super Admin Controls ────────────────────────────────────
+              if (isSuperAdmin) ...[
+                const SizedBox(height: 20),
+                _sectionLabel(
+                  loc.isSwahili ? 'Udhibiti wa Super Admin' : 'Super Admin Controls',
+                  color: const Color(0xFFFFD700),
+                  icon: Icons.verified_user_rounded,
+                ),
+                const SizedBox(height: 8),
+                ThemeConstants.buildGlassCard(
+                  child: Column(
+                    children: [
+                      _buildSettingsTile(
+                        Icons.people_alt_outlined,
+                        loc.translate('users'),
+                        loc.isSwahili
+                            ? 'Dhibiti watumiaji wote kwenye huduma zote'
+                            : 'Manage all users across every service',
+                        () => _navigateToScreen(const UserManagementScreen()),
+                      ),
+                      const Divider(color: Colors.white24, height: 1),
+                      _buildSettingsTile(
+                        Icons.admin_panel_settings_outlined,
+                        loc.isSwahili ? 'Ruhusa' : 'Permissions',
+                        loc.isSwahili
+                            ? 'Dhibiti ruhusa za moduli za huduma'
+                            : 'Manage service module permissions',
+                        () => _navigateToScreen(const PermissionsScreen()),
+                      ),
+                      const Divider(color: Colors.white24, height: 1),
+                      _buildSettingsTile(
+                        Icons.cloud_sync_outlined,
+                        loc.translate('backup'),
+                        loc.isSwahili
+                            ? 'Hifadhi na rejesha data ya mfumo wote'
+                            : 'Backup and restore entire system data',
+                        () => _navigateToScreen(const BackupScreen()),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // ── Admin Tools ────────────────────────────────────────────
+              if (isAdmin && !isSuperAdmin) ...[
+                const SizedBox(height: 20),
+                _sectionLabel(
+                  loc.isSwahili ? 'Zana za Msimamizi' : 'Admin Tools',
+                  color: Colors.blueGrey.shade200,
+                  icon: Icons.manage_accounts_rounded,
+                ),
+                const SizedBox(height: 8),
+                ThemeConstants.buildGlassCard(
+                  child: Column(
+                    children: [
+                      _buildSettingsTile(
+                        Icons.people_outlined,
+                        loc.translate('users'),
+                        loc.isSwahili
+                            ? 'Dhibiti watumiaji wa huduma yako'
+                            : 'Manage users in your assigned service(s)',
+                        () => _navigateToScreen(const UserManagementScreen()),
+                      ),
+                      const Divider(color: Colors.white24, height: 1),
+                      _buildSettingsTile(
+                        Icons.cloud_upload_outlined,
+                        loc.translate('backup'),
+                        loc.translate('backup_subtitle'),
+                        () => _navigateToScreen(const BackupScreen()),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 20),
 
-              // App Information
+              // ── App Information (all roles) ────────────────────────────
+              _sectionLabel(loc.isSwahili ? 'Kuhusu' : 'About'),
+              const SizedBox(height: 8),
               ThemeConstants.buildGlassCard(
                 child: Column(
                   children: [
                     _buildSettingsTile(
-                      Icons.info,
-                      _localizationService.translate('about_app'),
-                      _localizationService.translate('about_app_subtitle'),
+                      Icons.info_outline_rounded,
+                      loc.translate('about_app'),
+                      loc.translate('about_app_subtitle'),
                       _showAboutDialog,
                     ),
                     const Divider(color: Colors.white24, height: 1),
                     _buildSettingsTile(
-                      Icons.help,
-                      _localizationService.translate('help'),
-                      _localizationService.translate('help_subtitle'),
+                      Icons.help_outline_rounded,
+                      loc.translate('help'),
+                      loc.translate('help_subtitle'),
                       () => _navigateToScreen(const HelpScreen()),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              // Logout Button
+              // ── Logout ────────────────────────────────────────────────
               ThemeConstants.buildGlassCard(
                 child: ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  leading: const Icon(
-                    Icons.logout,
-                    color: Colors.redAccent,
-                    size: 24,
-                  ),
+                  leading: const Icon(Icons.logout_rounded,
+                      color: Colors.redAccent, size: 24),
                   title: Text(
-                    _localizationService.translate('logout'),
+                    loc.translate('logout'),
                     style: const TextStyle(
                       color: Colors.redAccent,
                       fontWeight: FontWeight.w600,
@@ -230,6 +344,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String label, {Color? color, IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color ?? ThemeConstants.textSecondary),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              color: color ?? ThemeConstants.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

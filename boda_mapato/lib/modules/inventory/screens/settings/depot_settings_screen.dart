@@ -367,42 +367,99 @@ class _AppSettingsSection extends StatelessWidget {
           MaterialPageRoute<void>(builder: (_) => screen),
         );
 
-    // Build the list of tiles visible to this user.
-    final tiles = <_AppTile>[
+    // Personal — all roles
+    final personal = <_AppTile>[
       _AppTile(Icons.notifications_outlined, loc.translate('notifications'),
           loc.translate('notifications_subtitle'), () => go(const NotificationsScreen())),
       _AppTile(Icons.language_outlined, loc.translate('language'),
           loc.translate('language_subtitle'), () => go(const LanguageScreen())),
       _AppTile(Icons.shield_outlined, loc.translate('security'),
           loc.translate('security_subtitle'), () => go(const SecurityScreen())),
-      if (isAdmin || isSuperAdmin)
-        _AppTile(Icons.people_alt_outlined, loc.translate('users'),
-            loc.translate('users_subtitle'), () => go(const UserManagementScreen())),
+    ];
+
+    // Admin-level tiles (only shown when user has admin role or above)
+    final adminTiles = <_AppTile>[
+      _AppTile(
+        Icons.people_alt_outlined,
+        loc.translate('users'),
+        isSuperAdmin
+            ? (loc.isSwahili ? 'Dhibiti watumiaji wote kwenye huduma zote' : 'Manage all users across every service')
+            : (loc.isSwahili ? 'Dhibiti watumiaji wa huduma yako' : 'Manage users in your service(s)'),
+        () => go(const UserManagementScreen()),
+      ),
       if (isSuperAdmin)
-        _AppTile(Icons.admin_panel_settings_outlined, 'Permissions',
-            'Manage service module permissions', () => go(const PermissionsScreen())),
-      if (isAdmin || isSuperAdmin)
-        _AppTile(Icons.cloud_upload_outlined, loc.translate('backup'),
-            loc.translate('backup_subtitle'), () => go(const BackupScreen())),
+        _AppTile(
+          Icons.admin_panel_settings_outlined,
+          loc.isSwahili ? 'Ruhusa' : 'Permissions',
+          loc.isSwahili ? 'Dhibiti ruhusa za moduli' : 'Manage service module permissions',
+          () => go(const PermissionsScreen()),
+        ),
+      _AppTile(Icons.cloud_upload_outlined, loc.translate('backup'),
+          loc.translate('backup_subtitle'), () => go(const BackupScreen())),
     ];
 
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
-      child: Container(
-        decoration: ThemeConstants.glassCardDecoration,
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              loc.isSwahili ? 'Mipangilio ya Programu' : 'App Settings',
-              style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w700),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Personal section
+          Container(
+            decoration: ThemeConstants.glassCardDecoration,
+            padding: EdgeInsets.all(12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _label(loc.isSwahili ? 'Binafsi' : 'Personal'),
+                SizedBox(height: 6.h),
+                ...personal.map((t) => _buildTile(context, t)),
+              ],
             ),
-            SizedBox(height: 8.h),
-            ...tiles.map((t) => _buildTile(context, t)),
+          ),
+          // Admin / Super Admin section
+          if (isAdmin || isSuperAdmin) ...[
+            SizedBox(height: 10.h),
+            Container(
+              decoration: ThemeConstants.glassCardDecoration,
+              padding: EdgeInsets.all(12.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _label(
+                    isSuperAdmin
+                        ? (loc.isSwahili ? 'Udhibiti wa Super Admin' : 'Super Admin Controls')
+                        : (loc.isSwahili ? 'Zana za Msimamizi' : 'Admin Tools'),
+                    color: isSuperAdmin ? const Color(0xFFFFD700) : Colors.blueGrey.shade200,
+                    icon: isSuperAdmin ? Icons.verified_user_rounded : Icons.manage_accounts_rounded,
+                  ),
+                  SizedBox(height: 6.h),
+                  ...adminTiles.map((t) => _buildTile(context, t)),
+                ],
+              ),
+            ),
           ],
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _label(String text, {Color? color, IconData? icon}) {
+    return Row(
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 12.sp, color: color ?? ThemeConstants.textSecondary),
+          SizedBox(width: 5.w),
+        ],
+        Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.1,
+            color: color ?? ThemeConstants.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
