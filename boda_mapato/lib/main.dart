@@ -65,6 +65,7 @@ import 'screens/rental/tenant_self_service_screen.dart';
 import 'screens/rental/vendor_dashboard_screen.dart';
 import 'screens/rental/lease_agreement_wizard_screen.dart';
 import 'screens/reports/report_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/landing/app_landing_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'widgets/service_guard.dart';
@@ -505,66 +506,48 @@ class _LanguageSelectionPage extends StatelessWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _languageChosenThisSession = false;
-  bool _landingShownThisSession = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize auth state when app starts
     WidgetsBinding.instance.addPostFrameCallback((final Duration _) async {
       await Provider.of<AuthProvider>(context, listen: false).initialize();
     });
   }
 
   Future<void> _onLanguageChosen(String code) async {
-    final loc = LocalizationService.instance;
-    await loc.changeLanguage(code);
+    await LocalizationService.instance.changeLanguage(code);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selected_language', code);
-    if (mounted) {
-      setState(() {
-        _languageChosenThisSession = true;
-      });
-    }
-  }
-
-  void _onLandingDone() {
-    if (mounted) setState(() => _landingShownThisSession = true);
+    if (mounted) setState(() => _languageChosenThisSession = true);
   }
 
   Widget _resolveServiceHome(AuthProvider authProvider) {
     final List<String> boundServices = authProvider.user!.serviceTypes;
     if (boundServices.length == 1) {
-      return _ServiceHomeFor(
-        service: boundServices.first,
-        authProvider: authProvider,
-      );
+      return _ServiceHomeFor(service: boundServices.first, authProvider: authProvider);
     }
     if (boundServices.length > 1) {
       return ServiceSelectionScreen(allowedServices: boundServices);
     }
-    // No explicit binding — derive from role.
-    final List<String> roleServices =
-        _servicesForRole(authProvider.user!.role ?? '');
+    final List<String> roleServices = _servicesForRole(authProvider.user!.role ?? '');
     if (roleServices.length == 1) {
-      return _ServiceHomeFor(
-        service: roleServices.first,
-        authProvider: authProvider,
-      );
+      return _ServiceHomeFor(service: roleServices.first, authProvider: authProvider);
     }
     return ServiceSelectionScreen(allowedServices: roleServices);
+  }
+
+  void _goToLogin(BuildContext ctx) {
+    Navigator.of(ctx).push(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+    );
   }
 
   @override
   Widget build(final BuildContext context) =>
       Consumer2<AuthProvider, LocalizationService>(
-        builder: (
-          final BuildContext context,
-          final AuthProvider authProvider,
-          final LocalizationService localizationService,
-          final Widget? child,
-        ) {
-          // Show the animated brand splash while initializing
+        builder: (ctx, authProvider, localizationService, _) {
+          // Splash while auth initialises
           if (authProvider.isLoading) {
             return AppSplashScreen(
               appName: localizationService.translate('app_name'),
@@ -572,24 +555,78 @@ class _AuthWrapperState extends State<AuthWrapper> {
             );
           }
 
-          // Show appropriate screen based on auth state
+          // ── Authenticated ────────────────────────────────────────────────
           if (authProvider.isAuthenticated && authProvider.user != null) {
-            // 1. Language first
             if (!_languageChosenThisSession) {
               return _LanguageSelectionPage(onSelected: _onLanguageChosen);
             }
-            // 2. Premium landing screen (once per session after login)
-            if (!_landingShownThisSession) {
-              return AppLandingScreen(onContinue: _onLandingDone);
-            }
-            // 3. Route to the correct service home
+            // Go straight to the user's service home — no landing interstitial
             return _resolveServiceHome(authProvider);
-          } else {
-            // User is not authenticated, show public landing screen
-            return const PublicLandingScreen();
           }
+
+          // ── Not authenticated — premium landing is the public default ────
+          // Wrap AppLandingScreen in a Stack to overlay the "Ingia" button
+          // without touching AppLandingScreen's own code.
+          return Stack(
+            children: [
+              // The premium 3-slide landing (unchanged)
+              AppLandingScreen(
+                onContinue: () => _goToLogin(context),
+              ),
+
+              // "Ingia" button pinned top-right — tappable above the slides
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 12,
+                right: 16,
+                child: _IngiaPill(onTap: () => _goToLogin(context)),
+              ),
+            ],
+          );
         },
       );
+}
+
+/// Small pill button that sits on top of the public landing slides.
+class _IngiaPill extends StatelessWidget {
+  const _IngiaPill({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFF00E5FF),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00E5FF).withOpacity(0.45),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.login_rounded, color: Colors.black87, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              loc.translate('login'),
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Routes straight to the one service this account is bound to - no
