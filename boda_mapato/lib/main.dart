@@ -72,10 +72,10 @@ import 'screens/settings/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_messenger.dart';
 import 'services/localization_service.dart';
+import 'screens/splash/app_splash_screen.dart';
 import 'utils/role_services.dart';
 import 'utils/web_keyboard_fix_stub.dart'
     if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
-import 'widgets/flag_app_name_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -564,31 +564,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
           final LocalizationService localizationService,
           final Widget? child,
         ) {
-          // Show loading screen while initializing
+          // Show the animated brand splash while initializing
           if (authProvider.isLoading) {
-            return Scaffold(
-              backgroundColor: AppColors.background,
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    FlagAppNameText(
-                      localizationService.translate('app_name'),
-                      fontSize: 30.sp,
-                    ),
-                    SizedBox(height: 24.h),
-                    const CircularProgressIndicator(),
-                    SizedBox(height: 16.h),
-                    Text(
-                      localizationService.translate('loading'),
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            return AppSplashScreen(
+              appName: localizationService.translate('app_name'),
+              message: localizationService.translate('loading'),
             );
           }
 

@@ -469,7 +469,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
 
     final String company = s(rd['company_name']).isNotEmpty
         ? s(rd['company_name'])
-        : 'BODA MAPATO';
+        : '3 IN ONE';
     final String companyAddress = s(rd['company_address']);
     final String companyPhone = s(rd['company_phone']);
     final String receiptNumber = s(map['receipt_number']);

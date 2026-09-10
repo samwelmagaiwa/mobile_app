@@ -7,6 +7,7 @@ import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/localization_service.dart";
 import "../../widgets/backgrounds/starfield_background.dart";
+import "../../widgets/flag_app_name_text.dart";
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -141,6 +142,57 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
+              // Back-to-home button — top-left, always visible above the form
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10.h,
+                left: 16.w,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/',
+                            (route) => false,
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white70, size: 14.sp),
+                            SizedBox(width: 5.w),
+                            Text(
+                              'Home',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -194,14 +246,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   
                                   SizedBox(height: 16.h),
                                   
-                                  Text(
-                                    localizationService.translate('app_name').toUpperCase(),
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28.sp,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 4.w,
-                                    ),
+                                  FlagAppNameText(
+                                    localizationService.translate('app_name'),
+                                    fontSize: 28.sp,
                                   ),
                                   
                                   SizedBox(height: 60.h),
@@ -316,9 +363,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.8),
                     child: Center(
-                      child: ThemeConstants.buildResponsiveLoadingWidget(
-                        context,
-                        message: localizationService.translate('signing_in'),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          FlagAppNameText(
+                            localizationService.translate('app_name'),
+                            fontSize: 26.sp,
+                          ),
+                          SizedBox(height: 20.h),
+                          ThemeConstants.buildResponsiveLoadingWidget(
+                            context,
+                            message: localizationService.translate('signing_in'),
+                          ),
+                        ],
                       ),
                     ),
                   ),

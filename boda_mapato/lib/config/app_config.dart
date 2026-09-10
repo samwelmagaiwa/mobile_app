@@ -15,10 +15,10 @@ mixin AppConfig {
   static const String appVersion = "1.0.0";
 
   // App name
-  static const String appName = "All In One";
+  static const String appName = "3 iN One";
 
   // Company info
-  static const String companyName = "All In One Ltd";
+  static const String companyName = "3 iN One Ltd";
   static const String companyPhone = "+255 617 919 104";
   static const String companyEmail = "qq@gmail.com";
 

@@ -3,7 +3,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
-        android:label="boda_mapato"
+        android:label="3 iN One"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/launcher_icon">

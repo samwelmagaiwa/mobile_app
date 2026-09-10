@@ -460,7 +460,7 @@ class _ReceiptPreviewDialog extends StatelessWidget {
                   // Business Header
                   const Center(
                     child: Text(
-                      "BODA MAPATO",
+                      "3 IN ONE",
                       style: AppStyles.heading2,
                     ),
                   ),

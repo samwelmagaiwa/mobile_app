@@ -313,7 +313,7 @@ class ReceiptPreviewCard extends StatelessWidget {
             // Header
             Center(
               child: Text(
-                "BODA MAPATO",
+                "3 IN ONE",
                 style: AppStyles.heading3Responsive(context),
               ),
             ),

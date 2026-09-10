@@ -18,7 +18,7 @@ class Receipt {
     this.status = 'generated',
     this.sentAt,
     this.sentTo,
-    this.companyName = 'Boda Mapato',
+    this.companyName = '3 iN One',
     this.companyPhone,
     this.companyEmail,
   });
@@ -94,7 +94,7 @@ class Receipt {
         status: (json['status'] ?? 'generated').toString(),
         sentAt: json['sent_at'] != null ? parseDateTime(json['sent_at']) : null,
         sentTo: json['sent_to']?.toString(),
-        companyName: (json['company_name'] ?? 'Boda Mapato').toString(),
+        companyName: (json['company_name'] ?? '3 iN One').toString(),
         companyPhone: json['company_phone']?.toString(),
         companyEmail: json['company_email']?.toString(),
       );

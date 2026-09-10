@@ -1,6 +1,6 @@
 class AppStrings {
   // App info
-  static const String appName = "All In One";
+  static const String appName = "3 iN One";
   static const String appVersion = "1.0";
 
   // General

@@ -354,7 +354,7 @@ class AppLocalizations {
       'overdue_alert_days': 'Overdue alert (days)',
       'status': 'Status',
       // General
-      'app_name': 'All in One',
+      'app_name': '3 iN One',
       'dashboard': 'Dashboard',
       'settings': 'Settings',
       'profile': 'Profile',
@@ -1527,7 +1527,7 @@ class AppLocalizations {
       'price_change_logged_note':
           'Kila mabadiliko ya bei hurekodiwa na jina lako na muda.',
       // General
-      'app_name': 'All in One',
+      'app_name': '3 iN One',
       'dashboard': 'Dashibodi',
       'settings': 'Mipangilio',
       'profile': 'Wasifu',
