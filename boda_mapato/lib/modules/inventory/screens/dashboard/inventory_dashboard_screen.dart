@@ -1320,24 +1320,24 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ],
             ),
             const SizedBox(height: 12),
-            // Aggregate stat tiles
+            // Aggregate stat tiles — same compact design as Bidhaa/insight cards
             Row(
               children: <Widget>[
                 Expanded(
-                  child: _valuationTile(
-                    'Total Cost (Gharama)',
-                    'TZS ${formatAmount(totalCost)}',
-                    Colors.amber.shade300,
+                  child: _insightTile(
                     Icons.shopping_cart_outlined,
+                    Colors.amber.shade300,
+                    loc.translate('cost'),
+                    'TZS ${formatAmount(totalCost)}',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _valuationTile(
-                    'Total Revenue (Kuuza)',
-                    'TZS ${formatAmount(totalRevenue)}',
-                    Colors.lightBlueAccent.shade200,
+                  child: _insightTile(
                     Icons.storefront_outlined,
+                    Colors.lightBlueAccent.shade200,
+                    loc.isSwahili ? 'Mapato (Kuuza)' : 'Revenue',
+                    'TZS ${formatAmount(totalRevenue)}',
                   ),
                 ),
               ],
