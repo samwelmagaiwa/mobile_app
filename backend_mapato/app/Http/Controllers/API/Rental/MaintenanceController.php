@@ -26,8 +26,12 @@ class MaintenanceController extends Controller
         $user = $request->user();
         $query = MaintenanceRequest::with(['property', 'house', 'tenant', 'workOrder.vendor']);
 
-        // Landlord/Admin see their properties' requests
-        if (in_array($user->role, ['admin', 'landlord', 'caretaker'])) {
+        // Landlord/Admin see their properties' requests; super_admin sees
+        // every property's requests (was previously falling through to the
+        // tenant branch below since 'super_admin' wasn't in this list).
+        if ($user->isSuperAdmin()) {
+            // no property filter -- unrestricted
+        } elseif (in_array($user->role, ['admin', 'landlord', 'caretaker'])) {
             $query->whereHas('property', function ($q) use ($user) {
                 // If it's a caretaker, there might be a different linkage, but owner_id works for landlord
                 if ($user->role !== 'admin') {
@@ -204,7 +208,7 @@ class MaintenanceController extends Controller
             return ResponseHelper::success(VendorResource::collection($vendors));
         }
 
-        if ($user->role === 'admin') {
+        if ($user->isSuperAdmin() || $user->role === 'admin') {
             $vendors = Vendor::where('is_active', true)->get();
             return ResponseHelper::success(VendorResource::collection($vendors));
         }
@@ -293,9 +297,12 @@ class MaintenanceController extends Controller
      */
     public function getPreventive(Request $request)
     {
-        $ownerId = $request->user()->id;
-        $schedules = PreventiveMaintenance::whereHas('property', function ($q) use ($ownerId) {
-            $q->where('owner_id', $ownerId);
+        $user = $request->user();
+        $ownerId = $user->id;
+        $schedules = PreventiveMaintenance::when(!$user->isSuperAdmin(), function ($q) use ($ownerId) {
+            $q->whereHas('property', function ($query) use ($ownerId) {
+                $query->where('owner_id', $ownerId);
+            });
         })->with(['property', 'house'])->get();
 
         return ResponseHelper::success($schedules);

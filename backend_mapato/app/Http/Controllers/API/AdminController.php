@@ -110,7 +110,7 @@ class AdminController extends Controller
                               ->with('driver');
             
             // If admin is authenticated, ensure driver belongs to admin
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $driverQuery->where('created_by', $admin->id);
             }
             
@@ -164,10 +164,13 @@ class AdminController extends Controller
 
             $admin = $request->user();
 
-            // Verify transaction belongs to admin's driver
-            $transaction = Transaction::whereHas('driver', function ($query) use ($admin) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('created_by', $admin->id);
+            // Verify transaction belongs to admin's driver (super_admin can
+            // record a payment against any admin's driver)
+            $transaction = Transaction::when(!$admin->isSuperAdmin(), function ($tq) use ($admin) {
+                $tq->whereHas('driver', function ($query) use ($admin) {
+                    $query->whereHas('user', function ($q) use ($admin) {
+                        $q->where('created_by', $admin->id);
+                    });
                 });
             })
             ->with('driver.user', 'device')
@@ -215,7 +218,7 @@ class AdminController extends Controller
                         ->active();
 
             // If admin is authenticated, filter by admin's drivers
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
 
@@ -417,7 +420,7 @@ class AdminController extends Controller
             $query = User::where('id', $id)->where('role', 'driver');
             
             // If admin is authenticated, ensure they can only update their own drivers
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
             
@@ -526,7 +529,7 @@ class AdminController extends Controller
             $query = User::where('id', $id)->where('role', 'driver');
             
             // If admin is authenticated, ensure they can only delete their own drivers
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
             
@@ -577,7 +580,7 @@ class AdminController extends Controller
             // If admin is authenticated, include:
             // - vehicles whose driver belongs to this admin, OR
             // - unassigned vehicles (driver_id is null)
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where(function ($scope) use ($admin) {
                     $scope->whereHas('driver', function ($q) use ($admin) {
                         $q->whereHas('user', function ($userQuery) use ($admin) {
@@ -738,7 +741,7 @@ class AdminController extends Controller
                                   ->with('driver');
                 
                 // If admin is authenticated, ensure driver belongs to admin
-                if ($admin) {
+                if ($admin && !$admin->isSuperAdmin()) {
                     $driverQuery->where('created_by', $admin->id);
                 }
                 
@@ -808,7 +811,7 @@ class AdminController extends Controller
             $driverQuery = User::where('id', $request->driver_id)
                          ->where('role', 'driver')
                          ->with('driver');
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $driverQuery->where('created_by', $admin->id);
             }
             $driver = $driverQuery->first();
@@ -879,7 +882,7 @@ class AdminController extends Controller
             $query = Transaction::with(['driver.user', 'device', 'receipt']);
 
             // If admin is authenticated, filter by admin's transactions
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->whereHas('driver', function ($q) use ($admin) {
                     $q->whereHas('user', function ($userQuery) use ($admin) {
                         $userQuery->where('created_by', $admin->id);
@@ -999,10 +1002,11 @@ class AdminController extends Controller
 
             $admin = $request->user();
 
-            // Verify driver belongs to admin if specified
+            // Verify driver belongs to admin if specified (super_admin can
+            // set a reminder for any admin's driver)
             if ($request->driver_id) {
                 $driver = User::where('id', $request->driver_id)
-                             ->where('created_by', $admin->id)
+                             ->when(!$admin->isSuperAdmin(), fn($q) => $q->where('created_by', $admin->id))
                              ->where('role', 'driver')
                              ->with('driver')
                              ->firstOrFail();
@@ -1261,7 +1265,7 @@ class AdminController extends Controller
                         ->with(['driver', 'assignedDevice']);
             
             // If admin is authenticated, ensure driver belongs to admin
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
             
@@ -1334,7 +1338,7 @@ class AdminController extends Controller
             $query = User::where('id', $driverId)->where('role', 'driver')
                         ->with(['driver']);
             
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
             
@@ -1403,7 +1407,7 @@ class AdminController extends Controller
             $query = User::where('id', $driverId)->where('role', 'driver')
                         ->with(['driver']);
             
-            if ($admin) {
+            if ($admin && !$admin->isSuperAdmin()) {
                 $query->where('created_by', $admin->id);
             }
             

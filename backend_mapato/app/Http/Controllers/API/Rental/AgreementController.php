@@ -26,8 +26,10 @@ class AgreementController extends Controller
      */
     public function index(Request $request)
     {
-        $query = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $query = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->with('tenant', 'house.property', 'house.block');
 
         // Filter by status
@@ -63,8 +65,10 @@ class AgreementController extends Controller
      */
     public function show(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->with('tenant', 'tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')->findOrFail($id);
 
         return ResponseHelper::success($agreement);
@@ -97,9 +101,12 @@ class AgreementController extends Controller
             'auto_renew' => 'sometimes|boolean',
         ]);
 
-        // Verify property ownership
-        $house = House::whereHas('property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        // Verify property ownership (super_admin can create agreements on
+        // any landlord's house)
+        $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->findOrFail($request->house_id);
 
         if ($house->status !== 'vacant' && $request->get('force') != true) {
@@ -155,8 +162,10 @@ class AgreementController extends Controller
      */
     public function renew(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->findOrFail($id);
 
         $request->validate([
@@ -179,8 +188,10 @@ class AgreementController extends Controller
      */
     public function terminate(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->findOrFail($id);
 
         $request->validate([
@@ -208,8 +219,10 @@ class AgreementController extends Controller
      */
     public function uploadDocument(Request $request, string $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->findOrFail($id);
 
         $request->validate([
@@ -238,8 +251,10 @@ class AgreementController extends Controller
      */
     public function getExpiring(Request $request)
     {
-        $agreements = RentalAgreement::whereHas('house.property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $agreements = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('house.property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->where('status', 'active')
             ->where('end_date', '>=', now())
             ->where('end_date', '<=', now()->addDays(30))

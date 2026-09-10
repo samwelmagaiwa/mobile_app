@@ -16,7 +16,7 @@ class CaretakerController extends Controller
     public function index(Request $request)
     {
         $caretakers = User::where('role', 'caretaker')
-            ->where('created_by', $request->user()->id)
+            ->when(!$request->user()->isSuperAdmin(), fn($q) => $q->where('created_by', $request->user()->id))
             ->select('id', 'name', 'email', 'phone_number', 'is_active', 'created_at')
             ->get();
         
@@ -53,7 +53,7 @@ class CaretakerController extends Controller
     public function assignProperties(Request $request, $caretakerId)
     {
         $caretaker = User::where('role', 'caretaker')
-            ->where('created_by', $request->user()->id)
+            ->when(!$request->user()->isSuperAdmin(), fn($q) => $q->where('created_by', $request->user()->id))
             ->findOrFail($caretakerId);
 
         $request->validate([
@@ -61,9 +61,12 @@ class CaretakerController extends Controller
             'property_ids.*' => 'exists:rental_properties,id',
         ]);
 
-        // Verify the landlord owns these properties
-        $properties = Property::where('owner_id', $request->user()->id)
-            ->whereIn('id', $request->property_ids)
+        // Verify the landlord owns these properties (super_admin may assign
+        // any landlord's properties to a caretaker)
+        $properties = Property::when(
+            !$request->user()->isSuperAdmin(),
+            fn($q) => $q->where('owner_id', $request->user()->id)
+        )->whereIn('id', $request->property_ids)
             ->get();
 
         // Store assigned property IDs (you may want to create a separate table for this)
@@ -79,7 +82,7 @@ class CaretakerController extends Controller
     public function update(Request $request, $id)
     {
         $caretaker = User::where('role', 'caretaker')
-            ->where('created_by', $request->user()->id)
+            ->when(!$request->user()->isSuperAdmin(), fn($q) => $q->where('created_by', $request->user()->id))
             ->findOrFail($id);
 
         $request->validate([
@@ -98,7 +101,7 @@ class CaretakerController extends Controller
     public function destroy(Request $request, $id)
     {
         $caretaker = User::where('role', 'caretaker')
-            ->where('created_by', $request->user()->id)
+            ->when(!$request->user()->isSuperAdmin(), fn($q) => $q->where('created_by', $request->user()->id))
             ->findOrFail($id);
 
         $caretaker->delete();

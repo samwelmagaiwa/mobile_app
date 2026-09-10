@@ -32,6 +32,7 @@ class PropertyController extends Controller
 
         $properties = $this->propertyService
             ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
             ->getAll($filters, $perPage);
 
         return ResponseHelper::paginate($properties, PropertyResource::class);
@@ -45,6 +46,7 @@ class PropertyController extends Controller
     {
         $stats = $this->propertyService
             ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
             ->getStatistics();
 
         return ResponseHelper::success($stats);
@@ -58,6 +60,7 @@ class PropertyController extends Controller
     {
         $property = $this->propertyService
             ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
             ->getById($id);
 
         return ResponseHelper::success(new PropertyResource($property));
@@ -72,6 +75,7 @@ class PropertyController extends Controller
         try {
             $property = $this->propertyService
                 ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
                 ->create($request->validated());
 
             return ResponseHelper::success(
@@ -93,6 +97,7 @@ class PropertyController extends Controller
         try {
             $property = $this->propertyService
                 ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
                 ->update($id, $request->validated());
 
             return ResponseHelper::success(
@@ -113,6 +118,7 @@ class PropertyController extends Controller
         try {
             $this->propertyService
                 ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
                 ->delete($id);
 
             return ResponseHelper::success(null, 'Mali imefutwa');
@@ -130,6 +136,7 @@ class PropertyController extends Controller
         try {
             $property = $this->propertyService
                 ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
                 ->restore($id);
 
             return ResponseHelper::success(
@@ -149,6 +156,7 @@ class PropertyController extends Controller
     {
         $properties = $this->propertyService
             ->setOwner($request->user()->id)
+            ->setUnrestricted($request->user()->isSuperAdmin())
             ->getDeleted();
 
         return ResponseHelper::success(PropertyResource::collection($properties));
@@ -160,7 +168,10 @@ class PropertyController extends Controller
      */
     public function addHouse(Request $request, string $propertyId)
     {
-        $property = Property::where('owner_id', $request->user()->id)->findOrFail($propertyId);
+        $property = Property::when(
+            !$request->user()->isSuperAdmin(),
+            fn($q) => $q->where('owner_id', $request->user()->id)
+        )->findOrFail($propertyId);
 
         $request->validate([
             'house_number' => 'required|string|max:50',

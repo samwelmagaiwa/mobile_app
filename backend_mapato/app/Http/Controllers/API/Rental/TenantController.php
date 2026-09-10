@@ -32,8 +32,10 @@ class TenantController extends Controller
     {
         $user = $request->user();
 
-        $agreements = RentalAgreement::whereHas('house.property', function ($query) use ($user) {
-            $query->where('owner_id', $user->id);
+        $agreements = RentalAgreement::when(!$user->isSuperAdmin(), function ($aq) use ($user) {
+            $aq->whereHas('house.property', function ($query) use ($user) {
+                $query->where('owner_id', $user->id);
+            });
         })->with('tenant.profile', 'house.property', 'house.block')->get();
 
         $tenants = $agreements->map(function ($agreement) {
@@ -73,7 +75,9 @@ class TenantController extends Controller
         $search = $request->query('query');
 
         // Return ONLY users created by this landlord who have the 'tenant' role
-        $query = User::where('created_by', $user->id)->where('role', 'tenant');
+        // (super_admin sees every tenant regardless of who created them)
+        $query = User::when(!$user->isSuperAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->where('role', 'tenant');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -91,8 +95,12 @@ class TenantController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
-            $query->where('owner_id', $request->user()->id);
+        $isSuperAdmin = $request->user()->isSuperAdmin();
+
+        $agreement = RentalAgreement::when(!$isSuperAdmin, function ($aq) use ($request) {
+            $aq->whereHas('house.property', function ($query) use ($request) {
+                $query->where('owner_id', $request->user()->id);
+            });
         })->where('tenant_id', $id)
             ->with('tenant.profile', 'house.property', 'house.block', 'bills', 'payments.receipt')
             ->first();
@@ -108,10 +116,11 @@ class TenantController extends Controller
             ]);
         }
 
-        // If no agreement exists, check if this is a valid tenant for this landlord
-        $tenant = User::where('id', $id)
-            ->where('role', 'tenant')
-            ->where(function ($query) use ($request) {
+        // If no agreement exists, check if this is a valid tenant for this
+        // landlord (super_admin can view any tenant, no ownership check).
+        $tenantQuery = User::where('id', $id)->where('role', 'tenant');
+        if (!$isSuperAdmin) {
+            $tenantQuery->where(function ($query) use ($request) {
                 $query->where('created_by', $request->user()->id)
                     ->orWhereExists(function ($q) use ($request) {
                         $q->select(DB::raw(1))
@@ -120,14 +129,16 @@ class TenantController extends Controller
                             ->whereColumn('rental_houses.current_tenant_id', 'users.id')
                             ->where('rental_properties.owner_id', $request->user()->id);
                     });
-            })
-            ->with('profile')
-            ->firstOrFail();
+            });
+        }
+        $tenant = $tenantQuery->with('profile')->firstOrFail();
 
         // Check if they are currently assigned to any house
         $house = House::where('current_tenant_id', $id)
-            ->whereHas('property', function ($query) use ($request) {
-                $query->where('owner_id', $request->user()->id);
+            ->when(!$isSuperAdmin, function ($query) use ($request) {
+                $query->whereHas('property', function ($q) use ($request) {
+                    $q->where('owner_id', $request->user()->id);
+                });
             })->with('property', 'block')->first();
 
         return ResponseHelper::success([
@@ -210,8 +221,12 @@ class TenantController extends Controller
             'status' => 'required|in:active,notice,terminated,defaulter',
         ]);
 
-        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
-            $query->where('owner_id', $request->user()->id);
+        $isSuperAdmin = $request->user()->isSuperAdmin();
+
+        $agreement = RentalAgreement::when(!$isSuperAdmin, function ($aq) use ($request) {
+            $aq->whereHas('house.property', function ($query) use ($request) {
+                $query->where('owner_id', $request->user()->id);
+            });
         })->where('tenant_id', $id)->first();
 
         if ($agreement) {
@@ -224,8 +239,10 @@ class TenantController extends Controller
         } else {
             // No agreement, but if terminating, free up the house
             if ($request->status === 'terminated') {
-                $house = House::whereHas('property', function ($query) use ($request) {
-                    $query->where('owner_id', $request->user()->id);
+                $house = House::when(!$isSuperAdmin, function ($query) use ($request) {
+                    $query->whereHas('property', function ($q) use ($request) {
+                        $q->where('owner_id', $request->user()->id);
+                    });
                 })->where('current_tenant_id', $id)->first();
 
                 if ($house) {
@@ -246,8 +263,12 @@ class TenantController extends Controller
      */
     public function terminate(Request $request, $id)
     {
-        $agreement = RentalAgreement::whereHas('house.property', function ($query) use ($request) {
-            $query->where('owner_id', $request->user()->id);
+        $isSuperAdmin = $request->user()->isSuperAdmin();
+
+        $agreement = RentalAgreement::when(!$isSuperAdmin, function ($aq) use ($request) {
+            $aq->whereHas('house.property', function ($query) use ($request) {
+                $query->where('owner_id', $request->user()->id);
+            });
         })->where('tenant_id', $id)->first();
 
         if ($agreement) {
@@ -258,8 +279,10 @@ class TenantController extends Controller
             $agreement->delete();
         } else {
             // If there's no agreement, but there's a house currently occupied by this tenant
-            $house = House::whereHas('property', function ($query) use ($request) {
-                $query->where('owner_id', $request->user()->id);
+            $house = House::when(!$isSuperAdmin, function ($query) use ($request) {
+                $query->whereHas('property', function ($q) use ($request) {
+                    $q->where('owner_id', $request->user()->id);
+                });
             })->where('current_tenant_id', $id)->first();
 
             if ($house) {
@@ -268,9 +291,9 @@ class TenantController extends Controller
                 // If there's no agreement and no house, but the user is a tenant, check access
                 $user = User::where('id', $id)
                     ->where('role', 'tenant')
-                    ->where('created_by', $request->user()->id)
+                    ->when(!$isSuperAdmin, fn($q) => $q->where('created_by', $request->user()->id))
                     ->first();
-                
+
                 if (!$user) {
                     return ResponseHelper::error('Tenant not found', 404);
                 }

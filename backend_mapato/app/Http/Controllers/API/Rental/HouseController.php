@@ -16,8 +16,11 @@ class HouseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = House::query()->whereHas('property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $isSuperAdmin = $request->user()->isSuperAdmin();
+        $query = House::query()->when(!$isSuperAdmin, function ($hq) use ($request) {
+            $hq->whereHas('property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         });
 
         // Filter by property
@@ -53,8 +56,12 @@ class HouseController extends Controller
      */
     public function getByProperty(Request $request, $propertyId)
     {
-        // Verify property belongs to user
-        $property = Property::where('owner_id', $request->user()->id)->findOrFail($propertyId);
+        // Verify property belongs to user (skipped for super_admin, who can
+        // see any landlord's properties)
+        $property = Property::when(
+            !$request->user()->isSuperAdmin(),
+            fn($q) => $q->where('owner_id', $request->user()->id)
+        )->findOrFail($propertyId);
 
         $houses = House::where('property_id', $propertyId)
             ->with('block', 'currentTenant')
@@ -69,7 +76,10 @@ class HouseController extends Controller
      */
     public function store(Request $request)
     {
-        $property = Property::where('owner_id', $request->user()->id)->findOrFail($request->property_id);
+        $property = Property::when(
+            !$request->user()->isSuperAdmin(),
+            fn($q) => $q->where('owner_id', $request->user()->id)
+        )->findOrFail($request->property_id);
 
         $currentSum = House::where('property_id', $request->property_id)->sum('rent_amount');
         $remainingAllowed = max(0, $property->default_rent_amount - $currentSum);
@@ -153,8 +163,10 @@ class HouseController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $house = House::whereHas('property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->with('property', 'block', 'currentTenant.tenantProfile', 'activeAgreement.tenant')
           ->findOrFail($id);
 
@@ -170,8 +182,10 @@ class HouseController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $house = House::whereHas('property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->with('property')->findOrFail($id);
 
         $currentSum = House::where('property_id', $house->property_id)
@@ -273,8 +287,10 @@ class HouseController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $house = House::whereHas('property', function ($q) use ($request) {
-            $q->where('owner_id', $request->user()->id);
+        $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
+            $hq->whereHas('property', function ($q) use ($request) {
+                $q->where('owner_id', $request->user()->id);
+            });
         })->findOrFail($id);
 
         if ($house->status === 'occupied') {

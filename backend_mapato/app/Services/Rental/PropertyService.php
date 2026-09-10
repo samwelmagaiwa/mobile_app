@@ -9,10 +9,20 @@ use Illuminate\Support\Facades\DB;
 class PropertyService
 {
     protected ?string $ownerId = null;
+    // super_admin sees every landlord's data, not just their own -- every
+    // query below skips the owner_id filter entirely when this is true,
+    // rather than scoping to a super_admin's own (typically empty) portfolio.
+    protected bool $unrestricted = false;
 
     public function setOwner(string $ownerId): self
     {
         $this->ownerId = $ownerId;
+        return $this;
+    }
+
+    public function setUnrestricted(bool $unrestricted = true): self
+    {
+        $this->unrestricted = $unrestricted;
         return $this;
     }
 
@@ -29,7 +39,7 @@ class PropertyService
         $ownerId = $this->getOwnerId();
 
         $query = Property::with(['blocks' => fn($q) => $q->withCount('houses'), 'houses.currentTenant', 'caretaker'])
-            ->where('owner_id', $ownerId);
+            ->when(!$this->unrestricted, fn($q) => $q->where('owner_id', $ownerId));
 
         // Search filter
         if (!empty($filters['search'])) {
@@ -66,7 +76,7 @@ class PropertyService
     public function getById(string $id): Property
     {
         return Property::with(['blocks' => fn($q) => $q->withCount('houses'), 'houses.currentTenant', 'caretaker'])
-            ->where('owner_id', $this->getOwnerId())
+            ->when(!$this->unrestricted, fn($q) => $q->where('owner_id', $this->getOwnerId()))
             ->findOrFail($id);
     }
 
@@ -149,13 +159,13 @@ class PropertyService
      */
     public function getStatistics(): array
     {
-        $properties = Property::where('owner_id', $this->getOwnerId())->get();
+        $properties = Property::when(!$this->unrestricted, fn($q) => $q->where('owner_id', $this->getOwnerId()))->get();
 
         $totalProperties = $properties->count();
         $totalUnits = $properties->sum('total_units');
 
         $occupiedUnits = House::whereHas('property', function ($query) {
-            $query->where('owner_id', $this->getOwnerId());
+            $query->when(!$this->unrestricted, fn($q) => $q->where('owner_id', $this->getOwnerId()));
         })->where('status', 'occupied')->count();
 
         $vacantUnits = $totalUnits - $occupiedUnits;
@@ -180,7 +190,7 @@ class PropertyService
     public function restore(string $id): Property
     {
         $property = Property::withTrashed()
-            ->where('owner_id', $this->getOwnerId())
+            ->when(!$this->unrestricted, fn($q) => $q->where('owner_id', $this->getOwnerId()))
             ->findOrFail($id);
 
         $property->restore();
@@ -194,7 +204,7 @@ class PropertyService
     public function getDeleted()
     {
         return Property::onlyTrashed()
-            ->where('owner_id', $this->getOwnerId())
+            ->when(!$this->unrestricted, fn($q) => $q->where('owner_id', $this->getOwnerId()))
             ->get();
     }
 }
