@@ -148,17 +148,23 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 _buildRoleWelcome(loc, user?.name ?? '', role, perms),
               if (!isPrivileged) ResponsiveHelper.verticalSpace(2),
 
-              // Leo card: sales summary + insight tiles (Fedha/Credit/Matumizi)
-              if (canCreateSales)
-                _buildSalesTopCard(
+              // Leo card
+              if (canCreateSales) _buildSalesTopCard(loc, inv),
+              // Tiny gap then insight cards (Fedha / Credit / Matumizi)
+              if (canCreateSales && (canViewCash || canViewCredit || canViewExpenses))
+                const SizedBox(height: 4),
+              if (canViewCash || canViewCredit || canViewExpenses)
+                _buildInsightRow(
                   loc, inv,
                   canViewCash: canViewCash,
                   canViewCredit: canViewCredit,
+                  canViewCrates: canViewCrates,
                   canViewExpenses: canViewExpenses,
+                  canViewPurchasing: canViewPurchasing,
+                  canViewStock: canViewStock,
                 ),
-              if (canCreateSales) ResponsiveHelper.verticalSpace(2),
-
-              // Product + low-stock stats — after Leo section
+              // Tiny gap then Bidhaa + low stock
+              if (canViewProducts) const SizedBox(height: 4),
               if (canViewProducts) _buildProductStatsRow(loc, inv),
               if (canViewProducts) ResponsiveHelper.verticalSpace(2),
 
@@ -541,13 +547,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   }
 
   // ── Combined top sales card with date filter ─────────────────────────────
-  Widget _buildSalesTopCard(
-    LocalizationService loc,
-    InventoryProvider inv, {
-    bool canViewCash = false,
-    bool canViewCredit = false,
-    bool canViewExpenses = false,
-  }) =>
+  Widget _buildSalesTopCard(LocalizationService loc, InventoryProvider inv) =>
       _buildGlassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
@@ -621,40 +621,6 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   ),
                 ],
               ),
-              // ── Insight tiles (Fedha / Credit / Matumizi) ───────────────
-              if (canViewCash || canViewCredit || canViewExpenses) ...[
-                const SizedBox(height: 8),
-                const Divider(color: Colors.white30, height: 1, thickness: 0.8),
-                const SizedBox(height: 8),
-                Row(
-                  children: <Widget>[
-                    if (canViewCash)
-                      Expanded(child: _insightInlineTile(
-                        Icons.account_balance_wallet_outlined,
-                        Colors.greenAccent.shade400,
-                        loc.translate('cash'),
-                        'TSH ${_formatCurrency(inv.cashToday)}',
-                        divider: canViewCredit || canViewExpenses,
-                      )),
-                    if (canViewCredit)
-                      Expanded(child: _insightInlineTile(
-                        Icons.people_outline_rounded,
-                        Colors.lightBlueAccent.shade200,
-                        loc.translate('credit'),
-                        'TSH ${_formatCurrency(inv.creditOutstanding)}',
-                        divider: canViewExpenses,
-                      )),
-                    if (canViewExpenses)
-                      Expanded(child: _insightInlineTile(
-                        Icons.receipt_outlined,
-                        Colors.orangeAccent.shade200,
-                        loc.translate('expenses'),
-                        'TSH ${_formatCurrency(inv.expensesToday)}',
-                        divider: false,
-                      )),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
