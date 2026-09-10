@@ -726,22 +726,20 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     return Row(
       children: <Widget>[
         Expanded(
-          child: _buildStatCard(
-            loc.translate('products'),
-            '$totalProducts',
-            '${loc.translate('active')} $inStock/$totalProducts',
+          child: _insightTile(
             Icons.inventory_2_outlined,
-            true,
+            Colors.cyanAccent.shade400,
+            loc.translate('products'),
+            '$totalProducts  •  ${loc.translate('active')} $inStock',
           ),
         ),
-        ResponsiveHelper.horizontalSpace(4),
+        const SizedBox(width: 4),
         Expanded(
-          child: _buildStatCard(
-            loc.translate('low_stock_alerts'),
-            '$lowStock',
-            loc.translate('items'),
+          child: _insightTile(
             Icons.warning_amber_rounded,
-            lowStock == 0,
+            lowStock == 0 ? Colors.greenAccent.shade400 : Colors.orangeAccent.shade200,
+            loc.translate('low_stock_alerts'),
+            '$lowStock ${loc.translate('items')}',
           ),
         ),
       ],
