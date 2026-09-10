@@ -65,6 +65,7 @@ import 'screens/rental/tenant_self_service_screen.dart';
 import 'screens/rental/vendor_dashboard_screen.dart';
 import 'screens/rental/lease_agreement_wizard_screen.dart';
 import 'screens/reports/report_screen.dart';
+import 'screens/landing/app_landing_screen.dart';
 import 'screens/service_selection_screen.dart';
 import 'widgets/service_guard.dart';
 import 'screens/settings/settings_screen.dart';
@@ -74,6 +75,7 @@ import 'services/localization_service.dart';
 import 'utils/role_services.dart';
 import 'utils/web_keyboard_fix_stub.dart'
     if (dart.library.html) 'utils/web_keyboard_fix_web.dart';
+import 'widgets/flag_app_name_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -503,6 +505,7 @@ class _LanguageSelectionPage extends StatelessWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _languageChosenThisSession = false;
+  bool _landingShownThisSession = false;
 
   @override
   void initState() {
@@ -525,6 +528,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
+  void _onLandingDone() {
+    if (mounted) setState(() => _landingShownThisSession = true);
+  }
+
+  Widget _resolveServiceHome(AuthProvider authProvider) {
+    final List<String> boundServices = authProvider.user!.serviceTypes;
+    if (boundServices.length == 1) {
+      return _ServiceHomeFor(
+        service: boundServices.first,
+        authProvider: authProvider,
+      );
+    }
+    if (boundServices.length > 1) {
+      return ServiceSelectionScreen(allowedServices: boundServices);
+    }
+    // No explicit binding — derive from role.
+    final List<String> roleServices =
+        _servicesForRole(authProvider.user!.role ?? '');
+    if (roleServices.length == 1) {
+      return _ServiceHomeFor(
+        service: roleServices.first,
+        authProvider: authProvider,
+      );
+    }
+    return ServiceSelectionScreen(allowedServices: roleServices);
+  }
+
   @override
   Widget build(final BuildContext context) =>
       Consumer2<AuthProvider, LocalizationService>(
@@ -542,6 +572,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
+                    FlagAppNameText(
+                      localizationService.translate('app_name'),
+                      fontSize: 30.sp,
+                    ),
+                    SizedBox(height: 24.h),
                     const CircularProgressIndicator(),
                     SizedBox(height: 16.h),
                     Text(
@@ -559,36 +594,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
           // Show appropriate screen based on auth state
           if (authProvider.isAuthenticated && authProvider.user != null) {
-            // Always show the language selection immediately after login for this session
+            // 1. Language first
             if (!_languageChosenThisSession) {
               return _LanguageSelectionPage(onSelected: _onLanguageChosen);
             }
-            // Route by the services this account is actually bound to
-            // (server-side, via user_services) - never ask again once
-            // that's known. Only an account with zero bound services
-            // (not yet assigned by an admin) falls back to the manual
-            // picker, same as before.
-            final List<String> boundServices = authProvider.user!.serviceTypes;
-            if (boundServices.length == 1) {
-              return _ServiceHomeFor(
-                service: boundServices.first,
-                authProvider: authProvider,
-              );
+            // 2. Premium landing screen (once per session after login)
+            if (!_landingShownThisSession) {
+              return AppLandingScreen(onContinue: _onLandingDone);
             }
-            if (boundServices.length > 1) {
-              return ServiceSelectionScreen(allowedServices: boundServices);
-            }
-            // No explicit service binding — derive allowed services from role
-            // so the picker only shows what this user can actually access.
-            final List<String> roleServices =
-                _servicesForRole(authProvider.user!.role ?? '');
-            if (roleServices.length == 1) {
-              return _ServiceHomeFor(
-                service: roleServices.first,
-                authProvider: authProvider,
-              );
-            }
-            return ServiceSelectionScreen(allowedServices: roleServices);
+            // 3. Route to the correct service home
+            return _resolveServiceHome(authProvider);
           } else {
             // User is not authenticated, show public landing screen
             return const PublicLandingScreen();
