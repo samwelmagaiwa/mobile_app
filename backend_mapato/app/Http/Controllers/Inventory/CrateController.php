@@ -153,9 +153,23 @@ class CrateController extends Controller
     public function depotPosition()
     {
         $types = DB::table('inventory_crate_types')->orderBy('name')->get();
+        // One grouped aggregate over the whole ledger instead of 5 SUM
+        // queries per crate type (see depotPositionAll() for why).
+        $positions = $this->ledger->depotPositionAll();
+        $zero = [
+            'held_by_depot' => 0, 'issued' => 0, 'returned' => 0,
+            'out_with_customers' => 0, 'broken_or_purchased' => 0,
+            'reconciliation_valid' => true,
+        ];
 
-        $rows = $types->map(function ($type) {
-            $position = $this->ledger->depotPosition($type->id);
+        $rows = $types->map(function ($type) use ($positions, $zero) {
+            // A crate type with no ledger movements yet simply has no row
+            // in the aggregate -- treat it as all zeros rather than null.
+            $position = $positions->get($type->id, $zero);
+            // The Flutter client's InvCrateBalance.fromJson reads
+            // crate_type_id off each row -- depotPositionAll() doesn't
+            // include it since it's already the collection's key.
+            $position['crate_type_id'] = $type->id;
             // Keep the response shape the app already expects: `broken` as
             // the combined broken+purchased write-off count.
             $position['broken'] = $position['broken_or_purchased'];

@@ -132,6 +132,46 @@ class CrateLedgerService
         return (int) $query->sum('quantity');
     }
 
+    /**
+     * Depot-wide totals for every crate type in ONE pass over the ledger,
+     * instead of the 5 SUM queries per type that depotPosition() below
+     * needs when called one type at a time. The crates_position report
+     * calls this for its full-table view — with N crate types the
+     * per-type loop was issuing 1 + 5N queries (50+ for a modest catalog);
+     * this reduces that to a single grouped aggregate query.
+     *
+     * @return \Illuminate\Support\Collection<int, array> keyed by crate_type_id
+     */
+    public function depotPositionAll(): \Illuminate\Support\Collection
+    {
+        return DB::table('inventory_crate_movements')
+            ->select(
+                'crate_type_id',
+                DB::raw("SUM(CASE WHEN party_type = 'depot' THEN quantity ELSE 0 END) as held_by_depot"),
+                DB::raw("SUM(CASE WHEN party_type = 'depot' AND movement_type = 'issued' THEN ABS(quantity) ELSE 0 END) as issued"),
+                DB::raw("SUM(CASE WHEN party_type = 'depot' AND movement_type = 'returned' THEN quantity ELSE 0 END) as returned"),
+                DB::raw("SUM(CASE WHEN party_type = 'customer' THEN quantity ELSE 0 END) as out_with_customers"),
+                DB::raw("SUM(CASE WHEN party_type = 'write_off' THEN ABS(quantity) ELSE 0 END) as broken_or_purchased"),
+            )
+            ->groupBy('crate_type_id')
+            ->get()
+            ->keyBy('crate_type_id')
+            ->map(function ($row) {
+                $heldByDepot = (int) $row->held_by_depot;
+                $issued = (int) $row->issued;
+                $returned = (int) $row->returned;
+
+                return [
+                    'held_by_depot' => $heldByDepot,
+                    'issued' => $issued,
+                    'returned' => $returned,
+                    'out_with_customers' => max(0, (int) $row->out_with_customers),
+                    'broken_or_purchased' => (int) $row->broken_or_purchased,
+                    'reconciliation_valid' => $heldByDepot === ($returned - $issued),
+                ];
+            });
+    }
+
     /** Depot-wide totals, derived straight from the ledger legs. */
     public function depotPosition(int $crateTypeId): array
     {
