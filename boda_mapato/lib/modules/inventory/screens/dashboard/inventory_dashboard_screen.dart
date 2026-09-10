@@ -554,42 +554,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // Header row: period label + filter icon
-              Row(
-                children: <Widget>[
-                  const Icon(Icons.bar_chart_rounded, color: Colors.white54, size: 15),
-                  const SizedBox(width: 6),
-                  Text(_filterLabel,
-                      style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5)),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _showFilterSheet,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const <Widget>[
-                          Icon(Icons.tune_rounded, color: Colors.white, size: 14),
-                          SizedBox(width: 5),
-                          Text('Chuja', style: TextStyle(color: Colors.white,
-                              fontSize: 11, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              // Today vs yesterday progress bar
+              // Header row: [Leo] [===progress bar===] [% label] [Chuja]
               Builder(builder: (_) {
                 final now = DateTime.now();
                 final todayStart = DateTime(now.year, now.month, now.day);
@@ -604,47 +569,66 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                     ? (todayTotal > 0 ? 1.0 : 0.0)
                     : (todayTotal / yesterdayTotal).clamp(0.0, 1.0);
                 final isAhead = todayTotal >= yesterdayTotal;
-                final barColor =
-                    isAhead ? Colors.greenAccent.shade400 : Colors.orangeAccent.shade200;
+                final barColor = isAhead
+                    ? Colors.greenAccent.shade400
+                    : Colors.orangeAccent.shade200;
                 final pctLabel = yesterdayTotal == 0
-                    ? (todayTotal > 0 ? '↑ Mpya' : '0%')
+                    ? (todayTotal > 0 ? '↑' : '0%')
                     : '${isAhead ? '↑' : '↓'} ${(pct * 100).toStringAsFixed(0)}%';
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                return Row(
                   children: <Widget>[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: <Widget>[
-                        Text(
-                          'Leo vs Jana',
-                          style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w500),
+                    const Icon(Icons.bar_chart_rounded, color: Colors.white54, size: 15),
+                    const SizedBox(width: 6),
+                    Text(_filterLabel,
+                        style: TextStyle(
+                            color: textSecondary,
+                            fontSize: ResponsiveHelper.bodyS,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5)),
+                    const SizedBox(width: 8),
+                    // Progress bar fills the space between label and % text
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 3,
+                          backgroundColor: Colors.white12,
+                          valueColor: AlwaysStoppedAnimation<Color>(barColor),
                         ),
-                        Text(
-                          pctLabel,
-                          style: TextStyle(
-                              color: barColor,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 3),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: pct,
-                        minHeight: 3,
-                        backgroundColor: Colors.white12,
-                        valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                    const SizedBox(width: 6),
+                    Text(pctLabel,
+                        style: TextStyle(
+                            color: barColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _showFilterSheet,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const <Widget>[
+                            Icon(Icons.tune_rounded, color: Colors.white, size: 14),
+                            SizedBox(width: 5),
+                            Text('Chuja', style: TextStyle(color: Colors.white,
+                                fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 );
               }),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               // Mauzo / Idadi / Faida
               Row(
                 children: <Widget>[
