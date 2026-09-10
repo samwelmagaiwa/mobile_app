@@ -1389,14 +1389,32 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                   colors: <Color>[
-                    Colors.green.shade800.withOpacity(0.5),
-                    Colors.green.shade600.withOpacity(0.3),
+                    Colors.green.shade900.withOpacity(0.75),
+                    Colors.green.shade700.withOpacity(0.55),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: Colors.greenAccent.shade400.withOpacity(0.3)),
+                  color: Colors.greenAccent.shade400,
+                  width: 1.4,
+                ),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: Colors.greenAccent.shade700.withOpacity(0.55),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: Colors.green.shade900.withOpacity(0.40),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
