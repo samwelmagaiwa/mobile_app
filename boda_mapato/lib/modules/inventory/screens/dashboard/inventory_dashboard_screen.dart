@@ -166,7 +166,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               // Tiny gap then Bidhaa + low stock
               if (canViewProducts) const SizedBox(height: 4),
               if (canViewProducts) _buildProductStatsRow(loc, inv),
-              if (canViewProducts) ResponsiveHelper.verticalSpace(2),
+              if (canViewProducts) const SizedBox(height: 4),
 
               // Joined scrollable sections (valuation / products list / chart)
               _buildJoinedSections(
@@ -1266,39 +1266,48 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
           boxShadow: <BoxShadow>[
+            // Cyan top-edge glow — matches other cards
             BoxShadow(
-              color: primaryBlue.withOpacity(1.0),
-              blurRadius: 60,
-              spreadRadius: 20,
-              offset: const Offset(0, 30),
+              color: Colors.cyanAccent.withOpacity(0.35),
+              blurRadius: 14,
+              spreadRadius: 0,
+              offset: const Offset(0, -1),
+            ),
+            BoxShadow(
+              color: Colors.cyanAccent.withOpacity(0.20),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: Offset.zero,
             ),
             BoxShadow(
               color: primaryBlue.withOpacity(1.0),
-              blurRadius: 30,
-              spreadRadius: 10,
-              offset: const Offset(0, 12),
-            ),
-            BoxShadow(
-              color: primaryBlue.withOpacity(0.95),
-              blurRadius: 10,
-              spreadRadius: 4,
-              offset: const Offset(0, 4),
+              blurRadius: 28,
+              spreadRadius: 8,
+              offset: const Offset(0, 18),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              if (canViewReports) _buildInventoryValuationContent(loc, inv),
-              if (canViewReports) _sectionDivider(),
-              if (canViewProducts) _buildProductsOverviewContent(loc, inv),
-              if (canViewProducts && canViewSalesChart) _sectionDivider(),
-              if (canViewSalesChart) _buildChartSectionContent(loc, inv),
-            ],
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.cyanAccent.withOpacity(0.42),
+              width: 1.8,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (canViewReports) _buildInventoryValuationContent(loc, inv),
+                if (canViewReports) _sectionDivider(),
+                if (canViewProducts) _buildProductsOverviewContent(loc, inv),
+                if (canViewProducts && canViewSalesChart) _sectionDivider(),
+                if (canViewSalesChart) _buildChartSectionContent(loc, inv),
+              ],
+            ),
           ),
         ),
       );
