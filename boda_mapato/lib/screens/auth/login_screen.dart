@@ -1,13 +1,16 @@
+import "dart:convert";
 import "dart:ui";
 import "package:flutter/material.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 import "../../constants/theme_constants.dart";
 import "../../providers/auth_provider.dart";
 import "../../services/localization_service.dart";
 import "../../widgets/backgrounds/starfield_background.dart";
 import "../../widgets/flag_app_name_text.dart";
+import "forgot_password_sheet.dart";
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +19,84 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+// ---------------------------------------------------------------------------
+// Demo accounts shown in the collapsible picker — add / remove freely.
+// ---------------------------------------------------------------------------
+class _DemoAccount {
+  const _DemoAccount({
+    required this.label,
+    required this.role,
+    required this.email,
+    required this.phone,
+    required this.password,
+    required this.color,
+    required this.icon,
+  });
+  final String label;
+  final String role;
+  final String email;
+  final String phone;
+  final String password;
+  final Color color;
+  final IconData icon;
+}
+
+const List<_DemoAccount> _kDemoAccounts = [
+  _DemoAccount(
+    label: 'Super Admin',
+    role: 'All Services',
+    email: 'super@gmail.com',
+    phone: '0617919104',
+    password: '12345678',
+    color: Color(0xFFFFD700),
+    icon: Icons.admin_panel_settings_rounded,
+  ),
+  _DemoAccount(
+    label: 'Samwel Magaiwa',
+    role: 'Admin · E-Mauzo',
+    email: 'admin@gmail.com',
+    phone: '+255743519104',
+    password: '12345678',
+    color: Color(0xFF00E5FF),
+    icon: Icons.manage_accounts_rounded,
+  ),
+  _DemoAccount(
+    label: 'Juma Mwita',
+    role: 'Sales Officer',
+    email: 'juma@gmail.com',
+    phone: '0743519107',
+    password: '12345678',
+    color: Color(0xFF69F0AE),
+    icon: Icons.point_of_sale_rounded,
+  ),
+  _DemoAccount(
+    label: 'John Mwita',
+    role: 'Driver',
+    email: 'john@gmail.com',
+    phone: '+255743519105',
+    password: '12345678',
+    color: Color(0xFFFF6E40),
+    icon: Icons.local_shipping_rounded,
+  ),
+  _DemoAccount(
+    label: 'Jane Mwita',
+    role: 'Driver',
+    email: 'jane@gmail.com',
+    phone: '+255743519107',
+    password: '12345678',
+    color: Color(0xFFCE93D8),
+    icon: Icons.local_shipping_rounded,
+  ),
+];
+
 class _LoginScreenState extends State<LoginScreen> {
+  // Once a device has logged a given email in successfully with its
+  // matching phone number, that phone is remembered here and the phone
+  // field is skipped on later logins for the same email -- only a NEW
+  // email on this device (or a manual "use a different number" tap) asks
+  // for the phone again. Keyed on lower-cased email, persisted locally.
+  static const String _rememberedPhonesKey = 'remembered_login_phones';
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -24,13 +104,63 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _demoExpanded = false;
+  bool _forcePhoneField = false;
+  Map<String, String> _rememberedPhones = <String, String>{};
+
+  void _applyDemo(_DemoAccount account) {
+    setState(() {
+      _emailController.text = account.email;
+      _phoneController.text = account.phone;
+      _passwordController.text = account.password;
+      _demoExpanded = false;
+    });
+  }
+
+  /// True once this device already knows this email's registered phone --
+  /// the phone field is hidden and that remembered value is used silently.
+  bool get _phoneFieldNeeded {
+    if (_forcePhoneField) return true;
+    final String email = _emailController.text.trim().toLowerCase();
+    return email.isEmpty || !_rememberedPhones.containsKey(email);
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fillDemoCredentials();
-    });
+    _emailController.addListener(() => setState(() {}));
+    _loadRememberedPhones();
+  }
+
+  Future<void> _loadRememberedPhones() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? raw = prefs.getString(_rememberedPhonesKey);
+      if (raw == null || raw.isEmpty) return;
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is Map && mounted) {
+        setState(() {
+          _rememberedPhones = decoded.map(
+            (dynamic k, dynamic v) => MapEntry(k.toString(), v.toString()),
+          );
+        });
+      }
+    } on Exception {
+      // First run / corrupted prefs -- just fall back to always asking.
+    }
+  }
+
+  Future<void> _rememberPhone(String email, String phone) async {
+    try {
+      _rememberedPhones = <String, String>{
+        ..._rememberedPhones,
+        email.toLowerCase(): phone,
+      };
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_rememberedPhonesKey, jsonEncode(_rememberedPhones));
+    } on Exception {
+      // Non-fatal -- the next login just asks for the phone again.
+    }
   }
 
   @override
@@ -44,6 +174,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final String email = _emailController.text.trim();
+    final String phone = _phoneFieldNeeded
+        ? _phoneController.text.trim()
+        : _rememberedPhones[email.toLowerCase()]!;
+
     setState(() {
       _isLoading = true;
     });
@@ -51,9 +186,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
       final bool success = await authProvider.login(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
-        phoneNumber: _phoneController.text.trim(),
+        phoneNumber: phone,
       );
 
       if (mounted) {
@@ -63,12 +198,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (success) {
+        await _rememberPhone(email, phone);
         if (mounted) {
           _showSnackBar(LocalizationService.instance.translate('login_successful'), Colors.green);
           Navigator.of(context).pop();
         }
       } else {
         if (mounted) {
+          // The remembered phone may be stale (number changed) -- surface
+          // the field again so the user can correct it instead of being
+          // stuck unable to see why login keeps failing.
+          setState(() => _forcePhoneField = true);
           _showSnackBar(authProvider.errorMessage ?? LocalizationService.instance.translate('login_failed'), Colors.red);
         }
       }
@@ -92,25 +232,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _fillDemoCredentials() {
-    _emailController.text = "admin@gmail.com";
-    _phoneController.text = "+255743519104";
-    _passwordController.text = "12345678";
-  }
-
-  void _handleForgotPassword() {
-    showDialog(
+  Future<void> _handleForgotPassword() async {
+    final String? verifiedEmail = await showModalBottomSheet<String>(
       context: context,
-      builder: (final BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF001D3D),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text("Umesahau Nywila?", style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold)),
-        content: Text("Kipengele hiki kinatengenezwa. Kwa sasa tumia taarifa za demo.", style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Sawa", style: TextStyle(color: const Color(0xFF00E5FF)))),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ForgotPasswordSheet(
+        initialEmail: _emailController.text.trim().isEmpty
+            ? null
+            : _emailController.text.trim(),
       ),
     );
+    if (verifiedEmail != null && mounted) {
+      setState(() {
+        _emailController.text = verifiedEmail;
+        // The account's phone is unchanged by a password reset, so if this
+        // device already remembered it, keep skipping the phone field.
+        _forcePhoneField = false;
+        _passwordController.clear();
+      });
+    }
   }
 
   @override
@@ -147,17 +288,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                        child: IntrinsicHeight(
-                          child: AnimatedOpacity(
-                            opacity: _isLoading ? 0.3 : 1.0,
-                            duration: const Duration(milliseconds: 500),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 24.w),
-                              child: Column(
-                                children: [
-                                  SizedBox(height: 50.h),
+                      child: AnimatedOpacity(
+                        opacity: _isLoading ? 0.3 : 1.0,
+                        duration: const Duration(milliseconds: 500),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(height: 36.h),
                                   
                                   // Hero Logo Section
                                   TweenAnimationBuilder<double>(
@@ -200,8 +339,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fontSize: 28.sp,
                                   ),
                                   
-                                  SizedBox(height: 60.h),
-                                  
+                                  SizedBox(height: 24.h),
+
+                                  // ── Demo credentials picker ──────────────
+                                  _DemoPicker(
+                                    expanded: _demoExpanded,
+                                    onToggle: () => setState(() => _demoExpanded = !_demoExpanded),
+                                    onSelect: _applyDemo,
+                                  ),
+
+                                  SizedBox(height: 24.h),
+
                                   // Glass Card Form
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(24.r),
@@ -224,13 +372,36 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 icon: Icons.email_outlined,
                                                 cyberCyan: cyberCyan,
                                               ),
-                                              SizedBox(height: 20.h),
-                                              _buildModernField(
-                                                controller: _phoneController,
-                                                label: localizationService.translate('phone_number'),
-                                                icon: Icons.phone_android_outlined,
-                                                cyberCyan: cyberCyan,
-                                              ),
+                                              if (_phoneFieldNeeded) ...<Widget>[
+                                                SizedBox(height: 20.h),
+                                                _buildModernField(
+                                                  controller: _phoneController,
+                                                  label: localizationService.translate('phone_number'),
+                                                  icon: Icons.phone_android_outlined,
+                                                  cyberCyan: cyberCyan,
+                                                ),
+                                              ] else ...<Widget>[
+                                                SizedBox(height: 6.h),
+                                                Align(
+                                                  alignment: Alignment.centerLeft,
+                                                  child: TextButton(
+                                                    onPressed: () =>
+                                                        setState(() => _forcePhoneField = true),
+                                                    style: TextButton.styleFrom(
+                                                      padding: EdgeInsets.zero,
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    child: Text(
+                                                      localizationService.translate('use_different_phone'),
+                                                      style: TextStyle(
+                                                        color: cyberCyan.withValues(alpha: 0.7),
+                                                        fontSize: 11.sp,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                               SizedBox(height: 20.h),
                                               _buildModernField(
                                                 controller: _passwordController,
@@ -294,10 +465,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   
-                                  SizedBox(height: 20.h),
-                                ],
-                              ),
-                            ),
+                              SizedBox(height: 20.h),
+                            ],
                           ),
                         ),
                       ),
@@ -428,6 +597,184 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Demo credentials picker (stateless — parent owns expanded flag) ─────────
+class _DemoPicker extends StatelessWidget {
+  const _DemoPicker({
+    required this.expanded,
+    required this.onToggle,
+    required this.onSelect,
+  });
+
+  final bool expanded;
+  final VoidCallback onToggle;
+  final void Function(_DemoAccount) onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: const Color(0xFFFFD700).withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              // ── Header row ───────────────────────────────────────────────
+              GestureDetector(
+                onTap: onToggle,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.key_rounded,
+                        color: const Color(0xFFFFD700),
+                        size: 18.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          'Demo Login Credentials',
+                          style: TextStyle(
+                            color: const Color(0xFFFFD700),
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: expanded ? 0.5 : 0.0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: const Color(0xFFFFD700).withValues(alpha: 0.8),
+                          size: 20.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Expandable account list ──────────────────────────────────
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 250),
+                crossFadeState: expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Column(
+                  children: [
+                    Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                    ...List.generate(_kDemoAccounts.length, (i) {
+                      final acc = _kDemoAccounts[i];
+                      return _DemoTile(
+                        account: acc,
+                        onTap: () => onSelect(acc),
+                        isLast: i == _kDemoAccounts.length - 1,
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DemoTile extends StatelessWidget {
+  const _DemoTile({
+    required this.account,
+    required this.onTap,
+    required this.isLast,
+  });
+
+  final _DemoAccount account;
+  final VoidCallback onTap;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          border: isLast
+              ? null
+              : Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    width: 1,
+                  ),
+                ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: account.color.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: account.color.withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: Icon(account.icon, color: account.color, size: 18.sp),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${account.role}  ·  ${account.email}',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: account.color.withValues(alpha: 0.5),
+              size: 12.sp,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

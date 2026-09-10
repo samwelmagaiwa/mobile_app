@@ -409,6 +409,18 @@ class AppLocalizations {
       'reset_password': 'Reset Password',
       'user_created_successfully': 'User created successfully',
       'password_reset_successfully': 'Password reset successfully',
+      'verify': 'Verify',
+      'sawa': 'OK',
+      'enter_valid_email': 'Enter a valid email address',
+      'enter_valid_phone': 'Enter a valid phone number',
+      'password_min_length': 'Password must be at least 8 characters',
+      'passwords_do_not_match': 'Passwords do not match',
+      'forgot_password_step1_hint':
+          'Enter the email and phone number you use to log in.',
+      'forgot_password_step2_hint': 'Choose a new password for your account.',
+      'forgot_password_done_hint':
+          'You can now sign in with your new password.',
+      'use_different_phone': 'Use a different phone number?',
       'default_password_note':
           'Default password will be the LAST surname in CAPITAL letters (e.g., Samwel Mahenye Magaiwa => "MAGAIWA").',
 
@@ -1584,6 +1596,17 @@ class AppLocalizations {
       'reset_password': 'Rejesha Nywila',
       'user_created_successfully': 'Mtumiaji ameundwa kikamilifu',
       'password_reset_successfully': 'Nywila imerejeshwa kikamilifu',
+      'verify': 'Thibitisha',
+      'sawa': 'Sawa',
+      'enter_valid_email': 'Weka barua pepe sahihi',
+      'enter_valid_phone': 'Weka namba sahihi ya simu',
+      'password_min_length': 'Nywila inatakiwa kuwa na herufi 8 au zaidi',
+      'passwords_do_not_match': 'Nywila hazifanani',
+      'forgot_password_step1_hint':
+          'Weka barua pepe na namba ya simu unayotumia kuingia.',
+      'forgot_password_step2_hint': 'Chagua nywila mpya kwa akaunti yako.',
+      'forgot_password_done_hint': 'Sasa unaweza kuingia kwa nywila yako mpya.',
+      'use_different_phone': 'Tumia namba tofauti ya simu?',
       'default_password_note':
           'Nywila chaguomsingi itakuwa jina la mwisho (surname) kwa HERUFI KUBWA. Mfano: Samwel Mahenye Magaiwa => "MAGAIWA".',
 

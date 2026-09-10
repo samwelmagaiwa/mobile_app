@@ -442,46 +442,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Forgot password
-  Future<bool> forgotPassword(final String email) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      await AuthService.forgotPassword(email);
-      return true;
-    } on Exception catch (e) {
-      _setError("Failed to send reset email: $e");
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Reset password
-  Future<bool> resetPassword({
-    required final String email,
-    required final String password,
-    required final String passwordConfirmation,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      await AuthService.resetPassword(
-        email: email,
-        password: password,
-        passwordConfirmation: passwordConfirmation,
-      );
-      return true;
-    } on Exception catch (e) {
-      _setError("Failed to reset password: $e");
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   // Helper methods
   void _setLoading(final bool loading) {
     _isLoading = loading;

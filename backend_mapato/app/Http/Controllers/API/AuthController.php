@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -48,12 +49,6 @@ class AuthController extends Controller
                     'phone_number.regex' => 'Namba ya simu si sahihi. Tumia namba ya ndani (mfano: 0743519100) au ya kimataifa (mfano: +255743519100).',
                 ]
             );
-
-            // Normalize phone numbers for comparison (remove symbols and match suffixes)
-            $normalize = function ($number) {
-                return preg_replace('/[^0-9]/', '', $number);
-            };
-            $normalizedRequestPhone = $normalize($request->phone_number);
 
             // Find user by email
             $user = User::where('email', $request->email)->first();
@@ -96,8 +91,7 @@ class AuthController extends Controller
             }
 
             // Verify phone number matches (comparing last 9 digits for maximum compatibility)
-            $normalizedUserPhone = $normalize($user->phone_number);
-            if (substr($normalizedUserPhone, -9) !== substr($normalizedRequestPhone, -9)) {
+            if (!$this->phoneMatches($user, $request->phone_number)) {
                 Log::warning('Login failed - Phone number mismatch', [
                     'user_id' => $user->id,
                     'email' => $request->email,
@@ -262,12 +256,19 @@ class AuthController extends Controller
     }
 
     /**
-     * Forgot password - send reset link
+     * Step 1 of password recovery -- verify the account by the SAME two
+     * factors login itself uses (email + registered phone number), then
+     * issue a short-lived, single-use reset token.
+     *
+     * Deliberately returns the identical generic error whether the email
+     * doesn't exist, the account is inactive, or the phone doesn't match --
+     * never reveals which one failed, so this can't be used to enumerate
+     * registered emails or phone numbers. Rate-limited via the `throttle`
+     * middleware on the route for the same reason.
      */
     public function forgotPassword(Request $request)
     {
-        // Log password reset request
-        Log::info('Password reset request started', [
+        Log::info('Password reset verification started', [
             'email' => $request->email,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -275,91 +276,151 @@ class AuthController extends Controller
         ]);
 
         try {
-            $request->validate([
-                'email' => 'required|email|exists:users,email',
-            ]);
+            $request->validate(
+                [
+                    'email' => 'required|email',
+                    'phone_number' => ['required', 'regex:/^(0\d{9}|\+\d{9,15})$/'],
+                ],
+                [
+                    'phone_number.required' => 'Namba ya simu inahitajika',
+                    'phone_number.regex' => 'Namba ya simu si sahihi. Tumia namba ya ndani (mfano: 0743519100) au ya kimataifa (mfano: +255743519100).',
+                ]
+            );
 
             $user = User::where('email', $request->email)->first();
+            $genericError = 'Barua pepe na namba ya simu havikubaliani na taarifa tulizonazo.';
 
-            if (!$user->is_active) {
-                Log::warning('Password reset failed - Account inactive', [
-                    'user_id' => $user->id,
+            if (!$user || !$user->is_active || !$this->phoneMatches($user, $request->phone_number)) {
+                Log::warning('Password reset verification failed', [
                     'email' => $request->email,
                     'ip_address' => $request->ip(),
-                    'reason' => 'account_inactive',
+                    'reason' => !$user ? 'user_not_found' : (!$user->is_active ? 'account_inactive' : 'phone_mismatch'),
                     'timestamp' => now()->toISOString(),
                 ]);
-                return ResponseHelper::error('Account is inactive', 403);
+                return ResponseHelper::error($genericError, 422);
             }
 
-            // Generate password reset token
-            $token = Str::random(64);
-            
-            // Store the token (you might want to create a password_resets table)
-            // For now, we'll just return success
-            
-            Log::info('Password reset request processed', [
+            // Clear out any earlier unused tokens for this user so only the
+            // token just issued is valid -- a stale one from an abandoned
+            // reset attempt can't be replayed later.
+            DB::table('password_reset_codes')->where('user_id', $user->id)->delete();
+
+            $rawToken = Str::random(64);
+            DB::table('password_reset_codes')->insert([
+                'user_id' => $user->id,
+                'token_hash' => hash('sha256', $rawToken),
+                'expires_at' => now()->addMinutes(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('Password reset token issued', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'ip_address' => $request->ip(),
                 'timestamp' => now()->toISOString(),
             ]);
-            
-            return ResponseHelper::success([
-                'message' => 'Password reset instructions sent to your email',
-            ], 'Password reset request processed successfully');
 
+            return ResponseHelper::success([
+                'reset_token' => $rawToken,
+                'expires_in_minutes' => 10,
+            ], 'Identity verified. Choose a new password within 10 minutes.');
         } catch (ValidationException $e) {
-            Log::error('Password reset failed - Validation error', [
-                'email' => $request->email,
-                'ip_address' => $request->ip(),
-                'validation_errors' => $e->errors(),
-                'timestamp' => now()->toISOString(),
-            ]);
             return ResponseHelper::error('Validation failed', 422, $e->errors());
         } catch (\Exception $e) {
-            Log::error('Password reset failed - System error', [
+            Log::error('Password reset verification - system error', [
                 'email' => $request->email,
                 'ip_address' => $request->ip(),
                 'error_message' => $e->getMessage(),
                 'timestamp' => now()->toISOString(),
             ]);
-            return ResponseHelper::error('Failed to process password reset: ' . $e->getMessage(), 500);
+            return ResponseHelper::error('Failed to process password reset request', 500);
         }
     }
 
     /**
-     * Reset password
+     * Step 2 -- spend the token issued by forgotPassword() to actually set
+     * a new password. Every existing session is revoked afterwards so a
+     * device that had the old, possibly-compromised password stays logged
+     * out until it authenticates with the new one.
      */
     public function resetPassword(Request $request)
     {
         try {
             $request->validate([
-                'email' => 'required|email|exists:users,email',
+                'email' => 'required|email',
+                'reset_token' => 'required|string',
                 'password' => 'required|string|min:8|confirmed',
             ]);
 
             $user = User::where('email', $request->email)->first();
+            $genericError = 'Muda wa kubadili nywila umekwisha au ombi si sahihi. Anza upya.';
 
-            if (!$user->is_active) {
-                return ResponseHelper::error('Account is inactive', 403);
+            if (!$user) {
+                return ResponseHelper::error($genericError, 422);
             }
 
-            // Update password
-            $user->update([
-                'password' => Hash::make($request->password),
+            $tokenHash = hash('sha256', $request->reset_token);
+            $tokenRow = DB::table('password_reset_codes')
+                ->where('user_id', $user->id)
+                ->where('token_hash', $tokenHash)
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now())
+                ->orderByDesc('id')
+                ->first();
+
+            if (!$tokenRow) {
+                Log::warning('Password reset failed - invalid or expired token', [
+                    'user_id' => $user->id,
+                    'email' => $request->email,
+                    'ip_address' => $request->ip(),
+                    'timestamp' => now()->toISOString(),
+                ]);
+                return ResponseHelper::error($genericError, 422);
+            }
+
+            $user->update(['password' => Hash::make($request->password)]);
+
+            DB::table('password_reset_codes')->where('id', $tokenRow->id)->update([
+                'used_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            // Revoke all existing tokens
+            // Force every device to sign in again with the new password.
             $user->tokens()->delete();
 
-            return ResponseHelper::success(null, 'Password reset successfully');
+            Log::info('Password reset completed', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip_address' => $request->ip(),
+                'timestamp' => now()->toISOString(),
+            ]);
 
+            return ResponseHelper::success(null, 'Password reset successfully');
         } catch (ValidationException $e) {
             return ResponseHelper::error('Validation failed', 422, $e->errors());
         } catch (\Exception $e) {
-            return ResponseHelper::error('Password reset failed: ' . $e->getMessage(), 500);
+            Log::error('Password reset - system error', [
+                'email' => $request->email,
+                'ip_address' => $request->ip(),
+                'error_message' => $e->getMessage(),
+                'timestamp' => now()->toISOString(),
+            ]);
+            return ResponseHelper::error('Failed to reset password', 500);
         }
+    }
+
+    /**
+     * Same last-9-digit comparison used everywhere a login-time phone check
+     * happens, so login() and forgotPassword() can never silently drift
+     * apart on what counts as a match.
+     */
+    private function phoneMatches(User $user, string $providedPhone): bool
+    {
+        $normalize = fn (string $number): string => preg_replace('/[^0-9]/', '', $number);
+
+        return substr($normalize($user->phone_number ?? ''), -9)
+            === substr($normalize($providedPhone), -9);
     }
 
     /**

@@ -114,6 +114,56 @@ mixin AuthService {
     }
   }
 
+  /// Step 1 of password recovery: verify identity by email + the phone
+  /// number registered on the account (same two factors login itself
+  /// checks). Returns the short-lived reset token on success.
+  static Future<String> forgotPassword({
+    required final String email,
+    required final String phoneNumber,
+  }) async {
+    final http.Response response = await http
+        .post(
+          Uri.parse("$baseUrl/auth/forgot-password"),
+          headers: _headers,
+          body: jsonEncode(<String, String>{
+            "email": email,
+            "phone_number": phoneNumber,
+          }),
+        )
+        .timeout(timeoutDuration);
+
+    final Map<String, dynamic> data = _handleResponse(response);
+    final Map<String, dynamic>? dataMap =
+        data["data"] is Map ? Map<String, dynamic>.from(data["data"]) : null;
+    final String? token = dataMap?["reset_token"] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception("Reset token missing from server response");
+    }
+    return token;
+  }
+
+  /// Step 2: spend the token from [forgotPassword] to set a new password.
+  static Future<void> resetPassword({
+    required final String email,
+    required final String resetToken,
+    required final String password,
+  }) async {
+    final http.Response response = await http
+        .post(
+          Uri.parse("$baseUrl/auth/reset-password"),
+          headers: _headers,
+          body: jsonEncode(<String, String>{
+            "email": email,
+            "reset_token": resetToken,
+            "password": password,
+            "password_confirmation": password,
+          }),
+        )
+        .timeout(timeoutDuration);
+
+    _handleResponse(response);
+  }
+
   // Register method
   static Future<Map<String, dynamic>> register({
     required final String name,
@@ -237,24 +287,6 @@ mixin AuthService {
     }
   }
 
-  // Forgot password
-  static Future<Map<String, dynamic>> forgotPassword(final String email) async {
-    try {
-      final http.Response response = await http
-          .post(
-            Uri.parse("$baseUrl/auth/forgot-password"),
-            headers: _headers,
-            body: jsonEncode(<String, String>{"email": email}),
-          )
-          .timeout(timeoutDuration);
-
-      final Map<String, dynamic> data = _handleResponse(response);
-      return data;
-    } on Exception catch (e) {
-      throw Exception("Forgot password request failed: $e");
-    }
-  }
-
   // Update profile
   static Future<Map<String, dynamic>> updateProfile({
     final String? name,
@@ -312,32 +344,6 @@ mixin AuthService {
       _handleResponse(response);
     } on Exception catch (e) {
       throw Exception("Change password failed: $e");
-    }
-  }
-
-  // Reset password
-  static Future<Map<String, dynamic>> resetPassword({
-    required final String email,
-    required final String password,
-    required final String passwordConfirmation,
-  }) async {
-    try {
-      final http.Response response = await http
-          .post(
-            Uri.parse("$baseUrl/auth/reset-password"),
-            headers: _headers,
-            body: jsonEncode(<String, String>{
-              "email": email,
-              "password": password,
-              "password_confirmation": passwordConfirmation,
-            }),
-          )
-          .timeout(timeoutDuration);
-
-      final Map<String, dynamic> data = _handleResponse(response);
-      return data;
-    } on Exception catch (e) {
-      throw Exception("Password reset failed: $e");
     }
   }
 
