@@ -92,9 +92,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         // always has room for its two-line title.
                         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220.w,
-                          mainAxisSpacing: 10.h,
-                          crossAxisSpacing: 10.w,
-                          mainAxisExtent: 116.h,
+                          mainAxisSpacing: 8.h,
+                          crossAxisSpacing: 8.w,
+                          mainAxisExtent: 80.h,
                         ),
                         itemCount: rows.length,
                         itemBuilder: (_, int i) => _ReportTile(
@@ -143,19 +143,19 @@ class _ReportTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20.r),
       child: Container(
         decoration: ThemeConstants.glassCardDecoration,
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Container(
-              width: 34.w,
-              height: 34.w,
+              width: 28.w,
+              height: 28.w,
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Icon(icon, color: Colors.white, size: 18.sp),
+              child: Icon(icon, color: Colors.white, size: 15.sp),
             ),
             Flexible(
               child: AutoSizeText(
