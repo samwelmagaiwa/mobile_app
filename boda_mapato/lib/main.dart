@@ -574,16 +574,64 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 onContinue: () => _goToLogin(context),
               ),
 
-              // "Ingia" button pinned top-right — tappable above the slides
+              // Language icon + Ingia pill pinned top-right
               Positioned(
                 top: MediaQuery.of(context).padding.top + 12,
                 right: 16,
-                child: _IngiaPill(onTap: () => _goToLogin(context)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _LangToggleButton(onChanged: _onLanguageChosen),
+                    const SizedBox(width: 8),
+                    _IngiaPill(onTap: () => _goToLogin(context)),
+                  ],
+                ),
               ),
             ],
           );
         },
       );
+}
+
+/// Glass language-toggle icon. Cycles EN ↔ SW and persists the choice.
+class _LangToggleButton extends StatelessWidget {
+  const _LangToggleButton({required this.onChanged});
+  final Future<void> Function(String code) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LocalizationService>(
+      builder: (_, loc, __) {
+        final isSw = loc.isSwahili;
+        return GestureDetector(
+          onTap: () => onChanged(isSw ? 'en' : 'sw'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.18), width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.language_rounded, color: Colors.white70, size: 16),
+                const SizedBox(width: 5),
+                Text(
+                  isSw ? 'SW' : 'EN',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// Small pill button that sits on top of the public landing slides.
