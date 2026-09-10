@@ -588,7 +588,63 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 3),
+              // Today vs yesterday progress bar
+              Builder(builder: (_) {
+                final now = DateTime.now();
+                final todayStart = DateTime(now.year, now.month, now.day);
+                final yest = todayStart.subtract(const Duration(days: 1));
+                final todayTotal = _filteredTotal(inv);
+                final yesterdayTotal = inv.sales
+                    .where((s) =>
+                        !s.createdAt.isBefore(yest) &&
+                        s.createdAt.isBefore(todayStart))
+                    .fold(0.0, (sum, s) => sum + s.total);
+                final pct = yesterdayTotal == 0
+                    ? (todayTotal > 0 ? 1.0 : 0.0)
+                    : (todayTotal / yesterdayTotal).clamp(0.0, 1.0);
+                final isAhead = todayTotal >= yesterdayTotal;
+                final barColor =
+                    isAhead ? Colors.greenAccent.shade400 : Colors.orangeAccent.shade200;
+                final pctLabel = yesterdayTotal == 0
+                    ? (todayTotal > 0 ? '↑ Mpya' : '0%')
+                    : '${isAhead ? '↑' : '↓'} ${(pct * 100).toStringAsFixed(0)}%';
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text(
+                          'Leo vs Jana',
+                          style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          pctLabel,
+                          style: TextStyle(
+                              color: barColor,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        minHeight: 3,
+                        backgroundColor: Colors.white12,
+                        valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 4),
               // Mauzo / Idadi / Faida
               Row(
                 children: <Widget>[
