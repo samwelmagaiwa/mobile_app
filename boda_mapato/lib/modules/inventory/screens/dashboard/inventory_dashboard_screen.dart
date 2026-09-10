@@ -623,9 +623,9 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ),
               // ── Insight tiles (Fedha / Credit / Matumizi) ───────────────
               if (canViewCash || canViewCredit || canViewExpenses) ...[
-                const SizedBox(height: 10),
-                const Divider(color: Colors.white12, height: 1),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white30, height: 1, thickness: 0.8),
+                const SizedBox(height: 8),
                 Row(
                   children: <Widget>[
                     if (canViewCash)
