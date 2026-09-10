@@ -1383,39 +1383,42 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               ],
             ),
             const SizedBox(height: 10),
-            // Profit banner
+            // Profit banner — same border/shadow style as the glass cards
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: <Color>[
-                    Colors.green.shade900.withOpacity(0.75),
-                    Colors.green.shade700.withOpacity(0.55),
-                  ],
-                ),
+                color: cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.greenAccent.shade400,
-                  width: 1.4,
-                ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.greenAccent.shade700.withOpacity(0.55),
-                    blurRadius: 18,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4),
+                    color: Colors.cyanAccent.withOpacity(0.35),
+                    blurRadius: 14,
+                    spreadRadius: 0,
+                    offset: const Offset(0, -1),
                   ),
                   BoxShadow(
-                    color: Colors.green.shade900.withOpacity(0.40),
-                    blurRadius: 8,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 2),
+                    color: Colors.cyanAccent.withOpacity(0.20),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: Offset.zero,
+                  ),
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(1.0),
+                    blurRadius: 28,
+                    spreadRadius: 8,
+                    offset: const Offset(0, 18),
                   ),
                 ],
               ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.cyanAccent.withOpacity(0.42),
+                    width: 1.8,
+                  ),
+                ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
@@ -1451,6 +1454,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   ),
                 ],
               ),
+            ),
             ),
             const SizedBox(height: 14),
             // Per-product breakdown table — sorted by qty desc (top sellers first)
