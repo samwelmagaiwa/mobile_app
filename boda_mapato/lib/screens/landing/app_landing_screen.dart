@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../services/localization_service.dart';
+import '../../widgets/flag_app_name_text.dart';
 
 /// Premium animated landing screen shown once per session after language choice.
 /// Showcases all three services with full-bleed slides before routing the user
@@ -265,7 +266,33 @@ class _SlideView extends StatelessWidget {
         SafeArea(
           child: Column(
             children: [
-              SizedBox(height: 48.h),
+              SizedBox(height: 20.h),
+
+              // App name logo — Tanzania-flag diagonal gradient across mixed fonts
+              FlagAppNameText(
+                '3 in One',
+                fontSize: 36.sp,
+              ),
+
+              SizedBox(height: 6.h),
+
+              // Thin accent divider below logo
+              Container(
+                width: 48.w,
+                height: 2.h,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(1.r),
+                  gradient: LinearGradient(
+                    colors: [
+                      slide.accentColor.withOpacity(0),
+                      slide.accentColor,
+                      slide.accentColor.withOpacity(0),
+                    ],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20.h),
 
               // Big animated service icon
               AnimatedBuilder(
@@ -286,7 +313,7 @@ class _SlideView extends StatelessWidget {
                 },
               ),
 
-              SizedBox(height: 36.h),
+              SizedBox(height: 20.h),
 
               // Service name
               FadeTransition(
@@ -316,7 +343,7 @@ class _SlideView extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 10.h),
+              SizedBox(height: 8.h),
 
               // Tagline
               FadeTransition(
@@ -339,7 +366,7 @@ class _SlideView extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 32.h),
+              SizedBox(height: 20.h),
 
               // Feature chips
               FadeTransition(
