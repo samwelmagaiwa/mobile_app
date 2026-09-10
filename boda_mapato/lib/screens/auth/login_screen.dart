@@ -142,57 +142,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // Back-to-home button — top-left, always visible above the form
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 10.h,
-                left: 16.w,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14.r),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        } else {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/',
-                            (route) => false,
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white70, size: 14.sp),
-                            SizedBox(width: 5.w),
-                            Text(
-                              'Home',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -380,6 +329,57 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+
+              // Back-to-home button — last in Stack so it sits on top and is tappable
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10.h,
+                left: 16.w,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/',
+                            (route) => false,
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white70, size: 14.sp),
+                            SizedBox(width: 5.w),
+                            Text(
+                              'Home',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
