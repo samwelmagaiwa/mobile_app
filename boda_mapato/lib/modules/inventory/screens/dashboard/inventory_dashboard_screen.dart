@@ -148,11 +148,17 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 _buildRoleWelcome(loc, user?.name ?? '', role, perms),
               if (!isPrivileged) ResponsiveHelper.verticalSpace(2),
 
-              // Sales summary — visible to anyone who can create/view sales
-              if (canCreateSales) _buildSalesTopCard(loc, inv),
+              // Leo card: sales summary + insight tiles (Fedha/Credit/Matumizi)
+              if (canCreateSales)
+                _buildSalesTopCard(
+                  loc, inv,
+                  canViewCash: canViewCash,
+                  canViewCredit: canViewCredit,
+                  canViewExpenses: canViewExpenses,
+                ),
               if (canCreateSales) ResponsiveHelper.verticalSpace(2),
 
-              // Product + low-stock stats — visible to anyone with product access
+              // Product + low-stock stats — after Leo section
               if (canViewProducts) _buildProductStatsRow(loc, inv),
               if (canViewProducts) ResponsiveHelper.verticalSpace(2),
 
@@ -163,20 +169,6 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 canViewProducts: canViewProducts,
                 canViewSalesChart: canCreateSales,
               ),
-
-              // Extra insight row for privileged roles
-              if (isPrivileged || canViewCash || canViewCredit) ...[
-                ResponsiveHelper.verticalSpace(2),
-                _buildInsightRow(
-                  loc, inv,
-                  canViewCash: canViewCash,
-                  canViewCredit: canViewCredit,
-                  canViewCrates: canViewCrates,
-                  canViewExpenses: canViewExpenses,
-                  canViewPurchasing: canViewPurchasing,
-                  canViewStock: canViewStock,
-                ),
-              ],
             ],
           ),
         ),
@@ -549,7 +541,13 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   }
 
   // ── Combined top sales card with date filter ─────────────────────────────
-  Widget _buildSalesTopCard(LocalizationService loc, InventoryProvider inv) =>
+  Widget _buildSalesTopCard(
+    LocalizationService loc,
+    InventoryProvider inv, {
+    bool canViewCash = false,
+    bool canViewCredit = false,
+    bool canViewExpenses = false,
+  }) =>
       _buildGlassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
@@ -591,7 +589,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 ],
               ),
               const SizedBox(height: 10),
-              // Three stat tiles
+              // Mauzo / Idadi / Faida
               Row(
                 children: <Widget>[
                   Expanded(
@@ -623,6 +621,40 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   ),
                 ],
               ),
+              // ── Insight tiles (Fedha / Credit / Matumizi) ───────────────
+              if (canViewCash || canViewCredit || canViewExpenses) ...[
+                const SizedBox(height: 10),
+                const Divider(color: Colors.white12, height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    if (canViewCash)
+                      Expanded(child: _insightInlineTile(
+                        Icons.account_balance_wallet_outlined,
+                        Colors.greenAccent.shade400,
+                        loc.translate('cash'),
+                        'TSH ${_formatCurrency(inv.cashToday)}',
+                        divider: canViewCredit || canViewExpenses,
+                      )),
+                    if (canViewCredit)
+                      Expanded(child: _insightInlineTile(
+                        Icons.people_outline_rounded,
+                        Colors.lightBlueAccent.shade200,
+                        loc.translate('credit'),
+                        'TSH ${_formatCurrency(inv.creditOutstanding)}',
+                        divider: canViewExpenses,
+                      )),
+                    if (canViewExpenses)
+                      Expanded(child: _insightInlineTile(
+                        Icons.receipt_outlined,
+                        Colors.orangeAccent.shade200,
+                        loc.translate('expenses'),
+                        'TSH ${_formatCurrency(inv.expensesToday)}',
+                        divider: false,
+                      )),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -670,6 +702,49 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           if (divider)
             Container(
               width: 1, height: 40,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              color: Colors.white.withOpacity(0.15),
+            ),
+        ],
+      );
+
+  // Compact insight tile used inside the Leo card
+  Widget _insightInlineTile(
+    IconData icon, Color color, String label, String value, {required bool divider}) =>
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(children: <Widget>[
+                  Icon(icon, color: color, size: 13),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: textSecondary,
+                            fontSize: ResponsiveHelper.bodyS)),
+                  ),
+                ]),
+                const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value,
+                      style: TextStyle(
+                          color: textPrimary,
+                          fontSize: ResponsiveHelper.bodyM,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          if (divider)
+            Container(
+              width: 1, height: 36,
               margin: const EdgeInsets.symmetric(horizontal: 8),
               color: Colors.white.withOpacity(0.15),
             ),
