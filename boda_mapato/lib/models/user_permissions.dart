@@ -209,6 +209,9 @@ class UserPermissions {
           'inv_view_credit',
           'inv_view_cash',
           'inv_view_crates',
+          // Can flag damaged/expired/broken stock without full
+          // stock-management rights; approving still needs inv_manage_stock.
+          'inv_report_damage',
         ];
       case 'operator':
         return const [

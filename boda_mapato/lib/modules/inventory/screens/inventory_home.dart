@@ -30,6 +30,8 @@ import 'stock/write_offs_screen.dart';
 import 'stock/stock_ops_screen.dart';
 import 'barcode_scanner_screen.dart';
 import 'expenses/expenses_screen.dart';
+import 'notifications/approval_notifications_screen.dart';
+import '../providers/notifications_provider.dart';
 
 /// One entry in the inventory navigation (bottom-bar pages, quick menu grid,
 /// and drawer all read from the same list) so a role's visible sections stay
@@ -149,7 +151,12 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.report_problem_outlined,
         color: ThemeConstants.errorRed,
         pageBuilder: () => const WriteOffsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
+        // inv_report_damage lets a sales_officer flag damage/breakage at the
+        // counter without granting them full stock-management rights;
+        // approving a report still requires inv_manage_stock inside the
+        // screen itself.
+        visible: (UserPermissions p) =>
+            p.has('inv_manage_stock') || p.has('inv_report_damage'),
       ),
       _InvMenuEntry(
         key: 'purchasing',
@@ -189,7 +196,12 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         icon: Icons.assignment_return_outlined,
         color: const Color(0xFFEF4444),
         pageBuilder: () => const ReturnsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_sales'),
+        // The API only needs inv_create_sales to view/submit a return or
+        // park a sale (routes/api.php); inv_manage_sales is only required
+        // to approve one, which the screen itself gates separately. Gating
+        // the whole screen on inv_manage_sales blocked a sales_officer from
+        // even opening it, though they could already call the endpoints.
+        visible: (UserPermissions p) => p.has('inv_create_sales'),
       ),
       _InvMenuEntry(
         key: 'reports',
@@ -240,6 +252,9 @@ class _InventoryHomeState extends State<InventoryHome> {
   void initState() {
     super.initState();
     _index = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<NotificationsProvider>().refreshUnreadCount(),
+    );
   }
 
   /// Returns effective permissions for this user.
@@ -396,6 +411,41 @@ class _InventoryHomeState extends State<InventoryHome> {
           },
         ),
         actions: [
+          Consumer<NotificationsProvider>(
+            builder: (BuildContext context, NotificationsProvider n, __) => Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.notifications_outlined, size: 22.sp),
+                  tooltip: loc.translate('notifications'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ApprovalNotificationsScreen(),
+                    ),
+                  ),
+                ),
+                if (n.unreadCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      decoration: BoxDecoration(
+                        color: ThemeConstants.errorRed,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        n.unreadCount > 9 ? '9+' : '${n.unreadCount}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.qr_code_scanner_rounded, size: 22.sp),
             tooltip: loc.isSwahili ? 'Scan Barcode / QR' : 'Scan Barcode / QR',

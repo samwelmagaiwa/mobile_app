@@ -48,8 +48,15 @@ class _WriteOffsScreenState extends State<WriteOffsScreen> {
   Widget build(BuildContext context) {
     final LocalizationService loc = LocalizationService.instance;
     final InventoryProvider inv = context.watch<InventoryProvider>();
-    final UserPermissions perms = UserPermissions.fromRole(
-      context.read<AuthProvider>().user?.role ?? 'viewer',
+    final AuthProvider auth = context.read<AuthProvider>();
+    // fromUser (not fromRole) honours a per-user explicit grant too, not
+    // just the role default -- matters now that inv_report_damage lets a
+    // sales_officer submit a write-off without inv_manage_stock, so this
+    // button must stay hidden for them specifically (they can submit, not
+    // approve).
+    final UserPermissions perms = UserPermissions.fromUser(
+      userRole: auth.user?.role ?? 'viewer',
+      explicitGrants: auth.user?.permissions,
     );
     final bool canApprove = perms.has('inv_manage_stock');
 

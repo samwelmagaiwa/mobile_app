@@ -110,6 +110,10 @@ class User extends Authenticatable
         'inv_view_cash',       'inv_view_crates',
         'inv_view_reports',    'inv_view_expenses',
         'inv_manage_expenses', 'inv_manage_settings',
+        // Narrower than inv_manage_stock: lets someone submit/view a damage
+        // report without full stock-management rights. Approving one still
+        // requires inv_manage_stock (see routes/api.php write-offs group).
+        'inv_report_damage',
     ];
 
     /**
@@ -194,6 +198,10 @@ class User extends Authenticatable
         'sales_officer'=> [
             'inv_view_products','inv_create_sales','inv_view_reminders',
             'inv_view_credit','inv_view_cash','inv_view_crates',
+            // Can flag damaged/expired/broken stock they spot at the
+            // counter without full stock-management rights -- approving
+            // the report still needs inv_manage_stock, which they lack.
+            'inv_report_damage',
         ],
         'operator'     => [
             'inv_view_products','inv_manage_products',

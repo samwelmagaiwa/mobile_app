@@ -32,6 +32,7 @@ use App\Http\Controllers\Inventory\CashController as InventoryCashController;
 use App\Http\Controllers\Inventory\CrateController as InventoryCrateController;
 use App\Http\Controllers\Inventory\PosController as InventoryPosController;
 use App\Http\Controllers\Inventory\DispatchController as InventoryDispatchController;
+use App\Http\Controllers\Inventory\NotificationController as InventoryNotificationController;
 use App\Http\Controllers\Inventory\BarcodeController as InventoryBarcodeController;
 use App\Http\Controllers\Inventory\ReportController as InventoryReportController;
 use App\Http\Controllers\Inventory\AlertController as InventoryAlertController;
@@ -324,11 +325,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('inventory/stock-counts/{id}/lines/{line}', [InventoryStockCountController::class, 'deleteLine']);
         Route::post('inventory/stock-counts/{id}/post',   [InventoryStockCountController::class, 'post']);
         Route::post('inventory/stock-counts/{id}/cancel', [InventoryStockCountController::class, 'cancel']);
-        Route::get('inventory/write-offs',           [InventoryWriteOffController::class, 'index']);
-        Route::post('inventory/write-offs',          [InventoryWriteOffController::class, 'store']);
         Route::post('inventory/write-offs/{id}/decide', [InventoryWriteOffController::class, 'decide']);
         // Barcodes: generate needs manage_stock; resolve/labels only need view_products (above)
         Route::post('inventory/barcodes',        [InventoryBarcodeController::class, 'generate']);
+    });
+    // Reporting damage doesn't need full stock-management rights -- a narrower
+    // inv_report_damage permission (e.g. sales_officer) can submit/view
+    // write-offs alongside inv_manage_stock holders, but approving them
+    // (above) stays exclusive to inv_manage_stock so nobody can self-approve
+    // their own damage report.
+    Route::middleware('inv_perm:inv_manage_stock,inv_report_damage')->group(function () {
+        Route::get('inventory/write-offs',  [InventoryWriteOffController::class, 'index']);
+        Route::post('inventory/write-offs', [InventoryWriteOffController::class, 'store']);
     });
     Route::middleware('inv_perm:inv_view_products')->group(function () {
         Route::get('inventory/barcodes/resolve', [InventoryBarcodeController::class, 'resolve']);
@@ -438,6 +446,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('inventory/settings',  [InventoryAlertController::class, 'settings']);
         Route::put('inventory/settings',  [InventoryAlertController::class, 'updateSettings']);
     });
+
+    // ── Approval notifications (any authenticated user, own inbox only) ──────
+    Route::get('inventory/notifications',               [InventoryNotificationController::class, 'index']);
+    Route::post('inventory/notifications/{id}/read',    [InventoryNotificationController::class, 'markRead']);
+    Route::post('inventory/notifications/read-all',     [InventoryNotificationController::class, 'markAllRead']);
 
     // Admin routes (Vehicle Owner/Admin only)
     Route::middleware(['role:admin'])->group(function () {

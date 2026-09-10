@@ -12,6 +12,7 @@ import 'constants/styles.dart';
 import 'constants/theme_constants.dart';
 import 'modules/inventory/providers/inventory_provider.dart';
 import 'modules/inventory/providers/depot_provider.dart';
+import 'modules/inventory/providers/notifications_provider.dart';
 import 'modules/inventory/screens/inventory_home.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
@@ -185,6 +186,9 @@ class BodaMapatoApp extends StatelessWidget {
             ),
             ChangeNotifierProvider<DepotProvider>(
               create: (final BuildContext _) => DepotProvider(),
+            ),
+            ChangeNotifierProvider<NotificationsProvider>(
+              create: (final BuildContext _) => NotificationsProvider(),
             ),
             ChangeNotifierProvider<RentalProvider>(
               create: (final BuildContext _) => RentalProvider(),

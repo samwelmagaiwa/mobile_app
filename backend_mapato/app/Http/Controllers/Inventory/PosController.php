@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Services\Inventory\AuditTrail;
+use App\Services\Inventory\InventoryNotifier;
 use App\Services\Inventory\StockLedger;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -17,6 +18,7 @@ class PosController extends Controller
     public function __construct(
         private readonly StockLedger $ledger,
         private readonly AuditTrail $audit,
+        private readonly InventoryNotifier $notifier,
     ) {
     }
 
@@ -138,20 +140,23 @@ class PosController extends Controller
             }
         }
 
-        $id = DB::transaction(function () use ($data, $request) {
+        $requestedBy = optional($request->user())->id;
+        $reference = 'RET-' . now()->format('Ymd-His');
+
+        $id = DB::transaction(function () use ($data, $requestedBy, $reference) {
             $amount = 0.0;
             foreach ($data['lines'] as $line) {
                 $amount += (float) $line['unit_price'] * (int) $line['quantity'];
             }
 
             $returnId = DB::table('inventory_sale_returns')->insertGetId([
-                'reference' => 'RET-' . now()->format('Ymd-His'),
+                'reference' => $reference,
                 'sale_id' => $data['sale_id'],
                 'type' => $data['type'],
                 'amount' => $amount,
                 'reason' => $data['reason'] ?? null,
                 'status' => 'pending',
-                'requested_by' => optional($request->user())->id,
+                'requested_by' => $requestedBy,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -170,6 +175,16 @@ class PosController extends Controller
 
             return $returnId;
         });
+
+        $sale = DB::table('inventory_sales')->where('id', $data['sale_id'])->first(['number']);
+        $this->notifier->notifyByPermission(
+            permissions: ['inv_manage_sales'],
+            type: 'return_pending',
+            title: ucfirst($data['type']) . ' awaiting approval',
+            body: trim('Sale ' . ($sale->number ?? $data['sale_id']) . ' — ' . $reference),
+            data: ['sale_return_id' => (int) $id, 'reference' => $reference],
+            excludeUserId: $requestedBy,
+        );
 
         return response()->json([
             'message' => 'Return submitted for approval',
@@ -190,6 +205,15 @@ class PosController extends Controller
 
         $data = $request->validate(['decision' => 'required|in:approved,rejected']);
         $userId = optional($request->user())->id;
+
+        // Segregation of duties, matching write-off approval: the person
+        // who requested the return cannot also approve it themselves.
+        if ($return->requested_by !== null && $userId !== null
+            && (string) $return->requested_by === (string) $userId) {
+            return response()->json([
+                'message' => 'You cannot approve your own return request',
+            ], 403);
+        }
 
         try {
             DB::transaction(function () use ($return, $data, $userId, $id) {
@@ -237,6 +261,14 @@ class PosController extends Controller
         }
 
         $this->audit->record($request, 'sale_return', $id, $data['decision'], null, null, $return->reference);
+
+        $this->notifier->notifyUser(
+            userId: $return->requested_by,
+            type: 'return_decided',
+            title: 'Return ' . $data['decision'],
+            body: $return->reference . ' was ' . $data['decision'],
+            data: ['sale_return_id' => $id, 'reference' => $return->reference, 'decision' => $data['decision']],
+        );
 
         return response()->json(['message' => 'Return ' . $data['decision']]);
     }

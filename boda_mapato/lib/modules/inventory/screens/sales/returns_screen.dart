@@ -76,9 +76,17 @@ class _ReturnsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final LocalizationService loc = LocalizationService.instance;
     final List<InvSaleReturn> rows = context.watch<DepotProvider>().returns;
-    final bool canApprove = UserPermissions.fromRole(
-      context.read<AuthProvider>().user?.role ?? 'viewer',
-    ).has('inv_manage_stock');
+    final AuthProvider auth = context.read<AuthProvider>();
+    // Matches the backend gate on POST inventory/returns/{id}/decide
+    // (inv_manage_sales) -- this used to check inv_manage_stock, which
+    // could show the button to someone the API would then 403, or hide it
+    // from someone who legitimately holds inv_manage_sales without
+    // inv_manage_stock. fromUser (not fromRole) also honours a per-user
+    // explicit grant, not just the role default.
+    final bool canApprove = UserPermissions.fromUser(
+      userRole: auth.user?.role ?? 'viewer',
+      explicitGrants: auth.user?.permissions,
+    ).has('inv_manage_sales');
 
     return RefreshIndicator(
       onRefresh: onRefresh,

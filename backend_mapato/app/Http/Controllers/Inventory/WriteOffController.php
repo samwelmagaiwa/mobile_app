@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Inventory;
 
+use App\Services\Inventory\InventoryNotifier;
 use App\Services\Inventory\StockLedger;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -15,8 +16,10 @@ use RuntimeException;
  */
 class WriteOffController extends Controller
 {
-    public function __construct(private readonly StockLedger $ledger)
-    {
+    public function __construct(
+        private readonly StockLedger $ledger,
+        private readonly InventoryNotifier $notifier,
+    ) {
     }
 
     public function index(Request $request)
@@ -70,8 +73,11 @@ class WriteOffController extends Controller
             ? (float) DB::table('inventory_batches')->where('id', $data['batch_id'])->value('cost_price')
             : (float) DB::table('inventory_products')->where('id', $data['product_id'])->value('cost_price');
 
+        $requestedBy = optional($request->user())->id;
+        $reference = 'WO-' . now()->format('Ymd-His');
+
         $id = DB::table('inventory_write_offs')->insertGetId([
-            'reference' => 'WO-' . now()->format('Ymd-His'),
+            'reference' => $reference,
             'product_id' => $data['product_id'],
             'batch_id' => $data['batch_id'] ?? null,
             'reason' => $data['reason'],
@@ -79,10 +85,22 @@ class WriteOffController extends Controller
             'cost_value' => $unitCost * $data['quantity'],
             'note' => $data['note'] ?? null,
             'status' => 'pending',
-            'requested_by' => optional($request->user())->id,
+            'requested_by' => $requestedBy,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $productName = (string) DB::table('inventory_products')
+            ->where('id', $data['product_id'])->value('name');
+
+        $this->notifier->notifyByPermission(
+            permissions: ['inv_manage_stock'],
+            type: 'write_off_pending',
+            title: 'Write-off awaiting approval',
+            body: trim($productName . ' × ' . $data['quantity'] . ' (' . $data['reason'] . ') — ' . $reference),
+            data: ['write_off_id' => (int) $id, 'reference' => $reference],
+            excludeUserId: $requestedBy,
+        );
 
         return response()->json([
             'message' => 'Write-off submitted for approval',
@@ -108,6 +126,16 @@ class WriteOffController extends Controller
 
         $userId = optional($request->user())->id;
 
+        // Segregation of duties: whoever flagged the damage cannot also be
+        // the one who signs off on removing the stock, even if they happen
+        // to hold inv_manage_stock themselves.
+        if ($writeOff->requested_by !== null && $userId !== null
+            && (string) $writeOff->requested_by === (string) $userId) {
+            return response()->json([
+                'message' => 'You cannot approve your own write-off request',
+            ], 403);
+        }
+
         try {
             DB::transaction(function () use ($writeOff, $data, $userId, $id) {
                 if ($data['decision'] === 'approved') {
@@ -132,6 +160,15 @@ class WriteOffController extends Controller
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        $this->notifier->notifyUser(
+            userId: $writeOff->requested_by,
+            type: 'write_off_decided',
+            title: 'Write-off ' . $data['decision'],
+            body: $writeOff->reference . ' was ' . $data['decision']
+                . ($data['decision_note'] ?? null ? ' — ' . $data['decision_note'] : ''),
+            data: ['write_off_id' => $id, 'reference' => $writeOff->reference, 'decision' => $data['decision']],
+        );
 
         return response()->json(['message' => 'Write-off ' . $data['decision']]);
     }
