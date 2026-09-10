@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class _AppLandingScreenState extends State<AppLandingScreen>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  Timer? _autoTimer;
 
   late final AnimationController _heroAnim;
   late final AnimationController _floatAnim;
@@ -106,10 +108,32 @@ class _AppLandingScreenState extends State<AppLandingScreen>
     _floatOffset = Tween<double>(begin: -8, end: 8).animate(
       CurvedAnimation(parent: _floatAnim, curve: Curves.easeInOut),
     );
+
+    _startAutoPlay();
+  }
+
+  void _startAutoPlay() {
+    _autoTimer?.cancel();
+    _autoTimer = Timer.periodic(const Duration(milliseconds: 3500), (_) {
+      if (!mounted) return;
+      final next = (_currentPage + 1) % _slides.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  void _resetAutoPlay() {
+    // Called when user swipes manually — restart the timer so the next
+    // auto-advance happens 3.5 s after the user's last interaction.
+    _startAutoPlay();
   }
 
   @override
   void dispose() {
+    _autoTimer?.cancel();
     _pageController.dispose();
     _heroAnim.dispose();
     _floatAnim.dispose();
@@ -145,6 +169,7 @@ class _AppLandingScreenState extends State<AppLandingScreen>
               _heroAnim
                 ..reset()
                 ..forward();
+              _resetAutoPlay();
             },
             itemBuilder: (_, i) => _SlideView(
               slide: _slides[i],
