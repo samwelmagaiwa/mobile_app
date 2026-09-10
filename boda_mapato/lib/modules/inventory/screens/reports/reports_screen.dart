@@ -130,39 +130,48 @@ class _ReportTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20.r),
-        child: Container(
-          decoration: ThemeConstants.glassCardDecoration,
-          padding: EdgeInsets.all(12.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Container(
-                width: 34.w,
-                height: 34.w,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Icon(icon, color: Colors.white, size: 18.sp),
+  Widget build(BuildContext context) {
+    final loc = LocalizationService.instance;
+    final translatedTitle = loc.translate('report_${report.key}');
+    // Fallback: if key not found the service returns the key itself; use backend title then.
+    final title = (translatedTitle == 'report_${report.key}')
+        ? report.title
+        : translatedTitle;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20.r),
+      child: Container(
+        decoration: ThemeConstants.glassCardDecoration,
+        padding: EdgeInsets.all(12.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Container(
+              width: 34.w,
+              height: 34.w,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              Flexible(
-                child: AutoSizeText(
-                  report.title,
-                  maxLines: 2,
-                  minFontSize: 9,
-                  overflow: TextOverflow.ellipsis,
-                  style: ThemeConstants.bodyStyle
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
+              child: Icon(icon, color: Colors.white, size: 18.sp),
+            ),
+            Flexible(
+              child: AutoSizeText(
+                title,
+                maxLines: 2,
+                minFontSize: 9,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeConstants.bodyStyle
+                    .copyWith(fontWeight: FontWeight.w600),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// Runs one report over a date range and renders it as a scrollable table.
@@ -241,7 +250,10 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: ThemeConstants.textPrimary),
         title: AutoSizeText(
-          widget.title,
+          () {
+            final t = loc.translate('report_${widget.reportKey}');
+            return (t == 'report_${widget.reportKey}') ? widget.title : t;
+          }(),
           maxLines: 1,
           minFontSize: 12,
           overflow: TextOverflow.ellipsis,
