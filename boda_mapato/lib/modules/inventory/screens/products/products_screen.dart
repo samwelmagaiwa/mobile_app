@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +49,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
     final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
@@ -172,7 +172,105 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     ),
                                   ),
                                 SizedBox(width: 4.w),
-                                Icon(Icons.chevron_right,
+                                if (canManage)
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert,
+                                        color: Colors.white54, size: 20),
+                                    color: ThemeConstants.primaryBlue,
+                                    onSelected: (action) async {
+                                      if (action == 'edit') {
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AddEditProductScreen(product: p),
+                                          ),
+                                        );
+                                      } else if (action == 'delete') {
+                                        final ok = await showDialog<bool>(
+                                          context: context,
+                                          builder: (dCtx) => AlertDialog(
+                                            backgroundColor:
+                                                ThemeConstants.primaryBlue,
+                                            title: Text(
+                                                loc.translate('confirm_delete'),
+                                                style: ThemeConstants.bodyStyle
+                                                    .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                            content: Text(
+                                                '${loc.translate('delete')} "${p.name}"?',
+                                                style:
+                                                    ThemeConstants.captionStyle),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(dCtx, false),
+                                                child: Text(
+                                                    loc.translate('cancel'),
+                                                    style: const TextStyle(
+                                                        color: Colors.white70)),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        ThemeConstants.errorRed),
+                                                onPressed: () =>
+                                                    Navigator.pop(dCtx, true),
+                                                child: Text(
+                                                    loc.translate('delete')),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (ok == true && context.mounted) {
+                                          final deleted = await context
+                                              .read<InventoryProvider>()
+                                              .deleteProduct(p.id);
+                                          if (context.mounted) {
+                                            if (deleted) {
+                                              ThemeConstants.showSuccessSnackBar(
+                                                  context,
+                                                  loc.translate('deleted'));
+                                            } else {
+                                              ThemeConstants.showErrorSnackBar(
+                                                  context,
+                                                  loc.translate(
+                                                      'failed_to_delete'));
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    itemBuilder: (_) => [
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(children: [
+                                          const Icon(Icons.edit_outlined,
+                                              color: Colors.white70, size: 18),
+                                          SizedBox(width: 8.w),
+                                          Text(loc.translate('edit'),
+                                              style: ThemeConstants.captionStyle),
+                                        ]),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(children: [
+                                          Icon(Icons.delete_outline,
+                                              color: ThemeConstants.errorRed,
+                                              size: 18),
+                                          SizedBox(width: 8.w),
+                                          Text(loc.translate('delete'),
+                                              style: ThemeConstants.captionStyle
+                                                  .copyWith(
+                                                      color: ThemeConstants
+                                                          .errorRed)),
+                                        ]),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Icon(Icons.chevron_right,
                                     color: Colors.white38, size: 20.sp),
                               ],
                             ),

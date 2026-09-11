@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Inventory;
 
+use App\Services\Inventory\AuditTrail;
 use App\Services\Inventory\SkuGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -9,8 +10,10 @@ use Illuminate\Routing\Controller;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly SkuGenerator $skuGenerator)
-    {
+    public function __construct(
+        private readonly SkuGenerator $skuGenerator,
+        private readonly AuditTrail   $audit,
+    ) {
     }
 
     public function index(Request $request)
@@ -140,6 +143,11 @@ class ProductController extends Controller
             return ['id' => $id, 'sku' => $sku];
         });
 
+        $this->audit->record($request, 'product', (int) $created['id'], 'created', null, [
+            'name' => $data['name'],
+            'sku'  => $created['sku'],
+        ], $data['name']);
+
         return response()->json([
             'message' => 'Product created',
             'data' => ['id' => (int) $created['id'], 'sku' => $created['sku']],
@@ -158,8 +166,8 @@ class ProductController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $exists = DB::table('inventory_products')->where('id', $id)->exists();
-        if (!$exists)
+        $existing = DB::table('inventory_products')->where('id', $id)->first();
+        if (! $existing)
             return response()->json(['message' => 'Not found'], 404);
 
         $data = $request->validate([
@@ -203,20 +211,52 @@ class ProductController extends Controller
             }
         });
 
+        $this->audit->record($request, 'product', $id, 'updated', (array) $existing, $data, $existing->name);
+
         return response()->json(['message' => 'Product updated']);
     }
 
-    public function destroy(int $id)
+    /**
+     * DELETE /inventory/products/{id}
+     *
+     * Hard-delete when no sales history exists.
+     * Pass ?force=1 (admin-only) to archive (status=inactive) instead
+     * of deleting a product that has sales history.
+     */
+    public function destroy(Request $request, int $id)
     {
-        $sold = DB::table('inventory_sale_items')->where('product_id', $id)->exists();
-        if ($sold) {
-            return response()->json(['message' => 'Product has sales history and cannot be deleted'], 422);
+        $existing = DB::table('inventory_products')->where('id', $id)->first();
+        if (! $existing) {
+            return response()->json(['message' => 'Not found'], 404);
         }
 
-        $deleted = DB::table('inventory_products')->where('id', $id)->delete();
+        $force = filter_var($request->query('force', false), FILTER_VALIDATE_BOOLEAN);
+        $sold  = DB::table('inventory_sale_items')->where('product_id', $id)->exists();
 
-        return $deleted
-            ? response()->json(['message' => 'Product deleted'])
-            : response()->json(['message' => 'Not found'], 404);
+        if ($sold && ! $force) {
+            return response()->json([
+                'message'     => 'Product has sales history. Pass ?force=1 to archive (deactivate) instead.',
+                'sales_count' => DB::table('inventory_sale_items')->where('product_id', $id)->count(),
+            ], 422);
+        }
+
+        if ($sold && $force) {
+            $user = $request->user();
+            if (! $user || ! ($user->isSuperAdmin() || in_array($user->role, ['admin', 'manager']) || $user->full_access)) {
+                return response()->json(['message' => 'Only admins may force-archive a product with sales history.'], 403);
+            }
+            // Archive rather than hard-delete to preserve financial integrity
+            DB::table('inventory_products')->where('id', $id)->update([
+                'status'     => 'inactive',
+                'updated_at' => now(),
+            ]);
+            $this->audit->record($request, 'product', $id, 'archived', (array) $existing, ['status' => 'inactive'], $existing->name);
+            return response()->json(['message' => 'Product archived (has sales history — cannot be hard-deleted)']);
+        }
+
+        DB::table('inventory_products')->where('id', $id)->delete();
+        $this->audit->record($request, 'product', $id, 'deleted', (array) $existing, null, $existing->name);
+
+        return response()->json(['message' => 'Product deleted']);
     }
 }

@@ -45,6 +45,9 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return; // SQLite is dynamically typed; used only for tests — nothing to do
+        }
         foreach ($this->columns as [$table, $column]) {
             if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
                 continue;
@@ -55,6 +58,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
         foreach ($this->columns as [$table, $column]) {
             if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
                 continue;

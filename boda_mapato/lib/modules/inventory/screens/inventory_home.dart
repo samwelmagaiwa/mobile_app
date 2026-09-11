@@ -9,6 +9,7 @@ import '../../../models/user_permissions.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/localization_service.dart';
 import '../../../widgets/service_switcher_dialog.dart';
+import 'brands/brands_screen.dart';
 import 'categories/categories_screen.dart';
 import 'dashboard/inventory_dashboard_screen.dart';
 import 'orders/orders_screen.dart';
@@ -115,15 +116,23 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
       ),
       _InvMenuEntry(
         key: 'categories',
-        staticTitle: 'Categories',
+        titleKey: 'categories',
         icon: Icons.category_outlined,
         color: ThemeConstants.primaryGradientStart,
         pageBuilder: () => const InventoryCategoriesScreen(),
         visible: (UserPermissions p) => p.has('inv_manage_products'),
       ),
       _InvMenuEntry(
+        key: 'brands',
+        titleKey: 'brands',
+        icon: Icons.branding_watermark_outlined,
+        color: Colors.teal,
+        pageBuilder: () => const BrandsScreen(),
+        visible: (UserPermissions p) => p.has('inv_manage_products'),
+      ),
+      _InvMenuEntry(
         key: 'orders',
-        staticTitle: 'Past Orders',
+        titleKey: 'past_orders',
         icon: Icons.receipt_long_outlined,
         color: ThemeConstants.primaryGradientStart,
         pageBuilder: () => const InventoryOrdersScreen(),
@@ -221,7 +230,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
       ),
       _InvMenuEntry(
         key: 'expenses',
-        staticTitle: 'Matumizi ya Ghala',
+        titleKey: 'warehouse_expenses',
         icon: Icons.receipt_long_outlined,
         color: const Color(0xFFEC4899),
         pageBuilder: () => const ExpensesScreen(),
@@ -382,7 +391,7 @@ class _InventoryHomeState extends State<InventoryHome> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
 
     final perms = _perms(context);
     final List<_InvMenuEntry> visible =
@@ -624,7 +633,7 @@ class _InventoryDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
     final List<_InvMenuEntry> visible =

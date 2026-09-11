@@ -102,6 +102,64 @@ class PurchasingController extends Controller
         return response()->json(['message' => 'Supplier updated']);
     }
 
+    /**
+     * DELETE /inventory/suppliers/{id}
+     *
+     * Blocked if the supplier has unpaid invoices.
+     * Pass ?force=1 (admin-only) to override and anonymise FK references.
+     */
+    public function destroySupplier(Request $request, int $id)
+    {
+        $existing = DB::table('inventory_suppliers')->where('id', $id)->first();
+        if (! $existing) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $force    = filter_var($request->query('force', false), FILTER_VALIDATE_BOOLEAN);
+        $hasDebt  = DB::table('inventory_supplier_invoices')
+            ->where('supplier_id', $id)
+            ->whereIn('status', ['open', 'part_paid'])
+            ->exists();
+
+        if ($hasDebt && ! $force) {
+            return response()->json([
+                'message' => 'Supplier has unpaid invoices. Settle them first, or pass ?force=1.',
+            ], 422);
+        }
+
+        if ($force) {
+            $user = $request->user();
+            if (! $user || ! ($user->isSuperAdmin() || in_array($user->role, ['admin', 'manager']) || $user->full_access)) {
+                return response()->json(['message' => 'Only admins may force-delete a supplier with open invoices.'], 403);
+            }
+        }
+
+        // Four tables reference inventory_suppliers with restrictOnDelete.
+        // Delete child rows in safe FK order so the supplier row can be removed.
+        DB::table('inventory_supplier_payments')->where('supplier_id', $id)->delete();
+        DB::table('inventory_supplier_invoices')->where('supplier_id', $id)->delete();
+        // goods_receipts and purchase_orders reference each other; delete lines first.
+        $poIds = DB::table('inventory_purchase_orders')
+            ->where('supplier_id', $id)->pluck('id');
+        if ($poIds->isNotEmpty()) {
+            DB::table('inventory_purchase_order_lines')
+                ->whereIn('purchase_order_id', $poIds)->delete();
+            $grIds = DB::table('inventory_goods_receipts')
+                ->where('supplier_id', $id)->pluck('id');
+            if ($grIds->isNotEmpty()) {
+                DB::table('inventory_goods_receipt_lines')
+                    ->whereIn('goods_receipt_id', $grIds)->delete();
+                DB::table('inventory_goods_receipts')->where('supplier_id', $id)->delete();
+            }
+            DB::table('inventory_purchase_orders')->where('supplier_id', $id)->delete();
+        }
+        DB::table('inventory_suppliers')->where('id', $id)->delete();
+
+        $this->audit->record($request, 'supplier', $id, 'deleted', (array) $existing, null, $existing->name);
+
+        return response()->json(['message' => 'Supplier deleted']);
+    }
+
     // ------------------------------------------------------- purchase orders
 
     public function purchaseOrders(Request $request)

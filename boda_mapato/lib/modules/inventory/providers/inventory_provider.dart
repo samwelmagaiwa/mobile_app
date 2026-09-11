@@ -1006,6 +1006,18 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteCategory(int id) async {
+    try {
+      await _api.delete('/inventory/categories/$id');
+      _categories.removeWhere((c) => c.id == id);
+      _recomputeCategoryProductTotals();
+      notifyListeners();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
   Future<void> toggleCategoryStatus(int id) async {
     final idx = _categories.indexWhere((c) => c.id == id);
     if (idx == -1) return;
@@ -1136,6 +1148,17 @@ class InventoryProvider extends ChangeNotifier {
         if (status != null) 'status': status,
       });
       await fetchBrands();
+      return true;
+    } on Exception {
+      return false;
+    }
+  }
+
+  Future<bool> deleteBrand(int id) async {
+    try {
+      await _api.delete('/inventory/brands/$id');
+      _brands.removeWhere((b) => b.id == id);
+      notifyListeners();
       return true;
     } on Exception {
       return false;

@@ -4,22 +4,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
-import '../../models/inv_category.dart';
+import '../../models/inv_brand.dart';
 import '../../providers/inventory_provider.dart';
-import '../../utils/user_permissions.dart';
-import 'category_form_screen.dart';
 
-class InventoryCategoriesScreen extends StatefulWidget {
-  const InventoryCategoriesScreen({super.key});
+class BrandsScreen extends StatefulWidget {
+  const BrandsScreen({super.key});
 
   @override
-  State<InventoryCategoriesScreen> createState() =>
-      _InventoryCategoriesScreenState();
+  State<BrandsScreen> createState() => _BrandsScreenState();
 }
 
-class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
+class _BrandsScreenState extends State<BrandsScreen> {
   String _search = '';
   String _status = 'all';
   final ScrollController _hCtrl = ScrollController();
@@ -30,37 +28,112 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
     super.dispose();
   }
 
-  Future<void> _openForm(InvCategory? existing) async {
+  Future<void> _openForm({InvBrand? brand}) async {
     final inv = context.read<InventoryProvider>();
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider<InventoryProvider>.value(
-          value: inv,
-          child: CategoryFormScreen(providerOverride: inv, existing: existing),
+    final loc = LocalizationService.instance;
+    final nameCtrl = TextEditingController(text: brand?.name ?? '');
+    final descCtrl = TextEditingController(text: brand?.description ?? '');
+    bool active = brand?.status != 'inactive';
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => StatefulBuilder(
+        builder: (sCtx, setSt) => AlertDialog(
+          backgroundColor: ThemeConstants.primaryBlue,
+          title: Text(
+            brand == null ? loc.translate('add_brand') : loc.translate('edit_brand'),
+            style: ThemeConstants.bodyStyle
+                .copyWith(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: 320.w,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  style: ThemeConstants.bodyStyle,
+                  decoration: ThemeConstants.invInputDecoration(
+                      loc.translate('brand_name')),
+                ),
+                SizedBox(height: 12.h),
+                TextField(
+                  controller: descCtrl,
+                  style: ThemeConstants.bodyStyle,
+                  maxLines: 2,
+                  decoration: ThemeConstants.invInputDecoration(
+                      loc.translate('description')),
+                ),
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Text(loc.translate('active'),
+                        style: ThemeConstants.captionStyle),
+                    const Spacer(),
+                    Switch(
+                      value: active,
+                      activeColor: ThemeConstants.successGreen,
+                      onChanged: (v) => setSt(() => active = v),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx, false),
+              child: Text(loc.translate('cancel'),
+                  style: const TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                bool ok;
+                if (brand == null) {
+                  final id = await inv.createBrand(
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    status: active ? 'active' : 'inactive',
+                  );
+                  ok = id != null;
+                } else {
+                  ok = await inv.updateBrand(
+                    brand.id,
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    status: active ? 'active' : 'inactive',
+                  );
+                }
+                if (sCtx.mounted) Navigator.pop(dCtx, ok);
+              },
+              child: Text(loc.translate('save')),
+            ),
+          ],
         ),
       ),
     );
     if (!mounted) return;
-    if (saved ?? false) {
-      ThemeConstants.showSuccessSnackBar(
-          context, LocalizationService.instance.translate('saved'));
+    if (saved == true) {
+      ThemeConstants.showSuccessSnackBar(context, loc.translate('saved'));
+    } else if (saved == false && brand != null) {
+      ThemeConstants.showErrorSnackBar(
+          context, loc.translate('failed_to_save'));
     }
   }
 
-  Future<void> _confirmDelete(
-      BuildContext ctx, InventoryProvider inv, InvCategory c) async {
+  Future<void> _confirmDelete(InventoryProvider inv, InvBrand b) async {
     final loc = LocalizationService.instance;
     final confirmed = await showDialog<bool>(
-      context: ctx,
+      context: context,
       builder: (dCtx) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         title: Text(loc.translate('confirm_delete'),
-            style: ThemeConstants.bodyStyle
-                .copyWith(fontWeight: FontWeight.bold)),
-        content: Text(
-          '${loc.translate('delete')} "${c.name}"?\n${c.totalProducts > 0 ? loc.translate('category_has_products_warning') : ""}',
-          style: ThemeConstants.captionStyle,
-        ),
+            style:
+                ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.bold)),
+        content: Text('${loc.translate('delete')} "${b.name}"?',
+            style: ThemeConstants.captionStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dCtx, false),
@@ -77,12 +150,13 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final ok = await inv.deleteCategory(c.id);
+    final ok = await inv.deleteBrand(b.id);
     if (!mounted) return;
     if (ok) {
-      ThemeConstants.showSuccessSnackBar(ctx, loc.translate('deleted'));
+      ThemeConstants.showSuccessSnackBar(context, loc.translate('deleted'));
     } else {
-      ThemeConstants.showErrorSnackBar(ctx, loc.translate('failed_to_delete'));
+      ThemeConstants.showErrorSnackBar(
+          context, loc.translate('failed_to_delete'));
     }
   }
 
@@ -92,20 +166,18 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
     final inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
     final canManage =
-        UserPermissions.fromRole(auth.user?.role ?? 'viewer').has('inv_manage_categories');
+        UserPermissions.fromRole(auth.user?.role ?? 'viewer').has('inv_manage_products');
 
-    final List<InvCategory> cats = inv.categories
-        .where((c) =>
-            (_status == 'all' || c.status == _status) &&
-            (c.name.toLowerCase().contains(_search.toLowerCase()) ||
-                c.code.toLowerCase().contains(_search.toLowerCase())))
+    final brands = inv.brands
+        .where((b) =>
+            (_status == 'all' || b.status == _status) &&
+            b.name.toLowerCase().contains(_search.toLowerCase()))
         .toList();
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 12.h),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Toolbar ──────────────────────────────────────────────
             Row(
@@ -151,9 +223,9 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                 SizedBox(width: 8.w),
                 if (canManage)
                   ElevatedButton.icon(
-                    onPressed: () => _openForm(null),
+                    onPressed: () => _openForm(),
                     icon: const Icon(Icons.add),
-                    label: Text(loc.translate('add_category')),
+                    label: Text(loc.translate('add_brand')),
                   ),
               ],
             ),
@@ -163,9 +235,9 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
               child: ThemeConstants.buildGlassCardStatic(
                 child: Padding(
                   padding: EdgeInsets.all(12.w),
-                  child: cats.isEmpty
+                  child: brands.isEmpty
                       ? Center(
-                          child: Text(loc.translate('no_categories_found'),
+                          child: Text(loc.translate('no_brands_found'),
                               style: ThemeConstants.captionStyle))
                       : Scrollbar(
                           controller: _hCtrl,
@@ -174,8 +246,9 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                             controller: _hCtrl,
                             scrollDirection: Axis.horizontal,
                             child: ConstrainedBox(
-                              constraints:
-                                  BoxConstraints(minWidth: MediaQuery.of(context).size.width - 60),
+                              constraints: BoxConstraints(
+                                  minWidth:
+                                      MediaQuery.of(context).size.width - 60),
                               child: DataTable(
                                 columnSpacing: 12.w,
                                 horizontalMargin: 8.w,
@@ -184,23 +257,19 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
                                 dataTextStyle: ThemeConstants.bodyStyle,
                                 columns: [
                                   DataColumn(
-                                      label: Text(loc.translate('category_name'))),
+                                      label: Text(loc.translate('brand_name'))),
                                   DataColumn(
-                                      label: Text(loc.translate('code'))),
-                                  DataColumn(
-                                      label: Text(
-                                          loc.translate('total_products_abbr'))),
+                                      label:
+                                          Text(loc.translate('total_products_abbr'))),
                                   DataColumn(
                                       label: Text(loc.translate('status'))),
                                   if (canManage)
                                     DataColumn(
-                                        label:
-                                            Text(loc.translate('actions'))),
+                                        label: Text(loc.translate('actions'))),
                                 ],
-                                rows: cats
-                                    .map((c) => _buildRow(
-                                        context, loc, inv, c,
-                                        canManage: canManage))
+                                rows: brands
+                                    .map((b) =>
+                                        _buildRow(loc, inv, b, canManage))
                                     .toList(),
                               ),
                             ),
@@ -215,62 +284,47 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
     );
   }
 
-  Widget _statusPill(LocalizationService loc, InvCategory c) => Container(
+  Widget _statusPill(LocalizationService loc, InvBrand b) => Container(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
         decoration: BoxDecoration(
-          color: c.status == 'active'
+          color: b.isActive
               ? ThemeConstants.successGreen.withOpacity(0.18)
               : Colors.white10,
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
-              color: c.status == 'active'
-                  ? ThemeConstants.successGreen
-                  : Colors.white24),
+              color: b.isActive ? ThemeConstants.successGreen : Colors.white24),
         ),
         child: Text(
-            c.status == 'active'
-                ? loc.translate('active')
-                : loc.translate('inactive'),
+            b.isActive ? loc.translate('active') : loc.translate('inactive'),
             style: ThemeConstants.captionStyle),
       );
 
   DataRow _buildRow(
-    BuildContext context,
-    LocalizationService loc,
-    InventoryProvider inv,
-    InvCategory c, {
-    required bool canManage,
-  }) {
+      LocalizationService loc, InventoryProvider inv, InvBrand b, bool canManage) {
     return DataRow(cells: [
       DataCell(SizedBox(
-          width: 150.w, child: AutoSizeText(c.name, maxLines: 1))),
+          width: 180.w, child: AutoSizeText(b.name, maxLines: 1))),
       DataCell(SizedBox(
-          width: 64.w,
-          child:
-              AutoSizeText(c.code.isEmpty ? '—' : c.code, maxLines: 1))),
-      DataCell(
-          SizedBox(width: 60.w, child: Text(c.totalProducts.toString()))),
-      DataCell(_statusPill(loc, c)),
+          width: 60.w, child: Text(b.totalProducts.toString()))),
+      DataCell(_statusPill(loc, b)),
       if (canManage)
-        DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: loc.translate('edit'),
-                onPressed: () => _openForm(c),
-                icon: const Icon(Icons.edit_outlined,
-                    color: Colors.white70, size: 18),
-              ),
-              IconButton(
-                tooltip: loc.translate('delete'),
-                onPressed: () => _confirmDelete(context, inv, c),
-                icon: Icon(Icons.delete_outline,
-                    color: ThemeConstants.errorRed, size: 18),
-              ),
-            ],
-          ),
-        ),
+        DataCell(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: loc.translate('edit'),
+              onPressed: () => _openForm(brand: b),
+              icon: const Icon(Icons.edit_outlined,
+                  color: Colors.white70, size: 18),
+            ),
+            IconButton(
+              tooltip: loc.translate('delete'),
+              onPressed: () => _confirmDelete(inv, b),
+              icon: Icon(Icons.delete_outline,
+                  color: ThemeConstants.errorRed, size: 18),
+            ),
+          ],
+        )),
     ]);
   }
 }

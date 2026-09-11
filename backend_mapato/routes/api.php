@@ -267,12 +267,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // ── Products & Catalog (inv_view_products / inv_manage_products) ──────────
     Route::middleware('inv_perm:inv_view_products')->group(function () {
-        Route::get('inventory/products', [InventoryProductController::class, 'index']);
-        Route::get('products',           [InventoryProductController::class, 'index']);
-        Route::get('inventory/categories', [InventoryCategoryController::class, 'index']);
-        Route::get('categories',           [InventoryCategoryController::class, 'index']);
-        Route::get('inventory/brands',     [InventoryBrandController::class, 'index']);
-        Route::get('inventory/alerts',     [InventoryAlertController::class, 'index']);
+        Route::get('inventory/products',          [InventoryProductController::class, 'index']);
+        Route::get('products',                    [InventoryProductController::class, 'index']);
+        Route::get('inventory/categories',        [InventoryCategoryController::class, 'index']);
+        Route::get('inventory/categories/{id}',   [InventoryCategoryController::class, 'show']);
+        Route::get('categories',                  [InventoryCategoryController::class, 'index']);
+        Route::get('inventory/brands',            [InventoryBrandController::class, 'index']);
+        Route::get('inventory/brands/{id}',       [InventoryBrandController::class, 'show']);
+        Route::get('inventory/alerts',            [InventoryAlertController::class, 'index']);
         Route::post('inventory/alerts/{id}/acknowledge', [InventoryAlertController::class, 'acknowledge']);
     });
 
@@ -286,10 +288,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('inventory/brands',        [InventoryBrandController::class, 'store']);
         Route::put('inventory/brands/{id}',    [InventoryBrandController::class, 'update']);
         Route::delete('inventory/brands/{id}', [InventoryBrandController::class, 'destroy']);
-        Route::get('inventory/customers',  [InventoryCustomerController::class, 'index']);
-        Route::get('customers',            [InventoryCustomerController::class, 'index']);
-        Route::post('inventory/customers', [InventoryCustomerController::class, 'store']);
-        Route::put('inventory/customers/{id}', [InventoryCustomerController::class, 'update']);
+        Route::get('inventory/customers',          [InventoryCustomerController::class, 'index']);
+        Route::get('customers',                    [InventoryCustomerController::class, 'index']);
+        Route::post('inventory/customers',         [InventoryCustomerController::class, 'store']);
+        Route::put('inventory/customers/{id}',     [InventoryCustomerController::class, 'update']);
+        Route::delete('inventory/customers/{id}',  [InventoryCustomerController::class, 'destroy']);
     });
 
     // ── Product units & pricing ───────────────────────────────────────────────
@@ -382,9 +385,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // ── Purchasing / Supply chain (inv_view_purchasing) ───────────────────────
     Route::middleware('inv_perm:inv_view_purchasing')->group(function () {
-        Route::get('inventory/suppliers',           [InventoryPurchasingController::class, 'suppliers']);
-        Route::post('inventory/suppliers',          [InventoryPurchasingController::class, 'storeSupplier']);
-        Route::put('inventory/suppliers/{id}',      [InventoryPurchasingController::class, 'updateSupplier']);
+        Route::get('inventory/suppliers',            [InventoryPurchasingController::class, 'suppliers']);
+        Route::post('inventory/suppliers',           [InventoryPurchasingController::class, 'storeSupplier']);
+        Route::put('inventory/suppliers/{id}',       [InventoryPurchasingController::class, 'updateSupplier']);
+        Route::delete('inventory/suppliers/{id}',    [InventoryPurchasingController::class, 'destroySupplier']);
         Route::get('inventory/purchase-orders',     [InventoryPurchasingController::class, 'purchaseOrders']);
         Route::get('inventory/purchase-orders/{id}',[InventoryPurchasingController::class, 'showPurchaseOrder']);
         Route::post('inventory/purchase-orders',               [InventoryPurchasingController::class, 'storePurchaseOrder']);
