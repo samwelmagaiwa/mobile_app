@@ -1,14 +1,11 @@
 // ignore_for_file: avoid_dynamic_calls
+import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
-import "../../constants/colors.dart";
-import "../../constants/styles.dart";
 import "../../constants/theme_constants.dart";
 import "../../services/api_service.dart";
 import "../../services/localization_service.dart";
-import "../../utils/responsive_helper.dart";
-import "../../widgets/custom_card.dart";
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -88,14 +85,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     // If there is daily/monthly series, estimate simple MoM/period change when possible
     try {
-      final List<dynamic> series = (revenueData['daily_data'] ??
-                  revenueData['series'] ??
-                  (revenueData['data'] is Map
-                      ? (revenueData['data']['daily_data'] ??
-                          revenueData['data']['series'])
-                      : null))
-              ?.cast<dynamic>() ??
-          <dynamic>[];
+      final List<dynamic> series = _revenueSeries(revenueData);
       if (series.length >= 2) {
         final double last = _toNumLike(series.last).toDouble();
         final double prev = _toNumLike(series[series.length - 2]).toDouble();
@@ -125,340 +115,285 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return ((revenue - expenses) / revenue) * 100;
   }
 
+  /// Pulls whatever daily/period series the revenue report exposes, in
+  /// whichever of the shapes different report endpoints use.
+  List<dynamic> _revenueSeries(Map<String, dynamic>? revenueData) {
+    if (revenueData == null) return const <dynamic>[];
+    final dynamic series = revenueData['daily_data'] ??
+        revenueData['series'] ??
+        (revenueData['data'] is Map
+            ? (revenueData['data']['daily_data'] ??
+                revenueData['data']['series'])
+            : null);
+    return (series as List<dynamic>?) ?? const <dynamic>[];
+  }
+
   @override
   Widget build(BuildContext context) {
-    ResponsiveHelper.init(context);
     return Consumer<LocalizationService>(
-      builder: (context, localizationService, child) =>
-          ThemeConstants.buildResponsiveScaffold(
-        context,
-        title: localizationService.translate('analytics_dashboard'),
-        body: _isLoading
-            ? ThemeConstants.buildResponsiveLoadingWidget(context)
-            : SingleChildScrollView(
-                padding: ResponsiveHelper.defaultPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Period Selection
-                    _buildPeriodSelector(localizationService),
-                    const SizedBox(height: AppStyles.spacingL),
-
-                    // Key Metrics
-                    Text(
-                      localizationService.translate('performance_metrics'),
-                      style: ThemeConstants.headingStyle,
+      builder: (context, loc, child) => Scaffold(
+        backgroundColor: ThemeConstants.primaryBlue,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: ThemeConstants.textPrimary),
+          title: Text(
+            loc.translate('analytics_dashboard'),
+            style: ThemeConstants.headingStyle.copyWith(fontSize: 18),
+          ),
+        ),
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadAnalyticsData,
+                  backgroundColor: Colors.white,
+                  color: ThemeConstants.primaryBlue,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
-                    const SizedBox(height: AppStyles.spacingM),
-                    _buildKeyMetrics(localizationService),
-                    const SizedBox(height: AppStyles.spacingL),
-
-                    // Performance Charts
-                    Text(
-                      localizationService.translate('revenue_trends'),
-                      style: ThemeConstants.headingStyle,
-                    ),
-                    const SizedBox(height: AppStyles.spacingM),
-                    _buildPerformanceCharts(localizationService),
-                    const SizedBox(height: AppStyles.spacingL),
-
-                    // Trends Analysis
-                    Text(
-                      localizationService.translate('revenue_analytics'),
-                      style: ThemeConstants.headingStyle,
-                    ),
-                    const SizedBox(height: AppStyles.spacingM),
-                    _buildTrendsAnalysis(localizationService),
-                    const SizedBox(height: AppStyles.spacingL),
-
-                    // Insights
-                    Text(
-                      localizationService.translate('analytics'),
-                      style: ThemeConstants.headingStyle,
-                    ),
-                    const SizedBox(height: AppStyles.spacingM),
-                    _buildInsights(localizationService),
-                  ],
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    children: <Widget>[
+                      _PeriodSelector(
+                        selected: _selectedPeriod,
+                        labels: <String, String>{
+                          'weekly': loc.translate('weekly'),
+                          'monthly': loc.translate('monthly'),
+                          'yearly': loc.translate('yearly'),
+                        },
+                        onSelected: (String p) {
+                          setState(() => _selectedPeriod = p);
+                          _loadAnalyticsData();
+                        },
+                      ),
+                      const SizedBox(height: 22),
+                      _SectionHeader(
+                        icon: Icons.speed_rounded,
+                        title: loc.translate('performance_metrics'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildKeyMetrics(loc),
+                      const SizedBox(height: 24),
+                      _SectionHeader(
+                        icon: Icons.show_chart_rounded,
+                        title: loc.translate('revenue_trends'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPerformanceChart(loc),
+                      const SizedBox(height: 24),
+                      _SectionHeader(
+                        icon: Icons.insights_rounded,
+                        title: loc.translate('revenue_analytics'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTrendsAnalysis(loc),
+                      const SizedBox(height: 24),
+                      _SectionHeader(
+                        icon: Icons.lightbulb_outline_rounded,
+                        title: loc.translate('analytics'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInsights(loc),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
 
-  Widget _buildPeriodSelector(LocalizationService localizationService) => Row(
-        children: <Widget>[
-          Expanded(
-            child: _PeriodButton(
-              label: localizationService.translate('weekly'),
-              isSelected: _selectedPeriod == "weekly",
-              onTap: () {
-                setState(() {
-                  _selectedPeriod = "weekly";
-                });
-                _loadAnalyticsData();
-              },
-            ),
-          ),
-          const SizedBox(width: AppStyles.spacingS),
-          Expanded(
-            child: _PeriodButton(
-              label: localizationService.translate('monthly'),
-              isSelected: _selectedPeriod == "monthly",
-              onTap: () {
-                setState(() {
-                  _selectedPeriod = "monthly";
-                });
-                _loadAnalyticsData();
-              },
-            ),
-          ),
-          const SizedBox(width: AppStyles.spacingS),
-          Expanded(
-            child: _PeriodButton(
-              label: localizationService.translate('yearly'),
-              isSelected: _selectedPeriod == "yearly",
-              onTap: () {
-                setState(() {
-                  _selectedPeriod = "yearly";
-                });
-                _loadAnalyticsData();
-              },
-            ),
-          ),
-        ],
-      );
+  Widget _buildKeyMetrics(LocalizationService loc) {
+    final double growth = (_analyticsData?['growth_rate'] as num? ?? 0).toDouble();
+    final double margin = (_analyticsData?['profit_margin'] as num? ?? 0).toDouble();
+    final String profitChangeRaw = _computeProfitChange(_analyticsData);
+    final double? profitChange = double.tryParse(profitChangeRaw);
 
-  Widget _buildKeyMetrics(LocalizationService localizationService) => Column(
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _MetricCard(
-                  title: localizationService.translate('total_revenue'),
-                  value:
-                      "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const [
-                        'total_revenue',
-                        'revenue_total',
-                        'total'
-                      ]))}",
-                  change:
-                      "+${(_analyticsData?['growth_rate'] as num? ?? 0).toStringAsFixed(1)}%",
-                  isPositive: true,
-                  icon: Icons.trending_up,
-                ),
-              ),
-              const SizedBox(width: AppStyles.spacingM),
-              Expanded(
-                child: _MetricCard(
-                  title: localizationService.translate('net_profit'),
-                  value: "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
-                  change: "+${_computeProfitChange(_analyticsData)}%",
-                  isPositive: true,
-                  icon: Icons.account_balance_wallet,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppStyles.spacingM),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _MetricCard(
-                  title: localizationService.translate('profit_margin'),
-                  value:
-                      "${(_analyticsData?['profit_margin'] as num? ?? 0).toStringAsFixed(1)}%",
-                  change: "",
-                  isPositive: true,
-                  icon: Icons.pie_chart,
-                ),
-              ),
-              const SizedBox(width: AppStyles.spacingM),
-              Expanded(
-                child: _MetricCard(
-                  title: localizationService.translate('new_customers'),
-                  value: "${_extractFirstInt(_analyticsData?['revenue'], const [
-                        'new_customers',
-                        'customers_new',
-                        'customers'
-                      ])}",
-                  change: "",
-                  isPositive: true,
-                  icon: Icons.person_add,
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-
-  Widget _buildPerformanceCharts(LocalizationService localizationService) =>
-      CustomCard(
-        child: Container(
-          padding: const EdgeInsets.all(AppStyles.spacingM),
-          height: 200,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Icon(
-                  Icons.bar_chart,
-                  size: 48,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(height: AppStyles.spacingM),
-                Text(
-                  localizationService.translate('performance_charts'),
-                  style: AppStyles.heading3,
-                ),
-                const SizedBox(height: AppStyles.spacingS),
-                Text(
-                  localizationService.translate('detailed_charts_shown_here'),
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.5,
+      children: <Widget>[
+        _MetricCard(
+          title: loc.translate('total_revenue'),
+          value: "TSh ${_formatMoney(_extractFirstNumber(_analyticsData?['revenue'], const [
+                'total_revenue',
+                'revenue_total',
+                'total',
+              ]))}",
+          change: "+${growth.toStringAsFixed(1)}%",
+          isPositive: growth >= 0,
+          icon: Icons.trending_up_rounded,
+          accent: ThemeConstants.primaryCyan,
         ),
-      );
-
-  Widget _buildTrendsAnalysis(LocalizationService localizationService) =>
-      Column(
-        children: <Widget>[
-          _buildTrendItem(
-              localizationService.translate('revenue_growth'),
-              "+12.5% ${localizationService.translate('this_month')}",
-              Icons.trending_up,
-              AppColors.success,
-              localizationService.translate('revenue_growth_improved')),
-          const SizedBox(height: AppStyles.spacingM),
-          _buildTrendItem(
-              localizationService.translate('expense_efficiency'),
-              "${localizationService.translate('decrease')} 8%",
-              Icons.trending_down,
-              AppColors.info,
-              localizationService.translate('expenses_reduced_management')),
-          const SizedBox(height: AppStyles.spacingM),
-          _buildTrendItem(
-              localizationService.translate('customer_performance'),
-              "+15 ${localizationService.translate('new_customers')}",
-              Icons.people,
-              AppColors.warning,
-              localizationService.translate('added_customers_this_month')),
-        ],
-      );
-
-  Widget _buildTrendItem(
-    String title,
-    String metric,
-    IconData icon,
-    Color color,
-    String description,
-  ) =>
-      CustomCard(
-        child: Padding(
-          padding: const EdgeInsets.all(AppStyles.spacingM),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: AppStyles.spacingM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: AppStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppStyles.spacingXS),
-                    Text(
-                      metric,
-                      style: AppStyles.bodyMedium.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppStyles.spacingXS),
-                    Text(
-                      description,
-                      style: AppStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        _MetricCard(
+          title: loc.translate('net_profit'),
+          value: "TSh ${_formatMoney(_computeProfit(_analyticsData))}",
+          change: profitChange != null
+              ? "${profitChange >= 0 ? '+' : ''}${profitChange.toStringAsFixed(1)}%"
+              : '',
+          isPositive: (profitChange ?? 0) >= 0,
+          icon: Icons.account_balance_wallet_rounded,
+          accent: ThemeConstants.successGreen,
         ),
-      );
+        _MetricCard(
+          title: loc.translate('profit_margin'),
+          value: "${margin.toStringAsFixed(1)}%",
+          change: '',
+          isPositive: margin >= 0,
+          icon: Icons.pie_chart_rounded,
+          accent: ThemeConstants.warningAmber,
+        ),
+        _MetricCard(
+          title: loc.translate('new_customers'),
+          value: "${_extractFirstInt(_analyticsData?['revenue'], const [
+                'new_customers',
+                'customers_new',
+                'customers',
+              ])}",
+          change: '',
+          isPositive: true,
+          icon: Icons.person_add_alt_1_rounded,
+          accent: ThemeConstants.primaryOrange,
+        ),
+      ],
+    );
+  }
 
-  Widget _buildInsights(LocalizationService localizationService) => CustomCard(
-        child: Padding(
-          padding: const EdgeInsets.all(AppStyles.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
+  Widget _buildPerformanceChart(LocalizationService loc) {
+    final List<dynamic> rawSeries = _revenueSeries(_analyticsData?['revenue']);
+    final List<double> values =
+        rawSeries.map((dynamic e) => _toNumLike(e).toDouble()).toList();
+
+    return Container(
+      decoration: ThemeConstants.glassCardDecoration,
+      padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
+      height: 220,
+      child: values.length < 2
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Icon(
-                    Icons.lightbulb,
-                    color: AppColors.warning,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppStyles.spacingS),
+                  Icon(Icons.bar_chart_rounded,
+                      size: 40, color: Colors.white.withValues(alpha: 0.35)),
+                  const SizedBox(height: 10),
                   Text(
-                    localizationService.translate('ai_insights'),
-                    style: AppStyles.heading3,
+                    loc.translate('no_data_for_period'),
+                    style: ThemeConstants.captionStyle,
                   ),
                 ],
               ),
-              const SizedBox(height: AppStyles.spacingM),
-              _buildInsightItem(
-                localizationService.translate('best_days_insights'),
-                localizationService.translate('best_days_description'),
+            )
+          : LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval:
+                      (values.reduce((a, b) => a > b ? a : b) / 4).clamp(1, double.infinity),
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: const FlTitlesData(show: false),
+                borderData: FlBorderData(show: false),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => ThemeConstants.primaryBlue,
+                    getTooltipItems: (List<LineBarSpot> spots) => spots
+                        .map((LineBarSpot s) => LineTooltipItem(
+                              _formatMoney(s.y),
+                              const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                lineBarsData: <LineChartBarData>[
+                  LineChartBarData(
+                    spots: <FlSpot>[
+                      for (int i = 0; i < values.length; i++)
+                        FlSpot(i.toDouble(), values[i]),
+                    ],
+                    isCurved: true,
+                    color: ThemeConstants.primaryCyan,
+                    barWidth: 3,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          ThemeConstants.primaryCyan.withValues(alpha: 0.28),
+                          ThemeConstants.primaryCyan.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppStyles.spacingM),
-              _buildInsightItem(
-                localizationService.translate('afternoon_earnings_insights'),
-                localizationService.translate('afternoon_trips_profitable'),
-              ),
-              const SizedBox(height: AppStyles.spacingM),
-              _buildInsightItem(
-                localizationService.translate('fuel_usage_reduced'),
-                localizationService.translate('fuel_management_helped'),
-              ),
-            ],
-          ),
-        ),
-      );
+            ),
+    );
+  }
 
-  Widget _buildInsightItem(String title, String description) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTrendsAnalysis(LocalizationService loc) => Column(
         children: <Widget>[
-          Text(
-            title,
-            style: AppStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          _TrendTile(
+            title: loc.translate('revenue_growth'),
+            metric: "+12.5% ${loc.translate('this_month')}",
+            icon: Icons.trending_up_rounded,
+            color: ThemeConstants.successGreen,
+            description: loc.translate('revenue_growth_improved'),
           ),
-          const SizedBox(height: AppStyles.spacingXS),
-          Text(
-            description,
-            style: AppStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
+          const SizedBox(height: 10),
+          _TrendTile(
+            title: loc.translate('expense_efficiency'),
+            metric: "${loc.translate('decrease')} 8%",
+            icon: Icons.trending_down_rounded,
+            color: ThemeConstants.primaryCyan,
+            description: loc.translate('expenses_reduced_management'),
+          ),
+          const SizedBox(height: 10),
+          _TrendTile(
+            title: loc.translate('customer_performance'),
+            metric: "+15 ${loc.translate('new_customers')}",
+            icon: Icons.people_alt_rounded,
+            color: ThemeConstants.warningAmber,
+            description: loc.translate('added_customers_this_month'),
           ),
         ],
+      );
+
+  Widget _buildInsights(LocalizationService loc) => Container(
+        decoration: ThemeConstants.glassCardDecoration,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _InsightItem(
+              title: loc.translate('best_days_insights'),
+              description: loc.translate('best_days_description'),
+            ),
+            const SizedBox(height: 14),
+            _InsightItem(
+              title: loc.translate('afternoon_earnings_insights'),
+              description: loc.translate('afternoon_trips_profitable'),
+            ),
+            const SizedBox(height: 14),
+            _InsightItem(
+              title: loc.translate('fuel_usage_reduced'),
+              description: loc.translate('fuel_management_helped'),
+            ),
+          ],
+        ),
       );
 }
 
@@ -523,37 +458,67 @@ String _computeProfitChange(Map<String, dynamic>? data) {
   return '';
 }
 
-class _PeriodButton extends StatelessWidget {
-  const _PeriodButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.icon, required this.title});
 
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+  final IconData icon;
+  final String title;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: AppStyles.spacingM),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.surface,
-            borderRadius: BorderRadius.circular(AppStyles.radiusM(context)),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppStyles.bodyMedium.copyWith(
-              color: isSelected ? Colors.white : AppColors.textPrimary,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
+  Widget build(BuildContext context) => Row(
+        children: <Widget>[
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 8),
+          Text(title, style: ThemeConstants.headingStyle.copyWith(fontSize: 16)),
+        ],
+      );
+}
+
+class _PeriodSelector extends StatelessWidget {
+  const _PeriodSelector({
+    required this.selected,
+    required this.labels,
+    required this.onSelected,
+  });
+
+  final String selected;
+  final Map<String, String> labels;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: labels.entries.map((MapEntry<String, String> e) {
+            final bool isSelected = e.key == selected;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onSelected(e.key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  decoration: BoxDecoration(
+                    color: isSelected ? ThemeConstants.primaryCyan : Colors.transparent,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    e.value,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isSelected ? Colors.black87 : Colors.white60,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       );
 }
@@ -565,6 +530,7 @@ class _MetricCard extends StatelessWidget {
     required this.change,
     required this.isPositive,
     required this.icon,
+    required this.accent,
   });
 
   final String title;
@@ -572,61 +538,160 @@ class _MetricCard extends StatelessWidget {
   final String change;
   final bool isPositive;
   final IconData icon;
+  final Color accent;
 
   @override
-  Widget build(BuildContext context) => CustomCard(
-        child: Padding(
-          padding: const EdgeInsets.all(AppStyles.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Icon(
-                    icon,
-                    size: 20,
-                    color: AppColors.primary,
+  Widget build(BuildContext context) => Container(
+        decoration: ThemeConstants.glassCardDecoration,
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(9),
                   ),
-                  const SizedBox(width: AppStyles.spacingS),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: AppStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppStyles.spacingS),
-              Text(
-                value,
-                style: AppStyles.heading3.copyWith(
-                  fontWeight: FontWeight.bold,
+                  child: Icon(icon, color: accent, size: 16),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: ThemeConstants.captionStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              value,
+              style: ThemeConstants.bodyStyle.copyWith(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: AppStyles.spacingXS),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (change.isNotEmpty)
               Row(
                 children: <Widget>[
                   Icon(
-                    isPositive ? Icons.trending_up : Icons.trending_down,
-                    size: 16,
-                    color: isPositive ? AppColors.success : AppColors.error,
+                    isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                    size: 13,
+                    color: isPositive ? ThemeConstants.successGreen : ThemeConstants.errorRed,
                   ),
-                  const SizedBox(width: AppStyles.spacingXS),
+                  const SizedBox(width: 2),
                   Text(
                     change,
-                    style: AppStyles.bodySmall.copyWith(
-                      color: isPositive ? AppColors.success : AppColors.error,
-                      fontWeight: FontWeight.w600,
+                    style: TextStyle(
+                      color: isPositive ? ThemeConstants.successGreen : ThemeConstants.errorRed,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
                     ),
                   ),
                 ],
-              ),
-            ],
-          ),
+              )
+            else
+              const SizedBox(height: 15),
+          ],
         ),
+      );
+}
+
+class _TrendTile extends StatelessWidget {
+  const _TrendTile({
+    required this.title,
+    required this.metric,
+    required this.icon,
+    required this.color,
+    required this.description,
+  });
+
+  final String title;
+  final String metric;
+  final IconData icon;
+  final Color color;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: ThemeConstants.glassCardDecoration,
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    metric,
+                    style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(description, style: ThemeConstants.captionStyle),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _InsightItem extends StatelessWidget {
+  const _InsightItem({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            margin: const EdgeInsets.only(top: 5),
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: ThemeConstants.warningAmber,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: ThemeConstants.bodyStyle.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(description, style: ThemeConstants.captionStyle),
+              ],
+            ),
+          ),
+        ],
       );
 }
