@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../services/localization_service.dart';
+import '../brands/brands_screen.dart';
+import '../categories/categories_screen.dart';
+import '../products/products_screen.dart';
+import '../widgets/inventory_widgets.dart';
+
+class ProductsHubScreen extends StatelessWidget {
+  const ProductsHubScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+    return InvTabScaffold(
+      title: '',
+      tabs: [
+        loc.translate('products'),
+        loc.translate('categories'),
+        loc.translate('brands'),
+      ],
+      views: const [
+        ProductsScreen(),
+        InventoryCategoriesScreen(),
+        BrandsScreen(),
+      ],
+    );
+  }
+}

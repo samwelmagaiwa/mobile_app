@@ -9,28 +9,15 @@ import '../../../models/user_permissions.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/localization_service.dart';
 import '../../../widgets/service_switcher_dialog.dart';
-import 'brands/brands_screen.dart';
-import 'categories/categories_screen.dart';
 import 'dashboard/inventory_dashboard_screen.dart';
-import 'orders/orders_screen.dart';
-import 'products/products_screen.dart';
-import 'reminders/inventory_reminders_screen.dart';
-import 'sales/sales_screen.dart';
-import 'alerts/alerts_screen.dart';
-import 'cash/cash_sessions_screen.dart';
-import 'crates/crates_screen.dart';
 import 'credit/credit_screen.dart';
-import 'purchasing/purchasing_screen.dart';
-import 'reports/reports_screen.dart';
-import 'sales/returns_screen.dart';
 import 'settings/depot_settings_screen.dart';
-import 'stock/batches_screen.dart';
-import 'stock/stock_counts_screen.dart';
-import 'stock/stock_levels_screen.dart';
-import 'stock/write_offs_screen.dart';
-import 'stock/stock_ops_screen.dart';
+import 'hubs/products_hub_screen.dart';
+import 'hubs/stock_hub_screen.dart';
+import 'hubs/sales_hub_screen.dart';
+import 'hubs/supply_chain_hub_screen.dart';
+import 'hubs/finance_reports_hub_screen.dart';
 import 'barcode_scanner_screen.dart';
-import 'expenses/expenses_screen.dart';
 import 'notifications/approval_notifications_screen.dart';
 import '../providers/notifications_provider.dart';
 
@@ -67,6 +54,7 @@ class _InvMenuEntry {
 }
 
 List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
+      // 1 — always-visible landing page
       _InvMenuEntry(
         key: 'dashboard',
         titleKey: 'inventory_dashboard',
@@ -74,107 +62,60 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         color: ThemeConstants.footerBarColor,
         pageBuilder: () => const InventoryDashboardScreen(),
       ),
+      // 2 — Products + Categories + Brands
       _InvMenuEntry(
-        key: 'products',
+        key: 'products_hub',
         titleKey: 'products',
         icon: Icons.inventory_2_outlined,
         color: ThemeConstants.primaryOrange,
-        pageBuilder: () => const ProductsScreen(),
+        pageBuilder: () => const ProductsHubScreen(),
         visible: (UserPermissions p) => p.has('inv_view_products'),
       ),
+      // 3 — Stock Levels + Stock In/Out + Batches + Counts + Write-offs
       _InvMenuEntry(
-        key: 'stock_levels',
+        key: 'stock_hub',
         titleKey: 'stock_levels',
         icon: Icons.track_changes_outlined,
         color: ThemeConstants.successGreen,
-        pageBuilder: () => const StockLevelsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
-      ),
-      _InvMenuEntry(
-        key: 'stock_ops',
-        titleKey: 'stock_in_out_transfer',
-        icon: Icons.sync_alt_outlined,
-        color: ThemeConstants.warningAmber,
-        pageBuilder: () => const StockOpsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
-      ),
-      _InvMenuEntry(
-        key: 'sales',
-        titleKey: 'sales',
-        icon: Icons.point_of_sale_outlined,
-        color: ThemeConstants.primaryGradientEnd,
-        pageBuilder: () => const SalesScreen(),
-        visible: (UserPermissions p) => p.has('inv_create_sales'),
-      ),
-      _InvMenuEntry(
-        key: 'reminders',
-        titleKey: 'reminders',
-        icon: Icons.notifications_active_outlined,
-        color: ThemeConstants.errorRed,
-        pageBuilder: () => const InventoryRemindersScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_reminders'),
-      ),
-      _InvMenuEntry(
-        key: 'categories',
-        titleKey: 'categories',
-        icon: Icons.category_outlined,
-        color: ThemeConstants.primaryGradientStart,
-        pageBuilder: () => const InventoryCategoriesScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_products'),
-      ),
-      _InvMenuEntry(
-        key: 'brands',
-        titleKey: 'brands',
-        icon: Icons.branding_watermark_outlined,
-        color: Colors.teal,
-        pageBuilder: () => const BrandsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_products'),
-      ),
-      _InvMenuEntry(
-        key: 'orders',
-        titleKey: 'past_orders',
-        icon: Icons.receipt_long_outlined,
-        color: ThemeConstants.primaryGradientStart,
-        pageBuilder: () => const InventoryOrdersScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_products'),
-      ),
-      _InvMenuEntry(
-        key: 'batches',
-        titleKey: 'batches_and_expiry',
-        icon: Icons.event_available_outlined,
-        color: ThemeConstants.primaryCyan,
-        pageBuilder: () => const BatchesScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
-      ),
-      _InvMenuEntry(
-        key: 'stock_counts',
-        titleKey: 'stock_counts',
-        icon: Icons.fact_check_outlined,
-        color: ThemeConstants.successGreen,
-        pageBuilder: () => const StockCountsScreen(),
-        visible: (UserPermissions p) => p.has('inv_manage_stock'),
-      ),
-      _InvMenuEntry(
-        key: 'write_offs',
-        titleKey: 'write_offs',
-        icon: Icons.report_problem_outlined,
-        color: ThemeConstants.errorRed,
-        pageBuilder: () => const WriteOffsScreen(),
-        // inv_report_damage lets a sales_officer flag damage/breakage at the
-        // counter without granting them full stock-management rights;
-        // approving a report still requires inv_manage_stock inside the
-        // screen itself.
+        pageBuilder: () => const StockHubScreen(),
         visible: (UserPermissions p) =>
             p.has('inv_manage_stock') || p.has('inv_report_damage'),
       ),
+      // 4 — Sales + Returns & Parked + Past Orders
       _InvMenuEntry(
-        key: 'purchasing',
+        key: 'sales_hub',
+        titleKey: 'sales',
+        icon: Icons.point_of_sale_outlined,
+        color: ThemeConstants.primaryGradientEnd,
+        pageBuilder: () => const SalesHubScreen(),
+        visible: (UserPermissions p) => p.has('inv_create_sales'),
+      ),
+      // 5 — Purchasing + Crates & Empties + Warehouse Expenses
+      _InvMenuEntry(
+        key: 'supply_chain_hub',
         titleKey: 'purchasing',
         icon: Icons.local_shipping_outlined,
         color: const Color(0xFF667eea),
-        pageBuilder: () => const PurchasingScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_purchasing'),
+        pageBuilder: () => const SupplyChainHubScreen(),
+        visible: (UserPermissions p) =>
+            p.has('inv_view_purchasing') ||
+            p.has('inv_view_crates') ||
+            p.has('inv_view_expenses'),
       ),
+      // 6 — Daily Cash + Reports + Alerts + Reminders
+      _InvMenuEntry(
+        key: 'finance_hub',
+        titleKey: 'reports',
+        icon: Icons.bar_chart_outlined,
+        color: const Color(0xFF00E5FF),
+        pageBuilder: () => const FinanceReportsHubScreen(),
+        visible: (UserPermissions p) =>
+            p.has('inv_view_cash') ||
+            p.has('inv_view_reports') ||
+            p.has('inv_view_products') ||
+            p.has('inv_view_reminders'),
+      ),
+      // 7 — Customers & Credit (standalone)
       _InvMenuEntry(
         key: 'credit',
         titleKey: 'customers_and_credit',
@@ -183,59 +124,7 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         pageBuilder: () => const CreditScreen(),
         visible: (UserPermissions p) => p.has('inv_view_credit'),
       ),
-      _InvMenuEntry(
-        key: 'cash',
-        titleKey: 'daily_cash',
-        icon: Icons.point_of_sale_outlined,
-        color: const Color(0xFF10B981),
-        pageBuilder: () => const CashSessionsScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_cash'),
-      ),
-      _InvMenuEntry(
-        key: 'crates',
-        titleKey: 'crates_and_empties',
-        icon: Icons.inbox_outlined,
-        color: const Color(0xFFF59E0B),
-        pageBuilder: () => const CratesScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_crates'),
-      ),
-      _InvMenuEntry(
-        key: 'returns',
-        titleKey: 'returns_and_parked',
-        icon: Icons.assignment_return_outlined,
-        color: const Color(0xFFEF4444),
-        pageBuilder: () => const ReturnsScreen(),
-        // The API only needs inv_create_sales to view/submit a return or
-        // park a sale (routes/api.php); inv_manage_sales is only required
-        // to approve one, which the screen itself gates separately. Gating
-        // the whole screen on inv_manage_sales blocked a sales_officer from
-        // even opening it, though they could already call the endpoints.
-        visible: (UserPermissions p) => p.has('inv_create_sales'),
-      ),
-      _InvMenuEntry(
-        key: 'reports',
-        titleKey: 'reports',
-        icon: Icons.bar_chart_outlined,
-        color: const Color(0xFF00E5FF),
-        pageBuilder: () => const ReportsScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_reports'),
-      ),
-      _InvMenuEntry(
-        key: 'alerts',
-        titleKey: 'alerts',
-        icon: Icons.notifications_active_outlined,
-        color: const Color(0xFFF97316),
-        pageBuilder: () => const AlertsScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_products'),
-      ),
-      _InvMenuEntry(
-        key: 'expenses',
-        titleKey: 'warehouse_expenses',
-        icon: Icons.receipt_long_outlined,
-        color: const Color(0xFFEC4899),
-        pageBuilder: () => const ExpensesScreen(),
-        visible: (UserPermissions p) => p.has('inv_view_expenses'),
-      ),
+      // 8 — Depot Settings (standalone)
       _InvMenuEntry(
         key: 'settings',
         titleKey: 'depot_settings',
@@ -399,8 +288,10 @@ class _InventoryHomeState extends State<InventoryHome> {
 
     final pages = visible.map((e) => e.pageBuilder()).toList(growable: false);
     final titles = visible.map((e) => e.title(loc)).toList(growable: false);
-    final int salesIndex = visible.indexWhere((e) => e.key == 'sales');
+    final int salesIndex = visible.indexWhere((e) => e.key == 'sales_hub');
     final int settingsIndex = visible.indexWhere((e) => e.key == 'settings');
+
+    final int productsIndex = visible.indexWhere((e) => e.key == 'products_hub');
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -497,15 +388,17 @@ class _InventoryHomeState extends State<InventoryHome> {
       bottomNavigationBar: _InventoryFooter(
         index: _index,
         salesIndex: salesIndex,
+        productsIndex: productsIndex >= 0 ? productsIndex : 1,
+        settingsIndex: settingsIndex >= 0 ? settingsIndex : pages.length - 1,
         onTap: (slot) {
           if (slot == 0) {
             setState(() => _index = 0); // Dashboard
           } else if (slot == 1) {
-            setState(() => _index = 1); // Products
+            if (productsIndex >= 0) setState(() => _index = productsIndex);
           } else if (slot == 2) {
             _openQuickMenu(context); // All sections grid
           } else if (slot == 3) {
-            setState(() => _index = salesIndex); // Sales
+            if (salesIndex >= 0) setState(() => _index = salesIndex);
           } else if (slot == 4) {
             setState(() => _index = settingsIndex >= 0
                 ? settingsIndex
@@ -518,9 +411,17 @@ class _InventoryHomeState extends State<InventoryHome> {
 }
 
 class _InventoryFooter extends StatelessWidget {
-  const _InventoryFooter({required this.index, required this.onTap, this.salesIndex = 4});
+  const _InventoryFooter({
+    required this.index,
+    required this.onTap,
+    this.salesIndex = 3,
+    this.productsIndex = 1,
+    this.settingsIndex = 7,
+  });
   final int index;
   final int salesIndex;
+  final int productsIndex;
+  final int settingsIndex;
   final ValueChanged<int> onTap;
   @override
   Widget build(BuildContext context) {
@@ -556,9 +457,9 @@ class _InventoryFooter extends StatelessWidget {
                   icon: Icons.bar_chart_rounded,
                   onTap: () => onTap(0),
                 ),
-                // Products
+                // Products hub
                 _FooterIcon(
-                  selected: index == 1,
+                  selected: index == productsIndex,
                   icon: Icons.inventory_2_rounded,
                   onTap: () => onTap(1),
                 ),
@@ -576,7 +477,7 @@ class _InventoryFooter extends StatelessWidget {
                 ),
                 // Settings
                 _FooterIcon(
-                  selected: false,
+                  selected: index == settingsIndex,
                   icon: Icons.settings_rounded,
                   onTap: () => onTap(4),
                 ),
