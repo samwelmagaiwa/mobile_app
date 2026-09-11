@@ -143,7 +143,7 @@ class _UserPermissionsManagementScreenState
   }
 
   String get _serviceName {
-    if (widget.serviceType == 'rental') return 'All In One';
+    if (widget.serviceType == 'rental') return 'Rental Service';
     if (widget.serviceType == 'transport') return 'Transport Service';
     if (widget.serviceType == 'inventory') return 'Inventory / Depot';
     return '${widget.serviceType.toUpperCase()} Service';

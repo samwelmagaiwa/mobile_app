@@ -467,7 +467,7 @@ class AppLocalizations {
       'logout_confirm': 'Are you sure you want to logout?',
       'version': 'Version',
       'app_description': 'Motorcycle business management app',
-      'copyright': '© 2024 All in One',
+      'copyright': '© 2024 3 iN One',
 
       // Users management
       'users': 'Users',
@@ -985,7 +985,7 @@ class AppLocalizations {
       'select_service_subtitle': 'Choose what you want to manage today',
       'service_access_denied': 'You are not assigned to that service. Please choose one of your assigned services below.',
       'inventory_service': 'Inventory',
-      'rental_service': 'All in One',
+      'rental_service': 'Rental',
       'transport_service': 'Transport',
       'coming_soon': 'Coming soon…',
       'switch_service': 'Switch Service',
@@ -1226,7 +1226,7 @@ class AppLocalizations {
       'sharing_success': 'Receipt shared successfully!',
       'printing_msg': 'Sending to printer...',
       'thank_you_payment': 'Thank you for your payment!',
-      'mapato_rental_service': 'All in One',
+      'mapato_rental_service': 'Rental',
       'maintenance_end_date': 'Completion Date',
       'available_from': 'Available from',
       'under_maintenance': 'Under Maintenance',
@@ -1842,7 +1842,7 @@ class AppLocalizations {
       'logout_confirm': 'Je, una uhakika unataka kutoka?',
       'version': 'Toleo',
       'app_description': 'Programu ya kusimamia biashara za pikipiki',
-      'copyright': '© 2024 All in One',
+      'copyright': '© 2024 3 iN One',
 
       // Debts/Payments common (fallback via translate() will prettify missing keys)
 
@@ -2379,7 +2379,7 @@ class AppLocalizations {
       'select_service_subtitle': 'Chagua unachotaka kusimamia leo',
       'service_access_denied': 'Hujapewa ruhusa ya huduma hiyo. Tafadhali chagua huduma uliyopewa hapa chini.',
       'inventory_service': 'Hesabu (Inventory)',
-      'rental_service': 'All in One',
+      'rental_service': 'Upangishaji (Rental)',
       'transport_service': 'Usafirishaji (Transport)',
       'coming_soon': 'Inakuja hivi karibuni…',
       'switch_service': 'Badili Huduma',
@@ -2619,7 +2619,7 @@ class AppLocalizations {
       'sharing_success': 'Risiti imeshirikiwa kikamilifu!',
       'printing_msg': 'Inatuma kwenye printa...',
       'thank_you_payment': 'Asante kwa malipo yako!',
-      'mapato_rental_service': 'Huduma ya All In One',
+      'mapato_rental_service': 'Huduma ya Upangishaji',
       'maintenance_end_date': 'Tarehe ya Kukamilisha',
       'available_from': 'Itapatikana kuanzia',
       'under_maintenance': 'Kwenye Matengenezo',
