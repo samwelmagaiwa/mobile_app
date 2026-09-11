@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
 
 import '../../../constants/theme_constants.dart';
 import '../../../services/api_service.dart';
@@ -111,7 +112,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -193,7 +194,7 @@ class _ProductDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final String name = _s(data['name']);
     final String sku = _s(data['sku']);
     final String barcode = _s(data['barcode']);
@@ -391,7 +392,7 @@ class _SaleDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final Map<String, dynamic> sale = data['sale'] is Map
         ? Map<String, dynamic>.from(data['sale'] as Map)
         : <String, dynamic>{};

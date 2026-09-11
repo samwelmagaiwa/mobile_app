@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,7 +41,7 @@ class _DispatchScreenState extends State<DispatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvDispatch> rows = context.watch<DepotProvider>().dispatches;
 
     return Scaffold(
@@ -122,7 +122,7 @@ class _DispatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final (Color color, String label) = switch (dispatch.status) {
       'reconciled' => (
           ThemeConstants.successGreen,
@@ -269,7 +269,7 @@ class _LoadVehicleSheetState extends State<_LoadVehicleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvProduct> products =
         context.watch<InventoryProvider>().products;
 
@@ -438,7 +438,7 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InvDispatch? d = _dispatch;
     final bool canReconcile = d != null && !d.isReconciled;
 
@@ -605,7 +605,7 @@ class _LineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Container(
       decoration: ThemeConstants.glassCardDecoration,

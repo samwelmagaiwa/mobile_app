@@ -15,6 +15,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../providers/auth_provider.dart';
+import '../../../../services/localization_service.dart';
 import '../../models/inv_sale.dart';
 import '../../providers/depot_provider.dart';
 import '../settings/receipt_header_screen.dart';
@@ -564,6 +565,7 @@ class _SaleReceiptScreenState extends State<SaleReceiptScreen> {
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
 
+    final loc  = context.watch<LocalizationService>();
     final s    = context.watch<DepotProvider>().settings;
     final auth = context.watch<AuthProvider>();
     final role = auth.user?.role ?? '';
@@ -592,8 +594,8 @@ class _SaleReceiptScreenState extends State<SaleReceiptScreen> {
         ),
         title: Column(
           children: [
-            const Text('Risiti ya Mauzo',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15,
+            Text(loc.translate('sale_receipt'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15,
                     color: Colors.white, letterSpacing: 0.5)),
             Text(sale.number,
                 style: const TextStyle(fontSize: 10, color: Colors.white54,
@@ -605,12 +607,12 @@ class _SaleReceiptScreenState extends State<SaleReceiptScreen> {
           if (canConfigure)
             _AppBarAction(
               icon: Icons.tune_rounded,
-              tooltip: 'Mpangilio wa Risiti',
+              tooltip: loc.translate('receipt_settings'),
               onTap: () => Navigator.of(context).push(ReceiptHeaderScreen.route()),
             ),
           _AppBarAction(
             icon: Icons.print_rounded,
-            tooltip: 'Chapisha / Shiriki',
+            tooltip: loc.translate('print_share'),
             onTap: () => _showOptions(context, s),
           ),
           const SizedBox(width: 4),
@@ -658,6 +660,7 @@ class _PrintOptionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A),
@@ -675,8 +678,8 @@ class _PrintOptionsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Chaguo za Chapisha / Shiriki',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700,
+          Text(loc.translate('print_share_options'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700,
                   fontSize: 15, letterSpacing: 0.5)),
           const SizedBox(height: 20),
 
@@ -684,16 +687,16 @@ class _PrintOptionsSheet extends StatelessWidget {
           _OptionTile(
             icon: Icons.phone_android_rounded,
             iconColor: const Color(0xFF9C27B0),
-            title: 'Chapisha Risiti (Muonekano wa Sasa)',
-            subtitle: 'Chapisha risiti kama inavyoonekana kwenye skrini',
+            title: loc.translate('print_receipt_current_view'),
+            subtitle: loc.translate('print_receipt_current_view_sub'),
             onTap: onScreenPrint,
           ),
           const SizedBox(height: 10),
           _OptionTile(
             icon: Icons.image_rounded,
             iconColor: const Color(0xFF00BCD4),
-            title: 'Shiriki Picha ya Risiti',
-            subtitle: 'Tuma picha PNG — WhatsApp, email, n.k.',
+            title: loc.translate('share_receipt_image'),
+            subtitle: loc.translate('share_receipt_image_sub'),
             onTap: onScreenShare,
           ),
           const SizedBox(height: 10),
@@ -702,8 +705,8 @@ class _PrintOptionsSheet extends StatelessWidget {
           _OptionTile(
             icon: Icons.picture_as_pdf_rounded,
             iconColor: const Color(0xFF4CAF50),
-            title: 'Chapisha / Shiriki PDF ya Rangi',
-            subtitle: 'Faili PDF — A4, email au kuhifadhi',
+            title: loc.translate('print_share_colored_pdf'),
+            subtitle: loc.translate('print_share_colored_pdf_sub'),
             onTap: onColoredPdf,
           ),
           const SizedBox(height: 10),
@@ -712,8 +715,8 @@ class _PrintOptionsSheet extends StatelessWidget {
           _OptionTile(
             icon: Icons.receipt_long_outlined,
             iconColor: const Color(0xFFFF9800),
-            title: 'Toleo la Thermal 80mm',
-            subtitle: 'Nyeusi-nyeupe · monospace · kwa printers za risiti',
+            title: loc.translate('thermal_80mm'),
+            subtitle: loc.translate('thermal_80mm_sub'),
             onTap: onThermal,
           ),
         ],
@@ -863,11 +866,11 @@ class _ReceiptPaper extends StatelessWidget {
   // Whole-number TZS format (no cents)
   String _fmt(double v) => NumberFormat('#,##0').format(v);
 
-  String _statusLabel() {
+  String _statusLabel(LocalizationService loc) {
     switch (sale.paymentStatus) {
-      case 'paid':    return '✓  MALIPO KAMILI';
-      case 'debt':    return '✗  DENI';
-      case 'partial': return '◑  SEHEMU';
+      case 'paid':    return '✓  ${loc.translate('status_paid_label')}';
+      case 'debt':    return '✗  ${loc.translate('status_debt_label')}';
+      case 'partial': return '◑  ${loc.translate('status_partial_label')}';
       default:        return sale.paymentStatus.toUpperCase();
     }
   }
@@ -888,20 +891,21 @@ class _ReceiptPaper extends StatelessWidget {
     }
   }
 
-  String _methodLabel(String m) {
+  String _methodLabel(String m, LocalizationService loc) {
     switch (m.toLowerCase()) {
-      case 'cash':          return 'Taslimu';
-      case 'mobile_money':  return 'M-Pesa / Simu';
-      case 'mobile':        return 'M-Pesa / Simu';
-      case 'bank_transfer': return 'Benki';
-      case 'bank':          return 'Benki';
-      case 'cheque':        return 'Hundi';
+      case 'cash':          return loc.translate('method_cash');
+      case 'mobile_money':  return loc.translate('method_mobile_money');
+      case 'mobile':        return loc.translate('method_mobile_money');
+      case 'bank_transfer': return loc.translate('method_bank');
+      case 'bank':          return loc.translate('method_bank');
+      case 'cheque':        return loc.translate('method_cheque');
       default:              return m;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final double change      = (sale.paidTotal - sale.total).clamp(0, double.infinity);
     final double outstanding = (sale.total - sale.paidTotal).clamp(0, double.infinity);
     final dateStr  = DateFormat('dd MMM yyyy').format(sale.createdAt);
@@ -1035,17 +1039,17 @@ class _ReceiptPaper extends StatelessWidget {
                   child: Column(
                     children: [
                       _MetaPair(
-                        left: _MetaCell(icon: '🧾', label: 'Nambari', value: sale.number),
-                        right: _MetaCell(icon: '📅', label: 'Tarehe', value: dateStr),
+                        left: _MetaCell(icon: '🧾', label: loc.translate('receipt_number'), value: sale.number),
+                        right: _MetaCell(icon: '📅', label: loc.translate('receipt_date'), value: dateStr),
                       ),
                       const SizedBox(height: 6),
                       _MetaPair(
-                        left: _MetaCell(icon: '⏰', label: 'Saa', value: timeStr),
+                        left: _MetaCell(icon: '⏰', label: loc.translate('receipt_time'), value: timeStr),
                         right: _MetaCell(
                           icon: '💳',
-                          label: 'Hali ya Malipo',
-                          value: sale.paymentStatus == 'paid' ? 'Imelipwa' :
-                                 sale.paymentStatus == 'debt' ? 'Deni' : 'Sehemu',
+                          label: loc.translate('payment_status_label'),
+                          value: sale.paymentStatus == 'paid' ? loc.translate('paid') :
+                                 sale.paymentStatus == 'debt' ? loc.translate('debt') : loc.translate('status_partial_label'),
                         ),
                       ),
                     ],
@@ -1055,10 +1059,10 @@ class _ReceiptPaper extends StatelessWidget {
 
                 // ── Items header ──────────────────────────────────────────
                 Row(children: [
-                  Expanded(child: Text('BIDHAA', style: _body.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 11))),
-                  Text('QTY', style: _label.copyWith(fontWeight: FontWeight.w700)),
+                  Expanded(child: Text(loc.translate('items_header'), style: _body.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 11))),
+                  Text(loc.translate('qty'), style: _label.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(width: 12),
-                  SizedBox(width: 90, child: Text('JUMLA', style: _label.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+                  SizedBox(width: 90, child: Text(loc.translate('total'), style: _label.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
                 ]),
                 const SizedBox(height: 4),
                 _DashedDivider(),
@@ -1079,10 +1083,10 @@ class _ReceiptPaper extends StatelessWidget {
                 if (sale.discount > 0 || sale.tax > 0) ...[
                   const SizedBox(height: 6),
                   if (sale.discount > 0)
-                    _TotalsRow(label: 'Punguzo', value: '− TZS ${_fmt(sale.discount)}',
+                    _TotalsRow(label: loc.translate('discount'), value: '− TZS ${_fmt(sale.discount)}',
                         bold: false, color: const Color(0xFFB71C1C)),
                   if (sale.tax > 0)
-                    _TotalsRow(label: 'Kodi (VAT)', value: 'TZS ${_fmt(sale.tax)}', bold: false),
+                    _TotalsRow(label: loc.translate('tax_vat'), value: 'TZS ${_fmt(sale.tax)}', bold: false),
                 ],
 
                 // ── Grand total ───────────────────────────────────────────
@@ -1091,7 +1095,7 @@ class _ReceiptPaper extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
-                      Expanded(child: Text('JUMLA YOTE',
+                      Expanded(child: Text(loc.translate('grand_total'),
                           style: _total.copyWith(color: const Color(0xFF0D0D0D), fontSize: 14, letterSpacing: 1))),
                       Text('TZS ${_fmt(sale.total)}',
                           style: _total.copyWith(color: const Color(0xFF0D0D0D))),
@@ -1101,21 +1105,21 @@ class _ReceiptPaper extends StatelessWidget {
                 const SizedBox(height: 6),
 
                 // ── Payment section ───────────────────────────────────────
-                _SectionBanner(label: 'MALIPO'),
+                _SectionBanner(label: loc.translate('payments_section')),
                 const SizedBox(height: 4),
                 // Individual payment rows (method + amount + date)
                 if (sale.payments.isEmpty)
-                  _TotalsRow(label: 'Njia ya Malipo', value: '—', bold: false)
+                  _TotalsRow(label: loc.translate('payment_method_label'), value: '—', bold: false)
                 else
                   ...sale.payments.map((p) => _TotalsRow(
-                        label: _methodLabel(p.method),
+                        label: _methodLabel(p.method, loc),
                         value: 'TZS ${_fmt(p.amount)}',
                         bold: false,
                         sub: DateFormat('dd/MM/yyyy HH:mm').format(p.paidAt),
                       )),
-                _TotalsRow(label: 'Jumla Iliyolipwa', value: 'TZS ${_fmt(sale.paidTotal)}', bold: true),
+                _TotalsRow(label: loc.translate('total_paid'), value: 'TZS ${_fmt(sale.paidTotal)}', bold: true),
                 if (change > 0)
-                  _TotalsRow(label: 'Chenji', value: 'TZS ${_fmt(change)}', bold: false),
+                  _TotalsRow(label: loc.translate('change'), value: 'TZS ${_fmt(change)}', bold: false),
                 if (outstanding > 0) ...[
                   const SizedBox(height: 3),
                   Container(
@@ -1130,7 +1134,7 @@ class _ReceiptPaper extends StatelessWidget {
                       children: [
                         const Text('⚠', style: TextStyle(fontSize: 12)),
                         const SizedBox(width: 5),
-                        Expanded(child: Text('Deni linalobaki',
+                        Expanded(child: Text(loc.translate('outstanding_balance'),
                             style: _label.copyWith(color: const Color(0xFFB71C1C)))),
                         Text('TZS ${_fmt(outstanding)}',
                             style: _bodyBold.copyWith(color: const Color(0xFFB71C1C))),
@@ -1144,7 +1148,7 @@ class _ReceiptPaper extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Text(
-                    _statusLabel(),
+                    _statusLabel(loc),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Courier',
@@ -1160,9 +1164,9 @@ class _ReceiptPaper extends StatelessWidget {
                 // ── Thank you ─────────────────────────────────────────────
                 Text(stars, style: _starLine, textAlign: TextAlign.center),
                 const SizedBox(height: 6),
-                const Text('★  ASANTE SANA!  ★',
+                Text('★  ${loc.translate('thank_you')}  ★',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Courier', fontSize: 14,
                       fontWeight: FontWeight.w900, letterSpacing: 4,
                       color: Color(0xFF0D0D0D),

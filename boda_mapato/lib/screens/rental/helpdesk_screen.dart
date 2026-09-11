@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
-import '../../config/app_config.dart';
 import '../../constants/theme_constants.dart';
 import '../../services/app_messenger.dart';
 import '../../services/localization_service.dart';

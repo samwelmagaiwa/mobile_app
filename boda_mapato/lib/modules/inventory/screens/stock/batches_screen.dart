@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -69,7 +69,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final bool canManage = UserPermissions.fromRole(
       context.read<AuthProvider>().user?.role ?? 'viewer',
@@ -219,7 +219,7 @@ class _ExpirySummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Row(
       children: <Widget>[
@@ -266,7 +266,7 @@ class _BatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final int? days = batch.daysToExpiry;
 
     final (Color color, String label) = switch (days) {
@@ -418,7 +418,7 @@ class _ReceiveStockSheetState extends State<_ReceiveStockSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
 
     return InvSheetShell(

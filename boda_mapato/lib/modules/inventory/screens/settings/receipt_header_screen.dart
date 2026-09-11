@@ -108,6 +108,7 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     if (_loading) {
       return Scaffold(
         backgroundColor: ThemeConstants.primaryBlue,
@@ -115,7 +116,7 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
           backgroundColor: Colors.transparent,
           elevation: 0,
           foregroundColor: Colors.white,
-          title: const Text('Mpangilio wa Risiti'),
+          title: Text(loc.translate('receipt_settings_title')),
         ),
         body: const Center(child: CircularProgressIndicator(color: Colors.white70)),
       );
@@ -127,25 +128,25 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
-        title: const Text(
-          'Mpangilio wa Risiti',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          loc.translate('receipt_settings_title'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         bottom: TabBar(
           controller: _tabs,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
-          tabs: const [
-            Tab(text: 'Mipangilio'),
-            Tab(text: 'Muundo wa Risiti'),
+          tabs: [
+            Tab(text: loc.translate('settings_tab')),
+            Tab(text: loc.translate('preview_tab')),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabs,
         children: [
-          _buildFormTab(),
+          _buildFormTab(loc),
           _buildPreviewTab(),
         ],
       ),
@@ -154,37 +155,37 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
 
   // ── Form tab ────────────────────────────────────────────────────────────────
 
-  Widget _buildFormTab() => ListView(
+  Widget _buildFormTab(LocalizationService loc) => ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 32.h),
         children: [
           _section(
             icon: Icons.store_rounded,
-            title: 'Kitambulisho cha Duka',
+            title: loc.translate('shop_identity'),
             children: [
-              _field(_cName,    'Jina la Duka *',   hint: 'Mfano: DEPOT DODOMA', required: true),
-              _field(_cTagline, 'Kauli Mbiu',        hint: 'Mfano: Karibu Kununua!'),
+              _field(_cName,    loc.translate('shop_name_required'), hint: 'e.g. DEPOT DODOMA', required: true),
+              _field(_cTagline, loc.translate('tagline'), hint: 'e.g. Karibu Kununua!'),
             ],
           ),
           SizedBox(height: 12.h),
           _section(
             icon: Icons.contact_phone_rounded,
-            title: 'Mawasiliano',
+            title: loc.translate('contact_info'),
             children: [
-              _field(_cPhone,   'Nambari ya Simu',  hint: 'Mfano: +255 700 000 000'),
-              _field(_cAddress, 'Anwani',            hint: 'Mfano: Barabara Kuu, Block B'),
-              _field(_cEmail,   'Barua Pepe',        hint: 'Mfano: info@duka.co.tz'),
-              _field(_cWebsite, 'Tovuti / Mitandao', hint: 'Mfano: www.duka.co.tz'),
+              _field(_cPhone,   loc.translate('phone_number'), hint: 'e.g. +255 700 000 000'),
+              _field(_cAddress, loc.translate('address'),      hint: 'e.g. Barabara Kuu, Block B'),
+              _field(_cEmail,   loc.translate('email'),        hint: 'e.g. info@duka.co.tz'),
+              _field(_cWebsite, loc.translate('website'),      hint: 'e.g. www.duka.co.tz'),
             ],
           ),
           SizedBox(height: 12.h),
           _section(
             icon: Icons.receipt_long_rounded,
-            title: 'Kisheria',
+            title: loc.translate('legal'),
             children: [
-              _field(_cTin, 'TIN (Nambari ya Kodi)', hint: 'Mfano: 100-000-000'),
+              _field(_cTin, loc.translate('tin_number'), hint: 'e.g. 100-000-000'),
               _toggle(
-                label: 'Onyesha TIN kwenye risiti',
+                label: loc.translate('show_tin_on_receipt'),
                 value: _showTin,
                 onChanged: (v) => setState(() => _showTin = v),
               ),
@@ -193,15 +194,15 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
           SizedBox(height: 12.h),
           _section(
             icon: Icons.text_snippet_rounded,
-            title: 'Maandishi ya Mwisho',
+            title: loc.translate('footer_message'),
             children: [
               _fieldMultiline(
                 _cFooter,
-                'Ujumbe wa Chini ya Risiti',
-                hint: 'Mfano: Bidhaa zilizouzwa haziruhusiwi kurudishwa bila risiti.',
+                loc.translate('footer_note'),
+                hint: 'e.g. No returns without a receipt.',
               ),
               _toggle(
-                label: 'Onyesha msimbo wa bar (barcode)',
+                label: loc.translate('show_barcode_on_receipt'),
                 value: _showBarcode,
                 onChanged: (v) => setState(() => _showBarcode = v),
               ),
@@ -230,10 +231,10 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
                 children: [
                   const Icon(Icons.preview_rounded, color: Colors.white70, size: 18),
                   SizedBox(width: 10.w),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Angalia muundo wa risiti',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      loc.translate('preview_receipt_layout'),
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ),
                   const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
@@ -242,7 +243,7 @@ class _ReceiptHeaderScreenState extends State<ReceiptHeaderScreen>
             ),
           ),
           SizedBox(height: 16.h),
-          InvPrimaryButton(busy: _saving, onPressed: _save, label: 'Hifadhi Mipangilio'),
+          InvPrimaryButton(busy: _saving, onPressed: _save, label: loc.translate('save_settings')),
         ],
       );
 

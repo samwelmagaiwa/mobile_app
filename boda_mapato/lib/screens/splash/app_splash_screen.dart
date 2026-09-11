@@ -23,8 +23,9 @@ class AppSplashScreen extends StatefulWidget {
 }
 
 class _AppSplashScreenState extends State<AppSplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final AnimationController _glowController;
   late final Animation<double> _iconScale;
   late final Animation<double> _iconFade;
   late final Animation<Offset> _nameSlide;
@@ -74,6 +75,10 @@ class _AppSplashScreenState extends State<AppSplashScreen>
     // A slow breathing glow behind the icon keeps the screen feeling alive
     // for however long the session check actually takes, past the 1.4s
     // one-shot entrance above.
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
     _glowPulse = TweenSequence<double>(<TweenSequenceItem<double>>[
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.35, end: 0.65)
@@ -85,15 +90,13 @@ class _AppSplashScreenState extends State<AppSplashScreen>
             .chain(CurveTween(curve: Curves.easeInOut)),
         weight: 1,
       ),
-    ]).animate(
-      AnimationController(vsync: this, duration: const Duration(seconds: 2))
-        ..repeat(),
-    );
+    ]).animate(_glowController);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 

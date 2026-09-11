@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../constants/theme_constants.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/api_service.dart';
+import '../../../../services/localization_service.dart';
 import '../widgets/inventory_widgets.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -29,23 +30,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     'supplies', 'maintenance', 'marketing', 'other',
   ];
 
-  static const Map<String, String> _periodLabels = {
-    'today': 'Leo',
-    'week': 'Wiki',
-    'month': 'Mwezi',
-    'year': 'Mwaka',
-  };
-
-  static const Map<String, String> _catLabels = {
-    'rent': 'Pango',
-    'salaries': 'Mishahara',
-    'transport': 'Usafiri',
-    'utilities': 'Huduma',
-    'supplies': 'Vifaa',
-    'maintenance': 'Matengenezo',
-    'marketing': 'Masoko',
-    'other': 'Nyingine',
-  };
+  static const _periodKeys = ['today', 'week', 'month', 'year'];
 
   @override
   void initState() {
@@ -89,7 +74,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return NumberFormat('#,##0', 'en').format(n);
   }
 
-  String _catLabel(String cat) => _catLabels[cat] ?? cat;
+  String _catLabel(LocalizationService loc, String cat) {
+    const known = ['rent', 'salaries', 'transport', 'utilities', 'supplies', 'maintenance', 'marketing', 'other'];
+    return known.contains(cat) ? loc.translate(cat) : cat;
+  }
 
   String _ratio(dynamic expenses, dynamic revenue) {
     final e = double.tryParse(expenses?.toString() ?? '') ?? 0;
@@ -105,6 +93,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final auth = context.read<AuthProvider>();
     final role = auth.user?.role ?? 'viewer';
     final canAdd = role == 'admin' || role == 'manager' || role == 'sales_officer';
@@ -136,12 +125,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: _periodLabels.entries.map((e) {
-                    final selected = e.key == _period;
+                  children: _periodKeys.map((key) {
+                    final selected = key == _period;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
-                        label: Text(e.value,
+                        label: Text(loc.translate(key),
                             style: TextStyle(
                               color: selected ? Colors.black : Colors.white70,
                               fontWeight: FontWeight.w600,
@@ -152,7 +141,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         backgroundColor: Colors.white.withOpacity(0.08),
                         side: BorderSide(color: Colors.white.withOpacity(0.15)),
                         onSelected: (_) {
-                          setState(() => _period = e.key);
+                          setState(() => _period = key);
                           _load();
                         },
                       ),
@@ -184,7 +173,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               else if (_expenses.isEmpty)
                 InvEmptyState(
                   icon: Icons.receipt_long_outlined,
-                  message: 'Hakuna matumizi yaliyorekodiwa',
+                  message: loc.translate('no_expenses'),
                 )
               else ...[
                 // Header
@@ -199,14 +188,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     children: [
                       Expanded(
                           flex: 4,
-                          child: Text('Maelezo',
+                          child: Text(loc.translate('description'),
                               style: TextStyle(
                                   color: textSecondary,
                                   fontSize: 11.sp,
                                   fontWeight: FontWeight.w600))),
                       Expanded(
                           flex: 2,
-                          child: Text('Tarehe',
+                          child: Text(loc.translate('date'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: textSecondary,
@@ -214,7 +203,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                   fontWeight: FontWeight.w600))),
                       Expanded(
                           flex: 3,
-                          child: Text('Kiasi',
+                          child: Text(loc.translate('amount'),
                               textAlign: TextAlign.end,
                               style: TextStyle(
                                   color: textSecondary,
@@ -254,7 +243,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                _catLabel(exp['category']?.toString() ?? ''),
+                                _catLabel(loc, exp['category']?.toString() ?? ''),
                                 style: TextStyle(
                                     color: ThemeConstants.primaryOrange
                                         .withOpacity(0.85),
@@ -311,7 +300,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _AddExpenseSheet(
         categories: _categories,
-        catLabels: _catLabels,
         api: _api,
       ),
     );
@@ -320,24 +308,25 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Future<void> _confirmDelete(
       BuildContext context, Map<String, dynamic> exp) async {
+    final loc = LocalizationService.instance;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
-        title: const Text('Futa Matumizi',
-            style: TextStyle(color: Colors.white)),
+        title: Text(loc.translate('confirm_delete_expense'),
+            style: const TextStyle(color: Colors.white)),
         content: Text(
-          'Una uhakika wa kufuta "${exp['description']}"?',
+          '${loc.translate('confirm_delete_expense_body')} "${exp['description']}"?',
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hapana',
-                  style: TextStyle(color: Colors.white54))),
+              child: Text(loc.translate('no'),
+                  style: const TextStyle(color: Colors.white54))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Futa',
+              child: Text(loc.translate('delete'),
                   style: TextStyle(color: Colors.redAccent.shade200))),
         ],
       ),
@@ -368,6 +357,7 @@ class _SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final textSecondary = Colors.white.withOpacity(0.55);
     const textPrimary = Colors.white;
 
@@ -388,19 +378,19 @@ class _SummarySection extends StatelessWidget {
             child: Row(
               children: [
                 _KpiCell(
-                  label: 'Mapato',
+                  label: loc.translate('income'),
                   value: 'TZS ${fmt(summary['revenue'])}',
                   color: Colors.greenAccent.shade400,
                 ),
                 _vDivider(),
                 _KpiCell(
-                  label: 'Matumizi',
+                  label: loc.translate('expenses'),
                   value: 'TZS ${fmt(summary['total_expenses'])}',
                   color: Colors.redAccent.shade200,
                 ),
                 _vDivider(),
                 _KpiCell(
-                  label: 'Faida Halisi',
+                  label: loc.translate('net_profit'),
                   value: 'TZS ${fmt(summary['net_profit'])}',
                   color: netColor(summary['net_profit']),
                 ),
@@ -415,7 +405,7 @@ class _SummarySection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Matumizi ni ${ratio(summary['total_expenses'], summary['revenue'])} ya mapato',
+                  '${loc.translate('expenses')}: ${ratio(summary['total_expenses'], summary['revenue'])} ${loc.isSwahili ? 'ya mapato' : 'of income'}',
                   style: TextStyle(color: textSecondary, fontSize: 10.sp),
                 ),
                 const SizedBox(height: 4),
@@ -447,7 +437,7 @@ class _SummarySection extends StatelessWidget {
             Divider(height: 1, color: Colors.white.withOpacity(0.08)),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: Text('Matumizi kwa Aina',
+              child: Text(loc.translate('expense_by_type'),
                   style: TextStyle(
                       color: textSecondary,
                       fontSize: 11.sp,
@@ -460,14 +450,14 @@ class _SummarySection extends StatelessWidget {
                 children: [
                   Expanded(
                       flex: 4,
-                      child: Text('Aina',
+                      child: Text(loc.translate('type'),
                           style: TextStyle(
                               color: textSecondary,
                               fontSize: 10.sp,
                               fontWeight: FontWeight.w600))),
                   Expanded(
                       flex: 1,
-                      child: Text('Namba',
+                      child: Text(loc.translate('count'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: textSecondary,
@@ -475,7 +465,7 @@ class _SummarySection extends StatelessWidget {
                               fontWeight: FontWeight.w600))),
                   Expanded(
                       flex: 3,
-                      child: Text('Jumla',
+                      child: Text(loc.translate('total'),
                           textAlign: TextAlign.end,
                           style: TextStyle(
                               color: textSecondary,
@@ -487,7 +477,8 @@ class _SummarySection extends StatelessWidget {
             ...byCategory.map((c) {
               final map = c as Map;
               final catKey = map['category']?.toString() ?? '';
-              final catName = _catLabels[catKey] ?? catKey;
+              const _known = ['rent', 'salaries', 'transport', 'utilities', 'supplies', 'maintenance', 'marketing', 'other'];
+              final catName = _known.contains(catKey) ? loc.translate(catKey) : catKey;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
@@ -537,17 +528,6 @@ class _SummarySection extends StatelessWidget {
     );
   }
 
-  static const Map<String, String> _catLabels = {
-    'rent': 'Pango',
-    'salaries': 'Mishahara',
-    'transport': 'Usafiri',
-    'utilities': 'Huduma',
-    'supplies': 'Vifaa',
-    'maintenance': 'Matengenezo',
-    'marketing': 'Masoko',
-    'other': 'Nyingine',
-  };
-
   Widget _vDivider() => Container(
         width: 1,
         height: 36,
@@ -594,11 +574,9 @@ class _KpiCell extends StatelessWidget {
 class _AddExpenseSheet extends StatefulWidget {
   const _AddExpenseSheet({
     required this.categories,
-    required this.catLabels,
     required this.api,
   });
   final List<String> categories;
-  final Map<String, String> catLabels;
   final ApiService api;
 
   @override
@@ -647,6 +625,9 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+    const _known = ['rent', 'salaries', 'transport', 'utilities', 'supplies', 'maintenance', 'marketing', 'other'];
+    String catLabel(String c) => _known.contains(c) ? loc.translate(c) : c;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -672,7 +653,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 ),
               ),
               SizedBox(height: 14.h),
-              Text('Rekodi Matumizi',
+              Text(loc.translate('record_expenses'),
                   style: ThemeConstants.headingStyle
                       .copyWith(fontSize: 16.sp, color: Colors.white)),
               SizedBox(height: 14.h),
@@ -680,14 +661,13 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
               // Category dropdown
               DropdownButtonFormField<String>(
                 value: _category,
-                decoration: _inputDeco('Aina ya Matumizi'),
+                decoration: _inputDeco(loc.translate('expense_type')),
                 dropdownColor: ThemeConstants.primaryBlue,
                 style: const TextStyle(color: Colors.white),
                 items: widget.categories
                     .map((c) => DropdownMenuItem(
                           value: c,
-                          child: Text(
-                              widget.catLabels[c] ?? c,
+                          child: Text(catLabel(c),
                               style: const TextStyle(color: Colors.white)),
                         ))
                     .toList(),
@@ -699,9 +679,9 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
               TextFormField(
                 controller: _descCtrl,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDeco('Maelezo (Lazima)'),
+                decoration: _inputDeco(loc.translate('description_required')),
                 validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Jaza maelezo' : null,
+                    v == null || v.trim().isEmpty ? loc.translate('description_required_error') : null,
               ),
               SizedBox(height: 10.h),
 
@@ -709,11 +689,11 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
               TextFormField(
                 controller: _amountCtrl,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDeco('Kiasi (TZS)'),
+                decoration: _inputDeco(loc.translate('amount_tzs')),
                 keyboardType: TextInputType.number,
                 onChanged: _onAmountChanged,
                 validator: (v) {
-                  if (_parsedAmount <= 0) return 'Jaza kiasi sahihi';
+                  if (_parsedAmount <= 0) return loc.translate('amount_required_error');
                   return null;
                 },
               ),
@@ -758,7 +738,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
               InvPrimaryButton(
                 busy: _saving,
-                label: 'Hifadhi',
+                label: loc.translate('save'),
                 onPressed: _save,
               ),
             ],

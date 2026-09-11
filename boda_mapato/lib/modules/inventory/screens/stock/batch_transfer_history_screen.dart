@@ -126,7 +126,7 @@ class _BatchTransferHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Scaffold(
       backgroundColor: ThemeConstants.primaryBlue,
@@ -225,7 +225,7 @@ class _TransferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final String dateStr = '${event.createdAt.year}-'
         '${event.createdAt.month.toString().padLeft(2, '0')}-'
         '${event.createdAt.day.toString().padLeft(2, '0')} '

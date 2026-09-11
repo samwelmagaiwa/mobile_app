@@ -605,6 +605,24 @@ class AuthController extends Controller
     {
         $user->load('services');
 
+        // super_admin always has access to all services regardless of what is
+        // stored in user_services — ensure the response reflects this so the
+        // Flutter client shows the correct service selection options.
+        if ($user->isSuperAdmin() || $user->full_access) {
+            $allServices = ['inventory', 'rental', 'transport'];
+            $existingTypes = $user->services->pluck('service_type')->all();
+            $missing = array_diff($allServices, $existingTypes);
+            if (!empty($missing)) {
+                foreach ($missing as $serviceType) {
+                    \App\Models\UserService::firstOrCreate([
+                        'user_id'      => $user->id,
+                        'service_type' => $serviceType,
+                    ]);
+                }
+                $user->load('services'); // reload with the newly added rows
+            }
+        }
+
         switch ($user->role) {
             case 'driver':
                 $user->load('driver', 'assignedDevice');

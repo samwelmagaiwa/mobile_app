@@ -48,7 +48,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final DepotProvider depot = context.watch<DepotProvider>();
     final List<InvAlert> all = depot.alerts;
     final List<InvAlert> rows = _filter == 'all'
@@ -154,7 +154,7 @@ class _AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final Color color = switch (alert.severity) {
       'critical' => ThemeConstants.errorRed,
       'warning' => ThemeConstants.warningAmber,

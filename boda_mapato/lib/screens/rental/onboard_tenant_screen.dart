@@ -10,7 +10,6 @@ import '../../providers/rental_provider.dart';
 import '../../services/localization_service.dart';
 import '../../services/api_service.dart';
 import '../../utils/rental_flow_validator.dart';
-import 'create_property_screen.dart';
 import 'record_payment_screen.dart';
 
 class OnboardTenantScreen extends StatefulWidget {

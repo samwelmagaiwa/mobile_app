@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -45,7 +45,7 @@ class _StockOpsScreenState extends State<StockOpsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     return Column(
       children: <Widget>[
         SizedBox(height: 8.h),
@@ -88,7 +88,7 @@ class _FormShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(
@@ -242,7 +242,7 @@ class _StockInFormState extends State<_StockInForm> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvProduct> products =
         context.watch<InventoryProvider>().products;
 
@@ -470,7 +470,7 @@ class _StockOutFormState extends State<_StockOutForm> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final List<InvBatch> batches =
         _productId == null ? const <InvBatch>[] : inv.batchesOf(_productId!);
@@ -668,7 +668,7 @@ class _StockTransferFormState extends State<_StockTransferForm> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final List<InvBatch> batches =
         _productId == null ? const <InvBatch>[] : inv.batchesOf(_productId!);
@@ -806,6 +806,7 @@ class _StockHistoryTabState extends State<_StockHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
     final products = inv.products;
     final movements = inv.stockMovements;
@@ -822,11 +823,11 @@ class _StockHistoryTabState extends State<_StockHistoryTab> {
                   isExpanded: true,
                   dropdownColor: ThemeConstants.primaryBlue,
                   style: ThemeConstants.bodyStyle,
-                  decoration: ThemeConstants.invInputDecoration('Chuja kwa Bidhaa (All Products)'),
+                  decoration: ThemeConstants.invInputDecoration(loc.translate('filter_by_product')),
                   items: [
                     DropdownMenuItem<int?>(
                       value: null,
-                      child: Text('Bidhaa Zote (All Products)', style: ThemeConstants.bodyStyle),
+                      child: Text(loc.translate('all_products'), style: ThemeConstants.bodyStyle),
                     ),
                     ...products.map(
                       (p) => DropdownMenuItem<int?>(

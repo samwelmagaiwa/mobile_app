@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -37,7 +37,7 @@ class _CashSessionsScreenState extends State<CashSessionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvCashSession> rows =
         context.watch<DepotProvider>().cashSessions;
     final bool hasOpen = rows.any((InvCashSession s) => s.isOpen);
@@ -167,7 +167,7 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     final (Color color, String label) = switch (session) {
       final InvCashSession s when s.isOpen => (
@@ -261,7 +261,7 @@ class _CashSessionDetailScreenState extends State<CashSessionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InvCashSession? s = _session;
     final bool isOpen = s?.isOpen ?? false;
 

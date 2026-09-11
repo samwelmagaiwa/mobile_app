@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -190,7 +190,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: ThemeConstants.buildAppBar(
@@ -297,13 +297,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     _twoCol(
                       left: _input(loc.translate('name'), _name,
                           hint: 'e.g. Coca-Cola 350ml'),
-                      right: _input('SKU Code', _sku,
+                      right: _input(loc.translate('sku_code'), _sku,
                           hint: 'e.g. COC-8429',
                           readOnly: true,
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.refresh, color: ThemeConstants.primaryOrange, size: 20),
                             onPressed: _generateSku,
-                            tooltip: 'Auto-generate SKU',
+                            tooltip: loc.translate('auto_generate_sku'),
                             padding: EdgeInsets.zero,
                           )),
                     ),
@@ -321,7 +321,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
 
                     SizedBox(height: 12.h),
-                    _sectionTitle('Inventory & Pricing'),
+                    _sectionTitle(loc.translate('inventory_pricing')),
                     SizedBox(height: 6.h),
                     _twoCol(
                       left: _categoryPicker(loc),
@@ -333,7 +333,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       if (!unitOptions.contains(_unit)) {
                         unitOptions.add(_unit);
                       }
-                      return _dropdown('Unit', _unit, unitOptions, (v) {
+                      return _dropdown(loc.translate('unit'), _unit, unitOptions, (v) {
                         setState(() => _unit = v!);
                       });
                     }),
@@ -349,22 +349,22 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         children: [
                           _twoCol(
                             left: _input(
-                                'Cost Price (kwa 1 $unitLabel)',
+                                '${loc.translate('cost_price_per')} $unitLabel)',
                                 _cost,
                                 keyboard: TextInputType.number,
                                 inputFormatters: [ThousandsFormatter()],
-                                hint: 'e.g. 20,000  ← Kununua 1 $_unit'),
+                                hint: 'e.g. 20,000'),
                             right: _input(
-                                'Selling Price (kwa 1 $unitLabel)',
+                                '${loc.translate('selling_price_per')} $unitLabel)',
                                 _price,
                                 keyboard: TextInputType.number,
                                 inputFormatters: [ThousandsFormatter()],
-                                hint: 'e.g. 25,000  ← Kuuza 1 $_unit'),
+                                hint: 'e.g. 25,000'),
                           ),
                           Padding(
                             padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 2.w),
                             child: Text(
-                              '💡 Faida kwa 1 $_unit = Selling Price − Cost Price  (Mfano: ${formatAmount(priceVal)} − ${formatAmount(costVal)} = TZS ${formatAmount(profitPerUnit)} kwa 1 $_unit)',
+                              '💡 ${loc.translate('profit_hint')}  (${formatAmount(priceVal)} − ${formatAmount(costVal)} = TZS ${formatAmount(profitPerUnit)} / $_unit)',
                               style: ThemeConstants.captionStyle.copyWith(
                                 color: Colors.greenAccent.shade400,
                                 fontSize: 11.sp,
@@ -373,9 +373,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           ),
                           SizedBox(height: 8.h),
                           _twoCol(
-                            left: _input('Quantity in Stock', _qty,
+                            left: _input(loc.translate('quantity_in_stock'), _qty,
                                 keyboard: TextInputType.number, hint: 'e.g. 100'),
-                            right: _input('Stock Alert Threshold', _minStock,
+                            right: _input(loc.translate('stock_alert_threshold'), _minStock,
                                 keyboard: TextInputType.number, hint: 'e.g. 24'),
                           ),
                         ],
@@ -396,7 +396,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                               Icon(Icons.warning_amber_rounded,
                                   color: Colors.white, size: 18.sp),
                               SizedBox(width: 6.w),
-                              Text('Low Stock Alert',
+                              Text(loc.translate('low_stock_alert'),
                                   style: ThemeConstants.captionStyle.copyWith(
                                       color: Colors.white, fontSize: 11.sp)),
                             ],
@@ -407,13 +407,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     SizedBox(height: 8.h),
                     _twoCol(
                       left: _input(
-                        'Barcode / QR Code',
+                        loc.translate('barcode_qr'),
                         _barcode,
-                        hint: 'Auto-filled from SKU',
+                        hint: loc.translate('auto_filled_from_sku'),
                         readOnly: true,
                         suffixIcon: _isBarcodeAutoGenerated
                             ? Tooltip(
-                                message: 'Auto-synced with SKU',
+                                message: loc.translate('auto_synced_with_sku'),
                                 child: Icon(Icons.link,
                                     color: Colors.greenAccent, size: 18.sp),
                               )
@@ -421,7 +421,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                 icon: Icon(Icons.sync,
                                     color: ThemeConstants.primaryOrange,
                                     size: 18.sp),
-                                tooltip: 'Reset to SKU',
+                                tooltip: loc.translate('reset_to_sku'),
                                 padding: EdgeInsets.zero,
                                 onPressed: () => setState(() {
                                   _isBarcodeAutoGenerated = true;
@@ -429,7 +429,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                 }),
                               ),
                       ),
-                      right: _switchRow('Status', _active,
+                      right: _switchRow(loc.translate('status'), _active,
                           (v) => setState(() => _active = v)),
                     ),
                     // QR code preview — always visible when barcode has a value
@@ -455,7 +455,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('QR Preview',
+                                  Text(loc.translate('qr_preview'),
                                       style: TextStyle(
                                           color: Colors.black87,
                                           fontWeight: FontWeight.bold,
@@ -471,8 +471,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                   SizedBox(height: 4.h),
                                   Text(
                                     _isBarcodeAutoGenerated
-                                        ? '✓ Barcode = SKU (recommended)'
-                                        : '⚠ Custom barcode',
+                                        ? '✓ ${loc.translate('barcode_equals_sku')}'
+                                        : '⚠ ${loc.translate('custom_barcode')}',
                                     style: TextStyle(
                                         color: _isBarcodeAutoGenerated
                                             ? Colors.green.shade700
@@ -491,11 +491,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       left: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _sectionTitle('Created By'),
+                          _sectionTitle(loc.translate('created_by')),
                           TextField(
                             controller: _createdBy,
                             readOnly: true,
-                            decoration: _decoration('Created By').copyWith(
+                            decoration: _decoration(loc.translate('created_by')).copyWith(
                               prefixIcon: const Icon(Icons.person_outline,
                                   color: Colors.white38),
                               filled: true,
@@ -527,7 +527,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Sizes / Variants  (Mfano: Crate ya 24, Carton ya 12, Bottle moja)',
+                loc.translate('sizes_variants'),
                 style: ThemeConstants.captionStyle.copyWith(color: Colors.white70, fontSize: 11.sp),
               ),
               SizedBox(height: 4.h),
@@ -535,16 +535,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 children: [
                   SizedBox(
                       width: 80.w,
-                      child: Text('Size/Pack', style: ThemeConstants.captionStyle)),
+                      child: Text(loc.translate('size_pack'), style: ThemeConstants.captionStyle)),
                   SizedBox(width: 6.w),
                   Expanded(
-                      child: Text('Idadi (Qty)', style: ThemeConstants.captionStyle)),
+                      child: Text(loc.translate('qty_label'), style: ThemeConstants.captionStyle)),
                   SizedBox(width: 6.w),
                   Expanded(
-                      child: Text('Bei Maalum\n(Actual Price)', style: ThemeConstants.captionStyle, maxLines: 2)),
+                      child: Text(loc.translate('actual_price'), style: ThemeConstants.captionStyle, maxLines: 2)),
                   SizedBox(width: 6.w),
                   Expanded(
-                      child: Text('Bei ya Punguzo\n(Discounted)', style: ThemeConstants.captionStyle, maxLines: 2)),
+                      child: Text(loc.translate('discounted_price'), style: ThemeConstants.captionStyle, maxLines: 2)),
                 ],
               ),
             ],

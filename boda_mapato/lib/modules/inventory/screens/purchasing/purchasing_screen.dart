@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -46,7 +46,7 @@ class _PurchasingScreenState extends State<PurchasingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     if (_loading) {
       return const Scaffold(
@@ -80,7 +80,7 @@ class _SuppliersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvSupplier> rows = context.watch<DepotProvider>().suppliers;
 
     return Stack(
@@ -141,7 +141,7 @@ class _SupplierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Container(
       decoration: ThemeConstants.glassCardDecoration,
@@ -302,7 +302,7 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return InvSheetShell(
       title: loc.translate(
@@ -414,7 +414,7 @@ class _PaySupplierSheetState extends State<_PaySupplierSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvSupplierInvoice> invoices = context
         .watch<DepotProvider>()
         .supplierInvoices
@@ -503,7 +503,7 @@ class _MethodDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return DropdownButtonFormField<String>(
       initialValue: value,
@@ -536,7 +536,7 @@ class _PurchaseOrdersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvPurchaseOrder> rows =
         context.watch<DepotProvider>().purchaseOrders;
 
@@ -598,7 +598,7 @@ class _PurchaseOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final (Color color, String label) = switch (order.status) {
       'received' => (ThemeConstants.successGreen, loc.translate('received')),
       'partial' => (ThemeConstants.warningAmber, loc.translate('partial')),
@@ -744,7 +744,7 @@ class _ReceiveGoodsSheetState extends State<ReceiveGoodsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final DepotProvider depot = context.watch<DepotProvider>();
     final List<InvProduct> products =
         context.watch<InventoryProvider>().products;
@@ -884,7 +884,7 @@ class _SupplierInvoicesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvSupplierInvoice> rows =
         context.watch<DepotProvider>().supplierInvoices;
 

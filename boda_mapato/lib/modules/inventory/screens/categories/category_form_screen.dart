@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../services/localization_service.dart';
 import '../../models/inv_category.dart';
 import '../../providers/inventory_provider.dart';
 
@@ -58,6 +59,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     final inv = widget.providerOverride ??
         Provider.of<InventoryProvider>(context, listen: false);
+    final loc = LocalizationService.instance;
     final name = _nameCtrl.text.trim();
     final desc = _descCtrl.text.trim();
     final status = _active ? 'active' : 'inactive';
@@ -85,15 +87,16 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 
     if (!mounted) return;
     if (ok) {
-      ThemeConstants.showSuccessSnackBar(context, 'Saved');
+      ThemeConstants.showSuccessSnackBar(context, loc.translate('saved'));
       Navigator.of(context).pop(true);
     } else {
-      ThemeConstants.showErrorSnackBar(context, 'Failed to save');
+      ThemeConstants.showErrorSnackBar(context, loc.translate('operation_failed'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final inv =
         widget.providerOverride ?? Provider.of<InventoryProvider>(context);
     final cats = inv.categories;
@@ -101,7 +104,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: ThemeConstants.buildAppBar(
-          widget.existing == null ? 'Add Category' : 'Edit Category'),
+          widget.existing == null ? loc.translate('add_category') : loc.translate('edit_category')),
       body: Stack(
         children: [
           const DecoratedBox(
@@ -116,7 +119,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Category Details',
+                    Text(loc.translate('category_details'),
                         style: ThemeConstants.headingStyle),
                     SizedBox(height: 12.h),
 
@@ -125,16 +128,15 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                       controller: _nameCtrl,
                       style: ThemeConstants.bodyStyle,
                       decoration:
-                          ThemeConstants.invInputDecoration('Category Name')
+                          ThemeConstants.invInputDecoration(loc.translate('category_name'))
                               .copyWith(
-                        labelText: 'Category Name',
+                        labelText: loc.translate('category_name'),
                         hintText: 'e.g. Soft Drinks & Sodas',
                       ),
                       validator: (v) {
                         final val = v?.trim() ?? '';
-                        if (val.isEmpty) return 'Category name is required';
-                        if (val.length < 2)
-                          return 'Category name must be at least 2 characters';
+                        if (val.isEmpty) return loc.translate('category_name_required');
+                        if (val.length < 2) return loc.translate('category_name_required');
                         return null;
                       },
                     ),
@@ -145,9 +147,9 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                       controller: _descCtrl,
                       style: ThemeConstants.bodyStyle,
                       decoration:
-                          ThemeConstants.invInputDecoration('Description')
+                          ThemeConstants.invInputDecoration(loc.translate('description'))
                               .copyWith(
-                        labelText: 'Description (optional)',
+                        labelText: '${loc.translate('description')} (${loc.translate('optional')})',
                         hintText:
                             'e.g. Carbonated beverages sold in crates or bottles',
                       ),
@@ -158,16 +160,16 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                     // Parent dropdown
                     InputDecorator(
                       decoration: ThemeConstants.invInputDecoration(
-                          'Parent Category (optional)'),
+                          loc.translate('parent_category_optional')),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<int?>(
                           value: _parentId,
                           isExpanded: true,
                           dropdownColor: ThemeConstants.primaryBlue,
                           items: [
-                            const DropdownMenuItem<int?>(
-                                child: Text('None',
-                                    style: TextStyle(color: Colors.white))),
+                            DropdownMenuItem<int?>(
+                                child: Text(loc.translate('none'),
+                                    style: const TextStyle(color: Colors.white))),
                             ...cats
                                 .where((c) =>
                                     widget.existing == null ||
@@ -206,7 +208,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                         ElevatedButton.icon(
                           onPressed: _pickImage,
                           icon: const Icon(Icons.upload_file),
-                          label: const Text('Upload / Capture'),
+                          label: Text(loc.translate('upload_capture')),
                         ),
                         if (_imagePath != null) ...[
                           SizedBox(width: 8.w),
@@ -225,14 +227,14 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                     // Status
                     Row(
                       children: [
-                        Text('Status', style: ThemeConstants.bodyStyle),
+                        Text(loc.translate('status'), style: ThemeConstants.bodyStyle),
                         const Spacer(),
                         Switch(
                           value: _active,
                           onChanged: (v) => setState(() => _active = v),
                         ),
                         SizedBox(width: 6.w),
-                        Text(_active ? 'Active' : 'Inactive',
+                        Text(_active ? loc.translate('active') : loc.translate('inactive'),
                             style: ThemeConstants.captionStyle),
                       ],
                     ),
@@ -242,7 +244,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _submit,
-                        child: const Text('Save Category'),
+                        child: Text(loc.translate('save_category')),
                       ),
                     ),
                   ],

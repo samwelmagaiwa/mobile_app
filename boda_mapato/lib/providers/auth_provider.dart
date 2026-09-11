@@ -75,20 +75,26 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isAuthenticated = await AuthService.isAuthenticated();
       if (_isAuthenticated) {
-        // Run cached-data load and token validation in parallel — they are
-        // independent reads and together were the two slowest sequential steps.
-        final results = await Future.wait([
-          AuthService.getUserData(),
-          AuthService.validateToken(),
-        ]);
-        final Map<String, dynamic>? userData = results[0] as Map<String, dynamic>?;
-        final bool isValid = results[1] as bool;
-        if (userData != null) {
-          _user = UserData.fromJson(userData);
+        // Load cached data immediately for fast startup, then fetch fresh from server.
+        final Map<String, dynamic>? cached = await AuthService.getUserData();
+        if (cached != null) {
+          _user = UserData.fromJson(cached);
         }
-        if (isValid) {
+
+        // Fetch fresh user data from server; this also saves to cache.
+        final Map<String, dynamic>? fresh = await AuthService.getCurrentUser();
+        if (fresh != null) {
+          _user = UserData.fromJson(fresh);
+        }
+
+        if (_user != null) {
           _startRefreshTimer();
+        } else {
+          // Token exists locally but server rejected it — clear local state.
+          await AuthService.clearAuthData();
+          _isAuthenticated = false;
         }
+
         // Fire-and-forget: support contact fetch doesn't block the UI.
         unawaited(fetchSuperAdminContact());
       }
@@ -228,6 +234,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _handleUnauthorized() async {
+    // Verify the token is actually invalid before force-logging out.
+    // A single 401 from any endpoint (e.g. polling) can be a transient server
+    // error even when the session is still valid.
+    try {
+      final Map<String, dynamic>? check = await AuthService.getCurrentUser();
+      if (check != null) {
+        // Token is still valid — update user and ignore the transient 401.
+        _user = UserData.fromJson(check);
+        notifyListeners();
+        return;
+      }
+    } on Exception {
+      // getCurrentUser threw — token is truly invalid, proceed with logout.
+    }
+
     try {
       await AuthService.clearAuthData();
     } on Exception {

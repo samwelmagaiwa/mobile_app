@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -180,7 +180,7 @@ class _SalesScreenState extends State<SalesScreen>
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
     final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
@@ -886,25 +886,25 @@ class _SalesScreenState extends State<SalesScreen>
               child: Row(
                 children: [
                   _StatChip(
-                    label: 'Mauzo',
+                    label: loc.translate('sales'),
                     value: '${(summary['count'] as num? ?? 0).toInt()}',
                     icon: Icons.receipt_long_rounded,
                     color: Colors.white70,
                   ),
                   _StatChip(
-                    label: 'Jumla',
+                    label: loc.translate('total'),
                     value: 'TZS ${_fmt(summary['total'])}',
                     icon: Icons.attach_money_rounded,
                     color: ThemeConstants.primaryBlue,
                   ),
                   _StatChip(
-                    label: 'Ilipwa',
+                    label: loc.translate('paid'),
                     value: 'TZS ${_fmt(summary['paid'])}',
                     icon: Icons.check_circle_outline,
                     color: ThemeConstants.successGreen,
                   ),
                   _StatChip(
-                    label: 'Deni',
+                    label: loc.translate('debt'),
                     value: 'TZS ${_fmt(summary['debt'])}',
                     icon: Icons.warning_amber_rounded,
                     color: ThemeConstants.errorRed,
@@ -1018,12 +1018,12 @@ class _SalesScreenState extends State<SalesScreen>
                         padding: EdgeInsets.only(left: 44.w),
                         child: Row(
                           children: [
-                            _AmountBadge(label: 'Jumla', amount: s.total, color: Colors.white70),
+                            _AmountBadge(label: loc.translate('total'), amount: s.total, color: Colors.white70),
                             SizedBox(width: 6.w),
-                            _AmountBadge(label: 'Ilipwa', amount: s.paidTotal, color: ThemeConstants.successGreen),
+                            _AmountBadge(label: loc.translate('paid'), amount: s.paidTotal, color: ThemeConstants.successGreen),
                             if (!s.isCancelled && s.paymentStatus != 'paid') ...[
                               SizedBox(width: 6.w),
-                              _AmountBadge(label: 'Deni', amount: balance, color: ThemeConstants.errorRed),
+                              _AmountBadge(label: loc.translate('debt'), amount: balance, color: ThemeConstants.errorRed),
                             ],
                           ],
                         ),
@@ -1033,24 +1033,24 @@ class _SalesScreenState extends State<SalesScreen>
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           IconButton(
-                            tooltip: 'Angalia Risiti',
+                            tooltip: loc.translate('view_receipt'),
                             onPressed: () => Navigator.of(context).push(SaleReceiptScreen.route(s)),
                             icon: Icon(Icons.receipt_long_outlined, color: Colors.white70, size: 19.sp),
                           ),
                           IconButton(
-                            tooltip: 'Chapisha / Shiriki',
+                            tooltip: loc.translate('print_share'),
                             onPressed: () => _shareReceipt(context, s),
                             icon: Icon(Icons.print_outlined, color: Colors.white70, size: 19.sp),
                           ),
                           if (!s.isCancelled && s.paymentStatus != 'paid')
                             IconButton(
-                              tooltip: 'Lipa Deni',
+                              tooltip: loc.translate('pay_debt'),
                               onPressed: () => _showPayDebtSheet(context, s),
                               icon: Icon(Icons.payments_outlined, color: ThemeConstants.warningAmber, size: 19.sp),
                             ),
                           if (isManager && !s.isCancelled)
                             IconButton(
-                              tooltip: 'Ghairi Mauzo',
+                              tooltip: loc.translate('cancel_sale'),
                               onPressed: () => _showCancelSheet(context, s),
                               icon: Icon(Icons.cancel_outlined, color: ThemeConstants.errorRed, size: 19.sp),
                             ),
@@ -1090,7 +1090,7 @@ class _SalesScreenState extends State<SalesScreen>
                           if (mounted) setState(() => _loadingMore = false);
                         },
                         icon: const Icon(Icons.expand_more),
-                        label: const Text('Pakia Zaidi'),
+                        label: Text(loc.translate('load_more')),
                       ),
               ),
             ),
@@ -1115,6 +1115,7 @@ class _SalesScreenState extends State<SalesScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setBS) {
+        final loc = LocalizationService.instance;
         return Padding(
           padding: EdgeInsets.fromLTRB(
               20.w, 20.h, 20.w, MediaQuery.of(ctx).viewInsets.bottom + 20.h),
@@ -1122,16 +1123,16 @@ class _SalesScreenState extends State<SalesScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Lipa Deni — #${sale.number}',
+              Text('${loc.translate('pay_debt')} — #${sale.number}',
                   style: ThemeConstants.bodyStyle.copyWith(
                       fontWeight: FontWeight.bold, fontSize: 15.sp)),
               SizedBox(height: 4.h),
-              Text('Baki: TZS ${balance.toStringAsFixed(0)}',
+              Text('${loc.translate('balance')}: TZS ${balance.toStringAsFixed(0)}',
                   style: ThemeConstants.captionStyle),
               SizedBox(height: 14.h),
               InvTextField(
                 controller: amountCtrl,
-                label: 'Kiasi (TZS)',
+                label: loc.translate('amount_tzs'),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
               SizedBox(height: 10.h),
@@ -1139,7 +1140,7 @@ class _SalesScreenState extends State<SalesScreen>
                 value: method,
                 dropdownColor: ThemeConstants.primaryBlue,
                 decoration: InputDecoration(
-                  labelText: 'Njia ya Malipo',
+                  labelText: loc.translate('payment_method'),
                   labelStyle: ThemeConstants.captionStyle,
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.r),
@@ -1149,17 +1150,17 @@ class _SalesScreenState extends State<SalesScreen>
                       borderSide: const BorderSide(color: Colors.white54)),
                 ),
                 style: ThemeConstants.bodyStyle,
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Pesa Taslimu')),
-                  DropdownMenuItem(value: 'mobile_money', child: Text('Pesa ya Simu')),
-                  DropdownMenuItem(value: 'bank_transfer', child: Text('Benki')),
+                items: [
+                  DropdownMenuItem(value: 'cash', child: Text(loc.translate('cash'))),
+                  DropdownMenuItem(value: 'mobile_money', child: Text(loc.translate('mobile_money'))),
+                  DropdownMenuItem(value: 'bank_transfer', child: Text(loc.translate('bank_transfer'))),
                 ],
                 onChanged: (v) => setBS(() => method = v ?? 'cash'),
               ),
               SizedBox(height: 16.h),
               InvPrimaryButton(
                 busy: busy,
-                label: 'Rekodi Malipo',
+                label: loc.translate('record_payment'),
                 onPressed: () async {
                   final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
                   if (amt <= 0) return;
@@ -1169,8 +1170,8 @@ class _SalesScreenState extends State<SalesScreen>
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (context.mounted) {
                     ok
-                        ? ThemeConstants.showInfoSnackBar(context, 'Malipo yamerekodiwa')
-                        : ThemeConstants.showErrorSnackBar(context, 'Imeshindwa kurekodi malipo');
+                        ? ThemeConstants.showInfoSnackBar(context, loc.translate('payment_recorded'))
+                        : ThemeConstants.showErrorSnackBar(context, loc.translate('failed_to_record_payment'));
                   }
                 },
               ),
@@ -1193,6 +1194,7 @@ class _SalesScreenState extends State<SalesScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setBS) {
+        final loc = LocalizationService.instance;
         return Padding(
           padding: EdgeInsets.fromLTRB(
               20.w, 20.h, 20.w, MediaQuery.of(ctx).viewInsets.bottom + 20.h),
@@ -1200,23 +1202,23 @@ class _SalesScreenState extends State<SalesScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Ghairi Mauzo — #${sale.number}',
+              Text('${loc.translate('cancel_sale')} — #${sale.number}',
                   style: ThemeConstants.bodyStyle.copyWith(
                       fontWeight: FontWeight.bold, fontSize: 15.sp,
                       color: ThemeConstants.errorRed)),
               SizedBox(height: 4.h),
-              Text('Hifadhi ya bidhaa itarejeshwa otomatiki.',
+              Text(loc.translate('stock_auto_restored'),
                   style: ThemeConstants.captionStyle),
               SizedBox(height: 14.h),
               InvTextField(
                 controller: reasonCtrl,
-                label: 'Sababu ya kughairi',
-                hint: 'e.g. Mteja alibadilisha nia',
+                label: loc.translate('cancel_reason'),
+                hint: loc.translate('cancel_reason_hint'),
               ),
               SizedBox(height: 16.h),
               InvPrimaryButton(
                 busy: busy,
-                label: 'Thibitisha Kughairi',
+                label: loc.translate('confirm_cancel'),
                 onPressed: () async {
                   final reason = reasonCtrl.text.trim();
                   if (reason.isEmpty) return;
@@ -1226,8 +1228,8 @@ class _SalesScreenState extends State<SalesScreen>
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (context.mounted) {
                     ok
-                        ? ThemeConstants.showInfoSnackBar(context, 'Mauzo yameghairiwa, hifadhi imerejeshewe')
-                        : ThemeConstants.showErrorSnackBar(context, 'Imeshindwa kughairi mauzo');
+                        ? ThemeConstants.showInfoSnackBar(context, loc.translate('sale_cancelled_stock_restored'))
+                        : ThemeConstants.showErrorSnackBar(context, loc.translate('failed_to_cancel_sale'));
                   }
                 },
               ),

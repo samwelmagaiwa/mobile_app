@@ -26,7 +26,7 @@ class _StockLevelsScreenState extends State<StockLevelsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvProduct> all = context.watch<InventoryProvider>().products;
     final String q = _query.trim().toLowerCase();
 
@@ -88,7 +88,7 @@ class _StockLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final bool isLow = product.quantity < product.minStock;
     final bool isOut = product.quantity <= 0;
 

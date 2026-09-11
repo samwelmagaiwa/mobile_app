@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +49,7 @@ class _DepotSettingsScreenState extends State<DepotSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     if (_loading) {
       return const Scaffold(
@@ -182,7 +182,7 @@ class _SettingsTabState extends State<_SettingsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Form(
       key: _formKey,
@@ -357,7 +357,7 @@ class _AppSettingsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final isSuperAdmin = user?.isSuperAdmin ?? false;
@@ -611,7 +611,7 @@ class _AuditTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvAuditEntry> rows = context.watch<DepotProvider>().auditLog;
 
     return RefreshIndicator(

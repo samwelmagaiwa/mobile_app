@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -44,7 +44,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final UserPermissions perms = UserPermissions.fromRole(
       context.read<AuthProvider>().user?.role ?? 'viewer',
@@ -241,7 +241,7 @@ class _ProductHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Container(
       decoration: ThemeConstants.glassCardDecoration,
@@ -316,7 +316,7 @@ class _UnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Container(
       decoration: ThemeConstants.glassCardDecoration,
@@ -694,7 +694,7 @@ class _UnitFormSheetState extends State<_UnitFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return _SheetShell(
       title: loc.translate(_isEdit ? 'edit_unit' : 'add_unit'),
@@ -851,7 +851,7 @@ class _PriceFormSheetState extends State<_PriceFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
 
     return _SheetShell(
@@ -947,7 +947,7 @@ class _PriceHistorySheetState extends State<_PriceHistorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return _SheetShell(
       title: '${loc.translate('price_history')} — ${widget.unit.name}',
@@ -998,7 +998,7 @@ class _HistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final double? percent = change.changePercent;
     final bool up = (percent ?? 0) >= 0;
     final DateTime at = change.createdAt;

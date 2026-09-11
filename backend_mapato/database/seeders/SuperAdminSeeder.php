@@ -15,7 +15,7 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $email    = env('SUPER_ADMIN_EMAIL', 'superadmin@example.com');
+        $email    = env('SUPER_ADMIN_EMAIL', 'super@gmail.com');
         $phone    = env('SUPER_ADMIN_PHONE', '');
         $password = env('SUPER_ADMIN_PASSWORD', Str::random(16));
 

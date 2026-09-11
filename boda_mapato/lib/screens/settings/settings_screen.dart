@@ -1,7 +1,6 @@
 import "package:flutter/material.dart";
 import "package:file_picker/file_picker.dart";
 import 'package:provider/provider.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import "../../config/api_config.dart";

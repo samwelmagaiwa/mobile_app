@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -42,7 +42,7 @@ class _CreditScreenState extends State<CreditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     if (_loading) {
       return const Scaffold(
@@ -79,7 +79,7 @@ class _CreditCustomersTabState extends State<_CreditCustomersTab> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final String q = _query.trim().toLowerCase();
     final List<InvCreditCustomer> rows = context
         .watch<DepotProvider>()
@@ -122,7 +122,7 @@ class _CreditCustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     final (Color color, String label) = switch (customer) {
       final InvCreditCustomer c when c.isBlocked => (
@@ -306,7 +306,7 @@ class _CreditSettingsSheetState extends State<_CreditSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return InvSheetShell(
       title: '${loc.translate('credit_settings')} — ${widget.customer.name}',
@@ -471,7 +471,7 @@ class _ReceivePaymentSheetState extends State<ReceivePaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return InvSheetShell(
       title: '${loc.translate('receive_payment')} — ${widget.customer.name}',
@@ -712,7 +712,7 @@ class _AgeingTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final DepotProvider depot = context.watch<DepotProvider>();
     final List<InvDebtorAgeing> rows = depot.debtors;
     final Map<String, double> totals = depot.debtorTotals;
@@ -778,7 +778,7 @@ class _AgeingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     return Container(
       decoration: ThemeConstants.glassCardDecoration,
@@ -860,7 +860,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InvStatement? s = _statement;
 
     return Scaffold(

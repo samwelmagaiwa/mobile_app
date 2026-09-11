@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -57,7 +57,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvReportMeta> rows = context.watch<DepotProvider>().reports;
 
     return Scaffold(
@@ -131,7 +131,7 @@ class _ReportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = LocalizationService.instance;
+    final loc = context.watch<LocalizationService>();
     final translatedTitle = loc.translate('report_${report.key}');
     // Fallback: if key not found the service returns the key itself; use backend title then.
     final title = (translatedTitle == 'report_${report.key}')
@@ -240,7 +240,7 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InvReport? r = _report;
 
     return Scaffold(

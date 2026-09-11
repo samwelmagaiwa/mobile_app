@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,7 +41,7 @@ class _StockCountsScreenState extends State<StockCountsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvStockCount> counts =
         context.watch<InventoryProvider>().stockCounts;
 
@@ -130,7 +130,7 @@ class _CountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final (Color color, String label) = switch (count.status) {
       'posted' => (ThemeConstants.successGreen, loc.translate('posted')),
       'cancelled' => (ThemeConstants.errorRed, loc.translate('cancelled')),
@@ -216,7 +216,7 @@ class _StockCountDetailScreenState extends State<StockCountDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InvStockCount? count = _count;
     final bool isDraft = count?.isDraft ?? false;
     final int netVariance = (count?.lines ?? const <InvStockCountLine>[])
@@ -465,7 +465,7 @@ class _LineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final Color varianceColor = line.matches
         ? ThemeConstants.successGreen
         : (line.variance > 0
@@ -618,7 +618,7 @@ class _CountLineSheetState extends State<_CountLineSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final List<InvBatch> batches =
         _productId == null ? const <InvBatch>[] : inv.batchesOf(_productId!);

@@ -101,7 +101,8 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    final LocalizationService loc = LocalizationService.instance;
+    // watch — rebuilds automatically when language toggles
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
     final user = auth.user;
@@ -190,7 +191,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     UserPermissions perms,
   ) {
     final String roleLabel = _roleDisplay(role);
-    final List<_QuickChip> chips = _quickChipsFor(perms);
+    final List<_QuickChip> chips = _quickChipsFor(loc, perms);
 
     return _buildGlassCard(
       child: Padding(
@@ -216,7 +217,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Karibu, $name 👋',
+                        '${loc.translate('welcome')}, $name 👋',
                         style: TextStyle(
                           color: textPrimary,
                           fontSize: ResponsiveHelper.bodyL,
@@ -281,15 +282,15 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     }
   }
 
-  List<_QuickChip> _quickChipsFor(UserPermissions perms) {
+  List<_QuickChip> _quickChipsFor(LocalizationService loc, UserPermissions perms) {
     final chips = <_QuickChip>[];
-    if (perms.has('inv_create_sales')) { chips.add(_QuickChip('Uza', Icons.point_of_sale_rounded, '/inventory/sales/new')); }
-    if (perms.has('inv_view_products')) { chips.add(_QuickChip('Bidhaa', Icons.inventory_2_outlined, '/inventory/products')); }
-    if (perms.has('inv_view_reminders')) { chips.add(_QuickChip('Vikumbusho', Icons.notifications_outlined, '/inventory/reminders')); }
-    if (perms.has('inv_view_cash')) { chips.add(_QuickChip('Pesa Taslimu', Icons.account_balance_wallet_outlined, '/inventory/cash')); }
-    if (perms.has('inv_view_credit')) { chips.add(_QuickChip('Madeni', Icons.people_outline_rounded, '/inventory/credit')); }
-    if (perms.has('inv_view_expenses')) { chips.add(_QuickChip('Matumizi', Icons.receipt_outlined, '/inventory/expenses')); }
-    if (perms.has('inv_manage_stock')) { chips.add(_QuickChip('Hisa', Icons.layers_outlined, '/inventory/stock')); }
+    if (perms.has('inv_create_sales')) { chips.add(_QuickChip(loc.translate('sell'), Icons.point_of_sale_rounded, '/inventory/sales/new')); }
+    if (perms.has('inv_view_products')) { chips.add(_QuickChip(loc.translate('products'), Icons.inventory_2_outlined, '/inventory/products')); }
+    if (perms.has('inv_view_reminders')) { chips.add(_QuickChip(loc.translate('reminders'), Icons.notifications_outlined, '/inventory/reminders')); }
+    if (perms.has('inv_view_cash')) { chips.add(_QuickChip(loc.translate('cash'), Icons.account_balance_wallet_outlined, '/inventory/cash')); }
+    if (perms.has('inv_view_credit')) { chips.add(_QuickChip(loc.translate('credit'), Icons.people_outline_rounded, '/inventory/credit')); }
+    if (perms.has('inv_view_expenses')) { chips.add(_QuickChip(loc.translate('expenses'), Icons.receipt_outlined, '/inventory/expenses')); }
+    if (perms.has('inv_manage_stock')) { chips.add(_QuickChip(loc.translate('stock'), Icons.layers_outlined, '/inventory/stock')); }
     return chips.take(5).toList();
   }
 
@@ -472,19 +473,19 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
 
   // ── Filter helpers ────────────────────────────────────────────────────────
 
-  String get _filterLabel {
+  String _filterLabel(LocalizationService loc) {
     switch (_filter) {
-      case _DateFilter.today:   return 'Leo';
-      case _DateFilter.week:    return 'Wiki hii';
-      case _DateFilter.month:   return 'Mwezi huu';
-      case _DateFilter.year:    return 'Mwaka huu';
+      case _DateFilter.today:   return loc.translate('today');
+      case _DateFilter.week:    return loc.translate('this_week');
+      case _DateFilter.month:   return loc.translate('this_month');
+      case _DateFilter.year:    return loc.translate('this_year');
       case _DateFilter.custom:
         if (_customStart != null && _customEnd != null) {
           final s = _customStart!;
           final e = _customEnd!;
           return '${s.day}/${s.month} – ${e.day}/${e.month}';
         }
-        return 'Chaguo';
+        return loc.translate('custom_range');
     }
   }
 
@@ -579,7 +580,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   children: <Widget>[
                     const Icon(Icons.bar_chart_rounded, color: Colors.white54, size: 15),
                     const SizedBox(width: 6),
-                    Text(_filterLabel,
+                    Text(_filterLabel(loc),
                         style: TextStyle(
                             color: textSecondary,
                             fontSize: ResponsiveHelper.bodyS,
@@ -616,10 +617,10 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const <Widget>[
-                            Icon(Icons.tune_rounded, color: Colors.white, size: 14),
-                            SizedBox(width: 5),
-                            Text('Chuja', style: TextStyle(color: Colors.white,
+                          children: <Widget>[
+                            const Icon(Icons.tune_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 5),
+                            Text(loc.translate('filter_btn'), style: const TextStyle(color: Colors.white,
                                 fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -634,7 +635,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 children: <Widget>[
                   Expanded(
                     child: _salesMiniTile(
-                      label: 'Mauzo',
+                      label: loc.translate('sales'),
                       value: 'TSH ${_formatCurrency(_filteredTotal(inv))}',
                       icon: Icons.receipt_long_rounded,
                       iconColor: Colors.lightBlueAccent.shade200,
@@ -643,7 +644,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   ),
                   Expanded(
                     child: _salesMiniTile(
-                      label: 'Idadi ya Mauzo',
+                      label: loc.translate('sales_count'),
                       value: '${_filteredSalesCount(inv)}',
                       icon: Icons.shopping_cart_rounded,
                       iconColor: Colors.greenAccent.shade200,
@@ -1340,7 +1341,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Muhtasari wa Mzigo - Imported Products Valuation',
+                    loc.translate('inv_valuation_title'),
                     style: TextStyle(
                       color: textPrimary,
                       fontSize: ResponsiveHelper.bodyL,
@@ -1385,7 +1386,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                   child: _insightTile(
                     Icons.storefront_outlined,
                     Colors.lightBlueAccent.shade200,
-                    loc.isSwahili ? 'Mapato (Kuuza)' : 'Revenue',
+                    loc.translate('revenue'),
                     'TZS ${formatAmount(totalRevenue)}',
                   ),
                 ),
@@ -1440,7 +1441,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            'Faida Tarajiwa (Expected Profit):',
+                            '${loc.translate('expected_profit')}:',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: ResponsiveHelper.bodyS,
@@ -1967,12 +1968,12 @@ class _FilterSheetState extends State<_FilterSheet> {
   DateTime? _start;
   DateTime? _end;
 
-  static const _options = <({_DateFilter filter, String label, IconData icon})>[
-    (filter: _DateFilter.today,  label: 'Leo',        icon: Icons.today_rounded),
-    (filter: _DateFilter.week,   label: 'Wiki hii',   icon: Icons.view_week_rounded),
-    (filter: _DateFilter.month,  label: 'Mwezi huu',  icon: Icons.calendar_month_rounded),
-    (filter: _DateFilter.year,   label: 'Mwaka huu',  icon: Icons.calendar_today_rounded),
-    (filter: _DateFilter.custom, label: 'Tarehe maalum', icon: Icons.date_range_rounded),
+  static const _optionFilters = <({_DateFilter filter, String key, IconData icon})>[
+    (filter: _DateFilter.today,  key: 'today',        icon: Icons.today_rounded),
+    (filter: _DateFilter.week,   key: 'this_week',    icon: Icons.view_week_rounded),
+    (filter: _DateFilter.month,  key: 'this_month',   icon: Icons.calendar_month_rounded),
+    (filter: _DateFilter.year,   key: 'this_year',    icon: Icons.calendar_today_rounded),
+    (filter: _DateFilter.custom, key: 'custom_range', icon: Icons.date_range_rounded),
   ];
 
   @override
@@ -2012,6 +2013,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1A2E45),
@@ -2030,14 +2032,15 @@ class _FilterSheetState extends State<_FilterSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Text('Chagua Kipindi',
-              style: TextStyle(color: Colors.white, fontSize: 16,
+          Text(loc.translate('choose_period'),
+              style: const TextStyle(color: Colors.white, fontSize: 16,
                   fontWeight: FontWeight.w700, letterSpacing: 0.5)),
           const SizedBox(height: 16),
           // Option tiles
-          ..._options.map((opt) {
+          ..._optionFilters.map((opt) {
             final bool active = _selected == opt.filter;
             final bool isCustom = opt.filter == _DateFilter.custom;
+            final String label = loc.translate(opt.key);
             return GestureDetector(
               onTap: () async {
                 setState(() => _selected = opt.filter);
@@ -2065,8 +2068,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                     Expanded(
                       child: Text(
                         isCustom && _start != null && _end != null
-                            ? '${opt.label}  ${_start!.day}/${_start!.month}/${_start!.year} – ${_end!.day}/${_end!.month}/${_end!.year}'
-                            : opt.label,
+                            ? '$label  ${_start!.day}/${_start!.month}/${_start!.year} – ${_end!.day}/${_end!.month}/${_end!.year}'
+                            : label,
                         style: TextStyle(
                           color: active ? Colors.white : Colors.white70,
                           fontSize: 14,
@@ -2098,7 +2101,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 widget.onSelect(_selected, _start, _end);
                 Navigator.of(context).pop();
               },
-              child: const Text('Tumia', style: TextStyle(
+              child: Text(loc.translate('apply'), style: const TextStyle(
                   fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),

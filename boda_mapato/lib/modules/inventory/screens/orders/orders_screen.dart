@@ -1,8 +1,10 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../services/localization_service.dart';
 import 'order_details_screen.dart';
 
 class PurchaseOrder {
@@ -83,6 +85,7 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     final orders = _orders;
     final filtered = _statusFilter == 'All'
         ? orders
@@ -102,7 +105,7 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search…',
+                      hintText: '${loc.translate('search')}…',
                       hintStyle: ThemeConstants.captionStyle,
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.08),
@@ -117,10 +120,10 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
                   ),
                 ),
                 SizedBox(width: 8.w),
-                const _SmallFilterPill(icon: Icons.sort_by_alpha, label: 'A-Z'),
+                _SmallFilterPill(icon: Icons.sort_by_alpha, label: loc.translate('a_z_sort')),
                 SizedBox(width: 8.w),
-                const _SmallFilterPill(
-                    icon: Icons.view_list, label: 'All Orders'),
+                _SmallFilterPill(
+                    icon: Icons.view_list, label: loc.translate('all_orders')),
               ],
             ),
             SizedBox(height: 10.h),
@@ -128,19 +131,19 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
             Row(
               children: [
                 _StatusChip(
-                  label: 'All',
+                  label: loc.translate('all'),
                   selected: _statusFilter == 'All',
                   onTap: () => setState(() => _statusFilter = 'All'),
                 ),
                 SizedBox(width: 6.w),
                 _StatusChip(
-                  label: 'Pending',
+                  label: loc.translate('pending'),
                   selected: _statusFilter == 'Pending',
                   onTap: () => setState(() => _statusFilter = 'Pending'),
                 ),
                 SizedBox(width: 6.w),
                 _StatusChip(
-                  label: 'Received',
+                  label: loc.translate('received'),
                   selected: _statusFilter == 'Received',
                   onTap: () => setState(() => _statusFilter = 'Received'),
                 ),
@@ -167,7 +170,7 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
                             Icon(Icons.inbox_outlined,
                                 color: Colors.white24, size: 48.sp),
                             SizedBox(height: 12.h),
-                            Text('Hakuna maagizo ya ununuzi',
+                            Text(loc.translate('no_purchase_orders'),
                                 style: ThemeConstants.captionStyle),
                           ],
                         ),
@@ -298,6 +301,7 @@ class _OrderListCard extends StatelessWidget {
   final String Function(num) money;
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16.r),
@@ -321,7 +325,7 @@ class _OrderListCard extends StatelessWidget {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AutoSizeText('Customer Name',
+                          AutoSizeText(loc.translate('customer_name'),
                               style: ThemeConstants.bodyStyle
                                   .copyWith(fontWeight: FontWeight.w700),
                               maxLines: 1),
@@ -334,7 +338,7 @@ class _OrderListCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      AutoSizeText('Status',
+                      AutoSizeText(loc.translate('status'),
                           style: ThemeConstants.captionStyle,
                           maxLines: 1,
                           minFontSize: 9),
@@ -353,35 +357,35 @@ class _OrderListCard extends StatelessWidget {
                 children: [
                   Expanded(
                       flex: 3,
-                      child: AutoSizeText('Type',
+                      child: AutoSizeText(loc.translate('type'),
                           style: ThemeConstants.captionStyle
                               .copyWith(color: const Color(0xFF7CD6E4)),
                           maxLines: 1,
                           minFontSize: 9)),
                   Expanded(
                       flex: 5,
-                      child: AutoSizeText('Order ID',
+                      child: AutoSizeText(loc.translate('order_id'),
                           style: ThemeConstants.captionStyle
                               .copyWith(color: const Color(0xFF7CD6E4)),
                           maxLines: 1,
                           minFontSize: 9)),
                   Expanded(
                       flex: 5,
-                      child: AutoSizeText('Date',
+                      child: AutoSizeText(loc.translate('date'),
                           style: ThemeConstants.captionStyle
                               .copyWith(color: const Color(0xFF7CD6E4)),
                           maxLines: 1,
                           minFontSize: 9)),
                   Expanded(
                       flex: 5,
-                      child: AutoSizeText('Time',
+                      child: AutoSizeText(loc.translate('time'),
                           style: ThemeConstants.captionStyle
                               .copyWith(color: const Color(0xFF7CD6E4)),
                           maxLines: 1,
                           minFontSize: 9)),
                   Expanded(
                       flex: 6,
-                      child: AutoSizeText('Product',
+                      child: AutoSizeText(loc.translate('products'),
                           style: ThemeConstants.captionStyle
                               .copyWith(color: const Color(0xFF7CD6E4)),
                           maxLines: 1,
@@ -459,7 +463,7 @@ class _OrderListCard extends StatelessWidget {
                     flex: 6,
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6.w),
-                      child: AutoSizeText('Product Name',
+                      child: AutoSizeText(loc.translate('product_name'),
                           style: ThemeConstants.bodyStyle,
                           textAlign: TextAlign.right,
                           maxLines: 1,

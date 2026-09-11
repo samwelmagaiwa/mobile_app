@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+﻿import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -45,7 +45,7 @@ class _CratesScreenState extends State<CratesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     if (_loading) {
       return const Scaffold(
@@ -95,7 +95,7 @@ class _DepotPositionTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvCrateBalance> rows =
         context.watch<DepotProvider>().cratePosition;
 
@@ -198,7 +198,7 @@ class _CustomerHoldingsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvCrateBalance> rows =
         context.watch<DepotProvider>().crateBalances;
 
@@ -331,7 +331,7 @@ class _CrateMovementSheetState extends State<_CrateMovementSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvCrateType> types = context.watch<DepotProvider>().crateTypes;
     final List<InvCustomer> customers =
         context.watch<InventoryProvider>().customers;

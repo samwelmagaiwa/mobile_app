@@ -9,7 +9,6 @@ import '../config/api_config.dart';
 import '../models/dashboard_report.dart';
 import '../models/revenue_report.dart';
 import 'auth_events.dart';
-import 'auth_service.dart';
 
 class ApiService {
   // API Configuration - Updated for Laravel backend
@@ -447,14 +446,9 @@ class ApiService {
       case 400:
         throw ApiException(data["message"] ?? "Ombi si sahihi");
       case 401:
-        // Clear auth data so UI can return to login
-        try {
-          // fire-and-forget
-          AuthService.clearAuthData();
-        } on Exception {
-          // ignore
-        }
-        // Broadcast unauthorized so UI can react immediately
+        // Broadcast unauthorized — AuthProvider will verify the token before
+        // actually logging the user out (prevents false logouts from transient
+        // 401s on polling or non-critical endpoints).
         AuthEvents.instance.emit(AuthEvent.unauthorized);
         throw ApiException("Hauruhusiwi - tafadhali ingia tena");
       case 403:

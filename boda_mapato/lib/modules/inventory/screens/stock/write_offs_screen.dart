@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -46,7 +46,7 @@ class _WriteOffsScreenState extends State<WriteOffsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final AuthProvider auth = context.read<AuthProvider>();
     // fromUser (not fromRole) honours a per-user explicit grant too, not
@@ -243,7 +243,7 @@ class _WriteOffCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final (Color color, String label) = switch (writeOff.status) {
       'approved' => (ThemeConstants.successGreen, loc.translate('approved')),
       'rejected' => (ThemeConstants.errorRed, loc.translate('rejected')),
@@ -442,7 +442,7 @@ class _WriteOffFormSheetState extends State<_WriteOffFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
     final List<InvBatch> batches =
         _productId == null ? const <InvBatch>[] : inv.batchesOf(_productId!);

@@ -44,7 +44,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
 
     if (_loading) {
       return const Scaffold(
@@ -74,7 +74,7 @@ class _ReturnsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvSaleReturn> rows = context.watch<DepotProvider>().returns;
     final AuthProvider auth = context.read<AuthProvider>();
     // Matches the backend gate on POST inventory/returns/{id}/decide
@@ -138,7 +138,7 @@ class _ReturnCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final (Color color, String label) = switch (saleReturn.status) {
       'approved' => (ThemeConstants.successGreen, loc.translate('approved')),
       'rejected' => (ThemeConstants.errorRed, loc.translate('rejected')),
@@ -230,7 +230,7 @@ class _ParkedTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvParkedSale> rows = context.watch<DepotProvider>().parkedSales;
 
     return RefreshIndicator(

@@ -32,7 +32,7 @@ class _ApprovalNotificationsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final LocalizationService loc = LocalizationService.instance;
+    final LocalizationService loc = context.watch<LocalizationService>();
     final NotificationsProvider provider = context.watch<NotificationsProvider>();
     final List<InvNotification> items = provider.items;
 
