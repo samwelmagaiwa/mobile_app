@@ -1,6 +1,5 @@
 import "dart:ui";
 
-import 'package:auto_size_text/auto_size_text.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import "package:provider/provider.dart";
@@ -10,7 +9,6 @@ import "../../models/communication.dart";
 import "../../models/driver.dart";
 import '../../services/api_service.dart';
 import "../../services/localization_service.dart";
-import "../../utils/responsive_helper.dart";
 
 // ─────────────────────────────────────────────
 // Color palette (local — matches property_details_screen)
@@ -794,6 +792,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                     TextStyle(color: Colors.white38, fontSize: 12.sp),
                 prefixIcon: Icon(Icons.search,
                     color: Colors.white38, size: 18.sp),
+                filled: false,
                 border: InputBorder.none,
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -1704,6 +1703,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                                 hintStyle: TextStyle(
                                     color: Colors.white38,
                                     fontSize: 12.sp),
+                                filled: false,
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.all(14.w),
                               ),
@@ -1902,6 +1902,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                             hintText: "Andika jibu lako hapa...",
                             hintStyle: TextStyle(
                                 color: Colors.white38, fontSize: 12.sp),
+                            filled: false,
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.all(14.w),
                           ),
