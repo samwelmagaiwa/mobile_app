@@ -8,7 +8,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_category.dart';
 import '../../providers/inventory_provider.dart';
-import '../../utils/user_permissions.dart';
+import '../../../../models/user_permissions.dart';
 import 'category_form_screen.dart';
 
 class InventoryCategoriesScreen extends StatefulWidget {
@@ -91,8 +91,14 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
     final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
     final auth = context.read<AuthProvider>();
-    final canManage =
-        UserPermissions.fromRole(auth.user?.role ?? 'viewer').has('inv_manage_categories');
+    // Categories are gated by inv_manage_products (same as elsewhere in the
+    // inventory module -- there is no separate inv_manage_categories
+    // permission on the backend). fromUser (not fromRole) also honours a
+    // per-user explicit grant, not just the role default.
+    final canManage = UserPermissions.fromUser(
+      userRole: auth.user?.role ?? 'viewer',
+      explicitGrants: auth.user?.permissions,
+    ).has('inv_manage_products');
 
     final List<InvCategory> cats = inv.categories
         .where((c) =>
