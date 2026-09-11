@@ -54,7 +54,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     }
 
     return InvTabScaffold(
-      title: loc.translate('returns_and_parked'),
+      title: '',
       tabs: <String>[
         loc.translate('returns'),
         loc.translate('parked_sales'),

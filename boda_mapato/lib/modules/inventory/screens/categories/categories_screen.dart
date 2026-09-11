@@ -243,11 +243,17 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
         ),
         SizedBox(width: 6.w),
         // Status pill
-        _statusPill(loc, c),
-        SizedBox(width: 8.w),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: EdgeInsets.only(right: 16.w),
+              child: _statusPill(loc, c),
+            ),
+          ),
+        ),
         // Three-dots actions
         if (canManage) ...[
-          SizedBox(width: 4.w),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert,
                 color: Colors.white54, size: 20),
@@ -305,12 +311,18 @@ class _TableHeader extends StatelessWidget {
         SizedBox(width: 50.w,  child: Text(loc.translate('code'), style: style)),
         SizedBox(
           width: 30.w,
-          child: Text(loc.translate('total_products_abbr'),
-              style: style, textAlign: TextAlign.center),
+          child: Text('QTY', style: style, textAlign: TextAlign.center),
         ),
         SizedBox(width: 6.w),
-        Text(loc.translate('status'), style: style),
-        SizedBox(width: 8.w),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: EdgeInsets.only(right: 16.w),
+              child: Text(loc.translate('status'), style: style),
+            ),
+          ),
+        ),
         if (canManage) Text(loc.translate('actions'), style: style),
       ],
     );

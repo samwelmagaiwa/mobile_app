@@ -56,7 +56,7 @@ class _PurchasingScreenState extends State<PurchasingScreen> {
     }
 
     return InvTabScaffold(
-      title: loc.translate('purchasing'),
+      title: '',
       tabs: <String>[
         loc.translate('suppliers'),
         loc.translate('purchase_orders'),

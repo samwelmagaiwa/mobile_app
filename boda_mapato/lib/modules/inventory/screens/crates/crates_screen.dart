@@ -55,7 +55,7 @@ class _CratesScreenState extends State<CratesScreen> {
     }
 
     return InvTabScaffold(
-      title: loc.translate('crates_and_empties'),
+      title: '',
       tabs: <String>[
         loc.translate('depot_position'),
         loc.translate('customers'),
@@ -93,6 +93,15 @@ class _DepotPositionTab extends StatelessWidget {
 
   final Future<void> Function() onRefresh;
 
+  static const TableBorder _border = TableBorder(
+    top:              BorderSide(color: Colors.white24, width: 0.8),
+    bottom:           BorderSide(color: Colors.white24, width: 0.8),
+    left:             BorderSide(color: Colors.white24, width: 0.8),
+    right:            BorderSide(color: Colors.white24, width: 0.8),
+    horizontalInside: BorderSide(color: Colors.white24, width: 0.8),
+    verticalInside:   BorderSide(color: Colors.white24, width: 0.8),
+  );
+
   @override
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
@@ -104,88 +113,125 @@ class _DepotPositionTab extends StatelessWidget {
     final double atRisk = rows.fold<double>(
         0, (double s, InvCrateBalance c) => s + c.depositAtRisk);
 
+    final headerStyle = ThemeConstants.captionStyle
+        .copyWith(fontWeight: FontWeight.w700, fontSize: 11.sp);
+    final cellStyle = ThemeConstants.bodyStyle.copyWith(fontSize: 11.sp);
+    final pad = EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h);
+
+    final headers = <String>[
+      loc.translate('type'),
+      loc.translate('issued'),
+      loc.translate('returned'),
+      loc.translate('broken'),
+      loc.translate('out'),
+      loc.translate('deposit'),
+    ];
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       backgroundColor: Colors.white,
       color: ThemeConstants.primaryBlue,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+      child: Padding(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 88.h),
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: InvStatTile(
-                  label: loc.translate('out_with_customers'),
-                  value: '$totalOut',
-                  icon: Icons.outbox_outlined,
-                  accent: totalOut > 0 ? ThemeConstants.warningAmber : null,
+        child: Column(
+          children: <Widget>[
+            // ── Summary tiles ─────────────────────────────────────
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: InvStatTile(
+                    label: loc.translate('out_with_customers'),
+                    value: '$totalOut',
+                    icon: Icons.outbox_outlined,
+                    accent: totalOut > 0 ? ThemeConstants.warningAmber : null,
+                  ),
                 ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: InvStatTile(
-                  label: loc.translate('deposit_at_risk'),
-                  value: 'TSH ${atRisk.toStringAsFixed(0)}',
-                  icon: Icons.savings_outlined,
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: InvStatTile(
+                    label: loc.translate('deposit_at_risk'),
+                    value: 'TSH ${atRisk.toStringAsFixed(0)}',
+                    icon: Icons.savings_outlined,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          if (rows.isEmpty)
-            InvEmptyState(
-              icon: Icons.inbox_outlined,
-              message: loc.translate('no_crate_movements'),
-            )
-          else
-            ...rows.map(
-              (InvCrateBalance c) => Padding(
-                padding: EdgeInsets.only(bottom: 8.h),
-                child: Container(
-                  decoration: ThemeConstants.glassCardDecoration,
-                  padding: EdgeInsets.all(12.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: AutoSizeText(
-                              c.crateTypeName,
-                              maxLines: 1,
-                              minFontSize: 11,
-                              overflow: TextOverflow.ellipsis,
-                              style: ThemeConstants.bodyStyle
-                                  .copyWith(fontWeight: FontWeight.w700),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            // ── Grid table ────────────────────────────────────────
+            if (rows.isEmpty)
+              InvEmptyState(
+                icon: Icons.inbox_outlined,
+                message: loc.translate('no_crate_movements'),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: IntrinsicWidth(
+                      child: Table(
+                        border: _border,
+                        defaultColumnWidth: const IntrinsicColumnWidth(),
+                        defaultVerticalAlignment:
+                            TableCellVerticalAlignment.middle,
+                        children: <TableRow>[
+                          // Header
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.12),
                             ),
+                            children: headers
+                                .map((String h) => Padding(
+                                      padding: pad,
+                                      child: Text(h,
+                                          style: headerStyle, maxLines: 1),
+                                    ))
+                                .toList(),
                           ),
-                          SizedBox(width: 8.w),
-                          InvBadge(
-                            label:
-                                '${c.outWithCustomers} ${loc.translate('out')}',
-                            color: c.outWithCustomers > 0
-                                ? ThemeConstants.warningAmber
-                                : ThemeConstants.successGreen,
+                          // Data rows
+                          ...rows.asMap().entries.map(
+                            (MapEntry<int, InvCrateBalance> e) {
+                              final InvCrateBalance c = e.value;
+                              return TableRow(
+                                decoration: BoxDecoration(
+                                  color: e.key.isOdd
+                                      ? Colors.white.withOpacity(0.04)
+                                      : Colors.transparent,
+                                ),
+                                children: <Widget>[
+                                  Padding(padding: pad, child: Text(c.crateTypeName, style: cellStyle, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                                  Padding(padding: pad, child: Text('${c.issued}', style: cellStyle)),
+                                  Padding(padding: pad, child: Text('${c.returned}', style: cellStyle)),
+                                  Padding(padding: pad, child: Text('${c.broken}', style: cellStyle)),
+                                  Padding(
+                                    padding: pad,
+                                    child: Text(
+                                      '${c.outWithCustomers}',
+                                      style: cellStyle.copyWith(
+                                        color: c.outWithCustomers > 0
+                                            ? ThemeConstants.warningAmber
+                                            : null,
+                                        fontWeight: c.outWithCustomers > 0
+                                            ? FontWeight.bold
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(padding: pad, child: Text('TSH ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
-                      SizedBox(height: 6.h),
-                      InvKeyValueWrap(entries: <String, String>{
-                        loc.translate('issued'): '${c.issued}',
-                        loc.translate('returned'): '${c.returned}',
-                        loc.translate('broken'): '${c.broken}',
-                        loc.translate('deposit'):
-                            'TSH ${c.depositAtRisk.toStringAsFixed(0)}',
-                      }),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -196,78 +242,114 @@ class _CustomerHoldingsTab extends StatelessWidget {
 
   final Future<void> Function() onRefresh;
 
+  static const TableBorder _border = TableBorder(
+    top:              BorderSide(color: Colors.white24, width: 0.8),
+    bottom:           BorderSide(color: Colors.white24, width: 0.8),
+    left:             BorderSide(color: Colors.white24, width: 0.8),
+    right:            BorderSide(color: Colors.white24, width: 0.8),
+    horizontalInside: BorderSide(color: Colors.white24, width: 0.8),
+    verticalInside:   BorderSide(color: Colors.white24, width: 0.8),
+  );
+
   @override
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
     final List<InvCrateBalance> rows =
         context.watch<DepotProvider>().crateBalances;
 
+    if (rows.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        backgroundColor: Colors.white,
+        color: ThemeConstants.primaryBlue,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: <Widget>[
+            SizedBox(height: 60.h),
+            InvEmptyState(
+              icon: Icons.people_outline,
+              message: loc.translate('no_customer_crates'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final headerStyle = ThemeConstants.captionStyle
+        .copyWith(fontWeight: FontWeight.w700, fontSize: 11.sp);
+    final cellStyle = ThemeConstants.bodyStyle.copyWith(fontSize: 11.sp);
+    final pad = EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h);
+
+    final headers = <String>[
+      loc.translate('customer'),
+      loc.translate('type'),
+      loc.translate('held'),
+      loc.translate('deposit'),
+    ];
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       backgroundColor: Colors.white,
       color: ThemeConstants.primaryBlue,
-      child: rows.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: <Widget>[
-                SizedBox(height: 60.h),
-                InvEmptyState(
-                  icon: Icons.people_outline,
-                  message: loc.translate('no_customer_crates'),
-                ),
-              ],
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
-              padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 88.h),
-              itemCount: rows.length,
-              separatorBuilder: (_, __) => SizedBox(height: 8.h),
-              itemBuilder: (_, int i) {
-                final InvCrateBalance c = rows[i];
-                return Container(
-                  decoration: ThemeConstants.glassCardDecoration,
-                  padding: EdgeInsets.all(12.w),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            AutoSizeText(
-                              c.customerName,
-                              maxLines: 1,
-                              minFontSize: 11,
-                              overflow: TextOverflow.ellipsis,
-                              style: ThemeConstants.bodyStyle
-                                  .copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            SizedBox(height: 2.h),
-                            AutoSizeText(
-                              '${c.crateTypeName}  •  '
-                              '${loc.translate('deposit')}: TSH '
-                              '${c.depositAtRisk.toStringAsFixed(0)}',
-                              maxLines: 1,
-                              minFontSize: 9,
-                              overflow: TextOverflow.ellipsis,
-                              style: ThemeConstants.captionStyle,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      InvBadge(
-                        label: '${c.held} ${loc.translate('held')}',
-                        color: c.held > 0
-                            ? ThemeConstants.warningAmber
-                            : ThemeConstants.successGreen,
-                      ),
-                    ],
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 88.h),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: IntrinsicWidth(
+              child: Table(
+                border: _border,
+                defaultColumnWidth: const IntrinsicColumnWidth(),
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                children: <TableRow>[
+                  // Header
+                  TableRow(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                    ),
+                    children: headers
+                        .map((String h) => Padding(
+                              padding: pad,
+                              child: Text(h, style: headerStyle, maxLines: 1),
+                            ))
+                        .toList(),
                   ),
-                );
-              },
+                  // Data rows
+                  ...rows.asMap().entries.map(
+                    (MapEntry<int, InvCrateBalance> e) {
+                      final InvCrateBalance c = e.value;
+                      return TableRow(
+                        decoration: BoxDecoration(
+                          color: e.key.isOdd
+                              ? Colors.white.withOpacity(0.04)
+                              : Colors.transparent,
+                        ),
+                        children: <Widget>[
+                          Padding(padding: pad, child: Text(c.customerName, style: cellStyle, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                          Padding(padding: pad, child: Text(c.crateTypeName, style: cellStyle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          Padding(
+                            padding: pad,
+                            child: Text(
+                              '${c.held}',
+                              style: cellStyle.copyWith(
+                                color: c.held > 0 ? ThemeConstants.warningAmber : null,
+                                fontWeight: c.held > 0 ? FontWeight.bold : null,
+                              ),
+                            ),
+                          ),
+                          Padding(padding: pad, child: Text('TSH ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }

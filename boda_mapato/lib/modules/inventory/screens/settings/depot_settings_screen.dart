@@ -59,7 +59,7 @@ class _DepotSettingsScreenState extends State<DepotSettingsScreen> {
     }
 
     return InvTabScaffold(
-      title: loc.translate('depot_settings'),
+      title: '',
       tabs: <String>[
         loc.translate('settings'),
         loc.isSwahili ? 'Ulinzi' : 'Security',
@@ -231,7 +231,7 @@ class _SettingsTabState extends State<_SettingsTab> {
               ),
             ),
           ),
-          // ── Quick-link to user management (admin / super_admin only) ──
+          // -- Quick-link to user management (admin / super_admin only) --
           // Lets an admin create staff for their own bound service, and a
           // super_admin manage every account across every service.
           Builder(
@@ -291,7 +291,7 @@ class _SettingsTabState extends State<_SettingsTab> {
               );
             },
           ),
-          // ── Quick-link to receipt header settings (admin / manager only) ──
+          // -- Quick-link to receipt header settings (admin / manager only) --
           Builder(
             builder: (context) {
               final role = context.watch<AuthProvider>().user?.role ?? '';
@@ -429,7 +429,7 @@ class _AppSettingsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // ── Profile Card — matches main settings exactly ───────────────
+          // -- Profile Card — matches main settings exactly ---------------
           ThemeConstants.buildGlassCard(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -560,14 +560,14 @@ class _AppSettingsTab extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // ── All settings tiles in one card ────────────────────────────
+          // -- All settings tiles in one card ----------------------------
           ThemeConstants.buildGlassCard(
             child: Column(children: allTiles),
           ),
 
           const SizedBox(height: 20),
 
-          // ── About card ────────────────────────────────────────────────
+          // -- About card ------------------------------------------------
           ThemeConstants.buildGlassCard(
             child: Column(
               children: [

@@ -52,7 +52,7 @@ class _CreditScreenState extends State<CreditScreen> {
     }
 
     return InvTabScaffold(
-      title: loc.translate('customers_and_credit'),
+      title: '',
       tabs: <String>[
         loc.translate('customers'),
         loc.translate('debtors_ageing'),
@@ -905,7 +905,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
                           decoration: ThemeConstants.glassCardDecoration,
                           padding: EdgeInsets.all(12.w),
                           child: InvKeyValueWrap(entries: <String, String>{
-                            loc.translate('period'): '${s.from} → ${s.to}',
+                            loc.translate('period'): '${s.from} ? ${s.to}',
                             loc.translate('opening'):
                                 'TSH ${s.openingBalance.toStringAsFixed(0)}',
                             loc.translate('charges'):

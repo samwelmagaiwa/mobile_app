@@ -85,16 +85,16 @@ class InvStatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: ThemeConstants.glassCardDecoration,
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Icon(
               icon,
-              size: 18.sp,
+              size: 13.sp,
               color: accent ?? Colors.white70,
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 2.h),
             AutoSizeText(
               label,
               maxLines: 1,
@@ -102,7 +102,7 @@ class InvStatTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: ThemeConstants.captionStyle,
             ),
-            SizedBox(height: 2.h),
+            SizedBox(height: 1.h),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -485,18 +485,21 @@ class InvTabScaffold extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            toolbarHeight: title.isEmpty ? 0 : kToolbarHeight,
             iconTheme: const IconThemeData(color: ThemeConstants.textPrimary),
-            title: AutoSizeText(
-              title,
-              maxLines: 1,
-              minFontSize: 13,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: ThemeConstants.textPrimary,
-                fontSize: 19.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            title: title.isEmpty
+                ? null
+                : AutoSizeText(
+                    title,
+                    maxLines: 1,
+                    minFontSize: 13,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: ThemeConstants.textPrimary,
+                      fontSize: 19.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
             actions: actions,
             bottom: TabBar(
               isScrollable: true,
@@ -531,55 +534,82 @@ class InvDataTable extends StatelessWidget {
   final List<List<String>> rows;
   final Widget? footer;
 
+  static const TableBorder _border = TableBorder(
+    top:              BorderSide(color: Colors.white24, width: 0.8),
+    bottom:           BorderSide(color: Colors.white24, width: 0.8),
+    left:             BorderSide(color: Colors.white24, width: 0.8),
+    right:            BorderSide(color: Colors.white24, width: 0.8),
+    horizontalInside: BorderSide(color: Colors.white24, width: 0.8),
+    verticalInside:   BorderSide(color: Colors.white24, width: 0.8),
+  );
+
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Expanded(
+  Widget build(BuildContext context) {
+    final headerStyle = ThemeConstants.captionStyle
+        .copyWith(fontWeight: FontWeight.w700, fontSize: 11.sp);
+    final cellStyle = ThemeConstants.bodyStyle.copyWith(fontSize: 11.sp);
+    final pad = EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
             child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                child: DataTable(
-                  headingRowHeight: 40.h,
-                  dataRowMinHeight: 38.h,
-                  dataRowMaxHeight: 52.h,
-                  columnSpacing: 22.w,
-                  headingTextStyle: ThemeConstants.captionStyle
-                      .copyWith(fontWeight: FontWeight.w700),
-                  dataTextStyle:
-                      ThemeConstants.bodyStyle.copyWith(fontSize: 12.sp),
-                  columns: columns
-                      .map((String c) => DataColumn(
-                            label: ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: 160.w),
-                              child: Text(c, overflow: TextOverflow.ellipsis),
-                            ),
-                          ))
-                      .toList(),
-                  rows: rows
-                      .map((List<String> r) => DataRow(
-                            cells: r
-                                .map((String cell) => DataCell(
-                                      ConstrainedBox(
-                                        constraints:
-                                            BoxConstraints(maxWidth: 180.w),
-                                        child: Text(
-                                          cell,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ))
-                                .toList(),
-                          ))
-                      .toList(),
+              physics: const ClampingScrollPhysics(),
+              child: IntrinsicWidth(
+                child: Table(
+                  border: _border,
+                  // IntrinsicColumnWidth sizes each column to its widest cell.
+                  // As new columns arrive the table widens; as rows arrive it
+                  // grows taller — grid lines follow automatically.
+                  defaultColumnWidth: const IntrinsicColumnWidth(),
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  children: <TableRow>[
+                    // ── Header ───────────────────────────────────────────
+                    TableRow(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                      ),
+                      children: columns
+                          .map((String c) => Padding(
+                                padding: pad,
+                                child: Text(c,
+                                    style: headerStyle, maxLines: 1),
+                              ))
+                          .toList(),
+                    ),
+                    // ── Data rows ────────────────────────────────────────
+                    ...rows.asMap().entries.map(
+                      (MapEntry<int, List<String>> entry) => TableRow(
+                        decoration: BoxDecoration(
+                          color: entry.key.isOdd
+                              ? Colors.white.withOpacity(0.04)
+                              : Colors.transparent,
+                        ),
+                        children: entry.value
+                            .map((String cell) => Padding(
+                                  padding: pad,
+                                  child: Text(cell,
+                                      style: cellStyle,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          if (footer != null) footer!,
-        ],
-      );
+        ),
+        if (footer != null) footer!,
+      ],
+    );
+  }
 }
 
 /// Row of label/value pairs that wraps instead of overflowing.
