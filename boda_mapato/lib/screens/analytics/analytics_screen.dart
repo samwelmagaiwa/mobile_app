@@ -344,57 +344,106 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildTrendsAnalysis(LocalizationService loc) => Column(
-        children: <Widget>[
-          _TrendTile(
-            title: loc.translate('revenue_growth'),
-            metric: "+12.5% ${loc.translate('this_month')}",
-            icon: Icons.trending_up_rounded,
-            color: ThemeConstants.successGreen,
-            description: loc.translate('revenue_growth_improved'),
-          ),
-          const SizedBox(height: 10),
-          _TrendTile(
-            title: loc.translate('expense_efficiency'),
-            metric: "${loc.translate('decrease')} 8%",
-            icon: Icons.trending_down_rounded,
-            color: ThemeConstants.primaryCyan,
-            description: loc.translate('expenses_reduced_management'),
-          ),
-          const SizedBox(height: 10),
-          _TrendTile(
-            title: loc.translate('customer_performance'),
-            metric: "+15 ${loc.translate('new_customers')}",
-            icon: Icons.people_alt_rounded,
-            color: ThemeConstants.warningAmber,
-            description: loc.translate('added_customers_this_month'),
-          ),
-        ],
-      );
+  static const Map<String, String> _dayKeys = <String, String>{
+    'Monday': 'monday',
+    'Tuesday': 'tuesday',
+    'Wednesday': 'wednesday',
+    'Thursday': 'thursday',
+    'Friday': 'friday',
+    'Saturday': 'saturday',
+    'Sunday': 'sunday',
+  };
 
-  Widget _buildInsights(LocalizationService loc) => Container(
-        decoration: ThemeConstants.glassCardDecoration,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _InsightItem(
-              title: loc.translate('best_days_insights'),
-              description: loc.translate('best_days_description'),
-            ),
-            const SizedBox(height: 14),
-            _InsightItem(
-              title: loc.translate('afternoon_earnings_insights'),
-              description: loc.translate('afternoon_trips_profitable'),
-            ),
-            const SizedBox(height: 14),
-            _InsightItem(
-              title: loc.translate('fuel_usage_reduced'),
-              description: loc.translate('fuel_management_helped'),
-            ),
-          ],
+  static const Map<String, String> _timeBucketKeys = <String, String>{
+    'morning': 'time_bucket_morning',
+    'afternoon': 'time_bucket_afternoon',
+    'evening': 'time_bucket_evening',
+    'night': 'time_bucket_night',
+  };
+
+  Widget _buildTrendsAnalysis(LocalizationService loc) {
+    final Map<String, dynamic>? revenue = _analyticsData?['revenue'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? expenses = _analyticsData?['expenses'] as Map<String, dynamic>?;
+
+    final double revenueGrowth = (revenue?['revenue_growth'] as num? ?? 0).toDouble();
+    final double expenseChange = (expenses?['expense_change'] as num? ?? 0).toDouble();
+    final int newCustomers = (revenue?['new_customers'] as num? ?? 0).toInt();
+
+    return Column(
+      children: <Widget>[
+        _TrendTile(
+          title: loc.translate('revenue_growth'),
+          metric: "${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth.toStringAsFixed(1)}% ${loc.translate('this_month')}",
+          icon: revenueGrowth >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+          color: revenueGrowth >= 0 ? ThemeConstants.successGreen : ThemeConstants.errorRed,
+          description: loc.translate(
+            revenueGrowth >= 0 ? 'revenue_growth_improved' : 'revenue_growth_declined',
+          ),
         ),
-      );
+        const SizedBox(height: 10),
+        _TrendTile(
+          title: loc.translate('expense_efficiency'),
+          metric:
+              "${loc.translate(expenseChange <= 0 ? 'decrease' : 'increase')} ${expenseChange.abs().toStringAsFixed(1)}%",
+          icon: expenseChange <= 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded,
+          color: expenseChange <= 0 ? ThemeConstants.primaryCyan : ThemeConstants.warningAmber,
+          description: loc.translate(
+            expenseChange <= 0 ? 'expenses_reduced_management' : 'expenses_increased_warning',
+          ),
+        ),
+        const SizedBox(height: 10),
+        _TrendTile(
+          title: loc.translate('customer_performance'),
+          metric: "${newCustomers >= 0 ? '+' : ''}$newCustomers ${loc.translate('new_customers')}",
+          icon: Icons.people_alt_rounded,
+          color: ThemeConstants.warningAmber,
+          description: loc.translate('added_customers_this_month'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInsights(LocalizationService loc) {
+    final Map<String, dynamic>? revenue = _analyticsData?['revenue'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? expenses = _analyticsData?['expenses'] as Map<String, dynamic>?;
+
+    final String? bestDay = revenue?['best_day'] as String?;
+    final String? bestBucket = revenue?['best_time_bucket'] as String?;
+    final double fuelChange = (expenses?['fuel_expense_change'] as num? ?? 0).toDouble();
+    final bool hasFuelData = (expenses?['fuel_expenses'] as num? ?? 0) > 0;
+
+    final List<Widget> items = <Widget>[];
+
+    if (bestDay != null && _dayKeys.containsKey(bestDay)) {
+      items.add(_InsightItem(
+        title: loc.translate('best_day_insight_title'),
+        description: loc.translate(_dayKeys[bestDay]!),
+      ));
+    }
+    if (bestBucket != null && _timeBucketKeys.containsKey(bestBucket)) {
+      if (items.isNotEmpty) items.add(const SizedBox(height: 14));
+      items.add(_InsightItem(
+        title: loc.translate('best_time_insight_title'),
+        description: loc.translate(_timeBucketKeys[bestBucket]!),
+      ));
+    }
+    if (hasFuelData) {
+      if (items.isNotEmpty) items.add(const SizedBox(height: 14));
+      items.add(_InsightItem(
+        title: loc.translate(fuelChange <= 0 ? 'fuel_usage_reduced' : 'fuel_usage_increased'),
+        description:
+            "${loc.translate(fuelChange <= 0 ? 'decrease' : 'increase')} ${fuelChange.abs().toStringAsFixed(1)}%",
+      ));
+    }
+
+    return Container(
+      decoration: ThemeConstants.glassCardDecoration,
+      padding: const EdgeInsets.all(16),
+      child: items.isEmpty
+          ? Text(loc.translate('no_insights_yet'), style: ThemeConstants.captionStyle)
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: items),
+    );
+  }
 }
 
 // Helper functions (top-level) for analytics number extraction and formatting

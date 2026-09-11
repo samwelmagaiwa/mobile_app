@@ -14,26 +14,141 @@ use Illuminate\Support\Facades\DB;
 class AdminReportController extends Controller
 {
     /**
+     * Every query in this controller used to run unscoped across ALL
+     * admins' drivers/transactions -- one admin's revenue report showed
+     * every other admin's revenue, customer names/phones and live
+     * transaction feed too. These three helpers are the single place that
+     * restricts a query to "this admin's own drivers" (via
+     * driver.user.created_by, since transactions have no created_by of
+     * their own), bypassed entirely for super_admin -- matching the same
+     * pattern already fixed in AdminController.
+     */
+    private function scopedTransactions($admin)
+    {
+        return Transaction::query()->when(
+            $admin && !$admin->isSuperAdmin(),
+            fn ($q) => $q->whereHas('driver.user', fn ($dq) => $dq->where('created_by', $admin->id))
+        );
+    }
+
+    private function scopedDrivers($admin)
+    {
+        return Driver::query()->when(
+            $admin && !$admin->isSuperAdmin(),
+            fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('created_by', $admin->id))
+        );
+    }
+
+    private function scopedDevices($admin)
+    {
+        return Device::query()->when(
+            $admin && !$admin->isSuperAdmin(),
+            fn ($q) => $q->whereHas('driver.user', fn ($uq) => $uq->where('created_by', $admin->id))
+        );
+    }
+
+    /** Percent change from $previous to $current, 0 when there's no baseline. */
+    private function percentChange(float $current, float $previous): float
+    {
+        if ($previous == 0.0) {
+            return $current > 0 ? 100.0 : 0.0;
+        }
+        return round((($current - $previous) / $previous) * 100, 2);
+    }
+
+    /**
+     * Which day of the week and which time-of-day bucket earns the most,
+     * over the given window -- real aggregation to back the "best day" /
+     * "best time" insights the Flutter UI used to show as hardcoded text.
+     */
+    private function bestDayAndTimeBucket($admin, Carbon $start, Carbon $end): array
+    {
+        $rows = $this->scopedTransactions($admin)
+            ->income()->completed()
+            ->whereBetween('transaction_date', [$start, $end])
+            ->get(['amount', 'transaction_date']);
+
+        if ($rows->isEmpty()) {
+            return ['best_day' => null, 'best_day_amount' => 0.0, 'best_time_bucket' => null, 'best_time_amount' => 0.0];
+        }
+
+        $byDay = $rows->groupBy(fn ($r) => $r->transaction_date->format('l'))
+            ->map(fn ($g) => $g->sum('amount'));
+        $bestDay = $byDay->sortDesc()->keys()->first();
+
+        $bucketFor = static function (int $hour): string {
+            return match (true) {
+                $hour >= 5 && $hour < 12 => 'morning',
+                $hour >= 12 && $hour < 17 => 'afternoon',
+                $hour >= 17 && $hour < 21 => 'evening',
+                default => 'night',
+            };
+        };
+        $byBucket = $rows->groupBy(fn ($r) => $bucketFor($r->transaction_date->hour))
+            ->map(fn ($g) => $g->sum('amount'));
+        $bestBucket = $byBucket->sortDesc()->keys()->first();
+
+        return [
+            'best_day' => $bestDay,
+            'best_day_amount' => (float) ($byDay[$bestDay] ?? 0),
+            'best_time_bucket' => $bestBucket,
+            'best_time_amount' => (float) ($byBucket[$bestBucket] ?? 0),
+        ];
+    }
+
+    /**
+     * Distinct paying customers (by phone) in the period, and how many of
+     * them are new (weren't a customer in the prior period of equal length).
+     */
+    private function customerGrowth($admin, Carbon $start, Carbon $end): array
+    {
+        $length = $start->diffInSeconds($end);
+        $prevStart = (clone $start)->subSeconds($length + 1);
+        $prevEnd = (clone $start)->subSecond();
+
+        $currentPhones = $this->scopedTransactions($admin)
+            ->income()->completed()
+            ->whereBetween('transaction_date', [$start, $end])
+            ->whereNotNull('customer_phone')->where('customer_phone', '!=', '')
+            ->distinct()->pluck('customer_phone');
+
+        $previousPhones = $this->scopedTransactions($admin)
+            ->income()->completed()
+            ->whereBetween('transaction_date', [$prevStart, $prevEnd])
+            ->whereNotNull('customer_phone')->where('customer_phone', '!=', '')
+            ->distinct()->pluck('customer_phone');
+
+        $newCount = $currentPhones->diff($previousPhones)->count();
+
+        return [
+            'total_customers' => $currentPhones->count(),
+            'new_customers' => $newCount,
+            'new_customers_growth' => $this->percentChange($newCount, $previousPhones->count()),
+        ];
+    }
+
+    /**
      * Get revenue report for admin dashboard
      */
     public function getRevenueReport(Request $request)
     {
         try {
+            $admin = $request->user();
             $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             // Parse dates
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
 
             // Get total revenue for the period
-            $totalRevenue = Transaction::income()
+            $totalRevenue = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
 
             // Get transaction count
-            $transactionCount = Transaction::income()
+            $transactionCount = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->count();
@@ -43,7 +158,7 @@ class AdminReportController extends Controller
             $averagePerDay = $transactionCount > 0 ? round($totalRevenue / $daysDifference, 2) : 0;
 
             // Get breakdown by category
-            $breakdown = Transaction::income()
+            $breakdown = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->select('category', DB::raw('SUM(amount) as total'))
@@ -60,19 +175,32 @@ class AdminReportController extends Controller
             // Get daily data for the period (last 30 days max for performance)
             $dailyDataPeriod = min(30, $daysDifference);
             $dailyStartDate = Carbon::parse($endDate)->subDays($dailyDataPeriod - 1);
-            
+
             $dailyData = [];
             for ($date = $dailyStartDate->copy(); $date <= $endDate; $date->addDay()) {
-                $dayAmount = Transaction::income()
+                $dayAmount = $this->scopedTransactions($admin)->income()
                     ->completed()
                     ->whereDate('transaction_date', $date->format('Y-m-d'))
                     ->sum('amount');
-                
+
                 $dailyData[] = [
                     'date' => $date->format('Y-m-d'),
                     'amount' => (float) $dayAmount
                 ];
             }
+
+            // Period-over-period growth (previous window of equal length)
+            $periodLength = $startDate->diffInSeconds($endDate);
+            $prevStart = (clone $startDate)->subSeconds($periodLength + 1);
+            $prevEnd = (clone $startDate)->subSecond();
+            $previousRevenue = $this->scopedTransactions($admin)->income()
+                ->completed()
+                ->whereBetween('transaction_date', [$prevStart, $prevEnd])
+                ->sum('amount');
+            $revenueGrowth = $this->percentChange((float) $totalRevenue, (float) $previousRevenue);
+
+            $dayTime = $this->bestDayAndTimeBucket($admin, $startDate, $endDate);
+            $customers = $this->customerGrowth($admin, $startDate, $endDate);
 
             $data = [
                 'total_revenue' => (float) $totalRevenue,
@@ -81,7 +209,15 @@ class AdminReportController extends Controller
                 'transaction_count' => $transactionCount,
                 'average_per_day' => $averagePerDay,
                 'breakdown' => $breakdown,
-                'daily_data' => $dailyData
+                'daily_data' => $dailyData,
+                'revenue_growth' => $revenueGrowth,
+                'best_day' => $dayTime['best_day'],
+                'best_day_amount' => $dayTime['best_day_amount'],
+                'best_time_bucket' => $dayTime['best_time_bucket'],
+                'best_time_amount' => $dayTime['best_time_amount'],
+                'new_customers' => $customers['new_customers'],
+                'new_customers_growth' => $customers['new_customers_growth'],
+                'total_customers' => $customers['total_customers'],
             ];
 
             return ResponseHelper::success($data, 'Revenue report generated successfully');
@@ -101,21 +237,22 @@ class AdminReportController extends Controller
     public function getExpenseReport(Request $request)
     {
         try {
+            $admin = $request->user();
             $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             // Parse dates
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
 
             // Get total expenses for the period
-            $totalExpenses = Transaction::expense()
+            $totalExpenses = $this->scopedTransactions($admin)->expense()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
 
             // Get transaction count
-            $transactionCount = Transaction::expense()
+            $transactionCount = $this->scopedTransactions($admin)->expense()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->count();
@@ -125,7 +262,7 @@ class AdminReportController extends Controller
             $averagePerDay = $transactionCount > 0 ? round($totalExpenses / $daysDifference, 2) : 0;
 
             // Get breakdown by category
-            $breakdown = Transaction::expense()
+            $breakdown = $this->scopedTransactions($admin)->expense()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->select('category', DB::raw('SUM(amount) as total'))
@@ -139,13 +276,38 @@ class AdminReportController extends Controller
                     ]];
                 });
 
+            // Period-over-period change, overall and for fuel specifically
+            // (fuel is the one expense category the app calls out by name).
+            $periodLength = $startDate->diffInSeconds($endDate);
+            $prevStart = (clone $startDate)->subSeconds($periodLength + 1);
+            $prevEnd = (clone $startDate)->subSecond();
+
+            $previousExpenses = $this->scopedTransactions($admin)->expense()
+                ->completed()
+                ->whereBetween('transaction_date', [$prevStart, $prevEnd])
+                ->sum('amount');
+            $expenseChange = $this->percentChange((float) $totalExpenses, (float) $previousExpenses);
+
+            $fuelExpenses = $this->scopedTransactions($admin)->expense()
+                ->completed()->where('category', 'fuel')
+                ->whereBetween('transaction_date', [$startDate, $endDate])
+                ->sum('amount');
+            $previousFuelExpenses = $this->scopedTransactions($admin)->expense()
+                ->completed()->where('category', 'fuel')
+                ->whereBetween('transaction_date', [$prevStart, $prevEnd])
+                ->sum('amount');
+            $fuelExpenseChange = $this->percentChange((float) $fuelExpenses, (float) $previousFuelExpenses);
+
             $data = [
                 'total_expenses' => (float) $totalExpenses,
                 'period_start' => $startDate->format('Y-m-d'),
                 'period_end' => $endDate->format('Y-m-d'),
                 'transaction_count' => $transactionCount,
                 'average_per_day' => $averagePerDay,
-                'breakdown' => $breakdown
+                'breakdown' => $breakdown,
+                'expense_change' => $expenseChange,
+                'fuel_expenses' => (float) $fuelExpenses,
+                'fuel_expense_change' => $fuelExpenseChange,
             ];
 
             return ResponseHelper::success($data, 'Expense report generated successfully');
@@ -165,21 +327,22 @@ class AdminReportController extends Controller
     public function getProfitLossReport(Request $request)
     {
         try {
+            $admin = $request->user();
             $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             // Parse dates
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
 
             // Get total revenue
-            $totalRevenue = Transaction::income()
+            $totalRevenue = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
 
             // Get total expenses
-            $totalExpenses = Transaction::expense()
+            $totalExpenses = $this->scopedTransactions($admin)->expense()
                 ->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
@@ -188,11 +351,23 @@ class AdminReportController extends Controller
             $netProfit = $totalRevenue - $totalExpenses;
             $profitMargin = $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 2) : 0;
 
+            // Period-over-period profit growth
+            $periodLength = $startDate->diffInSeconds($endDate);
+            $prevStart = (clone $startDate)->subSeconds($periodLength + 1);
+            $prevEnd = (clone $startDate)->subSecond();
+            $previousRevenue = $this->scopedTransactions($admin)->income()
+                ->completed()->whereBetween('transaction_date', [$prevStart, $prevEnd])->sum('amount');
+            $previousExpenses = $this->scopedTransactions($admin)->expense()
+                ->completed()->whereBetween('transaction_date', [$prevStart, $prevEnd])->sum('amount');
+            $previousProfit = $previousRevenue - $previousExpenses;
+            $profitGrowth = $this->percentChange((float) $netProfit, (float) $previousProfit);
+
             $data = [
                 'total_revenue' => (float) $totalRevenue,
                 'total_expenses' => (float) $totalExpenses,
                 'net_profit' => (float) $netProfit,
                 'profit_margin' => $profitMargin,
+                'profit_growth' => $profitGrowth,
                 'period_start' => $startDate->format('Y-m-d'),
                 'period_end' => $endDate->format('Y-m-d'),
             ];
@@ -214,15 +389,17 @@ class AdminReportController extends Controller
     public function getDevicePerformanceReport(Request $request)
     {
         try {
+            $admin = $request->user();
             $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             // Parse dates
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
 
             // Get device performance data
-            $devices = Device::with(['driver.user'])
+            $devices = $this->scopedDevices($admin)
+                ->with(['driver.user'])
                 ->whereHas('transactions', function ($query) use ($startDate, $endDate) {
                     $query->income()
                         ->completed()
@@ -235,7 +412,7 @@ class AdminReportController extends Controller
                         ->completed()
                         ->whereBetween('transaction_date', [$startDate, $endDate])
                         ->sum('amount');
-                    
+
                     $trips = Transaction::where('device_id', $device->id)
                         ->income()
                         ->completed()
@@ -281,29 +458,30 @@ class AdminReportController extends Controller
     public function getDashboardReport(Request $request)
     {
         try {
+            $admin = $request->user();
             // Get current month data
             $currentMonth = Carbon::now();
             $startOfMonth = $currentMonth->copy()->startOfMonth();
             $endOfMonth = $currentMonth->copy()->endOfMonth();
 
             // Revenue data
-            $monthlyRevenue = Transaction::income()
+            $monthlyRevenue = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
 
-            $weeklyRevenue = Transaction::income()
+            $weeklyRevenue = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->thisWeek()
                 ->sum('amount');
 
-            $dailyRevenue = Transaction::income()
+            $dailyRevenue = $this->scopedTransactions($admin)->income()
                 ->completed()
                 ->today()
                 ->sum('amount');
 
             // Expense data
-            $monthlyExpenses = Transaction::expense()
+            $monthlyExpenses = $this->scopedTransactions($admin)->expense()
                 ->completed()
                 ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
@@ -312,18 +490,18 @@ class AdminReportController extends Controller
             $netProfit = $monthlyRevenue - $monthlyExpenses;
 
             // Driver and device counts
-            $totalDrivers = Driver::count();
-            $activeDrivers = Driver::whereHas('transactions', function ($query) {
+            $totalDrivers = $this->scopedDrivers($admin)->count();
+            $activeDrivers = $this->scopedDrivers($admin)->whereHas('transactions', function ($query) {
                 $query->where('transaction_date', '>=', Carbon::now()->subDays(7));
             })->count();
 
-            $totalVehicles = Device::count();
-            $activeVehicles = Device::whereHas('transactions', function ($query) {
+            $totalVehicles = $this->scopedDevices($admin)->count();
+            $activeVehicles = $this->scopedDevices($admin)->whereHas('transactions', function ($query) {
                 $query->where('transaction_date', '>=', Carbon::now()->subDays(7));
             })->count();
 
             // Pending payments
-            $pendingPayments = Transaction::pending()->count();
+            $pendingPayments = $this->scopedTransactions($admin)->pending()->count();
 
             // Calculate averages
             $daysInMonth = $startOfMonth->diffInDays($endOfMonth) + 1;
@@ -343,7 +521,7 @@ class AdminReportController extends Controller
                 'total_vehicles' => $totalVehicles,
                 'pending_payments' => $pendingPayments,
                 'vehicle_count' => $totalVehicles, // For compatibility with Flutter
-                'transaction_count' => Transaction::completed()
+                'transaction_count' => $this->scopedTransactions($admin)->completed()
                     ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
                     ->count(),
             ];
@@ -365,73 +543,73 @@ class AdminReportController extends Controller
     public function getAnalyticsOverview(Request $request)
     {
         try {
+            $admin = $request->user();
             $period = $request->get('period', '30'); // days
             $endDate = Carbon::now();
             $startDate = Carbon::now()->subDays($period);
-            
+
             // Get key metrics
-            $totalRevenue = Transaction::income()->completed()
+            $totalRevenue = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
-                
-            $totalExpenses = Transaction::expense()->completed()
+
+            $totalExpenses = $this->scopedTransactions($admin)->expense()->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->sum('amount');
-                
+
             $netProfit = $totalRevenue - $totalExpenses;
             $profitMargin = $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 2) : 0;
-            
+
             // Get growth rates
             $previousPeriodStart = Carbon::now()->subDays($period * 2);
             $previousPeriodEnd = Carbon::now()->subDays($period);
-            
-            $previousRevenue = Transaction::income()->completed()
+
+            $previousRevenue = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$previousPeriodStart, $previousPeriodEnd])
                 ->sum('amount');
-                
-            $revenueGrowth = $previousRevenue > 0 ? 
-                round((($totalRevenue - $previousRevenue) / $previousRevenue) * 100, 2) : 0;
-            
+
+            $revenueGrowth = $this->percentChange((float) $totalRevenue, (float) $previousRevenue);
+
             // Transaction trends
-            $transactionCount = Transaction::completed()
+            $transactionCount = $this->scopedTransactions($admin)->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->count();
-                
-            $averageTransactionValue = $transactionCount > 0 ? 
+
+            $averageTransactionValue = $transactionCount > 0 ?
                 round($totalRevenue / $transactionCount, 2) : 0;
-            
+
             // Active metrics
-            $activeDrivers = Driver::whereHas('transactions', function ($query) use ($startDate) {
+            $activeDrivers = $this->scopedDrivers($admin)->whereHas('transactions', function ($query) use ($startDate) {
                 $query->where('transaction_date', '>=', $startDate);
             })->count();
-            
-            $activeVehicles = Device::whereHas('transactions', function ($query) use ($startDate) {
+
+            $activeVehicles = $this->scopedDevices($admin)->whereHas('transactions', function ($query) use ($startDate) {
                 $query->where('transaction_date', '>=', $startDate);
             })->count();
-            
+
             // Daily trends for chart
             $dailyTrends = [];
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                $dayRevenue = Transaction::income()->completed()
+                $dayRevenue = $this->scopedTransactions($admin)->income()->completed()
                     ->whereDate('transaction_date', $date->format('Y-m-d'))
                     ->sum('amount');
-                    
-                $dayExpenses = Transaction::expense()->completed()
+
+                $dayExpenses = $this->scopedTransactions($admin)->expense()->completed()
                     ->whereDate('transaction_date', $date->format('Y-m-d'))
                     ->sum('amount');
-                    
+
                 $dailyTrends[] = [
                     'date' => $date->format('Y-m-d'),
                     'day_name' => $date->format('l'),
                     'revenue' => (float) $dayRevenue,
                     'expenses' => (float) $dayExpenses,
                     'profit' => (float) ($dayRevenue - $dayExpenses),
-                    'transactions' => Transaction::completed()
+                    'transactions' => $this->scopedTransactions($admin)->completed()
                         ->whereDate('transaction_date', $date->format('Y-m-d'))
                         ->count()
                 ];
             }
-            
+
             $data = [
                 'overview' => [
                     'total_revenue' => (float) $totalRevenue,
@@ -452,9 +630,9 @@ class AdminReportController extends Controller
                 'period_start' => $startDate->format('Y-m-d'),
                 'period_end' => $endDate->format('Y-m-d')
             ];
-            
+
             return ResponseHelper::success($data, 'Analytics overview retrieved successfully');
-            
+
         } catch (\Exception $e) {
             \Log::error('Analytics overview failed', [
                 'error' => $e->getMessage(),
@@ -463,79 +641,82 @@ class AdminReportController extends Controller
             return ResponseHelper::error('Failed to generate analytics overview: ' . $e->getMessage(), 500);
         }
     }
-    
+
     /**
      * Get top performing metrics for mobile dashboard
      */
     public function getTopPerformers(Request $request)
     {
         try {
+            $admin = $request->user();
             $period = $request->get('period', '30');
             $startDate = Carbon::now()->subDays($period);
             $endDate = Carbon::now();
-            
+
             // Top performing drivers
-            $topDrivers = Driver::with(['user', 'transactions' => function($query) use ($startDate, $endDate) {
-                $query->income()->completed()
-                      ->whereBetween('transaction_date', [$startDate, $endDate]);
-            }])
-            ->whereHas('transactions', function($query) use ($startDate, $endDate) {
-                $query->income()->completed()
-                      ->whereBetween('transaction_date', [$startDate, $endDate]);
-            })
-            ->get()
-            ->map(function($driver) {
-                $revenue = $driver->transactions->sum('amount');
-                $trips = $driver->transactions->count();
-                return [
-                    'id' => $driver->id,
-                    'name' => $driver->user->name ?? 'Unknown',
-                    'phone' => $driver->user->phone_number ?? '',
-                    'revenue' => (float) $revenue,
-                    'trips' => $trips,
-                    'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
-                    'license_number' => $driver->license_number
-                ];
-            })
-            ->sortByDesc('revenue')
-            ->take(10)
-            ->values();
-            
+            $topDrivers = $this->scopedDrivers($admin)
+                ->with(['user', 'transactions' => function ($query) use ($startDate, $endDate) {
+                    $query->income()->completed()
+                        ->whereBetween('transaction_date', [$startDate, $endDate]);
+                }])
+                ->whereHas('transactions', function ($query) use ($startDate, $endDate) {
+                    $query->income()->completed()
+                        ->whereBetween('transaction_date', [$startDate, $endDate]);
+                })
+                ->get()
+                ->map(function ($driver) {
+                    $revenue = $driver->transactions->sum('amount');
+                    $trips = $driver->transactions->count();
+                    return [
+                        'id' => $driver->id,
+                        'name' => $driver->user->name ?? 'Unknown',
+                        'phone' => $driver->user->phone_number ?? '',
+                        'revenue' => (float) $revenue,
+                        'trips' => $trips,
+                        'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
+                        'license_number' => $driver->license_number
+                    ];
+                })
+                ->sortByDesc('revenue')
+                ->take(10)
+                ->values();
+
             // Top performing vehicles
-            $topVehicles = Device::with(['driver.user', 'transactions' => function($query) use ($startDate, $endDate) {
-                $query->income()->completed()
-                      ->whereBetween('transaction_date', [$startDate, $endDate]);
-            }])
-            ->whereHas('transactions', function($query) use ($startDate, $endDate) {
-                $query->income()->completed()
-                      ->whereBetween('transaction_date', [$startDate, $endDate]);
-            })
-            ->get()
-            ->map(function($device) {
-                $revenue = $device->transactions->sum('amount');
-                $trips = $device->transactions->count();
-                return [
-                    'id' => $device->id,
-                    'name' => $device->name,
-                    'plate_number' => $device->plate_number,
-                    'driver_name' => $device->driver->user->name ?? 'Unassigned',
-                    'revenue' => (float) $revenue,
-                    'trips' => $trips,
-                    'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
-                    'device_type' => $device->device_type ?? 'Vehicle'
-                ];
-            })
-            ->sortByDesc('revenue')
-            ->take(10)
-            ->values();
-            
+            $topVehicles = $this->scopedDevices($admin)
+                ->with(['driver.user', 'transactions' => function ($query) use ($startDate, $endDate) {
+                    $query->income()->completed()
+                        ->whereBetween('transaction_date', [$startDate, $endDate]);
+                }])
+                ->whereHas('transactions', function ($query) use ($startDate, $endDate) {
+                    $query->income()->completed()
+                        ->whereBetween('transaction_date', [$startDate, $endDate]);
+                })
+                ->get()
+                ->map(function ($device) {
+                    $revenue = $device->transactions->sum('amount');
+                    $trips = $device->transactions->count();
+                    return [
+                        'id' => $device->id,
+                        'name' => $device->name,
+                        'plate_number' => $device->plate_number,
+                        'driver_name' => $device->driver->user->name ?? 'Unassigned',
+                        'revenue' => (float) $revenue,
+                        'trips' => $trips,
+                        'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
+                        'device_type' => $device->device_type ?? 'Vehicle'
+                    ];
+                })
+                ->sortByDesc('revenue')
+                ->take(10)
+                ->values();
+
             // Revenue by category
-            $revenueByCategory = Transaction::income()->completed()
+            $revenueByCategory = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
                 ->groupBy('category')
                 ->get()
-                ->map(function($item) {
+                ->map(function ($item) {
                     return [
                         'category' => $item->category,
                         'category_name' => Transaction::PAYMENT_CATEGORIES[$item->category] ?? $item->category,
@@ -544,13 +725,13 @@ class AdminReportController extends Controller
                         'percentage' => 0 // Will be calculated after getting totals
                     ];
                 });
-                
+
             $totalRevenue = $revenueByCategory->sum('total');
-            $revenueByCategory = $revenueByCategory->map(function($item) use ($totalRevenue) {
+            $revenueByCategory = $revenueByCategory->map(function ($item) use ($totalRevenue) {
                 $item['percentage'] = $totalRevenue > 0 ? round(($item['total'] / $totalRevenue) * 100, 2) : 0;
                 return $item;
             })->sortByDesc('total')->values();
-            
+
             $data = [
                 'top_drivers' => $topDrivers,
                 'top_vehicles' => $topVehicles,
@@ -559,9 +740,9 @@ class AdminReportController extends Controller
                 'period_end' => $endDate->format('Y-m-d'),
                 'generated_at' => Carbon::now()->toISOString()
             ];
-            
+
             return ResponseHelper::success($data, 'Top performers data retrieved successfully');
-            
+
         } catch (\Exception $e) {
             \Log::error('Top performers data failed', [
                 'error' => $e->getMessage(),
@@ -570,50 +751,52 @@ class AdminReportController extends Controller
             return ResponseHelper::error('Failed to get top performers data: ' . $e->getMessage(), 500);
         }
     }
-    
+
     /**
      * Get real-time analytics for live dashboard
      */
     public function getLiveAnalytics(Request $request)
     {
         try {
+            $admin = $request->user();
             $now = Carbon::now();
             $todayStart = $now->copy()->startOfDay();
             $weekStart = $now->copy()->startOfWeek();
             $monthStart = $now->copy()->startOfMonth();
-            
+
             // Today's stats
-            $todayRevenue = Transaction::income()->completed()
+            $todayRevenue = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$todayStart, $now])
                 ->sum('amount');
-                
-            $todayTransactions = Transaction::completed()
+
+            $todayTransactions = $this->scopedTransactions($admin)->completed()
                 ->whereBetween('transaction_date', [$todayStart, $now])
                 ->count();
-                
+
             // This week stats
-            $weekRevenue = Transaction::income()->completed()
+            $weekRevenue = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$weekStart, $now])
                 ->sum('amount');
-                
-            // This month stats  
-            $monthRevenue = Transaction::income()->completed()
+
+            // This month stats
+            $monthRevenue = $this->scopedTransactions($admin)->income()->completed()
                 ->whereBetween('transaction_date', [$monthStart, $now])
                 ->sum('amount');
-                
+
             // Recent transactions (last 20)
-            $recentTransactions = Transaction::with(['driver.user', 'device'])
+            $recentTransactions = $this->scopedTransactions($admin)
+                ->with(['driver.user', 'device'])
                 ->completed()
                 ->orderBy('transaction_date', 'desc')
                 ->limit(20)
                 ->get()
-                ->map(function($transaction) {
+                ->map(function ($transaction) {
                     return [
                         'id' => $transaction->id,
                         'amount' => (float) $transaction->amount,
                         'type' => $transaction->type,
                         'category' => $transaction->category,
-                        'category_name' => $transaction->type === 'income' ? 
+                        'category_name' => $transaction->type === 'income' ?
                             (Transaction::PAYMENT_CATEGORIES[$transaction->category] ?? $transaction->category) :
                             (Transaction::EXPENSE_CATEGORIES[$transaction->category] ?? $transaction->category),
                         'driver_name' => $transaction->driver->user->name ?? 'N/A',
@@ -624,39 +807,39 @@ class AdminReportController extends Controller
                         'reference_number' => $transaction->reference_number
                     ];
                 });
-                
+
             // Active drivers and vehicles count
-            $activeDriversToday = Driver::whereHas('transactions', function($query) use ($todayStart) {
+            $activeDriversToday = $this->scopedDrivers($admin)->whereHas('transactions', function ($query) use ($todayStart) {
                 $query->where('transaction_date', '>=', $todayStart);
             })->count();
-            
-            $activeVehiclesToday = Device::whereHas('transactions', function($query) use ($todayStart) {
+
+            $activeVehiclesToday = $this->scopedDevices($admin)->whereHas('transactions', function ($query) use ($todayStart) {
                 $query->where('transaction_date', '>=', $todayStart);
             })->count();
-            
+
             // Hourly revenue for today (for mini chart)
             $hourlyRevenue = [];
             for ($hour = 0; $hour < 24; $hour++) {
                 $hourStart = $todayStart->copy()->addHours($hour);
                 $hourEnd = $hourStart->copy()->addHour();
-                
+
                 if ($hourEnd <= $now) {
-                    $revenue = Transaction::income()->completed()
+                    $revenue = $this->scopedTransactions($admin)->income()->completed()
                         ->whereBetween('transaction_date', [$hourStart, $hourEnd])
                         ->sum('amount');
                 } else {
-                    $revenue = Transaction::income()->completed()
+                    $revenue = $this->scopedTransactions($admin)->income()->completed()
                         ->whereBetween('transaction_date', [$hourStart, $now])
                         ->sum('amount');
                 }
-                
+
                 $hourlyRevenue[] = [
                     'hour' => $hour,
                     'hour_formatted' => $hourStart->format('H:i'),
                     'revenue' => (float) $revenue
                 ];
             }
-            
+
             $data = [
                 'live_stats' => [
                     'today_revenue' => (float) $todayRevenue,
@@ -665,16 +848,16 @@ class AdminReportController extends Controller
                     'month_revenue' => (float) $monthRevenue,
                     'active_drivers_today' => $activeDriversToday,
                     'active_vehicles_today' => $activeVehiclesToday,
-                    'average_per_transaction_today' => $todayTransactions > 0 ? 
+                    'average_per_transaction_today' => $todayTransactions > 0 ?
                         round($todayRevenue / $todayTransactions, 2) : 0
                 ],
                 'recent_transactions' => $recentTransactions,
                 'hourly_revenue' => $hourlyRevenue,
                 'last_updated' => $now->toISOString()
             ];
-            
+
             return ResponseHelper::success($data, 'Live analytics retrieved successfully');
-            
+
         } catch (\Exception $e) {
             \Log::error('Live analytics failed', [
                 'error' => $e->getMessage(),
@@ -693,10 +876,10 @@ class AdminReportController extends Controller
             $reportType = $request->get('report_type', 'revenue');
             $startDate = $request->get('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             // For now, return a success response
             // In future, implement actual PDF generation using packages like DomPDF or TCPDF
-            
+
             $data = [
                 'message' => "PDF report for {$reportType} generated successfully",
                 'report_type' => $reportType,
