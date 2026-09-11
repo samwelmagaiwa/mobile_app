@@ -22,13 +22,6 @@ class InventoryCategoriesScreen extends StatefulWidget {
 class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
   String _search = '';
   String _status = 'all';
-  final ScrollController _hCtrl = ScrollController();
-
-  @override
-  void dispose() {
-    _hCtrl.dispose();
-    super.dispose();
-  }
 
   Future<void> _openForm(InvCategory? existing) async {
     final inv = context.read<InventoryProvider>();
@@ -164,56 +157,32 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
               ],
             ),
             SizedBox(height: 12.h),
-            // ── Table ────────────────────────────────────────────────
-            Expanded(
-              child: ThemeConstants.buildGlassCardStatic(
-                child: Padding(
-                  padding: EdgeInsets.all(12.w),
-                  child: cats.isEmpty
-                      ? Center(
-                          child: Text(loc.translate('no_categories_found'),
-                              style: ThemeConstants.captionStyle))
-                      : Scrollbar(
-                          controller: _hCtrl,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _hCtrl,
-                            scrollDirection: Axis.horizontal,
-                            child: ConstrainedBox(
-                              constraints:
-                                  BoxConstraints(minWidth: MediaQuery.of(context).size.width - 60),
-                              child: DataTable(
-                                columnSpacing: 12.w,
-                                horizontalMargin: 8.w,
-                                headingTextStyle: ThemeConstants.captionStyle
-                                    .copyWith(fontWeight: FontWeight.bold),
-                                dataTextStyle: ThemeConstants.bodyStyle,
-                                columns: [
-                                  DataColumn(
-                                      label: Text(loc.translate('category_name'))),
-                                  DataColumn(
-                                      label: Text(loc.translate('code'))),
-                                  DataColumn(
-                                      label: Text(
-                                          loc.translate('total_products_abbr'))),
-                                  DataColumn(
-                                      label: Text(loc.translate('status'))),
-                                  if (canManage)
-                                    DataColumn(
-                                        label:
-                                            Text(loc.translate('actions'))),
-                                ],
-                                rows: cats
-                                    .map((c) => _buildRow(
-                                        context, loc, inv, c,
-                                        canManage: canManage))
-                                    .toList(),
-                              ),
-                            ),
-                          ),
-                        ),
-                ),
+            // ── Table header ─────────────────────────────────────────
+            ThemeConstants.buildGlassCardStatic(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                child: _TableHeader(loc: loc, canManage: canManage),
               ),
+            ),
+            SizedBox(height: 4.h),
+            // ── Table rows ───────────────────────────────────────────
+            Expanded(
+              child: cats.isEmpty
+                  ? Center(
+                      child: Text(loc.translate('no_categories_found'),
+                          style: ThemeConstants.captionStyle))
+                  : ListView.separated(
+                      itemCount: cats.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 4.h),
+                      itemBuilder: (context, i) => ThemeConstants.buildGlassCardStatic(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 6.h),
+                          child: _buildRow(context, loc, inv, cats[i],
+                              canManage: canManage),
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -240,43 +209,110 @@ class _InventoryCategoriesScreenState extends State<InventoryCategoriesScreen> {
             style: ThemeConstants.captionStyle),
       );
 
-  DataRow _buildRow(
+  Widget _buildRow(
     BuildContext context,
     LocalizationService loc,
     InventoryProvider inv,
     InvCategory c, {
     required bool canManage,
   }) {
-    return DataRow(cells: [
-      DataCell(SizedBox(
-          width: 150.w, child: AutoSizeText(c.name, maxLines: 1))),
-      DataCell(SizedBox(
-          width: 64.w,
-          child:
-              AutoSizeText(c.code.isEmpty ? '—' : c.code, maxLines: 1))),
-      DataCell(
-          SizedBox(width: 60.w, child: Text(c.totalProducts.toString()))),
-      DataCell(_statusPill(loc, c)),
-      if (canManage)
-        DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: loc.translate('edit'),
-                onPressed: () => _openForm(c),
-                icon: const Icon(Icons.edit_outlined,
-                    color: Colors.white70, size: 18),
+    return Row(
+      children: [
+        // Name
+        SizedBox(
+          width: 110.w,
+          child: AutoSizeText(c.name,
+              maxLines: 1,
+              style: ThemeConstants.bodyStyle,
+              overflow: TextOverflow.ellipsis),
+        ),
+        // Code
+        SizedBox(
+          width: 50.w,
+          child: AutoSizeText(c.code.isEmpty ? '—' : c.code,
+              maxLines: 1,
+              style: ThemeConstants.captionStyle,
+              overflow: TextOverflow.ellipsis),
+        ),
+        // Total products
+        SizedBox(
+          width: 30.w,
+          child: Text(c.totalProducts.toString(),
+              style: ThemeConstants.captionStyle,
+              textAlign: TextAlign.center),
+        ),
+        SizedBox(width: 6.w),
+        // Status pill
+        _statusPill(loc, c),
+        SizedBox(width: 8.w),
+        // Three-dots actions
+        if (canManage) ...[
+          SizedBox(width: 4.w),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert,
+                color: Colors.white54, size: 20),
+            color: ThemeConstants.primaryBlue,
+            padding: EdgeInsets.zero,
+            onSelected: (action) {
+              if (action == 'edit') {
+                _openForm(c);
+              } else if (action == 'delete') {
+                _confirmDelete(context, inv, c);
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(children: [
+                  const Icon(Icons.edit_outlined,
+                      color: Colors.white70, size: 18),
+                  SizedBox(width: 8.w),
+                  Text(loc.translate('edit'),
+                      style: ThemeConstants.captionStyle),
+                ]),
               ),
-              IconButton(
-                tooltip: loc.translate('delete'),
-                onPressed: () => _confirmDelete(context, inv, c),
-                icon: Icon(Icons.delete_outline,
-                    color: ThemeConstants.errorRed, size: 18),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(children: [
+                  Icon(Icons.delete_outline,
+                      color: ThemeConstants.errorRed, size: 18),
+                  SizedBox(width: 8.w),
+                  Text(loc.translate('delete'),
+                      style: ThemeConstants.captionStyle
+                          .copyWith(color: ThemeConstants.errorRed)),
+                ]),
               ),
             ],
           ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader({required this.loc, required this.canManage});
+  final LocalizationService loc;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    final style =
+        ThemeConstants.captionStyle.copyWith(fontWeight: FontWeight.bold);
+    return Row(
+      children: [
+        SizedBox(width: 110.w, child: Text(loc.translate('category_name'), style: style)),
+        SizedBox(width: 50.w,  child: Text(loc.translate('code'), style: style)),
+        SizedBox(
+          width: 30.w,
+          child: Text(loc.translate('total_products_abbr'),
+              style: style, textAlign: TextAlign.center),
         ),
-    ]);
+        SizedBox(width: 6.w),
+        Text(loc.translate('status'), style: style),
+        SizedBox(width: 8.w),
+        if (canManage) Text(loc.translate('actions'), style: style),
+      ],
+    );
   }
 }

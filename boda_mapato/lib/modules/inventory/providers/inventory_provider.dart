@@ -472,14 +472,18 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteProduct(int id) async {
+  /// Returns null on success, or an error message string on failure.
+  Future<String?> deleteProduct(int id, {bool force = false}) async {
     try {
-      await _api.delete('/inventory/products/$id');
+      final url = '/inventory/products/$id${force ? '?force=1' : ''}';
+      await _api.delete(url);
       _products.removeWhere((InvProduct p) => p.id == id);
       notifyListeners();
-      return true;
-    } on Exception {
-      return false;
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } on Exception catch (e) {
+      return e.toString();
     }
   }
 

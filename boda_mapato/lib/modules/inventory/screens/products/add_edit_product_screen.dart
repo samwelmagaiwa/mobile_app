@@ -1028,15 +1028,56 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _saving = true);
-    final bool ok = await context.read<InventoryProvider>().deleteProduct(p.id);
+    final String? err = await context.read<InventoryProvider>().deleteProduct(p.id);
     if (!mounted) return;
     setState(() => _saving = false);
-    if (ok) {
+    if (err == null) {
       ThemeConstants.showSuccessSnackBar(context, loc.translate('deleted'));
       Navigator.pop(context);
+    } else if (err.toLowerCase().contains('sales history')) {
+      final archive = await showDialog<bool>(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          backgroundColor: ThemeConstants.primaryBlue,
+          title: Text('Cannot Delete',
+              style: ThemeConstants.bodyStyle
+                  .copyWith(fontWeight: FontWeight.bold)),
+          content: Text(
+            '"${p.name}" has sales history and cannot be permanently deleted.\n\n'
+            'Archive it instead? It will be deactivated but kept for records.',
+            style: ThemeConstants.captionStyle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange),
+              onPressed: () => Navigator.pop(dCtx, true),
+              child: const Text('Archive'),
+            ),
+          ],
+        ),
+      );
+      if (archive == true && mounted) {
+        final err2 = await context
+            .read<InventoryProvider>()
+            .deleteProduct(p.id, force: true);
+        if (mounted) {
+          if (err2 == null) {
+            ThemeConstants.showSuccessSnackBar(
+                context, 'Product archived (deactivated)');
+            Navigator.pop(context);
+          } else {
+            ThemeConstants.showErrorSnackBar(context, err2);
+          }
+        }
+      }
     } else {
-      ThemeConstants.showErrorSnackBar(
-          context, loc.translate('operation_failed'));
+      ThemeConstants.showErrorSnackBar(context, err);
     }
   }
 }

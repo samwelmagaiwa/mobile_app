@@ -224,20 +224,54 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                           ),
                                         );
                                         if (ok == true && context.mounted) {
-                                          final deleted = await context
-                                              .read<InventoryProvider>()
-                                              .deleteProduct(p.id);
-                                          if (context.mounted) {
-                                            if (deleted) {
-                                              ThemeConstants.showSuccessSnackBar(
-                                                  context,
-                                                  loc.translate('deleted'));
-                                            } else {
-                                              ThemeConstants.showErrorSnackBar(
-                                                  context,
-                                                  loc.translate(
-                                                      'failed_to_delete'));
+                                          final inv = context.read<InventoryProvider>();
+                                          final err = await inv.deleteProduct(p.id);
+                                          if (!context.mounted) return;
+                                          if (err == null) {
+                                            ThemeConstants.showSuccessSnackBar(
+                                                context, loc.translate('deleted'));
+                                          } else if (err.toLowerCase().contains('sales history')) {
+                                            // Product has sales — offer to archive instead
+                                            final archive = await showDialog<bool>(
+                                              context: context,
+                                              builder: (dCtx) => AlertDialog(
+                                                backgroundColor: ThemeConstants.primaryBlue,
+                                                title: Text('Cannot Delete',
+                                                    style: ThemeConstants.bodyStyle.copyWith(
+                                                        fontWeight: FontWeight.bold)),
+                                                content: Text(
+                                                  '"${p.name}" has sales history and cannot be permanently deleted.\n\n'
+                                                  'Archive it instead? It will be deactivated but kept for records.',
+                                                  style: ThemeConstants.captionStyle,
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(dCtx, false),
+                                                    child: const Text('Cancel',
+                                                        style: TextStyle(color: Colors.white70)),
+                                                  ),
+                                                  ElevatedButton(
+                                                    style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.orange),
+                                                    onPressed: () => Navigator.pop(dCtx, true),
+                                                    child: const Text('Archive'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (archive == true && context.mounted) {
+                                              final err2 = await inv.deleteProduct(p.id, force: true);
+                                              if (context.mounted) {
+                                                if (err2 == null) {
+                                                  ThemeConstants.showSuccessSnackBar(
+                                                      context, 'Product archived (deactivated)');
+                                                } else {
+                                                  ThemeConstants.showErrorSnackBar(context, err2);
+                                                }
+                                              }
                                             }
+                                          } else {
+                                            ThemeConstants.showErrorSnackBar(context, err);
                                           }
                                         }
                                       }
