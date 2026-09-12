@@ -704,7 +704,6 @@ class SalesController extends Controller
                         $crateCustomer = DB::table('inventory_customers')->insertGetId([
                             'name'       => $nameOverride ?: $phoneOverride,
                             'phone'      => $phoneOverride ?: null,
-                            'created_by' => optional($request->user())->id,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
