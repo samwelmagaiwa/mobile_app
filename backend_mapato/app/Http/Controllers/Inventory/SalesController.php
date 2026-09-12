@@ -295,7 +295,7 @@ class SalesController extends Controller
         $year  = (int) ($request->query('year',  now()->year));
         $month = (int) ($request->query('month', now()->month));
 
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $daysInMonth = (int) now()->setDate($year, $month, 1)->daysInMonth;
         $from = sprintf('%04d-%02d-01', $year, $month);
         $to   = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
 
