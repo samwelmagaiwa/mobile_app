@@ -15,6 +15,12 @@ import '../../../../services/localization_service.dart';
 import '../../../../utils/responsive_helper.dart';
 import '../../models/inv_sale.dart';
 import '../../providers/inventory_provider.dart';
+import '../credit/credit_screen.dart';
+import '../hubs/finance_reports_hub_screen.dart';
+import '../hubs/products_hub_screen.dart';
+import '../hubs/sales_hub_screen.dart';
+import '../hubs/stock_hub_screen.dart';
+import '../hubs/supply_chain_hub_screen.dart';
 import '../widgets/inventory_widgets.dart';
 
 /// Inventory dashboard styled to match the Transport (Modern) dashboard:
@@ -298,22 +304,23 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
 
   List<_QuickChip> _quickChipsFor(LocalizationService loc, UserPermissions perms) {
     final chips = <_QuickChip>[];
-    if (perms.has('inv_create_sales')) { chips.add(_QuickChip(loc.translate('sell'), Icons.point_of_sale_rounded, '/inventory/sales/new')); }
-    if (perms.has('inv_view_products')) { chips.add(_QuickChip(loc.translate('products'), Icons.inventory_2_outlined, '/inventory/products')); }
-    if (perms.has('inv_view_reminders')) { chips.add(_QuickChip(loc.translate('reminders'), Icons.notifications_outlined, '/inventory/reminders')); }
-    if (perms.has('inv_view_cash')) { chips.add(_QuickChip(loc.translate('cash'), Icons.account_balance_wallet_outlined, '/inventory/cash')); }
-    if (perms.has('inv_view_credit')) { chips.add(_QuickChip(loc.translate('credit'), Icons.people_outline_rounded, '/inventory/credit')); }
-    if (perms.has('inv_view_expenses')) { chips.add(_QuickChip(loc.translate('expenses'), Icons.receipt_outlined, '/inventory/expenses')); }
-    if (perms.has('inv_manage_stock')) { chips.add(_QuickChip(loc.translate('stock'), Icons.layers_outlined, '/inventory/stock')); }
+    if (perms.has('inv_create_sales'))   { chips.add(_QuickChip(loc.translate('sell'),      Icons.point_of_sale_rounded,          (_) => const SalesHubScreen())); }
+    if (perms.has('inv_view_products'))  { chips.add(_QuickChip(loc.translate('products'),   Icons.inventory_2_outlined,           (_) => const ProductsHubScreen())); }
+    if (perms.has('inv_view_reminders')) { chips.add(_QuickChip(loc.translate('reminders'),  Icons.notifications_outlined,         (_) => const FinanceReportsHubScreen())); }
+    if (perms.has('inv_view_cash'))      { chips.add(_QuickChip(loc.translate('cash'),        Icons.account_balance_wallet_outlined, (_) => const FinanceReportsHubScreen())); }
+    if (perms.has('inv_view_credit'))    { chips.add(_QuickChip(loc.translate('credit'),      Icons.people_outline_rounded,         (_) => const CreditScreen())); }
+    if (perms.has('inv_view_expenses'))  { chips.add(_QuickChip(loc.translate('expenses'),    Icons.receipt_outlined,               (_) => const SupplyChainHubScreen())); }
+    if (perms.has('inv_manage_stock'))   { chips.add(_QuickChip(loc.translate('stock'),       Icons.layers_outlined,                (_) => const StockHubScreen())); }
     return chips.take(5).toList();
   }
 
   Widget _quickChipWidget(BuildContext context, _QuickChip chip) {
     return InkWell(
       onTap: () {
-        if (chip.route.isNotEmpty) {
-          Navigator.pushNamed(context, chip.route);
-        }
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(builder: chip.builder),
+        );
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -1959,10 +1966,10 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
 
 // ── Quick-chip data model ─────────────────────────────────────────────────────
 class _QuickChip {
-  const _QuickChip(this.label, this.icon, this.route);
+  const _QuickChip(this.label, this.icon, this.builder);
   final String label;
   final IconData icon;
-  final String route;
+  final WidgetBuilder builder;
 }
 
 // ── Date filter bottom sheet ──────────────────────────────────────────────────
