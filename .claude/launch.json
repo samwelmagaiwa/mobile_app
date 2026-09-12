@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flutter-app",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "emulator-5554", "--pid-file", ".flutter-pid"],
+      "port": 8080
+    }
+  ]
+}
