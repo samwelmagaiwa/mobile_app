@@ -214,46 +214,6 @@ class _SalesScreenState extends State<SalesScreen>
     );
   }
 
-  /// If the toggle says the customer didn't bring empties back, post the
-  /// crate debt now that the sale succeeded. Requires a saved customer --
-  /// crate debt is tracked per customer, not per anonymous walk-in.
-  Future<void> _recordCrateDebtIfNeeded(InventoryProvider inv) async {
-    if (_customerBroughtCrates) return;
-    final int? crateTypeId = _oweCrateTypeId;
-    final int? qty = int.tryParse(_oweCrateQty.text.trim());
-    final int? customerId = inv.selectedCustomerId;
-    if (crateTypeId == null || qty == null || qty < 1 || customerId == null) {
-      return;
-    }
-    await context.read<DepotProvider>().recordCrateMovement(
-          crateTypeId: crateTypeId,
-          direction: 'issued',
-          quantity: qty,
-          customerId: customerId,
-          note: 'Auto: crates owed from a sale (customer did not bring empties back)',
-        );
-  }
-
-  /// When toggle is ON and the customer selected a crate type + quantity,
-  /// clear (part of) their outstanding crate debt by posting a `returned`
-  /// movement. Requires a saved customer.
-  Future<void> _recordCrateReturnIfNeeded(InventoryProvider inv) async {
-    if (!_customerBroughtCrates) return;
-    final int? crateTypeId = _returnCrateTypeId;
-    final int? qty = int.tryParse(_returnCrateQty.text.trim());
-    final int? customerId = inv.selectedCustomerId;
-    if (crateTypeId == null || qty == null || qty < 1 || customerId == null) {
-      return;
-    }
-    await context.read<DepotProvider>().recordCrateMovement(
-          crateTypeId: crateTypeId,
-          direction: 'returned',
-          quantity: qty,
-          customerId: customerId,
-          note: 'Auto: customer returned crates at sale checkout',
-        );
-  }
-
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
@@ -734,14 +694,34 @@ class _SalesScreenState extends State<SalesScreen>
                               }
                             }
                             setState(() => _checkingOut = true);
-                            final result = await inv.checkout(createdBy: userId);
+                            // Determine crate movement to pass atomically
+                            int? crateTypeId;
+                            int? crateQty;
+                            String? crateDir;
+                            if (!_customerBroughtCrates) {
+                              final qty = int.tryParse(_oweCrateQty.text.trim());
+                              if (_oweCrateTypeId != null && qty != null && qty > 0 && inv.selectedCustomerId != null) {
+                                crateTypeId = _oweCrateTypeId;
+                                crateQty = qty;
+                                crateDir = 'issued';
+                              }
+                            } else {
+                              final qty = int.tryParse(_returnCrateQty.text.trim());
+                              if (_returnCrateTypeId != null && qty != null && qty > 0 && inv.selectedCustomerId != null) {
+                                crateTypeId = _returnCrateTypeId;
+                                crateQty = qty;
+                                crateDir = 'returned';
+                              }
+                            }
+                            final result = await inv.checkout(
+                              createdBy: userId,
+                              crateTypeId: crateTypeId,
+                              crateQty: crateQty,
+                              crateDirection: crateDir,
+                            );
                             if (!context.mounted) return;
                             final ok = result.$1;
                             final msgKey = result.$2;
-                            if (ok) {
-                              await _recordCrateDebtIfNeeded(inv);
-                              await _recordCrateReturnIfNeeded(inv);
-                            }
                             if (!context.mounted) return;
                             setState(() => _checkingOut = false);
                             if (!ok) {

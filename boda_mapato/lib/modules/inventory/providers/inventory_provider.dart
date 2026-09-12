@@ -749,7 +749,12 @@ class InventoryProvider extends ChangeNotifier {
 
   // Checkout with business rules
   // Returns (success, message)
-  Future<(bool, String)> checkout({required int createdBy}) async {
+  Future<(bool, String)> checkout({
+    required int createdBy,
+    int? crateTypeId,
+    int? crateQty,
+    String? crateDirection, // 'issued' or 'returned'
+  }) async {
     if (_cart.isEmpty) return (false, 'Cart is empty');
 
     if ((_paymentMode == 'debt' || _paymentMode == 'partial') &&
@@ -819,6 +824,11 @@ class InventoryProvider extends ChangeNotifier {
               })
           .toList(),
       if (payments.isNotEmpty) 'payments': payments,
+      if (crateTypeId != null && crateQty != null && crateDirection != null) ...{
+        'crate_type_id': crateTypeId,
+        'crate_qty': crateQty,
+        'crate_direction': crateDirection,
+      },
     };
 
     try {

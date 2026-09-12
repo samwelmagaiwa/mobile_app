@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Services\Inventory\AuditTrail;
+use App\Services\Inventory\CrateLedgerService;
 use App\Services\Inventory\StockLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,10 +13,10 @@ use Illuminate\Routing\Controller;
 class SalesController extends Controller
 {
     public function __construct(
-        private readonly StockLedger $ledger,
-        private readonly AuditTrail  $audit,
-    )
-     {
+        private readonly StockLedger        $ledger,
+        private readonly AuditTrail         $audit,
+        private readonly CrateLedgerService $crateLedger,
+    ) {
     }
 
     public function index(Request $request)
@@ -491,6 +492,10 @@ class SalesController extends Controller
             'payments.*.method' => 'required|in:cash,mobile_money,bank_transfer',
             'payments.*.reference' => 'nullable|string',
             'payments.*.paid_at' => 'nullable|date',
+            // Optional crate exchange — recorded atomically with the sale
+            'crate_type_id'  => 'nullable|integer|exists:inventory_crate_types,id',
+            'crate_qty'      => 'nullable|integer|min:1',
+            'crate_direction'=> 'nullable|in:issued,returned',
         ]);
 
         if ($v->fails()) {
@@ -610,6 +615,27 @@ class SalesController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
+
+            // Crate exchange — record atomically so a crash between checkout
+            // and a separate API call cannot leave the ledger inconsistent.
+            $crateTypeId  = $request->integer('crate_type_id', 0) ?: null;
+            $crateQty     = $request->integer('crate_qty', 0) ?: null;
+            $crateDir     = $request->input('crate_direction');
+            $crateCustomer = $request->integer('customer_id', 0) ?: null;
+
+            if ($crateTypeId && $crateQty && $crateDir && $crateCustomer) {
+                $this->crateLedger->post(
+                    crateTypeId: $crateTypeId,
+                    movementType: $crateDir,
+                    quantity: $crateQty,
+                    customerId: $crateCustomer,
+                    reference: $number,
+                    note: $crateDir === 'issued'
+                        ? 'Auto: crates owed from sale ' . $number . ' (customer did not bring empties back)'
+                        : 'Auto: customer returned crates at sale ' . $number,
+                    userId: optional($request->user())->id,
+                );
             }
 
             $this->audit->record($request, 'sale', (int) $saleId, 'created', null, [
