@@ -52,6 +52,17 @@ class InventoryProvider extends ChangeNotifier {
   bool _salesHasMore = false;
   Map<String, dynamic> _salesSummary = {};
 
+  // KPIs — fetched from GET /inventory/kpis
+  double _kpiTodayTotal    = 0;
+  double _kpiTodayProfit   = 0;
+  double _kpiCashToday     = 0;
+  double _kpiDebtTotal     = 0;
+  double _kpiExpensesToday = 0;
+
+  // Monthly chart — fetched from GET /inventory/sales/monthly-chart
+  // Keyed by "year-month" → list of daily totals (index 0 = day 1)
+  final Map<String, List<double>> _monthlyChartCache = {};
+
   // Accessors
   List<InvProduct> get products => List.unmodifiable(_products);
   List<InvCustomer> get customers => List.unmodifiable(_customers);
@@ -128,22 +139,20 @@ class InventoryProvider extends ChangeNotifier {
     return list.take(5).toList();
   }
 
-  // Sales KPIs (mock/derived)
-  double get totalSalesToday => _sales.where((s) {
-        final now = DateTime.now();
-        return s.createdAt.year == now.year &&
-            s.createdAt.month == now.month &&
-            s.createdAt.day == now.day;
-      }).fold<double>(0, (sum, s) => sum + s.total);
+  // Sales KPIs — backed by GET /inventory/kpis (real DB aggregates)
+  double get totalSalesToday     => _kpiTodayTotal;
+  double get profitToday         => _kpiTodayProfit;
+  double get cashToday           => _kpiCashToday;
+  double get creditOutstanding   => _kpiDebtTotal;
+  double get expensesToday       => _kpiExpensesToday;
   String get totalSalesTodayFormatted =>
-      'TZS ${totalSalesToday.toStringAsFixed(0)}';
-  double get profitToday => _sales.fold<double>(0, (sum, s) => sum + s.profit);
-  double get cashToday => 0;
-  double get creditOutstanding => 0;
-  double get expensesToday => 0;
-  String get profitTodayFormatted => 'TZS ${profitToday.toStringAsFixed(0)}';
-  String get profitWeekFormatted => 'TZS 210,000';
-  String get profitMonthFormatted => 'TZS 920,000';
+      'TZS ${_kpiTodayTotal.toStringAsFixed(0)}';
+  String get profitTodayFormatted =>
+      'TZS ${_kpiTodayProfit.toStringAsFixed(0)}';
+
+  // Monthly chart cache accessor
+  List<double>? cachedMonthlyChart(int year, int month) =>
+      _monthlyChartCache['$year-$month'];
 
   // Trend (derived): last 12 days totals (fallbacks to mock if no data)
   List<FlSpot> get salesTrend {
@@ -294,11 +303,61 @@ class InventoryProvider extends ChangeNotifier {
       fetchCustomers(),
       fetchSales(),
       fetchCategories(),
+      fetchKpis(),
     ]);
     _recomputeCategoryProductTotals();
     _refreshLowStockReminders();
     _refreshPaymentDueReminders();
     notifyListeners();
+  }
+
+  /// Fetches today's KPIs (sales total, profit, cash, credit, expenses)
+  /// from the backend and stores them for the dashboard cards.
+  Future<void> fetchKpis() async {
+    try {
+      final res = await _api.getOrNull('/inventory/kpis');
+      if (res == null) return;
+      final data = res['data'] as Map<String, dynamic>? ?? {};
+      final today = data['today'] as Map<String, dynamic>? ?? {};
+      _kpiTodayTotal    = _toDouble(today['total']);
+      _kpiTodayProfit   = _toDouble(today['profit']);
+      _kpiCashToday     = _toDouble(today['cash']);
+      _kpiExpensesToday = _toDouble(today['expenses']);
+      _kpiDebtTotal     = _toDouble(data['outstanding_debt']);
+      notifyListeners();
+    } on Exception {
+      // leave previous cached values intact
+    }
+  }
+
+  /// Fetches daily sales totals for [year]/[month] from the backend and
+  /// caches them. The dashboard chart calls this when the user switches months
+  /// so it always shows complete data rather than filtering the in-memory list.
+  Future<List<double>> fetchMonthlyChart(int year, int month) async {
+    final key = '$year-$month';
+    try {
+      final res = await _api
+          .getOrNull('/inventory/sales/monthly-chart?year=$year&month=$month');
+      if (res == null) return _monthlyChartCache[key] ?? [];
+      final data = res['data'] as Map<String, dynamic>? ?? {};
+      final days = data['days'] as List<dynamic>? ?? [];
+      final totals = days.map((d) {
+        final m = d as Map<String, dynamic>;
+        return _toDouble(m['total']);
+      }).toList();
+      _monthlyChartCache[key] = totals;
+      notifyListeners();
+      return totals;
+    } on Exception {
+      return _monthlyChartCache[key] ?? [];
+    }
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is double) return v;
+    if (v is int) return v.toDouble();
+    return double.tryParse('$v') ?? 0;
   }
 
   // Stock operations (call backend, then refresh)

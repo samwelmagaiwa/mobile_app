@@ -208,10 +208,22 @@ class SalesController extends Controller
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(total),0) as total, COALESCE(SUM(paid_total),0) as paid')
             ->first();
 
-        // Outstanding debt
+        // Outstanding debt (credit)
         $debtTotal = (float) DB::table('inventory_sales')
             ->whereIn('payment_status', ['debt', 'partial'])
             ->sum(DB::raw('total - paid_total'));
+
+        // Cash collected today (cash-method payments only)
+        $cashToday = (float) DB::table('inventory_sale_payments as p')
+            ->join('inventory_sales as s', 's.id', '=', 'p.sale_id')
+            ->whereDate('p.paid_at', $today)
+            ->where('p.method', 'cash')
+            ->sum('p.amount');
+
+        // Expenses incurred today
+        $expensesToday = (float) DB::table('inventory_expenses')
+            ->whereDate('expense_date', $today)
+            ->sum('amount');
 
         // Profit today (revenue - cost from sale items)
         $profitToday = (float) DB::table('inventory_sale_items as si')
@@ -262,12 +274,59 @@ class SalesController extends Controller
                 'total'   => (float) ($todayRow->total ?? 0),
                 'paid'    => (float) ($todayRow->paid ?? 0),
                 'profit'  => $profitToday,
+                'cash'    => $cashToday,
+                'expenses'=> $expensesToday,
             ],
             'outstanding_debt' => $debtTotal,
             'week_trend'       => $weekTrend,
             'month_trend'      => $monthTrend,
             'top_products'     => $topProducts,
         ]]);
+    }
+
+    /**
+     * GET /inventory/sales/monthly-chart?year=2026&month=9
+     * Returns per-day sales totals for a calendar month — used by the
+     * dashboard chart so it always shows complete data, not just cached
+     * page-1 sales that may not span the selected month.
+     */
+    public function monthlyChart(Request $request)
+    {
+        $year  = (int) ($request->query('year',  now()->year));
+        $month = (int) ($request->query('month', now()->month));
+
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $from = sprintf('%04d-%02d-01', $year, $month);
+        $to   = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
+
+        $rows = DB::table('inventory_sales')
+            ->whereDate('created_at', '>=', $from)
+            ->whereDate('created_at', '<=', $to)
+            ->groupBy(DB::raw('DAY(created_at)'))
+            ->orderBy(DB::raw('DAY(created_at)'))
+            ->get([
+                DB::raw('DAY(created_at) as day'),
+                DB::raw('COALESCE(SUM(total),0) as total'),
+                DB::raw('COUNT(*) as count'),
+            ]);
+
+        // Build a full array indexed 1..daysInMonth so the chart never has gaps
+        $daily = array_fill(1, $daysInMonth, ['day' => 0, 'total' => 0.0, 'count' => 0]);
+        foreach ($rows as $row) {
+            $daily[(int)$row->day] = [
+                'day'   => (int) $row->day,
+                'total' => (float) $row->total,
+                'count' => (int) $row->count,
+            ];
+        }
+
+        return response()->json([
+            'data' => [
+                'year'  => $year,
+                'month' => $month,
+                'days'  => array_values($daily),
+            ],
+        ]);
     }
 
     /**

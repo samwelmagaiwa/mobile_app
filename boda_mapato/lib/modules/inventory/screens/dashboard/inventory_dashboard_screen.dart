@@ -40,6 +40,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
   late final Animation<double> _chartAnimation;
 
   int _selectedMonth = DateTime.now().month;
+  bool _chartLoading = false;
 
   // ── Date filter state ─────────────────────────────────────────────────────
   _DateFilter _filter = _DateFilter.today;
@@ -77,8 +78,21 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     Future<void>.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         _chartAnimationController.forward();
+        _loadChartForMonth(_selectedMonth);
       }
     });
+  }
+
+  Future<void> _loadChartForMonth(int month) async {
+    if (!mounted) return;
+    setState(() => _chartLoading = true);
+    await Provider.of<InventoryProvider>(context, listen: false)
+        .fetchMonthlyChart(DateTime.now().year, month);
+    if (!mounted) return;
+    setState(() => _chartLoading = false);
+    _chartAnimationController
+      ..reset()
+      ..forward();
   }
 
   @override
@@ -1023,11 +1037,15 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
               const SizedBox(height: 24),
               SizedBox(
                 height: MediaQuery.of(context).size.height < 700 ? 200 : 240,
-                child: AnimatedBuilder(
+                child: _chartLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                            color: Colors.white54, strokeWidth: 2))
+                    : AnimatedBuilder(
                   animation: _chartAnimation,
                   builder: (BuildContext context, Widget? child) {
                     final List<double> points = _monthDailyTotals(inv);
-                    if (points.isEmpty) {
+                    if (points.isEmpty || points.every((v) => v == 0)) {
                       return Center(
                         child: Text(
                           loc.translate('no_chart_data'),
@@ -1192,9 +1210,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
             return GestureDetector(
               onTap: () {
                 setState(() => _selectedMonth = index + 1);
-                _chartAnimationController
-                  ..reset()
-                  ..forward();
+                _loadChartForMonth(index + 1);
               },
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
@@ -1878,6 +1894,10 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
       DateTime(DateTime.now().year, _selectedMonth + 1, 0).day;
 
   List<double> _monthDailyTotals(InventoryProvider inv) {
+    // Prefer backend-aggregated monthly chart data (complete, no pagination gaps)
+    final cached = inv.cachedMonthlyChart(DateTime.now().year, _selectedMonth);
+    if (cached != null && cached.isNotEmpty) return cached;
+    // Fallback: derive from whatever sales are in memory (may be incomplete)
     final List<double> totals = List<double>.filled(_daysInSelectedMonth, 0);
     for (final InvSale s in _salesForSelectedMonth(inv)) {
       final int i = s.createdAt.day - 1;
