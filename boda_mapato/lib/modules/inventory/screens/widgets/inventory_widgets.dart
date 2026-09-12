@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../models/user_permissions.dart';
+import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 
 /// Formats numbers dynamically with thousand separators as typed (e.g., 20000 -> 20,000)
@@ -463,19 +466,26 @@ class InvPrimaryButton extends StatelessWidget {
 /// module. Tab labels scroll horizontally so a long set never overflows.
 /// When there are more tabs off-screen a right-edge fade gradient cues the
 /// user to scroll; it vanishes once the last tab is selected.
+///
+/// [tabPermissions] is an optional parallel list of predicates — one per tab.
+/// When provided, any tab whose predicate returns false for the current user's
+/// [UserPermissions] is hidden. Pass null entries to always-show a tab.
 class InvTabScaffold extends StatefulWidget {
   const InvTabScaffold({
     required this.title,
     required this.tabs,
     required this.views,
+    this.tabPermissions,
     this.actions,
     this.floatingActionButton,
     super.key,
-  });
+  }) : assert(tabPermissions == null || tabPermissions.length == tabs.length);
 
   final String title;
   final List<String> tabs;
   final List<Widget> views;
+  /// Optional per-tab permission predicate. null entry = always visible.
+  final List<bool Function(UserPermissions)?> ? tabPermissions;
   final List<Widget>? actions;
   final Widget? floatingActionButton;
 
@@ -485,20 +495,78 @@ class InvTabScaffold extends StatefulWidget {
 
 class _InvTabScaffoldState extends State<InvTabScaffold>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctrl;
+  late TabController _ctrl;
   bool _atEnd = false;
+
+  // Resolved after filtering by permissions.
+  late List<String> _tabs;
+  late List<Widget> _views;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TabController(length: widget.tabs.length, vsync: this);
-    // Show fade only when there are enough tabs to scroll.
-    _atEnd = widget.tabs.length <= 1;
+    _applyPermissions();
+    _ctrl = TabController(length: _tabs.length, vsync: this);
+    _atEnd = _tabs.length <= 1;
     _ctrl.addListener(_onTab);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-filter when the auth/permissions context changes.
+    _rebuildTabs();
+  }
+
+  void _applyPermissions() {
+    final perms = _readPerms();
+    final List<String> tabs = [];
+    final List<Widget> views = [];
+    for (int i = 0; i < widget.tabs.length; i++) {
+      final pred = widget.tabPermissions?[i];
+      if (pred == null || pred(perms)) {
+        tabs.add(widget.tabs[i]);
+        views.add(widget.views[i]);
+      }
+    }
+    // Ensure at least one tab survives.
+    if (tabs.isEmpty) {
+      _tabs = [widget.tabs.first];
+      _views = [widget.views.first];
+    } else {
+      _tabs = tabs;
+      _views = views;
+    }
+  }
+
+  UserPermissions _readPerms() {
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final user = auth.user;
+      if (user == null) return UserPermissions.empty();
+      return UserPermissions.fromUser(
+        userRole: user.role,
+        explicitGrants: user.permissions,
+      );
+    } catch (_) {
+      return UserPermissions.empty();
+    }
+  }
+
+  void _rebuildTabs() {
+    final List<String> prevTabs = _tabs;
+    _applyPermissions();
+    if (_tabs.length != prevTabs.length) {
+      _ctrl.removeListener(_onTab);
+      _ctrl.dispose();
+      _ctrl = TabController(length: _tabs.length, vsync: this);
+      _atEnd = _tabs.length <= 1;
+      _ctrl.addListener(_onTab);
+    }
+  }
+
   void _onTab() {
-    final bool nowAtEnd = _ctrl.index == widget.tabs.length - 1;
+    final bool nowAtEnd = _ctrl.index == _tabs.length - 1;
     if (nowAtEnd != _atEnd) setState(() => _atEnd = nowAtEnd);
   }
 
@@ -519,7 +587,7 @@ class _InvTabScaffoldState extends State<InvTabScaffold>
       labelColor: ThemeConstants.textPrimary,
       unselectedLabelColor: ThemeConstants.textSecondary,
       labelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-      tabs: widget.tabs.map((String t) => Tab(text: t)).toList(),
+      tabs: _tabs.map((String t) => Tab(text: t)).toList(),
     );
 
     // Wrap the tab bar in a Stack so we can overlay a right-edge fade
@@ -591,7 +659,7 @@ class _InvTabScaffoldState extends State<InvTabScaffold>
       ),
       floatingActionButton: widget.floatingActionButton,
       body: SafeArea(
-        child: TabBarView(controller: _ctrl, children: widget.views),
+        child: TabBarView(controller: _ctrl, children: _views),
       ),
     );
   }

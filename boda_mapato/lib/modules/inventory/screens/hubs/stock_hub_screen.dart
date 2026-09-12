@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../models/user_permissions.dart';
 import '../../../../services/localization_service.dart';
 import '../stock/batches_screen.dart';
 import '../stock/stock_counts_screen.dart';
@@ -30,6 +31,19 @@ class StockHubScreen extends StatelessWidget {
         BatchesScreen(),
         StockCountsScreen(),
         WriteOffsScreen(),
+      ],
+      // Stock Levels — anyone who can see this hub (inv_manage_stock or
+      //   inv_report_damage) should see current stock to know what's available.
+      // Stock In/Out, Batches, Counts — full stock management only.
+      // Write-offs — anyone who can report damage (inv_report_damage) or
+      //   has full stock management.
+      tabPermissions: [
+        null,
+        (UserPermissions p) => p.has('inv_manage_stock'),
+        (UserPermissions p) => p.has('inv_manage_stock'),
+        (UserPermissions p) => p.has('inv_manage_stock'),
+        (UserPermissions p) =>
+            p.has('inv_manage_stock') || p.has('inv_report_damage'),
       ],
     );
   }

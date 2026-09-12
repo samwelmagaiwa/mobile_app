@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../models/user_permissions.dart';
 import '../../../../services/localization_service.dart';
 import '../brands/brands_screen.dart';
 import '../categories/categories_screen.dart';
@@ -24,6 +25,13 @@ class ProductsHubScreen extends StatelessWidget {
         ProductsScreen(),
         InventoryCategoriesScreen(),
         BrandsScreen(),
+      ],
+      // Categories and Brands are management screens — only users who can
+      // manage the product catalogue should see them as tabs.
+      tabPermissions: [
+        null, // Products — visible to anyone who can see the hub
+        (UserPermissions p) => p.has('inv_manage_products'),
+        (UserPermissions p) => p.has('inv_manage_products'),
       ],
     );
   }

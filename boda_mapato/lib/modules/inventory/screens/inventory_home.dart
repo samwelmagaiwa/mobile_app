@@ -103,6 +103,9 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
             p.has('inv_view_expenses'),
       ),
       // 6 — Daily Cash + Reports + Alerts + Reminders
+      // Visible when the user can access at least one tab inside the hub.
+      // inv_view_products alone (sales_officer) does NOT trigger this —
+      // they see Alerts inside the hub, but their primary entry is Sales.
       _InvMenuEntry(
         key: 'finance_hub',
         titleKey: 'reports',
@@ -112,7 +115,6 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         visible: (UserPermissions p) =>
             p.has('inv_view_cash') ||
             p.has('inv_view_reports') ||
-            p.has('inv_view_products') ||
             p.has('inv_view_reminders'),
       ),
       // 7 — Customers & Credit (standalone)
