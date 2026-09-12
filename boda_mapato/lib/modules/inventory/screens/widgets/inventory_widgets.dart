@@ -461,7 +461,9 @@ class InvPrimaryButton extends StatelessWidget {
 
 /// Tabbed page shell used by the depot screens, styled like the rest of the
 /// module. Tab labels scroll horizontally so a long set never overflows.
-class InvTabScaffold extends StatelessWidget {
+/// When there are more tabs off-screen a right-edge fade gradient cues the
+/// user to scroll; it vanishes once the last tab is selected.
+class InvTabScaffold extends StatefulWidget {
   const InvTabScaffold({
     required this.title,
     required this.tabs,
@@ -478,46 +480,121 @@ class InvTabScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
-        length: tabs.length,
-        child: Scaffold(
-          backgroundColor: ThemeConstants.primaryBlue,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            toolbarHeight: title.isEmpty ? 0 : kToolbarHeight,
-            iconTheme: const IconThemeData(color: ThemeConstants.textPrimary),
-            title: title.isEmpty
-                ? null
-                : AutoSizeText(
-                    title,
-                    maxLines: 1,
-                    minFontSize: 13,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: ThemeConstants.textPrimary,
-                      fontSize: 19.sp,
-                      fontWeight: FontWeight.bold,
+  State<InvTabScaffold> createState() => _InvTabScaffoldState();
+}
+
+class _InvTabScaffoldState extends State<InvTabScaffold>
+    with SingleTickerProviderStateMixin {
+  late final TabController _ctrl;
+  bool _atEnd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TabController(length: widget.tabs.length, vsync: this);
+    // Show fade only when there are enough tabs to scroll.
+    _atEnd = widget.tabs.length <= 1;
+    _ctrl.addListener(_onTab);
+  }
+
+  void _onTab() {
+    final bool nowAtEnd = _ctrl.index == widget.tabs.length - 1;
+    if (nowAtEnd != _atEnd) setState(() => _atEnd = nowAtEnd);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.removeListener(_onTab);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tabBar = TabBar(
+      controller: _ctrl,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      indicatorColor: ThemeConstants.primaryOrange,
+      labelColor: ThemeConstants.textPrimary,
+      unselectedLabelColor: ThemeConstants.textSecondary,
+      labelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+      tabs: widget.tabs.map((String t) => Tab(text: t)).toList(),
+    );
+
+    // Wrap the tab bar in a Stack so we can overlay a right-edge fade
+    // that signals "more tabs this way →". The gradient covers ~48 logical
+    // pixels and disappears once the last tab is active.
+    final PreferredSizeWidget tabBarWithFade = PreferredSize(
+      preferredSize: tabBar.preferredSize,
+      child: Stack(
+        children: [
+          tabBar,
+          if (!_atEnd)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: 48.w,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        ThemeConstants.primaryBlue.withValues(alpha: 0),
+                        ThemeConstants.primaryBlue.withValues(alpha: 0.92),
+                      ],
                     ),
                   ),
-            actions: actions,
-            bottom: TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              indicatorColor: ThemeConstants.primaryOrange,
-              labelColor: ThemeConstants.textPrimary,
-              unselectedLabelColor: ThemeConstants.textSecondary,
-              labelStyle: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 6.w, bottom: 4.h),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Colors.white54,
+                        size: 18.sp,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              tabs: tabs.map((String t) => Tab(text: t)).toList(),
             ),
-          ),
-          floatingActionButton: floatingActionButton,
-          body: SafeArea(child: TabBarView(children: views)),
-        ),
-      );
+        ],
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: ThemeConstants.primaryBlue,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: widget.title.isEmpty ? 0 : kToolbarHeight,
+        iconTheme: const IconThemeData(color: ThemeConstants.textPrimary),
+        title: widget.title.isEmpty
+            ? null
+            : AutoSizeText(
+                widget.title,
+                maxLines: 1,
+                minFontSize: 13,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: ThemeConstants.textPrimary,
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+        actions: widget.actions,
+        bottom: tabBarWithFade,
+      ),
+      floatingActionButton: widget.floatingActionButton,
+      body: SafeArea(
+        child: TabBarView(controller: _ctrl, children: widget.views),
+      ),
+    );
+  }
 }
 
 /// Table that scrolls in both directions, so any number of columns of any
