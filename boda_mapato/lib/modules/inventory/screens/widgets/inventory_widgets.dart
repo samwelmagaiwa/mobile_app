@@ -522,82 +522,41 @@ class _InvTabScaffoldState extends State<InvTabScaffold>
       tabs: widget.tabs.map((String t) => Tab(text: t)).toList(),
     );
 
-    // Wrap the tab bar in a Stack with a right-edge fade gradient.
-    // The gradient covers 56 px and fades the background colour over the
-    // last visible tab label — enough to telegraph "more tabs right" without
-    // placing any icon inside the tab row (which would overlap text).
-    // A small "scroll →" hint pill sits just below the tab row, clear of all
-    // label text, and animates away once the last tab is reached.
-    final double tabBarH = tabBar.preferredSize.height;
-    const double pillH = 14.0;
+    // Wrap the tab bar in a Stack so we can overlay a right-edge fade
+    // that signals "more tabs this way →". The gradient covers ~48 logical
+    // pixels and disappears once the last tab is active.
     final PreferredSizeWidget tabBarWithFade = PreferredSize(
-      preferredSize: Size.fromHeight(tabBarH + (widget.tabs.length > 1 ? pillH + 2 : 0)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      preferredSize: tabBar.preferredSize,
+      child: Stack(
         children: [
-          // ── tab row + right-edge fade ──────────────────────────────
-          SizedBox(
-            height: tabBarH,
-            child: Stack(
-              children: [
-                tabBar,
-                // Gradient: transparent → background, covers right 56 px.
-                // IgnorePointer so taps still reach the underlying tabs.
-                if (widget.tabs.length > 1)
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    right: 0,
-                    width: 56.w,
-                    child: IgnorePointer(
-                      child: AnimatedOpacity(
-                        opacity: _atEnd ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 250),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                ThemeConstants.primaryBlue.withValues(alpha: 0),
-                                ThemeConstants.primaryBlue.withValues(alpha: 1),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+          tabBar,
+          if (!_atEnd)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: 48.w,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        ThemeConstants.primaryBlue.withValues(alpha: 0),
+                        ThemeConstants.primaryBlue.withValues(alpha: 0.92),
+                      ],
                     ),
                   ),
-              ],
-            ),
-          ),
-          // ── "scroll for more" hint pill below the tab row ─────────
-          if (widget.tabs.length > 1)
-            AnimatedOpacity(
-              opacity: _atEnd ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 250),
-              child: SizedBox(
-                height: pillH + 2,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 10.w, bottom: 2.h),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'scroll for more',
-                          style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9.5.sp,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        SizedBox(width: 2.w),
-                        Icon(Icons.chevron_right,
-                            color: Colors.white38, size: 12.sp),
-                      ],
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 6.w, bottom: 4.h),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Colors.white54,
+                        size: 18.sp,
+                      ),
                     ),
                   ),
                 ),
