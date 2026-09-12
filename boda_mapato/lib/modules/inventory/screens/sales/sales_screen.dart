@@ -138,6 +138,18 @@ class _SalesScreenState extends State<SalesScreen>
                 color: ThemeConstants.warningAmber,
               ),
             ),
+            if (inv.selectedCustomerId == null) ...<Widget>[
+              SizedBox(height: 4.h),
+              Text(
+                loc.isSwahili
+                    ? 'Kumbuka: deni la makreti halisajilishwi kwa wateja wa walk-in.'
+                    : 'Note: crate debt is not tracked for walk-in customers.',
+                style: ThemeConstants.captionStyle.copyWith(
+                  color: Colors.white54,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
             SizedBox(height: 8.h),
             DropdownButtonFormField<int>(
               initialValue: _oweCrateTypeId,
@@ -669,26 +681,18 @@ class _SalesScreenState extends State<SalesScreen>
                     onPressed: (inv.cart.isEmpty || _checkingOut)
                         ? null
                         : () async {
-                            if (!_customerBroughtCrates) {
+                            // Validate crate fields only when filled in —
+                            // walk-in customers silently skip crate tracking.
+                            if (!_customerBroughtCrates &&
+                                _oweCrateTypeId != null) {
                               final int? qty =
                                   int.tryParse(_oweCrateQty.text.trim());
-                              if (_oweCrateTypeId == null ||
-                                  qty == null ||
-                                  qty < 1) {
+                              if (qty == null || qty < 1) {
                                 ThemeConstants.showWarningSnackBar(
                                   context,
                                   loc.isSwahili
-                                      ? 'Chagua aina ya crate na idadi ya makreti anayodaiwa mteja'
-                                      : 'Select the crate type and how many crates the customer owes',
-                                );
-                                return;
-                              }
-                              if (inv.selectedCustomerId == null) {
-                                ThemeConstants.showWarningSnackBar(
-                                  context,
-                                  loc.isSwahili
-                                      ? 'Chagua mteja aliyesajiliwa ili kufuatilia deni la makreti'
-                                      : 'Select a saved customer to track the crate debt',
+                                      ? 'Ingiza idadi ya makreti anayodaiwa mteja'
+                                      : 'Enter the number of crates the customer owes',
                                 );
                                 return;
                               }
