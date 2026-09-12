@@ -679,6 +679,15 @@ class _SalesScreenState extends State<SalesScreen>
                                 _oweCrateTypeId = null;
                                 _oweCrateQty.clear();
                               });
+                              // Refresh crate data so the Crates & Empties
+                              // screen reflects any movement recorded in this sale.
+                              if (crateTypeId != null && context.mounted) {
+                                final depot = context.read<DepotProvider>();
+                                unawaited(Future.wait<void>(<Future<void>>[
+                                  depot.fetchCratePosition(),
+                                  depot.fetchCrateBalances(),
+                                ]));
+                              }
                               ThemeConstants.showSuccessSnackBar(
                                   context, loc.translate('success'));
                             }
