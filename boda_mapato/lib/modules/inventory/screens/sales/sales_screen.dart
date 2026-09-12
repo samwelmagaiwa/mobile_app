@@ -41,16 +41,13 @@ class _SalesScreenState extends State<SalesScreen>
   Timer? _searchDebounce;
   bool _loadingMore = false;
 
-  // Crate exchange at checkout: did the customer bring back their empty
-  // crates/bottles, or do they owe us crates now (crate debt, tracked
-  // separately from money owed)?
+  // Toggle ON (default) = customer brought their own empty crates/bottles —
+  // clean exchange, nothing to record in the ledger.
+  // Toggle OFF = customer did NOT bring empties — they owe us crates back;
+  // record an 'issued' movement so the debt appears in the crate ledger.
   bool _customerBroughtCrates = true;
-  // OFF case — customer owes us crates
   int? _oweCrateTypeId;
   final TextEditingController _oweCrateQty = TextEditingController();
-  // ON case — customer is returning previously-owed crates (optional)
-  int? _returnCrateTypeId;
-  final TextEditingController _returnCrateQty = TextEditingController();
 
   @override
   void initState() {
@@ -80,7 +77,6 @@ class _SalesScreenState extends State<SalesScreen>
     _posPhone.dispose();
     _posName.dispose();
     _oweCrateQty.dispose();
-    _returnCrateQty.dispose();
     _searchCtrl.dispose();
     _searchDebounce?.cancel();
     super.dispose();
@@ -119,9 +115,6 @@ class _SalesScreenState extends State<SalesScreen>
                   if (v) {
                     _oweCrateTypeId = null;
                     _oweCrateQty.clear();
-                  } else {
-                    _returnCrateTypeId = null;
-                    _returnCrateQty.clear();
                   }
                 }),
               ),
@@ -173,53 +166,6 @@ class _SalesScreenState extends State<SalesScreen>
               hint: 'e.g. 5',
               keyboardType: TextInputType.number,
             ),
-          ],
-          // ON — customer brought empties; optionally clear a previous crate debt
-          if (_customerBroughtCrates && depot.crateTypes.isNotEmpty) ...<Widget>[
-            SizedBox(height: 8.h),
-            Text(
-              loc.isSwahili
-                  ? 'Je, wanarudisha makreti waliyodaiwa hapo awali? (Hiari)'
-                  : 'Are they returning previously-owed crates? (Optional)',
-              style: ThemeConstants.captionStyle.copyWith(
-                color: ThemeConstants.invAccent,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            DropdownButtonFormField<int>(
-              value: _returnCrateTypeId,
-              isExpanded: true,
-              dropdownColor: ThemeConstants.primaryBlue,
-              style: ThemeConstants.bodyStyle,
-              decoration: ThemeConstants.invInputDecoration(
-                  loc.isSwahili ? 'Aina ya crate (hiari)' : 'Crate type (optional)'),
-              items: <DropdownMenuItem<int>>[
-                DropdownMenuItem<int>(
-                  value: null,
-                  child: Text(
-                    loc.isSwahili ? '— Hakuna deni la makreti —' : '— No crate debt to clear —',
-                    style: ThemeConstants.captionStyle,
-                  ),
-                ),
-                ...depot.crateTypes.map((c) => DropdownMenuItem<int>(
-                      value: c.id,
-                      child: Text(c.name, style: ThemeConstants.bodyStyle),
-                    )),
-              ],
-              onChanged: (int? v) => setState(() {
-                _returnCrateTypeId = v;
-                if (v == null) _returnCrateQty.clear();
-              }),
-            ),
-            if (_returnCrateTypeId != null) ...<Widget>[
-              SizedBox(height: 8.h),
-              InvTextField(
-                controller: _returnCrateQty,
-                label: loc.isSwahili ? 'Idadi inayorudishwa' : 'Number returned',
-                hint: 'e.g. 5',
-                keyboardType: TextInputType.number,
-              ),
-            ],
           ],
         ],
       ),
@@ -698,30 +644,24 @@ class _SalesScreenState extends State<SalesScreen>
                               }
                             }
                             setState(() => _checkingOut = true);
-                            // Determine crate movement to pass atomically
+                            // Toggle OFF = customer didn't bring empties →
+                            // pass crate debt fields so the backend records
+                            // an 'issued' movement inside the same transaction.
+                            // Toggle ON = clean exchange, nothing to record.
                             int? crateTypeId;
                             int? crateQty;
-                            String? crateDir;
-                            if (!_customerBroughtCrates) {
+                            if (!_customerBroughtCrates && inv.selectedCustomerId != null) {
                               final qty = int.tryParse(_oweCrateQty.text.trim());
-                              if (_oweCrateTypeId != null && qty != null && qty > 0 && inv.selectedCustomerId != null) {
+                              if (_oweCrateTypeId != null && qty != null && qty > 0) {
                                 crateTypeId = _oweCrateTypeId;
                                 crateQty = qty;
-                                crateDir = 'issued';
-                              }
-                            } else {
-                              final qty = int.tryParse(_returnCrateQty.text.trim());
-                              if (_returnCrateTypeId != null && qty != null && qty > 0 && inv.selectedCustomerId != null) {
-                                crateTypeId = _returnCrateTypeId;
-                                crateQty = qty;
-                                crateDir = 'returned';
                               }
                             }
                             final result = await inv.checkout(
                               createdBy: userId,
                               crateTypeId: crateTypeId,
                               crateQty: crateQty,
-                              crateDirection: crateDir,
+                              crateDirection: crateTypeId != null ? 'issued' : null,
                             );
                             if (!context.mounted) return;
                             final ok = result.$1;
@@ -738,8 +678,6 @@ class _SalesScreenState extends State<SalesScreen>
                                 _customerBroughtCrates = true;
                                 _oweCrateTypeId = null;
                                 _oweCrateQty.clear();
-                                _returnCrateTypeId = null;
-                                _returnCrateQty.clear();
                               });
                               ThemeConstants.showSuccessSnackBar(
                                   context, loc.translate('success'));
