@@ -131,18 +131,6 @@ class _SalesScreenState extends State<SalesScreen>
                 color: ThemeConstants.warningAmber,
               ),
             ),
-            if (inv.selectedCustomerId == null) ...<Widget>[
-              SizedBox(height: 4.h),
-              Text(
-                loc.isSwahili
-                    ? 'Kumbuka: deni la makreti halisajilishwi kwa wateja wa walk-in.'
-                    : 'Note: crate debt is not tracked for walk-in customers.',
-                style: ThemeConstants.captionStyle.copyWith(
-                  color: Colors.white54,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
             SizedBox(height: 8.h),
             DropdownButtonFormField<int>(
               initialValue: _oweCrateTypeId,
@@ -650,7 +638,7 @@ class _SalesScreenState extends State<SalesScreen>
                             // Toggle ON = clean exchange, nothing to record.
                             int? crateTypeId;
                             int? crateQty;
-                            if (!_customerBroughtCrates && inv.selectedCustomerId != null) {
+                            if (!_customerBroughtCrates) {
                               final qty = int.tryParse(_oweCrateQty.text.trim());
                               if (_oweCrateTypeId != null && qty != null && qty > 0) {
                                 crateTypeId = _oweCrateTypeId;

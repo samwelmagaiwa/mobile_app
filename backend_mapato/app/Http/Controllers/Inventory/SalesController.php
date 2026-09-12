@@ -683,6 +683,39 @@ class SalesController extends Controller
             $crateDir     = $request->input('crate_direction');
             $crateCustomer = $request->integer('customer_id', 0) ?: null;
 
+            // For walk-in customers (no customer_id), auto-create a customer
+            // record from the name/phone override so the crate debt is still
+            // tracked and appears in the Crates & Empties screen.
+            if ($crateTypeId && $crateQty && $crateDir && ! $crateCustomer) {
+                $nameOverride  = trim((string) $request->input('customer_name_override', ''));
+                $phoneOverride = trim((string) $request->input('customer_phone', ''));
+                if ($nameOverride !== '' || $phoneOverride !== '') {
+                    $crateCustomer = DB::table('inventory_customers')
+                        ->where(function ($q) use ($phoneOverride, $nameOverride) {
+                            if ($phoneOverride !== '') {
+                                $q->where('phone', $phoneOverride);
+                            } else {
+                                $q->where('name', $nameOverride);
+                            }
+                        })
+                        ->value('id');
+
+                    if (! $crateCustomer) {
+                        $crateCustomer = DB::table('inventory_customers')->insertGetId([
+                            'name'       => $nameOverride ?: $phoneOverride,
+                            'phone'      => $phoneOverride ?: null,
+                            'created_by' => optional($request->user())->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        // Link the sale to the newly created customer record.
+                        DB::table('inventory_sales')
+                            ->where('id', $saleId)
+                            ->update(['customer_id' => $crateCustomer, 'customer_name_override' => null]);
+                    }
+                }
+            }
+
             if ($crateTypeId && $crateQty && $crateDir && $crateCustomer) {
                 $this->crateLedger->post(
                     crateTypeId: $crateTypeId,
