@@ -47,8 +47,14 @@ mixin ApiConfig {
     }
   }
 
-  // Connection timeout
-  static const Duration timeoutDuration = Duration(seconds: 12);
+  // Connection timeout. Was 12s, which is shorter than MySQL's lock-wait
+  // window on the backend -- a save queued behind another user's in-flight
+  // transaction (e.g. two sales on the same product) could still be running
+  // when this fired, showing the user a false "failed" error for a save
+  // that actually succeeded. 30s gives the backend's own 15s lock-wait
+  // timeout (config/database.php DB_LOCK_WAIT_TIMEOUT) room to surface a
+  // real error first.
+  static const Duration timeoutDuration = Duration(seconds: 30);
 
   // Headers
   static Map<String, String> get headers => <String, String>{

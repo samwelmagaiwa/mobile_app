@@ -18,6 +18,7 @@ class InvProduct {
     this.categoryName,
     this.brandName,
     this.priceTier = 'retail',
+    this.unitFactor = 1,
   });
 
   final int id;
@@ -27,6 +28,8 @@ class InvProduct {
   double costPrice;
   double sellingPrice;
   String unit;
+  // How many of `unit` the cost/selling price cover, e.g. 5 for "per 5 KG".
+  int unitFactor;
   int quantity;
   int minStock;
   String status; // active/inactive
