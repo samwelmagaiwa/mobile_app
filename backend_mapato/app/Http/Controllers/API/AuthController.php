@@ -605,22 +605,28 @@ class AuthController extends Controller
     {
         $user->load('services');
 
-        // super_admin always has access to all services regardless of what is
-        // stored in user_services — ensure the response reflects this so the
-        // Flutter client shows the correct service selection options.
-        if ($user->isSuperAdmin() || $user->full_access) {
-            $allServices = ['inventory', 'rental', 'transport'];
-            $existingTypes = $user->services->pluck('service_type')->all();
-            $missing = array_diff($allServices, $existingTypes);
-            if (!empty($missing)) {
-                foreach ($missing as $serviceType) {
-                    \App\Models\UserService::firstOrCreate([
-                        'user_id'      => $user->id,
-                        'service_type' => $serviceType,
-                    ]);
-                }
-                $user->load('services'); // reload with the newly added rows
+        // The client reads service access from the serialized `services`
+        // relation, so a role's implicit access (super_admin -> all three,
+        // sales_officer/driver/landlord/etc -> their one default -- see
+        // User::allowedServiceTypes()) has to be materialized into real
+        // user_services rows for it to show up in the response at all.
+        // This used to only run for super_admin, so every other role with
+        // zero explicit bindings got an empty `services` array and the
+        // client's "no access to any service" screen -- same bug already
+        // fixed for super_admin here, just missed for everyone else.
+        $implied = $user->full_access
+            ? ['inventory', 'rental', 'transport']
+            : $user->allowedServiceTypes();
+        $existingTypes = $user->services->pluck('service_type')->all();
+        $missing = array_diff($implied, $existingTypes);
+        if (!empty($missing)) {
+            foreach ($missing as $serviceType) {
+                \App\Models\UserService::firstOrCreate([
+                    'user_id'      => $user->id,
+                    'service_type' => $serviceType,
+                ]);
             }
+            $user->load('services'); // reload with the newly added rows
         }
 
         switch ($user->role) {
@@ -647,8 +653,13 @@ class AuthController extends Controller
      *
      * Lightweight alternative to /user when the app only needs to know which
      * services the user can access (e.g. on the service selection screen).
-     * super_admin always gets all three services; everyone else gets their
-     * explicit bindings from the user_services table.
+     * Uses User::allowedServiceTypes(): explicit user_services bindings if
+     * any exist, else the role-implied default (super_admin -> all three,
+     * sales_officer/manager/operator -> inventory, driver -> transport,
+     * landlord/caretaker/tenant/vendor -> rental, admin -> none until a
+     * super_admin explicitly binds them) -- mirrors the Flutter client's
+     * own servicesForRole() fallback exactly, so this endpoint can't tell a
+     * user "no access" when the client would have shown them a service.
      */
     public function myServices(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -658,26 +669,17 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $role = strtolower($user->role ?? '');
-
-        // super_admin is unrestricted — return all services without a DB lookup.
-        if ($user->full_access || $role === 'super_admin') {
-            return response()->json([
-                'services'    => ['inventory', 'rental', 'transport'],
-                'is_unbound'  => false,
-                'role'        => $user->role,
-            ]);
-        }
-
-        $bound = $user->services()->pluck('service_type')->all();
+        $allowed = $user->full_access
+            ? ['inventory', 'rental', 'transport']
+            : $user->allowedServiceTypes();
 
         return response()->json([
-            'services'    => $bound,
-            'is_unbound'  => empty($bound),
+            'services'    => $allowed,
+            'is_unbound'  => empty($allowed),
             'role'        => $user->role,
             // Hint to the client: if is_unbound is true, display the
             // "no service access" screen and offer a logout button.
-            'message'     => empty($bound)
+            'message'     => empty($allowed)
                 ? 'No services assigned. Contact your administrator.'
                 : null,
         ]);

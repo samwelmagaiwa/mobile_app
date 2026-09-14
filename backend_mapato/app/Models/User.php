@@ -156,6 +156,50 @@ class User extends Authenticatable
         return $this->services->pluck('service_type')->all();
     }
 
+    /**
+     * Mirrors servicesForRole() in boda_mapato/lib/utils/role_services.dart
+     * exactly -- keep both in sync. Only used as a fallback below when a
+     * user has no explicit user_services rows; super_admin's implicit
+     * access is also backfilled into real rows by getUserDataWithRelations(),
+     * but this table is what a NEWLY affected role (one added to the app
+     * without ever getting a binding row) falls back to.
+     */
+    private const SERVICE_ROLE_DEFAULTS = [
+        'super_admin'   => ['inventory', 'rental', 'transport'],
+        // admin/administrator get NO implicit services -- a super_admin
+        // must explicitly bind them, same as the Flutter mapping.
+        'admin'         => [],
+        'administrator' => [],
+        'sales_officer' => ['inventory'],
+        'manager'       => ['inventory'],
+        'operator'      => ['inventory'],
+        'driver'        => ['transport'],
+        'landlord'      => ['rental'],
+        'caretaker'     => ['rental'],
+        'tenant'        => ['rental'],
+        'vendor'        => ['rental'],
+    ];
+
+    /**
+     * The services this user may access: their explicit user_services
+     * bindings if any exist, else whatever their role implies. Centralizes
+     * what used to be a one-off super_admin special-case duplicated across
+     * myServices() and getUserDataWithRelations() in AuthController --
+     * every other role with zero bindings was silently falling through to
+     * an empty list (the same "no access to any service" bug already found
+     * and fixed on the Flutter side, just missed here for non-super-admin
+     * roles).
+     */
+    public function allowedServiceTypes(): array
+    {
+        $bound = $this->serviceTypes();
+        if (!empty($bound)) {
+            return $bound;
+        }
+
+        return self::SERVICE_ROLE_DEFAULTS[strtolower($this->role ?? '')] ?? [];
+    }
+
 
 
     // ── Inventory role defaults ──────────────────────────────────────────────
