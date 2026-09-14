@@ -87,6 +87,22 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
         _loadChartForMonth(_selectedMonth);
       }
     });
+    // InventoryProvider.bootstrap() (which fetches this) runs once at
+    // provider-construction time in main.dart -- that can fire before the
+    // auth token is loaded, silently leaving the officer list empty until a
+    // manual pull-to-refresh. Fetching it again here, once the dashboard is
+    // actually mounted (which only happens post-login), guarantees the
+    // filter has data the first time it's opened.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final AuthProvider auth = context.read<AuthProvider>();
+      final String role = auth.user?.role ?? '';
+      final bool privileged = role == 'admin' || role == 'super_admin' ||
+          role == 'manager' || role == 'administrator';
+      if (privileged) {
+        context.read<InventoryProvider>().fetchSalesOfficers();
+      }
+    });
   }
 
   Future<void> _loadChartForMonth(int month) async {
@@ -126,21 +142,21 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     final selectedName = selectedId == null
         ? null
         : officers.firstWhere(
-            (o) => (o['id'] as num?)?.toInt() == selectedId,
+            (o) => (o['id'] as String?) == selectedId,
             orElse: () => const {},
           )['name'] as String?;
 
-    return PopupMenuButton<int?>(
+    return PopupMenuButton<String?>(
       tooltip: loc.translate('filter_by_officer'),
       onSelected: (id) => inv.setSelectedOfficer(id),
-      itemBuilder: (context) => <PopupMenuEntry<int?>>[
-        PopupMenuItem<int?>(
+      itemBuilder: (context) => <PopupMenuEntry<String?>>[
+        PopupMenuItem<String?>(
           value: null,
           child: Text(loc.translate('all_officers')),
         ),
         const PopupMenuDivider(),
-        ...officers.map((o) => PopupMenuItem<int?>(
-              value: (o['id'] as num).toInt(),
+        ...officers.map((o) => PopupMenuItem<String?>(
+              value: o['id'] as String,
               child: Text('${o['name']}'),
             )),
       ],

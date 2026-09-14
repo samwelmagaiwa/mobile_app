@@ -584,9 +584,10 @@ class SalesController extends Controller
             return $query->where($column, optional($request->user())->id);
         }
 
+        // User ids are UUID strings, not integers -- do not (int) cast this.
         $officerId = $request->query('officer_id');
         if ($officerId !== null && $officerId !== '') {
-            $query->where($column, (int) $officerId);
+            $query->where($column, $officerId);
         }
 
         return $query;

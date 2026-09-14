@@ -67,13 +67,14 @@ class InventoryProvider extends ChangeNotifier {
   // set, every dashboard/sales query is scoped to this one officer's data;
   // sales_officer viewers never set this -- the backend already locks them
   // to their own data regardless.
-  int? _selectedOfficerId;
+  // User ids are UUID strings (see users.id), not integers.
+  String? _selectedOfficerId;
   List<Map<String, dynamic>> _salesOfficers = [];
 
-  int? get selectedOfficerId => _selectedOfficerId;
+  String? get selectedOfficerId => _selectedOfficerId;
   List<Map<String, dynamic>> get salesOfficers => _salesOfficers;
 
-  void setSelectedOfficer(int? officerId) {
+  void setSelectedOfficer(String? officerId) {
     if (_selectedOfficerId == officerId) return;
     _selectedOfficerId = officerId;
     notifyListeners();
