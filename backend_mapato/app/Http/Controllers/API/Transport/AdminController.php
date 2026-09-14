@@ -262,6 +262,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'List drivers',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [
             new OA\Response(response: 200, description: 'Driver list'),
         ],
@@ -689,6 +693,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get vehicles',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getVehicles(Request $request)
@@ -1073,6 +1081,16 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get payment history',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+            new OA\Parameter(name: 'driver_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'vehicle_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPaymentHistory(Request $request)
@@ -1355,6 +1373,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get reminders',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getReminders(Request $request)
@@ -1614,6 +1636,8 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
         parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: 'monthly')),
+            new OA\Parameter(name: 'months', in: 'query', schema: new OA\Schema(type: 'string', default: '12')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
@@ -1693,6 +1717,8 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
         parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: 'monthly')),
+            new OA\Parameter(name: 'months', in: 'query', schema: new OA\Schema(type: 'string', default: '12')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],

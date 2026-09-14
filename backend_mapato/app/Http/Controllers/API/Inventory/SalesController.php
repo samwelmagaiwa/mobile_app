@@ -384,8 +384,8 @@ class SalesController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Sales'],
         parameters: [
-            new OA\Parameter(name: 'year', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
-            new OA\Parameter(name: 'month', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
+            new OA\Parameter(name: 'year', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'month', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]

@@ -33,6 +33,7 @@ class PropertyController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Rental / Properties'],
         parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '15')),
             new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'property_type', in: 'query', schema: new OA\Schema(type: 'string')),

@@ -111,6 +111,10 @@ class DriverViewController extends Controller
         summary: 'Get payments summary',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPaymentsSummary(Request $request)
@@ -188,6 +192,9 @@ class DriverViewController extends Controller
         summary: 'Get payment history',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
+        parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '15')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPaymentHistory(Request $request)
@@ -222,6 +229,11 @@ class DriverViewController extends Controller
         summary: 'Get payments',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
+        parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPayments(Request $request)
@@ -265,6 +277,13 @@ class DriverViewController extends Controller
         summary: 'Get debt records',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
+        parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
+            new OA\Parameter(name: 'only_paid', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'only_unpaid', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getDebtRecords(Request $request)
@@ -313,6 +332,9 @@ class DriverViewController extends Controller
         summary: 'Get receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
+        parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '15')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getReceipts(Request $request)

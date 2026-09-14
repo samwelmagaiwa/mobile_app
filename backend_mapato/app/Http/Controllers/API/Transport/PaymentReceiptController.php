@@ -23,6 +23,9 @@ class PaymentReceiptController extends Controller
         summary: 'Get pending receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '100')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPendingReceipts(Request $request)
@@ -327,6 +330,13 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'driver_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date_from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date_to', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getReceipts(Request $request)
@@ -559,6 +569,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get receipt stats',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getReceiptStats(Request $request)
@@ -780,6 +794,11 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Search receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function searchReceipts(Request $request)

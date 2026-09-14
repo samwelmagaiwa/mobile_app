@@ -136,6 +136,10 @@ class AdminReportController extends Controller
         summary: 'Get revenue report',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getRevenueReport(Request $request)
@@ -247,6 +251,10 @@ class AdminReportController extends Controller
         summary: 'Get expense report',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getExpenseReport(Request $request)
@@ -344,6 +352,10 @@ class AdminReportController extends Controller
         summary: 'Get profit loss report',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getProfitLossReport(Request $request)
@@ -413,6 +425,10 @@ class AdminReportController extends Controller
         summary: 'Get device performance report',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getDevicePerformanceReport(Request $request)
@@ -581,6 +597,9 @@ class AdminReportController extends Controller
         summary: 'Get analytics overview',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: '30')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getAnalyticsOverview(Request $request)
@@ -693,6 +712,9 @@ class AdminReportController extends Controller
         summary: 'Get top performers',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: '30')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getTopPerformers(Request $request)

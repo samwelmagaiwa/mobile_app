@@ -22,6 +22,11 @@ class DebtsController extends Controller
         summary: 'List drivers',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Debts'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function listDrivers(Request $request): JsonResponse
@@ -237,6 +242,8 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Transport / Debts'],
         parameters: [
+            new OA\Parameter(name: 'month', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'year', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],

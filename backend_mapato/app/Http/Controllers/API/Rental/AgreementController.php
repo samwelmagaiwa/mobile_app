@@ -30,6 +30,9 @@ class AgreementController extends Controller
         summary: 'List resources',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Agreement'],
+        parameters: [
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '15')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function index(Request $request)

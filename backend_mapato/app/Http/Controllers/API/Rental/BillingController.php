@@ -359,6 +359,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get revenue',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Billing'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: 'monthly')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getRevenue(Request $request)

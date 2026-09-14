@@ -245,6 +245,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get login history',
         security: [['bearerAuth' => []]],
         tags: ['Admin / Security'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getLoginHistory(Request $request)

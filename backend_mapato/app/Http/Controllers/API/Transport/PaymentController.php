@@ -25,6 +25,10 @@ class PaymentController extends Controller
         summary: 'Get drivers with debts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getDriversWithDebts(Request $request): JsonResponse
@@ -163,6 +167,7 @@ class PaymentController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
         parameters: [
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '100')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
@@ -370,6 +375,13 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get payment history',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+            new OA\Parameter(name: 'driver_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPaymentHistory(Request $request): JsonResponse
@@ -544,6 +556,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get payment summary',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getPaymentSummary(Request $request): JsonResponse
@@ -758,6 +774,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Get new payments map',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'month', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function getNewPaymentsMap(Request $request): JsonResponse
