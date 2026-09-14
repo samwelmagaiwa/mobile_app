@@ -151,6 +151,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Crate'],
+        parameters: [
+            new OA\Parameter(name: 'customer_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'direction', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 
@@ -184,6 +188,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Customer balances',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Crate'],
+        parameters: [
+            new OA\Parameter(name: 'customer_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function customerBalances(Request $request)

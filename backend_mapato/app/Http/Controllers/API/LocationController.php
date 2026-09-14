@@ -47,6 +47,9 @@ class LocationController extends Controller
         summary: 'Get wards',
 
         tags: ['Locations'],
+        parameters: [
+            new OA\Parameter(name: 'district_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

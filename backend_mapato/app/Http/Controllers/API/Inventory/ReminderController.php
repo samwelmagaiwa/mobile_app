@@ -15,6 +15,10 @@ class ReminderController extends Controller
         summary: 'List resources',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Reminder'],
+        parameters: [
+            new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function index(Request $request)

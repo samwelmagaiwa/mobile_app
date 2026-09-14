@@ -26,6 +26,8 @@ class PredictionController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Transport / Predictions'],
         parameters: [
+            new OA\Parameter(name: 'days', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'max_points', in: 'query', schema: new OA\Schema(type: 'string', default: '0')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\Parameter(name: 'mode', in: 'query', schema: new OA\Schema(type: 'string', enum: ['auto', 'regression', 'average'], default: 'auto')),
             new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),

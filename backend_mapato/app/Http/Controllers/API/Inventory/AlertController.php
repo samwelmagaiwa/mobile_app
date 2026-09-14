@@ -17,6 +17,10 @@ class AlertController extends Controller
         summary: 'List resources',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Alert'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', default: 'open')),
+            new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function index(Request $request)
@@ -268,6 +272,14 @@ class AlertController extends Controller
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Alert'],
+        parameters: [
+            new OA\Parameter(name: 'entity_type', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'entity_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'user_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

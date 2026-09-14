@@ -23,6 +23,9 @@ class CustomerController extends Controller
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Customer'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

@@ -23,6 +23,9 @@ class CreditController extends Controller
         summary: 'Customers',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Credit'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function customers(Request $request)
@@ -123,6 +126,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Credit'],
         parameters: [
+            new OA\Parameter(name: 'amount', in: 'query', schema: new OA\Schema(type: 'string', default: '0')),
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
@@ -171,6 +175,8 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Credit'],
         parameters: [
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],

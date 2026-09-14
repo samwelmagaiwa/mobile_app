@@ -20,6 +20,11 @@ class ExpenseController extends Controller
         summary: 'List resources',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Expense'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: 'today')),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function index(Request $request)
@@ -169,6 +174,11 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Summary',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Expense'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', schema: new OA\Schema(type: 'string', default: 'today')),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function summary(Request $request)

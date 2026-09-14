@@ -22,6 +22,11 @@ class DriverReportController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver Report'],
         parameters: [
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', default: 'desc')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'compact', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'title', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],

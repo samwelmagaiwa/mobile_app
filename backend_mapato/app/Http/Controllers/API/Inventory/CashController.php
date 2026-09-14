@@ -173,6 +173,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Cash'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

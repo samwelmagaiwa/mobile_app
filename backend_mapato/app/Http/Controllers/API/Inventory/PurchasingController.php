@@ -32,6 +32,10 @@ class PurchasingController extends Controller
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Purchasing'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 
@@ -260,6 +264,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Purchasing'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'supplier_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 
@@ -602,6 +610,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Purchasing'],
+        parameters: [
+            new OA\Parameter(name: 'supplier_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 
@@ -632,6 +643,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Purchasing'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'supplier_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

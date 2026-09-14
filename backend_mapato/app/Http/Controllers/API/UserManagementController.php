@@ -33,6 +33,11 @@ class UserManagementController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['Admin / Users'],
         parameters: [
+            new OA\Parameter(name: 'created_by', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'role', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
             new OA\Parameter(name: 'service_type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['inventory', 'rental', 'transport'])),
         ],
         responses: [

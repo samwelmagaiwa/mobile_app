@@ -116,6 +116,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Resolve',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Barcode'],
+        parameters: [
+            new OA\Parameter(name: 'code', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function resolve(Request $request)

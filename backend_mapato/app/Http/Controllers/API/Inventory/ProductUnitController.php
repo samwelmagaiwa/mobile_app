@@ -323,6 +323,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Product Unit'],
         parameters: [
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
             new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],

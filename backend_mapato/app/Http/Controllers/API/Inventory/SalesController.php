@@ -383,6 +383,10 @@ class SalesController extends Controller
         summary: 'Monthly chart',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'year', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
+            new OA\Parameter(name: 'month', in: 'query', schema: new OA\Schema(type: 'string', default: 'now(')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function monthlyChart(Request $request)
@@ -622,6 +626,12 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Summary',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function summary(Request $request)

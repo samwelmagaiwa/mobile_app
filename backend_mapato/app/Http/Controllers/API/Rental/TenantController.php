@@ -85,6 +85,9 @@ class TenantController extends Controller
         summary: 'Available system tenants',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Tenants'],
+        parameters: [
+            new OA\Parameter(name: 'query', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function availableSystemTenants(Request $request)

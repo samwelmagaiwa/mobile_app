@@ -24,6 +24,13 @@ class BatchController extends Controller
         summary: 'List resources',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Batch'],
+        parameters: [
+            new OA\Parameter(name: 'product_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'expiring_in_days', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'string', default: '50')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function index(Request $request)
@@ -189,6 +196,9 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         summary: 'Expiry summary',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Batch'],
+        parameters: [
+            new OA\Parameter(name: 'days', in: 'query', schema: new OA\Schema(type: 'string', default: '30')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function expirySummary(Request $request)

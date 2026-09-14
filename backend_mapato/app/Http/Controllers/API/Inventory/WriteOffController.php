@@ -32,6 +32,11 @@ class WriteOffController extends Controller
         security: [['bearerAuth' => []]],
 
         tags: ['Inventory / Write Off'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'reason', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'product_id', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
 
         responses: [new OA\Response(response: 200, description: 'Success')],
 

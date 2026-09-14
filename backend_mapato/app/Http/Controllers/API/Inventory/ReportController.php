@@ -66,6 +66,8 @@ class ReportController extends Controller
         tags: ['Inventory / Report'],
 
         parameters: [
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string')),
 
             new OA\Parameter(name: 'key', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
 
