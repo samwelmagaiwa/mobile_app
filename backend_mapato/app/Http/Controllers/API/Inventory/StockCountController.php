@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\API\Inventory;
 
 use App\Services\Inventory\StockLedger;
 use Illuminate\Http\Request;

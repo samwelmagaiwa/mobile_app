@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\API\Inventory;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
