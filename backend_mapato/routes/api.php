@@ -6,9 +6,9 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\LocationController;
 use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\AdminReportController;
-use App\Http\Controllers\API\DriverViewController;
+use App\Http\Controllers\API\Transport\DriverViewController;
 use App\Http\Controllers\API\DeviceController;
-use App\Http\Controllers\API\DriverController;
+use App\Http\Controllers\API\Transport\DriverController;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\TransactionController;
 use App\Http\Controllers\API\ReceiptController;
@@ -17,7 +17,7 @@ use App\Http\Controllers\API\TestController;
 use App\Http\Controllers\API\TestReportController;
 use App\Http\Controllers\API\PaymentReceiptController;
 use App\Http\Controllers\API\CommunicationController;
-use App\Http\Controllers\API\DriverAgreementController;
+use App\Http\Controllers\API\Transport\DriverAgreementController;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\Inventory\ProductController as InventoryProductController;
 use App\Http\Controllers\API\Inventory\CategoryController as InventoryCategoryController;
@@ -135,7 +135,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('drivers/{driverId}/debt-trends', [AdminController::class, 'getDriverDebtTrends']);
     Route::get('drivers/{driverId}/payment-trends', [AdminController::class, 'getDriverPaymentTrends']);
     Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\API\PredictionController::class, 'getDriverPrediction']);
-    Route::get('drivers/{driverId}/history-pdf', [\App\Http\Controllers\API\DriverReportController::class, 'driverHistoryPdf']);
+    Route::get('drivers/{driverId}/history-pdf', [\App\Http\Controllers\API\Transport\DriverReportController::class, 'driverHistoryPdf']);
 
     // Vehicles
     Route::get('vehicles', [AdminController::class, 'getVehicles']);
