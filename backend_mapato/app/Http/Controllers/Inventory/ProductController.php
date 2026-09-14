@@ -78,6 +78,8 @@ class ProductController extends Controller
             'cost_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'unit' => 'nullable|string|max:32',
+            // How many of this unit the cost/selling price cover, e.g. "per 5 KG".
+            'unit_factor' => 'nullable|integer|min:1',
             'quantity' => 'required|integer|min:0',
             'min_stock' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
@@ -87,6 +89,7 @@ class ProductController extends Controller
 
         $created = DB::transaction(function () use ($data, $request) {
             $sku = $data['sku'] ?? $this->generateSku($data);
+            $unitFactor = $data['unit_factor'] ?? 1;
             $id = DB::table('inventory_products')->insertGetId([
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
@@ -97,6 +100,7 @@ class ProductController extends Controller
                 'cost_price' => $data['cost_price'],
                 'selling_price' => $data['selling_price'],
                 'unit' => $data['unit'] ?? 'pcs',
+                'unit_factor' => $unitFactor,
                 'quantity' => $data['quantity'],
                 'min_stock' => $data['min_stock'],
                 'status' => $data['status'],
@@ -111,7 +115,7 @@ class ProductController extends Controller
             $unitId = DB::table('inventory_product_units')->insertGetId([
                 'product_id' => $id,
                 'name' => $data['unit'] ?? 'pcs',
-                'factor' => 1,
+                'factor' => $unitFactor,
                 'is_base' => true,
                 'barcode' => $data['barcode'] ?? null,
                 'status' => 'active',
@@ -180,6 +184,7 @@ class ProductController extends Controller
             'cost_price' => 'sometimes|required|numeric|min:0',
             'selling_price' => 'sometimes|required|numeric|min:0',
             'unit' => 'nullable|string|max:32',
+            'unit_factor' => 'nullable|integer|min:1',
             'quantity' => 'sometimes|required|integer|min:0',
             'min_stock' => 'sometimes|required|integer|min:0',
             'status' => 'sometimes|required|in:active,inactive',
@@ -191,6 +196,22 @@ class ProductController extends Controller
             DB::table('inventory_products')->where('id', $id)->update(array_merge($data, [
                 'updated_at' => now(),
             ]));
+
+            // Mirror unit/unit_factor onto the base selling unit so the
+            // per-unit pricing table (inventory_product_units) stays in sync.
+            if (isset($data['unit']) || isset($data['unit_factor'])) {
+                $baseUpdate = ['updated_at' => now()];
+                if (isset($data['unit'])) {
+                    $baseUpdate['name'] = $data['unit'];
+                }
+                if (isset($data['unit_factor'])) {
+                    $baseUpdate['factor'] = $data['unit_factor'];
+                }
+                DB::table('inventory_product_units')
+                    ->where('product_id', $id)
+                    ->where('is_base', true)
+                    ->update($baseUpdate);
+            }
 
             // Keep price-tier rows in sync: when the product's mode changes,
             // flip the tier on every base-unit price row so the app reads real data.
