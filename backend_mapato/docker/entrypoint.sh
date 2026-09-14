@@ -8,6 +8,7 @@ set -e
 # mounted, is what makes the Swagger docs survive redeploys instead of
 # silently 404ing forever after the first deploy that introduced this file.
 php artisan l5-swagger:generate || true
+php /var/www/html/docker/reorder-swagger-tags.php || true
 chown -R www-data:www-data storage/api-docs 2>/dev/null || true
 
 exec supervisord -c /etc/supervisord.conf
