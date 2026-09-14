@@ -154,14 +154,14 @@ class PredictionController extends Controller
 
     private function getPerDayPayments(string $driverId, ?Carbon $from = null, ?Carbon $to = null, int $maxPoints = 0): array
     {
-        $query = Payment::selectRaw("DATE(COALESCE(paid_at, created_at)) as day, SUM(amount) as total")
+        $query = Payment::selectRaw("DATE(COALESCE(payment_date, created_at)) as day, SUM(amount) as total")
             ->where('driver_id', $driverId);
 
         if ($from) {
-            $query->whereRaw("DATE(COALESCE(paid_at, created_at)) >= ?", [$from->toDateString()]);
+            $query->whereRaw("DATE(COALESCE(payment_date, created_at)) >= ?", [$from->toDateString()]);
         }
         if ($to) {
-            $query->whereRaw("DATE(COALESCE(paid_at, created_at)) <= ?", [$to->toDateString()]);
+            $query->whereRaw("DATE(COALESCE(payment_date, created_at)) <= ?", [$to->toDateString()]);
         }
 
         $query->groupBy('day')->orderBy('day');
