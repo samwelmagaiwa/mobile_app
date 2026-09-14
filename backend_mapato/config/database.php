@@ -57,8 +57,17 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // Without this, a request stuck behind another transaction's row
+            // lock (e.g. two concurrent sales on the same product) hangs
+            // until MySQL's default innodb_lock_wait_timeout (50s) -- long
+            // after the Flutter client's own 12s timeout has already fired
+            // and shown the user a false "failed" error. Failing fast here
+            // turns that into a quick, clear 500 instead of a silent hang.
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 10),
+                PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION innodb_lock_wait_timeout = '
+                    . (int) env('DB_LOCK_WAIT_TIMEOUT', 15),
             ]) : [],
         ],
 
