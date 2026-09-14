@@ -10,12 +10,28 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Transport / Driver Agreements', description: 'Contract terms each driver operates under -- amount owed, schedule, and progress tracking.')]
 class DriverAgreementController extends Controller
 {
     /**
      * Display a listing of driver agreements
      */
+    #[OA\Get(
+        path: '/admin/driver-agreements',
+        summary: 'List driver agreements',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        parameters: [
+            new OA\Parameter(name: 'driver_id', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'agreement_type', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Agreement list'),
+        ],
+    )]
     public function index(Request $request): JsonResponse
     {
         try {

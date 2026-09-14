@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Admin / Users', description: "Staff account management, shared by all three services. An admin sees only the staff they created; super_admin sees everyone.")]
 class UserManagementController extends Controller
 {
     public function __construct(private readonly AuditTrail $audit)
@@ -23,6 +25,23 @@ class UserManagementController extends Controller
     //               somehow have no service binding they see only themselves
     //               (an unbound admin cannot manage staff).
     // others      → only their own created_by records.
+    #[OA\Get(
+        path: '/admin/users/mine',
+        summary: 'List staff visible to the caller',
+        description: 'super_admin sees everyone; admin sees staff bound to their own service(s); '
+            . 'anyone else sees only accounts they personally created.',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'service_type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['inventory', 'rental', 'transport'])),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Staff list', content: new OA\JsonContent(
+                type: 'array',
+                items: new OA\Items(ref: '#/components/schemas/User'),
+            )),
+        ],
+    )]
     public function myUsers(Request $request)
     {
         $user = $request->user();
@@ -151,6 +170,32 @@ class UserManagementController extends Controller
     }
 
     // Create a user (created_by = auth id)
+    #[OA\Post(
+        path: '/admin/users',
+        summary: 'Create a staff account',
+        description: 'created_by is set to the caller automatically, so this new user is scoped '
+            . "to the caller's own staff list going forward.",
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'email', 'phone_number', 'password', 'role'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'phone_number', type: 'string'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password'),
+                    new OA\Property(property: 'role', type: 'string', example: 'sales_officer'),
+                    new OA\Property(property: 'service_types', type: 'array', items: new OA\Items(type: 'string', enum: ['inventory', 'rental', 'transport'])),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'User created', content: new OA\JsonContent(ref: '#/components/schemas/User')),
+            new OA\Response(response: 422, description: 'Validation failed', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
     public function store(Request $request)
     {
         $auth = $request->user();

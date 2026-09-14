@@ -11,7 +11,9 @@ use App\Models\Rental\Property;
 use App\Models\Rental\House;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Rental / Properties', description: 'Properties and the houses/units within them.')]
 class PropertyController extends Controller
 {
     protected PropertyService $propertyService;
@@ -25,6 +27,22 @@ class PropertyController extends Controller
      * Get all properties with pagination and filters.
      * GET /rental/properties
      */
+    #[OA\Get(
+        path: '/rental/properties',
+        summary: 'List properties',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'property_type', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'sort_by', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'sort_order', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Paginated property list'),
+        ],
+    )]
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'status', 'property_type', 'sort_by', 'sort_order']);

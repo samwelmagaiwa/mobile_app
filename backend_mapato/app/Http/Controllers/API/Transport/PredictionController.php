@@ -9,13 +9,45 @@ use App\Models\DriverAgreement;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Transport / Predictions', description: 'Regression-based forecast of when a driver will finish paying off their agreement.')]
 class PredictionController extends Controller
 {
     /**
      * Driver prediction endpoint.
      * Returns totals, agreement meta, and a simple predicted completion date.
      */
+    #[OA\Get(
+        path: '/admin/drivers/{driverId}/prediction',
+        summary: 'Predict when a driver will finish paying off their agreement',
+        description: 'Fits a regression (or EWMA/average fallback) over the driver\'s payment '
+            . 'history to estimate a completion date and whether they\'re on track.',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Predictions'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'mode', in: 'query', schema: new OA\Schema(type: 'string', enum: ['auto', 'regression', 'average'], default: 'auto')),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Prediction payload', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'success', type: 'boolean'),
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'total_paid', type: 'number'),
+                    new OA\Property(property: 'total_amount', type: 'number', nullable: true),
+                    new OA\Property(property: 'predicted_date', type: 'string', format: 'date', nullable: true),
+                    new OA\Property(property: 'on_track', type: 'boolean', nullable: true),
+                    new OA\Property(property: 'estimated_delay_days', type: 'integer', nullable: true),
+                    new OA\Property(property: 'payment_history', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'date', type: 'string', format: 'date'),
+                        new OA\Property(property: 'amount', type: 'number'),
+                    ], type: 'object')),
+                ], type: 'object'),
+            ], type: 'object')),
+        ],
+    )]
     public function getDriverPrediction(string $driverId, Request $request): JsonResponse
     {
         try {

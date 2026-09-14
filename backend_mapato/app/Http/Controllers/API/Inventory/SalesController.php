@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Routing\Controller;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Inventory / Sales', description: 'POS checkout, sales history, and dashboard KPIs. Every list here is scoped to the caller\'s own sales unless they hold admin/super_admin/manager (see the officer_id filter).')]
 class SalesController extends Controller
 {
     public function __construct(
@@ -19,6 +21,28 @@ class SalesController extends Controller
     ) {
     }
 
+    #[OA\Get(
+        path: '/inventory/sales',
+        summary: 'List sales (scoped to the caller, unless privileged)',
+        description: 'A `sales_officer` always sees only their own sales. `admin`/`super_admin`/'
+            . '`manager` see everything, or one specific officer via `officer_id`.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: ['paid', 'debt', 'partial'])),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'q', in: 'query', description: 'Search sale number/customer name/phone', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'officer_id', in: 'query', description: 'Admin/super_admin/manager only: filter to one sales officer', schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Paginated sales list', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object')),
+                new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+            ], type: 'object')),
+        ],
+    )]
     public function index(Request $request)
     {
         $status = $request->query('status');
@@ -198,6 +222,35 @@ class SalesController extends Controller
      * GET /inventory/kpis
      * Lightweight dashboard summary — today's sales, profit and 7/30 day trend.
      */
+    #[OA\Get(
+        path: '/inventory/kpis',
+        summary: 'Dashboard KPIs: today, 7/30-day trend, top products',
+        description: 'Same officer-scoping as GET /inventory/sales -- pass `officer_id` (privileged '
+            . 'roles only) to filter the whole dashboard to one sales officer.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'officer_id', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'KPI payload', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'today', properties: [
+                        new OA\Property(property: 'count', type: 'integer'),
+                        new OA\Property(property: 'total', type: 'number'),
+                        new OA\Property(property: 'paid', type: 'number'),
+                        new OA\Property(property: 'profit', type: 'number'),
+                        new OA\Property(property: 'cash', type: 'number'),
+                        new OA\Property(property: 'expenses', type: 'number'),
+                    ], type: 'object'),
+                    new OA\Property(property: 'outstanding_debt', type: 'number'),
+                    new OA\Property(property: 'week_trend', type: 'array', items: new OA\Items(type: 'object')),
+                    new OA\Property(property: 'month_trend', type: 'array', items: new OA\Items(type: 'object')),
+                    new OA\Property(property: 'top_products', type: 'array', items: new OA\Items(type: 'object')),
+                ], type: 'object'),
+            ], type: 'object')),
+        ],
+    )]
     public function kpis(Request $request)
     {
         $today = now()->toDateString();
@@ -593,6 +646,48 @@ class SalesController extends Controller
         return $query;
     }
 
+    #[OA\Post(
+        path: '/inventory/sales',
+        summary: 'Record a sale (POS checkout)',
+        description: 'Issues stock FEFO via the batch ledger, records payments, and optionally '
+            . 'posts a crate exchange -- all inside one transaction.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['items', 'payment_status', 'subtotal', 'total', 'paid_total'],
+                properties: [
+                    new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'customer_name_override', type: 'string', nullable: true),
+                    new OA\Property(property: 'customer_phone', type: 'string', nullable: true),
+                    new OA\Property(property: 'payment_status', type: 'string', enum: ['paid', 'debt', 'partial']),
+                    new OA\Property(property: 'items', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'product_id', type: 'integer'),
+                        new OA\Property(property: 'quantity', type: 'integer'),
+                        new OA\Property(property: 'unit_price', type: 'number'),
+                    ], type: 'object')),
+                    new OA\Property(property: 'payments', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'amount', type: 'number'),
+                        new OA\Property(property: 'method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer']),
+                    ], type: 'object')),
+                    new OA\Property(property: 'subtotal', type: 'number'),
+                    new OA\Property(property: 'discount', type: 'number', nullable: true),
+                    new OA\Property(property: 'tax', type: 'number', nullable: true),
+                    new OA\Property(property: 'total', type: 'number'),
+                    new OA\Property(property: 'paid_total', type: 'number'),
+                    new OA\Property(property: 'due_date', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Sale created', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'message', type: 'string'),
+                new OA\Property(property: 'data', type: 'object'),
+            ], type: 'object')),
+            new OA\Response(response: 422, description: 'Validation failed', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
     public function store(Request $request)
     {
         $v = Validator::make($request->all(), [

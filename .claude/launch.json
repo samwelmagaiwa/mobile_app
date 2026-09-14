@@ -6,6 +6,13 @@
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "emulator-5554", "--pid-file", ".flutter-pid"],
       "port": 8080
+    },
+    {
+      "name": "backend-mapato",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
+      "port": 8000,
+      "cwd": "backend_mapato"
     }
   ]
 }

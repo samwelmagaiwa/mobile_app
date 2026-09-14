@@ -7,7 +7,9 @@ use App\Services\Inventory\SkuGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Inventory / Products', description: 'Product catalog: create, list, price, and retire products.')]
 class ProductController extends Controller
 {
     public function __construct(
@@ -16,6 +18,30 @@ class ProductController extends Controller
     ) {
     }
 
+    #[OA\Get(
+        path: '/inventory/products',
+        summary: 'List products',
+        description: 'Paginated product list with search, status, and low-stock filters.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Products'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', description: 'Search name/SKU/barcode', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: ['active', 'inactive'])),
+            new OA\Parameter(name: 'low_stock', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'brand_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated product list',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object')),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                ], type: 'object'),
+            ),
+        ],
+    )]
     public function index(Request $request)
     {
         $q = $request->query('q');
@@ -65,6 +91,46 @@ class ProductController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/inventory/products',
+        summary: 'Create a product',
+        description: 'SKU auto-generates from name/brand/unit when left blank. `unit_factor` sets '
+            . 'how many of `unit` the cost/selling price cover (e.g. 5 for "per 5 KG").',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Products'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'cost_price', 'selling_price', 'quantity', 'min_stock', 'status'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Coca-Cola 350ml'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'sku', type: 'string', nullable: true, description: 'Leave blank to auto-generate'),
+                    new OA\Property(property: 'category_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'brand_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'cost_price', type: 'number', format: 'float', example: 20000),
+                    new OA\Property(property: 'selling_price', type: 'number', format: 'float', example: 25000),
+                    new OA\Property(property: 'unit', type: 'string', example: 'crate'),
+                    new OA\Property(property: 'unit_factor', type: 'integer', example: 1, description: 'How many of `unit` the prices above cover'),
+                    new OA\Property(property: 'quantity', type: 'integer', example: 100),
+                    new OA\Property(property: 'min_stock', type: 'integer', example: 10),
+                    new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+                    new OA\Property(property: 'barcode', type: 'string', nullable: true),
+                    new OA\Property(property: 'price_tier', type: 'string', enum: ['retail', 'wholesale'], nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Product created', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'message', type: 'string', example: 'Product created'),
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'sku', type: 'string'),
+                ], type: 'object'),
+            ], type: 'object')),
+            new OA\Response(response: 422, description: 'Validation failed', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
     public function store(Request $request)
     {
         $data = $request->validate([

@@ -15,12 +15,23 @@ use App\Http\Requests\CreateVehicleRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Transport / Admin', description: 'Driver, vehicle, and debt management for the transport service admin.')]
 class AdminController extends Controller
 {
     /**
      * Get admin dashboard data
      */
+    #[OA\Get(
+        path: '/admin/dashboard',
+        summary: 'Transport admin dashboard summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [
+            new OA\Response(response: 200, description: 'Dashboard totals (drivers, vehicles, payments, recent transactions)'),
+        ],
+    )]
     public function dashboard(Request $request)
     {
         try {
@@ -203,6 +214,15 @@ class AdminController extends Controller
     /**
      * Get all drivers managed by admin
      */
+    #[OA\Get(
+        path: '/admin/drivers',
+        summary: 'List drivers',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [
+            new OA\Response(response: 200, description: 'Driver list'),
+        ],
+    )]
     public function getDrivers(Request $request)
     {
         try {
@@ -300,6 +320,27 @@ class AdminController extends Controller
     /**
      * Create new driver
      */
+    #[OA\Post(
+        path: '/admin/drivers',
+        summary: 'Register a new driver',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'email', type: 'string', format: 'email'),
+                new OA\Property(property: 'phone_number', type: 'string'),
+                new OA\Property(property: 'password', type: 'string', format: 'password'),
+                new OA\Property(property: 'license_number', type: 'string'),
+                new OA\Property(property: 'vehicle_number', type: 'string', nullable: true),
+            ], type: 'object'),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Driver created'),
+            new OA\Response(response: 422, description: 'Validation failed', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
     public function createDriver(CreateDriverRequest $request)
     {
         try {

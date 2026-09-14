@@ -15,7 +15,9 @@ use App\Services\SmsService;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Rental / Tenants', description: 'Tenant profiles, agreements, bills, and payments.')]
 class TenantController extends Controller
 {
     protected $rentalService;
@@ -28,6 +30,15 @@ class TenantController extends Controller
     /**
      * List all tenants for landlord's properties.
      */
+    #[OA\Get(
+        path: '/rental/tenants',
+        summary: "List tenants for the caller's properties",
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [
+            new OA\Response(response: 200, description: 'Tenant list'),
+        ],
+    )]
     public function index(Request $request)
     {
         $user = $request->user();

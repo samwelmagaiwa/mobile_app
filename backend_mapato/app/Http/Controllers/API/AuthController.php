@@ -20,13 +20,60 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'Auth', description: 'Login, session, and account endpoints shared by every service.')]
 class AuthController extends Controller
 {
 
     /**
      * Login with credentials (direct authentication)
      */
+    #[OA\Post(
+        path: '/auth/login',
+        summary: 'Log in and receive a bearer token',
+        description: 'Validates email + password + phone number together (phone must match the '
+            . 'number on file). Returns the user profile, effective permissions, and a Sanctum '
+            . 'token to use as `Authorization: Bearer <token>` on every subsequent request.',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password', 'phone_number'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'admin@gmail.com'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', example: '12345678'),
+                    new OA\Property(property: 'phone_number', type: 'string', example: '+255743519104'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Login successful',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'status', type: 'string', example: 'success'),
+                    new OA\Property(property: 'message', type: 'string', example: 'Login successful'),
+                    new OA\Property(property: 'data', properties: [
+                        new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+                        new OA\Property(property: 'token', type: 'string', example: '104|S8eZuEzqFiyKbmo7WxTc...'),
+                        new OA\Property(property: 'role', type: 'string', example: 'admin'),
+                        new OA\Property(property: 'dashboard_route', type: 'string', example: '/admin/dashboard'),
+                    ], type: 'object'),
+                ], type: 'object'),
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Invalid credentials',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (missing/malformed field)',
+                content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse'),
+            ),
+        ],
+    )]
     public function login(Request $request)
     {
         // Log login attempt start
@@ -426,6 +473,16 @@ class AuthController extends Controller
     /**
      * Logout user
      */
+    #[OA\Post(
+        path: '/auth/logout',
+        summary: 'Log out and revoke the current token',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(response: 200, description: 'Logged out successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function logout(Request $request)
     {
         try {
@@ -484,6 +541,26 @@ class AuthController extends Controller
     /**
      * Get authenticated user
      */
+    #[OA\Get(
+        path: '/auth/user',
+        summary: "Get the logged-in user's current profile",
+        description: 'Always fetches fresh from the database (with role/service backfill applied), '
+            . 'so call this after login instead of trusting a stale cached profile.',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Current user data',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+                    new OA\Property(property: 'role', type: 'string'),
+                    new OA\Property(property: 'dashboard_route', type: 'string'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function user(Request $request)
     {
         try {
@@ -661,6 +738,26 @@ class AuthController extends Controller
      * own servicesForRole() fallback exactly, so this endpoint can't tell a
      * user "no access" when the client would have shown them a service.
      */
+    #[OA\Get(
+        path: '/auth/user/services',
+        summary: 'List services this user may pick from',
+        description: 'Returns explicit `user_services` bindings if any exist, else the role-implied '
+            . 'default. Drives the "Select Service" screen -- an empty list with `is_unbound: true` '
+            . 'means the user genuinely has no access anywhere yet.',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Services available to this user',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'services', type: 'array', items: new OA\Items(type: 'string', enum: ['inventory', 'rental', 'transport'])),
+                    new OA\Property(property: 'is_unbound', type: 'boolean'),
+                    new OA\Property(property: 'role', type: 'string'),
+                ], type: 'object'),
+            ),
+        ],
+    )]
     public function myServices(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
