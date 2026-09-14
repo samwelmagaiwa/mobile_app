@@ -40,6 +40,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final TextEditingController _description = TextEditingController();
 
   String _unit = 'crate';
+  // How many of `_unit` the cost/selling price below cover, e.g. "5" for "per 5 KG".
+  final TextEditingController _unitFactor = TextEditingController(text: '1');
   bool _active = true;
   bool _isWholesale = true; // ON = wholesale (default)
   int? _categoryId;
@@ -75,6 +77,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _minStock.text = p.minStock.toString();
       _barcode.text = p.barcode;
       _unit = p.unit;
+      _unitFactor.text = p.unitFactor.toString();
       _active = p.status == 'active';
       _categoryId = p.categoryId;
       _brandId = p.brandId;
@@ -85,6 +88,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _barcode.addListener(_onBarcodeChanged);
     _cost.addListener(_rebuild);
     _price.addListener(_rebuild);
+    _unitFactor.addListener(_rebuild);
     _qty.addListener(_rebuild);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -175,6 +179,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _cost.removeListener(_rebuild);
     _price.removeListener(_rebuild);
     _qty.removeListener(_rebuild);
+    _unitFactor.removeListener(_rebuild);
     _name.dispose();
     _sku.dispose();
     _category.dispose();
@@ -183,6 +188,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _qty.dispose();
     _minStock.dispose();
     _barcode.dispose();
+    _unitFactor.dispose();
     _createdBy.dispose();
     _description.dispose();
     super.dispose();
@@ -198,17 +204,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             ? loc.translate('add_product')
             : loc.translate('edit_product'),
         actions: [
-          IconButton(
+          TextButton.icon(
+            onPressed: _saving ? null : _onSave,
             icon: _saving
                 ? SizedBox(
-                    width: 18.w,
-                    height: 18.w,
+                    width: 16.w,
+                    height: 16.w,
                     child: const CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white),
                   )
-                : Icon(Icons.save, size: 20.sp),
-            tooltip: loc.translate('save'),
-            onPressed: _saving ? null : _onSave,
+                : Icon(Icons.save, size: 18.sp, color: Colors.greenAccent.shade400),
+            label: Text(
+              loc.translate('save'),
+              style: TextStyle(
+                  color: Colors.greenAccent.shade400,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.sp),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.greenAccent.shade400,
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+            ),
           ),
           IconButton(
             icon: Icon(Icons.delete_outline, size: 20.sp),
@@ -333,12 +349,30 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       if (!unitOptions.contains(_unit)) {
                         unitOptions.add(_unit);
                       }
-                      return _dropdown(loc.translate('unit'), _unit, unitOptions, (v) {
-                        setState(() => _unit = v!);
-                      });
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _dropdown(loc.translate('unit'), _unit, unitOptions, (v) {
+                              setState(() => _unit = v!);
+                            }),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: _input(
+                              loc.translate('unit_quantity'),
+                              _unitFactor,
+                              keyboard: TextInputType.number,
+                              hint: 'e.g. 1',
+                            ),
+                          ),
+                        ],
+                      );
                     }),
                     SizedBox(height: 8.h),
                     Builder(builder: (context) {
+                      final int factor = _int(_unitFactor.text) < 1 ? 1 : _int(_unitFactor.text);
                       final String unitLabel = _unit.trim().toUpperCase();
                       final double costVal = parseAmount(_cost.text);
                       final double priceVal = parseAmount(_price.text);
@@ -349,13 +383,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         children: [
                           _twoCol(
                             left: _input(
-                                '${loc.translate('cost_price_per')} $unitLabel)',
+                                '${loc.translate('cost_price_per').replaceFirst(RegExp(r'1$'), '$factor')} $unitLabel)',
                                 _cost,
                                 keyboard: TextInputType.number,
                                 inputFormatters: [ThousandsFormatter()],
                                 hint: 'e.g. 20,000'),
                             right: _input(
-                                '${loc.translate('selling_price_per')} $unitLabel)',
+                                '${loc.translate('selling_price_per').replaceFirst(RegExp(r'1$'), '$factor')} $unitLabel)',
                                 _price,
                                 keyboard: TextInputType.number,
                                 inputFormatters: [ThousandsFormatter()],
@@ -364,7 +398,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           Padding(
                             padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 2.w),
                             child: Text(
-                              '💡 ${loc.translate('profit_hint')}  (${formatAmount(priceVal)} − ${formatAmount(costVal)} = TZS ${formatAmount(profitPerUnit)} / $_unit)',
+                              '💡 ${loc.translate('profit_hint')}  (${formatAmount(priceVal)} − ${formatAmount(costVal)} = TZS ${formatAmount(profitPerUnit)} / $factor $_unit)',
                               style: ThemeConstants.captionStyle.copyWith(
                                 color: Colors.greenAccent.shade400,
                                 fontSize: 11.sp,
@@ -965,6 +999,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             categoryId: _categoryId,
             brandId: _brandId,
             unit: _unit,
+            unitFactor: _int(_unitFactor.text) < 1 ? 1 : _int(_unitFactor.text),
             status: _active ? 'active' : 'inactive',
             barcode: barcode,
             priceTier: _isWholesale ? 'wholesale' : 'retail',
@@ -981,6 +1016,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             categoryId: _categoryId,
             brandId: _brandId,
             unit: _unit,
+            unitFactor: _int(_unitFactor.text) < 1 ? 1 : _int(_unitFactor.text),
             status: _active ? 'active' : 'inactive',
             barcode: barcode,
             priceTier: _isWholesale ? 'wholesale' : 'retail',

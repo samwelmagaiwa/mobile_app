@@ -63,6 +63,41 @@ class InventoryProvider extends ChangeNotifier {
   // Keyed by "year-month" → list of daily totals (index 0 = day 1)
   final Map<String, List<double>> _monthlyChartCache = {};
 
+  // Dashboard sales-officer filter (admin/super_admin/manager only). When
+  // set, every dashboard/sales query is scoped to this one officer's data;
+  // sales_officer viewers never set this -- the backend already locks them
+  // to their own data regardless.
+  int? _selectedOfficerId;
+  List<Map<String, dynamic>> _salesOfficers = [];
+
+  int? get selectedOfficerId => _selectedOfficerId;
+  List<Map<String, dynamic>> get salesOfficers => _salesOfficers;
+
+  void setSelectedOfficer(int? officerId) {
+    if (_selectedOfficerId == officerId) return;
+    _selectedOfficerId = officerId;
+    notifyListeners();
+    bootstrap();
+  }
+
+  /// Users a privileged viewer can filter the dashboard down to. Returns an
+  /// empty list for a sales_officer viewer (backend enforces this too).
+  Future<void> fetchSalesOfficers() async {
+    try {
+      final res = await _api.getOrNull('/inventory/sales-officers');
+      if (res == null) return;
+      final List<dynamic> list = (res['data'] is List)
+          ? List<dynamic>.from(res['data'] as List)
+          : <dynamic>[];
+      _salesOfficers = list
+          .map((j) => Map<String, dynamic>.from(j as Map))
+          .toList();
+      notifyListeners();
+    } on Exception {
+      // leave cached list intact
+    }
+  }
+
   // Accessors
   List<InvProduct> get products => List.unmodifiable(_products);
   List<InvCustomer> get customers => List.unmodifiable(_customers);
@@ -304,6 +339,7 @@ class InventoryProvider extends ChangeNotifier {
       fetchSales(),
       fetchCategories(),
       fetchKpis(),
+      fetchSalesOfficers(),
     ]);
     _recomputeCategoryProductTotals();
     _refreshLowStockReminders();
@@ -311,11 +347,20 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Appends `officer_id` to a query string when a privileged viewer has
+  /// picked one sales officer to filter the dashboard down to.
+  String _withOfficerFilter(String qs) => _selectedOfficerId == null
+      ? qs
+      : '$qs${qs.isEmpty ? '' : '&'}officer_id=$_selectedOfficerId';
+
   /// Fetches today's KPIs (sales total, profit, cash, credit, expenses)
   /// from the backend and stores them for the dashboard cards.
   Future<void> fetchKpis() async {
     try {
-      final res = await _api.getOrNull('/inventory/kpis');
+      final path = _selectedOfficerId == null
+          ? '/inventory/kpis'
+          : '/inventory/kpis?officer_id=$_selectedOfficerId';
+      final res = await _api.getOrNull(path);
       if (res == null) return;
       final data = res['data'] as Map<String, dynamic>? ?? {};
       final today = data['today'] as Map<String, dynamic>? ?? {};
@@ -334,10 +379,10 @@ class InventoryProvider extends ChangeNotifier {
   /// caches them. The dashboard chart calls this when the user switches months
   /// so it always shows complete data rather than filtering the in-memory list.
   Future<List<double>> fetchMonthlyChart(int year, int month) async {
-    final key = '$year-$month';
+    final key = '$year-$month${_selectedOfficerId == null ? '' : '-o$_selectedOfficerId'}';
     try {
-      final res = await _api
-          .getOrNull('/inventory/sales/monthly-chart?year=$year&month=$month');
+      final res = await _api.getOrNull(_withOfficerFilter(
+          '/inventory/sales/monthly-chart?year=$year&month=$month'));
       if (res == null) return _monthlyChartCache[key] ?? [];
       final data = res['data'] as Map<String, dynamic>? ?? {};
       final days = data['days'] as List<dynamic>? ?? [];
@@ -462,6 +507,7 @@ class InventoryProvider extends ChangeNotifier {
     int? categoryId,
     int? brandId,
     String unit = 'pcs',
+    int unitFactor = 1,
     String status = 'active',
     String? barcode,
     String priceTier = 'retail',
@@ -477,6 +523,7 @@ class InventoryProvider extends ChangeNotifier {
         'cost_price': costPrice,
         'selling_price': sellingPrice,
         'unit': unit,
+        'unit_factor': unitFactor,
         'quantity': quantity,
         'min_stock': minStock,
         'status': status,
@@ -503,6 +550,7 @@ class InventoryProvider extends ChangeNotifier {
     int? categoryId,
     int? brandId,
     String? unit,
+    int? unitFactor,
     String status = 'active',
     String? barcode,
     String priceTier = 'retail',
@@ -517,6 +565,7 @@ class InventoryProvider extends ChangeNotifier {
         'cost_price': costPrice,
         'selling_price': sellingPrice,
         if (unit != null) 'unit': unit,
+        if (unitFactor != null) 'unit_factor': unitFactor,
         'quantity': quantity,
         'min_stock': minStock,
         'status': status,
@@ -582,6 +631,7 @@ class InventoryProvider extends ChangeNotifier {
       if (from != null) 'from': from.toIso8601String().split('T').first,
       if (to != null) 'to': to.toIso8601String().split('T').first,
       if (q != null && q.isNotEmpty) 'q': q,
+      if (_selectedOfficerId != null) 'officer_id': '$_selectedOfficerId',
       'page': '1',
     };
     final qs = params.entries
@@ -621,6 +671,7 @@ class InventoryProvider extends ChangeNotifier {
       if (from != null) 'from': from.toIso8601String().split('T').first,
       if (to != null) 'to': to.toIso8601String().split('T').first,
       if (q != null && q.isNotEmpty) 'q': q,
+      if (_selectedOfficerId != null) 'officer_id': '$_selectedOfficerId',
       'page': '$_salesPage',
     };
     final qs = params.entries
@@ -649,6 +700,7 @@ class InventoryProvider extends ChangeNotifier {
       if (from != null) 'from': from.toIso8601String().split('T').first,
       if (to != null) 'to': to.toIso8601String().split('T').first,
       if (q != null && q.isNotEmpty) 'q': q,
+      if (_selectedOfficerId != null) 'officer_id': '$_selectedOfficerId',
     };
     final qs = params.entries
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
@@ -1709,6 +1761,7 @@ InvProduct _fromProductJson(Map<String, dynamic> j) => InvProduct(
       costPrice: double.tryParse((j['cost_price'] ?? j['cost'] ?? 0).toString()) ?? 0.0,
       sellingPrice: double.tryParse((j['selling_price'] ?? j['price'] ?? 0).toString()) ?? 0.0,
       unit: (j['unit'] ?? 'pcs') as String,
+      unitFactor: int.tryParse((j['unit_factor'] ?? 1).toString()) ?? 1,
       quantity: int.tryParse((j['quantity'] ?? j['qty'] ?? 0).toString()) ?? 0,
       minStock: int.tryParse((j['min_stock'] ?? j['min'] ?? 0).toString()) ?? 0,
       status: (j['status'] ?? 'active') as String,

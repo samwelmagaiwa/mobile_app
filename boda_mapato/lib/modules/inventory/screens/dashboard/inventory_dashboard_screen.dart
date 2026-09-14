@@ -107,6 +107,76 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
     super.dispose();
   }
 
+  bool _isPrivilegedViewer(BuildContext context) {
+    final String role = context.read<AuthProvider>().user?.role ?? '';
+    return role == 'admin' || role == 'super_admin' || role == 'manager' ||
+        role == 'administrator';
+  }
+
+  /// Compact icon button (top-right, next to the date filter) that opens a
+  /// menu of sales officers -- picking one scopes the whole dashboard
+  /// (KPIs, chart, sales list) to that officer's data only; "All officers"
+  /// clears it back to the business-wide view. Only shown to privileged
+  /// roles; a sales_officer viewer never sees this since the backend
+  /// already locks them to their own data regardless.
+  Widget _buildOfficerFilterChip(BuildContext context, LocalizationService loc) {
+    final InventoryProvider inv = context.watch<InventoryProvider>();
+    final officers = inv.salesOfficers;
+    final selectedId = inv.selectedOfficerId;
+    final selectedName = selectedId == null
+        ? null
+        : officers.firstWhere(
+            (o) => (o['id'] as num?)?.toInt() == selectedId,
+            orElse: () => const {},
+          )['name'] as String?;
+
+    return PopupMenuButton<int?>(
+      tooltip: loc.translate('filter_by_officer'),
+      onSelected: (id) => inv.setSelectedOfficer(id),
+      itemBuilder: (context) => <PopupMenuEntry<int?>>[
+        PopupMenuItem<int?>(
+          value: null,
+          child: Text(loc.translate('all_officers')),
+        ),
+        const PopupMenuDivider(),
+        ...officers.map((o) => PopupMenuItem<int?>(
+              value: (o['id'] as num).toInt(),
+              child: Text('${o['name']}'),
+            )),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selectedId == null
+              ? Colors.white.withOpacity(0.12)
+              : Colors.cyanAccent.withOpacity(0.20),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: selectedId == null ? Colors.white24 : Colors.cyanAccent),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(Icons.person_search_rounded, color: Colors.white, size: 14),
+            if (selectedName != null) ...[
+              const SizedBox(width: 5),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 70),
+                child: Text(selectedName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _refresh() async {
     final InventoryProvider inv =
         Provider.of<InventoryProvider>(context, listen: false);
@@ -627,6 +697,10 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                             fontSize: 9,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
+                    if (_isPrivilegedViewer(context)) ...[
+                      _buildOfficerFilterChip(context, loc),
+                      const SizedBox(width: 8),
+                    ],
                     GestureDetector(
                       onTap: _showFilterSheet,
                       child: Container(

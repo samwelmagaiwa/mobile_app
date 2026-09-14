@@ -26,13 +26,17 @@ class SalesController extends Controller
         $to = $request->query('to');
         $q = $request->query('q');
 
-        $query = DB::table('inventory_sales as s')
-            ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
-            ->select(
-                's.*',
-                DB::raw("COALESCE(c.name,  s.customer_name_override)  as customer_name"),
-                DB::raw("COALESCE(c.phone, s.customer_phone_override) as customer_phone"),
-            )->orderByDesc('s.id');
+        $query = $this->applyOfficerScope(
+            DB::table('inventory_sales as s')
+                ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
+                ->select(
+                    's.*',
+                    DB::raw("COALESCE(c.name,  s.customer_name_override)  as customer_name"),
+                    DB::raw("COALESCE(c.phone, s.customer_phone_override) as customer_phone"),
+                ),
+            $request,
+            's.created_by',
+        )->orderByDesc('s.id');
 
         if ($status && in_array($status, ['paid', 'debt', 'partial'])) {
             $query->where('s.payment_status', $status);
@@ -199,42 +203,49 @@ class SalesController extends Controller
         $today = now()->toDateString();
         $weekAgo = now()->subDays(6)->toDateString();
         $monthAgo = now()->subDays(29)->toDateString();
-        $userId = optional($request->user())->id;
 
         // Today's headline figures
-        $todayRow = DB::table('inventory_sales')
-            ->whereDate('created_at', $today)
-            ->when($userId && !$this->isManager($request), fn ($q) => $q->where('created_by', $userId))
-            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total),0) as total, COALESCE(SUM(paid_total),0) as paid')
+        $todayRow = $this->applyOfficerScope(
+            DB::table('inventory_sales')->whereDate('created_at', $today),
+            $request,
+        )->selectRaw('COUNT(*) as count, COALESCE(SUM(total),0) as total, COALESCE(SUM(paid_total),0) as paid')
             ->first();
 
         // Outstanding debt (credit)
-        $debtTotal = (float) DB::table('inventory_sales')
-            ->whereIn('payment_status', ['debt', 'partial'])
-            ->sum(DB::raw('total - paid_total'));
+        $debtTotal = (float) $this->applyOfficerScope(
+            DB::table('inventory_sales')->whereIn('payment_status', ['debt', 'partial']),
+            $request,
+        )->sum(DB::raw('total - paid_total'));
 
         // Cash collected today (cash-method payments only)
-        $cashToday = (float) DB::table('inventory_sale_payments as p')
-            ->join('inventory_sales as s', 's.id', '=', 'p.sale_id')
-            ->whereDate('p.paid_at', $today)
-            ->where('p.method', 'cash')
-            ->sum('p.amount');
+        $cashToday = (float) $this->applyOfficerScope(
+            DB::table('inventory_sale_payments as p')
+                ->join('inventory_sales as s', 's.id', '=', 'p.sale_id')
+                ->whereDate('p.paid_at', $today)
+                ->where('p.method', 'cash'),
+            $request,
+            's.created_by',
+        )->sum('p.amount');
 
-        // Expenses incurred today
+        // Expenses incurred today (business-wide, not tied to a sales officer)
         $expensesToday = (float) DB::table('inventory_expenses')
             ->whereDate('expense_date', $today)
             ->sum('amount');
 
         // Profit today (revenue - cost from sale items)
-        $profitToday = (float) DB::table('inventory_sale_items as si')
-            ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
-            ->whereDate('s.created_at', $today)
-            ->sum(DB::raw('si.total - (si.unit_cost_snapshot * si.quantity)'));
+        $profitToday = (float) $this->applyOfficerScope(
+            DB::table('inventory_sale_items as si')
+                ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
+                ->whereDate('s.created_at', $today),
+            $request,
+            's.created_by',
+        )->sum(DB::raw('si.total - (si.unit_cost_snapshot * si.quantity)'));
 
         // 7-day daily trend
-        $weekTrend = DB::table('inventory_sales')
-            ->whereDate('created_at', '>=', $weekAgo)
-            ->groupBy(DB::raw('DATE(created_at)'))
+        $weekTrend = $this->applyOfficerScope(
+            DB::table('inventory_sales')->whereDate('created_at', '>=', $weekAgo),
+            $request,
+        )->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy(DB::raw('DATE(created_at)'))
             ->get([
                 DB::raw('DATE(created_at) as day'),
@@ -244,9 +255,10 @@ class SalesController extends Controller
             ]);
 
         // 30-day daily trend
-        $monthTrend = DB::table('inventory_sales')
-            ->whereDate('created_at', '>=', $monthAgo)
-            ->groupBy(DB::raw('DATE(created_at)'))
+        $monthTrend = $this->applyOfficerScope(
+            DB::table('inventory_sales')->whereDate('created_at', '>=', $monthAgo),
+            $request,
+        )->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy(DB::raw('DATE(created_at)'))
             ->get([
                 DB::raw('DATE(created_at) as day'),
@@ -255,11 +267,14 @@ class SalesController extends Controller
             ]);
 
         // Top 5 products by revenue today
-        $topProducts = DB::table('inventory_sale_items as si')
-            ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
-            ->join('inventory_products as p', 'p.id', '=', 'si.product_id')
-            ->whereDate('s.created_at', $today)
-            ->groupBy('p.id', 'p.name')
+        $topProducts = $this->applyOfficerScope(
+            DB::table('inventory_sale_items as si')
+                ->join('inventory_sales as s', 's.id', '=', 'si.sale_id')
+                ->join('inventory_products as p', 'p.id', '=', 'si.product_id')
+                ->whereDate('s.created_at', $today),
+            $request,
+            's.created_by',
+        )->groupBy('p.id', 'p.name')
             ->orderByDesc(DB::raw('SUM(si.total)'))
             ->limit(5)
             ->get([
@@ -299,10 +314,12 @@ class SalesController extends Controller
         $from = sprintf('%04d-%02d-01', $year, $month);
         $to   = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
 
-        $rows = DB::table('inventory_sales')
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
-            ->groupBy(DB::raw('DAY(created_at)'))
+        $rows = $this->applyOfficerScope(
+            DB::table('inventory_sales')
+                ->whereDate('created_at', '>=', $from)
+                ->whereDate('created_at', '<=', $to),
+            $request,
+        )->groupBy(DB::raw('DAY(created_at)'))
             ->orderBy(DB::raw('DAY(created_at)'))
             ->get([
                 DB::raw('DAY(created_at) as day'),
@@ -486,9 +503,13 @@ class SalesController extends Controller
         $to     = $request->query('to');
         $q      = $request->query('q');
 
-        $query = DB::table('inventory_sales as s')
-            ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
-            ->whereNull('s.cancelled_at');
+        $query = $this->applyOfficerScope(
+            DB::table('inventory_sales as s')
+                ->leftJoin('inventory_customers as c', 'c.id', '=', 's.customer_id')
+                ->whereNull('s.cancelled_at'),
+            $request,
+            's.created_by',
+        );
 
         if ($status && in_array($status, ['paid', 'debt', 'partial'])) {
             $query->where('s.payment_status', $status);
@@ -523,9 +544,52 @@ class SalesController extends Controller
         ]]);
     }
 
-    private function isManager(Request $request): bool
+    /**
+     * GET /inventory/sales-officers
+     * Users a privileged viewer (admin/super_admin/manager) can filter the
+     * dashboard down to. Sales officers get an empty list -- they never see
+     * the filter, their view is always their own data.
+     */
+    public function officers(Request $request)
     {
-        return in_array(optional($request->user())->role, ['admin', 'manager']);
+        if (!$this->isPrivileged($request)) {
+            return response()->json(['data' => []]);
+        }
+
+        $officers = DB::table('users')
+            ->whereIn('role', ['sales_officer', 'manager', 'operator'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'role']);
+
+        return response()->json(['data' => $officers]);
+    }
+
+    /** Roles that may see every sales officer's data, not just their own. */
+    private function isPrivileged(Request $request): bool
+    {
+        return in_array(optional($request->user())->role, ['admin', 'super_admin', 'manager']);
+    }
+
+    /**
+     * Scope a sales-derived query to one sales officer:
+     * - A non-privileged viewer (sales_officer etc.) is always locked to
+     *   their own data -- the officer_id param is ignored for them.
+     * - A privileged viewer (admin/super_admin/manager) sees everything,
+     *   unless they pass ?officer_id= to filter the dashboard down to one
+     *   specific officer.
+     */
+    private function applyOfficerScope($query, Request $request, string $column = 'created_by')
+    {
+        if (!$this->isPrivileged($request)) {
+            return $query->where($column, optional($request->user())->id);
+        }
+
+        $officerId = $request->query('officer_id');
+        if ($officerId !== null && $officerId !== '') {
+            $query->where($column, (int) $officerId);
+        }
+
+        return $query;
     }
 
     public function store(Request $request)

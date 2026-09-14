@@ -353,6 +353,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('inventory/kpis',                    [InventorySalesController::class, 'kpis']);
         Route::get('inventory/sales/monthly-chart',     [InventorySalesController::class, 'monthlyChart']);
         Route::get('inventory/sales/summary',           [InventorySalesController::class, 'summary']);
+        Route::get('inventory/sales-officers',          [InventorySalesController::class, 'officers']);
         Route::get('inventory/sales',          [InventorySalesController::class, 'index']);
         Route::get('sales',                    [InventorySalesController::class, 'index']);
         Route::get('inventory/sales/{id}',     [InventorySalesController::class, 'show']);
