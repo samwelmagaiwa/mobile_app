@@ -24,18 +24,27 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 15
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: |
-            docker buildx build \
+        # Plain bash retry instead of a third-party retry action: avoids
+        # depending on that action's own Node runtime (nick-fields/retry@v3
+        # broke outright when GitHub Actions runners moved to Node 24 by
+        # default -- the action itself never even got to run the build).
+        run: |
+          for attempt in 1 2 3; do
+            if docker buildx build \
               --push \
               --provenance=false \
               --tag magaiwa/depot:latest \
               --tag magaiwa/depot:${{ github.sha }} \
-              ./backend_mapato
+              ./backend_mapato; then
+              exit 0
+            fi
+            if [ "$attempt" = "3" ]; then
+              echo "docker buildx build failed after 3 attempts"
+              exit 1
+            fi
+            echo "build attempt $attempt failed, retrying in 15s..."
+            sleep 15
+          done
 
   deploy:
     needs: build-and-push
