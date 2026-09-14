@@ -14,17 +14,16 @@ COPY . .
 RUN composer dump-autoload --optimize \
  && chown -R www-data:www-data storage bootstrap/cache
 
-# storage/api-docs/ is gitignored (it's generated output), so a fresh
-# container has no api-docs.json until someone generates one -- bake it
-# into the image at build time instead of depending on a runtime env var
-# or a manual step after every deploy. Scanning PHP attributes needs no
-# DB/app config, so this is safe to run during the build.
-RUN php artisan l5-swagger:generate \
- && chown -R www-data:www-data storage/api-docs
-
 COPY docker/nginx-prod.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/php-fpm-pool.conf /usr/local/etc/php-fpm.d/zzz-pool-override.conf
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+# storage/ is a persistent named volume in production, mounted at container
+# start -- after the build, so anything baked into storage/ at build time
+# (like Swagger's generated api-docs.json) gets shadowed by the volume's
+# existing content. Regenerating in the entrypoint, once the real volume is
+# mounted, is what actually survives redeploys instead of 404ing forever.
+ENTRYPOINT ["/entrypoint.sh"]
