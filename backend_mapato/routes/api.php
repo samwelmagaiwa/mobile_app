@@ -4,21 +4,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\LocationController;
-use App\Http\Controllers\API\AdminController;
-use App\Http\Controllers\API\AdminReportController;
+use App\Http\Controllers\API\Transport\AdminController;
+use App\Http\Controllers\API\Transport\AdminReportController;
 use App\Http\Controllers\API\Transport\DriverViewController;
-use App\Http\Controllers\API\DeviceController;
+use App\Http\Controllers\API\Transport\DeviceController;
 use App\Http\Controllers\API\Transport\DriverController;
-use App\Http\Controllers\API\PaymentController;
-use App\Http\Controllers\API\TransactionController;
-use App\Http\Controllers\API\ReceiptController;
-use App\Http\Controllers\API\ReportController;
-use App\Http\Controllers\API\TestController;
-use App\Http\Controllers\API\TestReportController;
-use App\Http\Controllers\API\PaymentReceiptController;
-use App\Http\Controllers\API\CommunicationController;
+use App\Http\Controllers\API\Transport\PaymentController;
+use App\Http\Controllers\API\Transport\TransactionController;
+use App\Http\Controllers\API\Transport\ReceiptController;
+use App\Http\Controllers\API\Transport\ReportController;
+use App\Http\Controllers\API\Transport\TestController;
+use App\Http\Controllers\API\Transport\TestReportController;
+use App\Http\Controllers\API\Transport\PaymentReceiptController;
+use App\Http\Controllers\API\Transport\CommunicationController;
 use App\Http\Controllers\API\Transport\DriverAgreementController;
-use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\Transport\DashboardController;
 use App\Http\Controllers\API\Inventory\ProductController as InventoryProductController;
 use App\Http\Controllers\API\Inventory\CategoryController as InventoryCategoryController;
 use App\Http\Controllers\API\Inventory\BrandController as InventoryBrandController;
@@ -134,7 +134,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::delete('drivers/{id}', [AdminController::class, 'deleteDriver']);
     Route::get('drivers/{driverId}/debt-trends', [AdminController::class, 'getDriverDebtTrends']);
     Route::get('drivers/{driverId}/payment-trends', [AdminController::class, 'getDriverPaymentTrends']);
-    Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\API\PredictionController::class, 'getDriverPrediction']);
+    Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\API\Transport\PredictionController::class, 'getDriverPrediction']);
     Route::get('drivers/{driverId}/history-pdf', [\App\Http\Controllers\API\Transport\DriverReportController::class, 'driverHistoryPdf']);
 
     // Vehicles
@@ -162,11 +162,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 
     // Debts
     Route::prefix('debts')->group(function () {
-        Route::get('drivers', [\App\Http\Controllers\API\DebtsController::class, 'listDrivers']);
-        Route::get('driver/{driverId}/records', [\App\Http\Controllers\API\DebtsController::class, 'listDriverRecords']);
-        Route::post('bulk-create', [\App\Http\Controllers\API\DebtsController::class, 'bulkCreate']);
-        Route::put('records/{id}', [\App\Http\Controllers\API\DebtsController::class, 'updateRecord']);
-        Route::delete('records/{id}', [\App\Http\Controllers\API\DebtsController::class, 'deleteRecord']);
+        Route::get('drivers', [\App\Http\Controllers\API\Transport\DebtsController::class, 'listDrivers']);
+        Route::get('driver/{driverId}/records', [\App\Http\Controllers\API\Transport\DebtsController::class, 'listDriverRecords']);
+        Route::post('bulk-create', [\App\Http\Controllers\API\Transport\DebtsController::class, 'bulkCreate']);
+        Route::put('records/{id}', [\App\Http\Controllers\API\Transport\DebtsController::class, 'updateRecord']);
+        Route::delete('records/{id}', [\App\Http\Controllers\API\Transport\DebtsController::class, 'deleteRecord']);
     });
 
     // Driver agreements
