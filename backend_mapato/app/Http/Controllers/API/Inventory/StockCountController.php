@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 3 — physical stock counts with variance.
@@ -19,6 +20,20 @@ class StockCountController extends Controller
     public function __construct(private readonly StockLedger $ledger)
     {
     }
+
+    #[OA\Get(
+
+        path: '/inventory/stock-counts',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Stock Count'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -43,6 +58,26 @@ class StockCountController extends Controller
         return response()->json(['data' => $query->orderByDesc('sc.id')->limit(100)->get()]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/stock-counts/{id}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Stock Count'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function show(int $id)
     {
         $count = DB::table('inventory_stock_counts')->find($id);
@@ -66,6 +101,20 @@ class StockCountController extends Controller
         return response()->json(['data' => $count]);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/stock-counts',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Stock Count'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function store(Request $request)
     {
         $data = $request->validate(['note' => 'nullable|string|max:255']);
@@ -83,6 +132,16 @@ class StockCountController extends Controller
     }
 
     /** Add or replace one counted line. System quantity is read at capture time. */
+    #[OA\Post(
+        path: '/inventory/stock-counts/{id}/lines',
+        summary: 'Save line',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Stock Count'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function saveLine(Request $request, int $id)
     {
         $count = DB::table('inventory_stock_counts')->find($id);
@@ -158,6 +217,28 @@ class StockCountController extends Controller
         return response()->json(['message' => 'Line saved', 'data' => $payload]);
     }
 
+    #[OA\Delete(
+
+        path: '/inventory/stock-counts/{id}/lines/{line}',
+
+        summary: 'Delete line',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Stock Count'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+            new OA\Parameter(name: 'line', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function deleteLine(int $id, int $lineId)
     {
         $count = DB::table('inventory_stock_counts')->find($id);
@@ -175,6 +256,16 @@ class StockCountController extends Controller
     }
 
     /** Apply every variance to stock and freeze the count. */
+    #[OA\Post(
+        path: '/inventory/stock-counts/{id}/post',
+        summary: 'Post',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Stock Count'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function post(Request $request, int $id)
     {
         $count = DB::table('inventory_stock_counts')->find($id);
@@ -240,6 +331,26 @@ class StockCountController extends Controller
             'data' => ['adjusted_lines' => $applied],
         ]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/stock-counts/{id}/cancel',
+
+        summary: 'Cancel',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Stock Count'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function cancel(int $id)
     {

@@ -6,12 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class DriverViewController extends Controller
 {
     /**
      * Get driver dashboard (read-only view)
      */
+    #[OA\Get(
+        path: '/driver/dashboard',
+        summary: 'Dashboard',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function dashboard(Request $request)
     {
         try {
@@ -98,6 +106,13 @@ class DriverViewController extends Controller
     /**
      * Payments summary for authenticated driver (totals for today/week/month or custom range)
      */
+    #[OA\Get(
+        path: '/driver/payments/summary',
+        summary: 'Get payments summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPaymentsSummary(Request $request)
     {
         try {
@@ -168,6 +183,13 @@ class DriverViewController extends Controller
     /**
      * Get driver's payment history
      */
+    #[OA\Get(
+        path: '/driver/payment-history',
+        summary: 'Get payment history',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPaymentHistory(Request $request)
     {
         try {
@@ -195,6 +217,13 @@ class DriverViewController extends Controller
     /**
      * List completed payments for authenticated driver (from payments table)
      */
+    #[OA\Get(
+        path: '/driver/payments',
+        summary: 'Get payments',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPayments(Request $request)
     {
         try {
@@ -231,6 +260,13 @@ class DriverViewController extends Controller
     /**
      * Get driver's debt records (paid/unpaid)
      */
+    #[OA\Get(
+        path: '/driver/debts/records',
+        summary: 'Get debt records',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDebtRecords(Request $request)
     {
         try {
@@ -272,6 +308,13 @@ class DriverViewController extends Controller
     /**
      * Get driver's receipts
      */
+    #[OA\Get(
+        path: '/driver/receipts',
+        summary: 'Get receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceipts(Request $request)
     {
         try {
@@ -330,6 +373,13 @@ class DriverViewController extends Controller
     /**
      * Get driver profile
      */
+    #[OA\Get(
+        path: '/driver/profile',
+        summary: 'Get profile',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getProfile(Request $request)
     {
         try {
@@ -352,6 +402,13 @@ class DriverViewController extends Controller
     /**
      * Submit payment request (driver can request payment to be recorded)
      */
+    #[OA\Post(
+        path: '/driver/submit-payment-request',
+        summary: 'Submit payment request',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function submitPaymentRequest(Request $request)
     {
         try {
@@ -399,6 +456,13 @@ class DriverViewController extends Controller
     /**
      * Get driver's reminders
      */
+    #[OA\Get(
+        path: '/driver/reminders',
+        summary: 'Get reminders',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver View'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReminders(Request $request)
     {
         try {

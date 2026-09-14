@@ -7,6 +7,7 @@ use App\Models\Rental\House;
 use App\Models\Rental\Property;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class HouseController extends Controller
 {
@@ -14,6 +15,13 @@ class HouseController extends Controller
      * Get all houses with optional filters and search.
      * GET /rental/houses
      */
+    #[OA\Get(
+        path: '/rental/houses',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $isSuperAdmin = $request->user()->isSuperAdmin();
@@ -54,6 +62,16 @@ class HouseController extends Controller
      * Get houses for a specific property.
      * GET /rental/properties/{propertyId}/houses
      */
+    #[OA\Get(
+        path: '/rental/properties/{id}/houses',
+        summary: 'Get by property',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getByProperty(Request $request, $propertyId)
     {
         // Verify property belongs to user (skipped for super_admin, who can
@@ -74,6 +92,13 @@ class HouseController extends Controller
      * Create a new house.
      * POST /rental/houses
      */
+    #[OA\Post(
+        path: '/rental/houses',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $property = Property::when(
@@ -161,6 +186,16 @@ class HouseController extends Controller
      * Get single house details.
      * GET /rental/houses/{id}
      */
+    #[OA\Get(
+        path: '/rental/houses/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(Request $request, $id)
     {
         $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -180,6 +215,16 @@ class HouseController extends Controller
      * Update a house.
      * PUT /rental/houses/{id}
      */
+    #[OA\Put(
+        path: '/rental/houses/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(Request $request, $id)
     {
         $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -285,6 +330,16 @@ class HouseController extends Controller
      * Delete a house.
      * DELETE /rental/houses/{id}
      */
+    #[OA\Delete(
+        path: '/rental/houses/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / House'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, $id)
     {
         $house = House::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -315,6 +370,12 @@ class HouseController extends Controller
      * Returns houses with images & features, excluding private meter data.
      * GET /api/public/houses
      */
+    #[OA\Get(
+        path: '/public/houses',
+        summary: 'Public listing',
+        tags: ['Rental / House'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function publicListing(Request $request)
     {
         $query = House::with('property:id,name,property_type,address,region,district,ward,street');

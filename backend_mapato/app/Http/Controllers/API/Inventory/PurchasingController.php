@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 4 — suppliers, purchase orders, goods receiving and supplier balances.
@@ -21,6 +22,20 @@ class PurchasingController extends Controller
     }
 
     // ------------------------------------------------------------ suppliers
+
+    #[OA\Get(
+
+        path: '/inventory/suppliers',
+
+        summary: 'Suppliers',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function suppliers(Request $request)
     {
@@ -52,6 +67,20 @@ class PurchasingController extends Controller
         return response()->json(['data' => $query->orderBy('s.name')->get()]);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/suppliers',
+
+        summary: 'Store supplier',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function storeSupplier(Request $request)
     {
         $data = $request->validate([
@@ -76,6 +105,26 @@ class PurchasingController extends Controller
 
         return response()->json(['message' => 'Supplier created', 'data' => ['id' => (int) $id]], 201);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/suppliers/{id}',
+
+        summary: 'Update supplier',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function updateSupplier(Request $request, int $id)
     {
@@ -108,6 +157,16 @@ class PurchasingController extends Controller
      * Blocked if the supplier has unpaid invoices.
      * Pass ?force=1 (admin-only) to override and anonymise FK references.
      */
+    #[OA\Delete(
+        path: '/inventory/suppliers/{id}',
+        summary: 'Destroy supplier',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Purchasing'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroySupplier(Request $request, int $id)
     {
         $existing = DB::table('inventory_suppliers')->where('id', $id)->first();
@@ -162,6 +221,20 @@ class PurchasingController extends Controller
 
     // ------------------------------------------------------- purchase orders
 
+    #[OA\Get(
+
+        path: '/inventory/purchase-orders',
+
+        summary: 'Purchase orders',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function purchaseOrders(Request $request)
     {
         $query = DB::table('inventory_purchase_orders as po')
@@ -177,6 +250,26 @@ class PurchasingController extends Controller
 
         return response()->json(['data' => $query->orderByDesc('po.id')->limit(200)->get()]);
     }
+
+    #[OA\Get(
+
+        path: '/inventory/purchase-orders/{id}',
+
+        summary: 'Show purchase order',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function showPurchaseOrder(int $id)
     {
@@ -198,6 +291,20 @@ class PurchasingController extends Controller
 
         return response()->json(['data' => $order]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/purchase-orders',
+
+        summary: 'Store purchase order',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function storePurchaseOrder(Request $request)
     {
@@ -250,6 +357,26 @@ class PurchasingController extends Controller
         return response()->json(['message' => 'Purchase order created', 'data' => ['id' => (int) $id]], 201);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/purchase-orders/{id}/status',
+
+        summary: 'Set purchase order status',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function setPurchaseOrderStatus(Request $request, int $id)
     {
         $order = DB::table('inventory_purchase_orders')->find($id);
@@ -273,6 +400,13 @@ class PurchasingController extends Controller
      * Receive goods, optionally against a purchase order, capturing batch,
      * expiry and buying cost per line. Stock lands through the ledger.
      */
+    #[OA\Post(
+        path: '/inventory/goods-receipts',
+        summary: 'Receive goods',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Purchasing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function receiveGoods(Request $request)
     {
         $data = $request->validate([
@@ -393,6 +527,20 @@ class PurchasingController extends Controller
         ]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/goods-receipts',
+
+        summary: 'Goods receipts',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function goodsReceipts(Request $request)
     {
         $query = DB::table('inventory_goods_receipts as g')
@@ -408,6 +556,20 @@ class PurchasingController extends Controller
     }
 
     // ---------------------------------------------------- supplier invoices
+
+    #[OA\Get(
+
+        path: '/inventory/supplier-invoices',
+
+        summary: 'Supplier invoices',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function supplierInvoices(Request $request)
     {
@@ -425,6 +587,20 @@ class PurchasingController extends Controller
 
         return response()->json(['data' => $query->orderByDesc('i.id')->limit(200)->get()]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/supplier-payments',
+
+        summary: 'Pay supplier',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Purchasing'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function paySupplier(Request $request)
     {

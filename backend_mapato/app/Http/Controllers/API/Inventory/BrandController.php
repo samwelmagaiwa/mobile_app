@@ -6,6 +6,7 @@ use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 2 — product brands.
@@ -15,6 +16,20 @@ class BrandController extends Controller
     public function __construct(private readonly AuditTrail $audit)
     {
     }
+
+    #[OA\Get(
+
+        path: '/inventory/brands',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Brand'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -33,6 +48,26 @@ class BrandController extends Controller
         return response()->json(['data' => $query->orderBy('b.name')->get()]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/brands/{id}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Brand'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function show(int $id)
     {
         $row = DB::table('inventory_brands as b')
@@ -48,6 +83,20 @@ class BrandController extends Controller
 
         return response()->json(['data' => $row]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/brands',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Brand'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function store(Request $request)
     {
@@ -70,6 +119,26 @@ class BrandController extends Controller
 
         return response()->json(['message' => 'Brand created', 'data' => ['id' => (int) $id]], 201);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/brands/{id}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Brand'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function update(Request $request, int $id)
     {
@@ -100,6 +169,16 @@ class BrandController extends Controller
      * By default refuses if the brand has products.
      * Pass ?force=1 (admin-only) to null out product references instead.
      */
+    #[OA\Delete(
+        path: '/inventory/brands/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Brand'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, int $id)
     {
         $existing = DB::table('inventory_brands')->where('id', $id)->first();

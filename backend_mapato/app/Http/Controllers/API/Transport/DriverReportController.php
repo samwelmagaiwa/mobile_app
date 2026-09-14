@@ -9,12 +9,23 @@ use App\Models\Payment;
 use App\Models\DebtRecord;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use OpenApi\Attributes as OA;
 
 class DriverReportController extends Controller
 {
     /**
      * Stream a Driver History PDF (payments + debts + summary)
      */
+    #[OA\Get(
+        path: '/admin/drivers/{driverId}/history-pdf',
+        summary: 'Driver history pdf',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Report'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function driverHistoryPdf(string $driverId, Request $request)
     {
         try {

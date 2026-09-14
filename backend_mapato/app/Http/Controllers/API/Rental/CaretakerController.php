@@ -7,12 +7,20 @@ use App\Models\User;
 use App\Models\Rental\Property;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class CaretakerController extends Controller
 {
     /**
      * List caretakers for a landlord.
      */
+    #[OA\Get(
+        path: '/rental/caretakers',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Caretaker'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $caretakers = User::where('role', 'caretaker')
@@ -26,6 +34,13 @@ class CaretakerController extends Controller
     /**
      * Create a caretaker account.
      */
+    #[OA\Post(
+        path: '/rental/caretakers',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Caretaker'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $request->validate([
@@ -50,6 +65,16 @@ class CaretakerController extends Controller
     /**
      * Assign properties to a caretaker.
      */
+    #[OA\Post(
+        path: '/rental/caretakers/{id}/assign',
+        summary: 'Assign properties',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Caretaker'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function assignProperties(Request $request, $caretakerId)
     {
         $caretaker = User::where('role', 'caretaker')
@@ -79,6 +104,16 @@ class CaretakerController extends Controller
     /**
      * Update caretaker status.
      */
+    #[OA\Put(
+        path: '/rental/caretakers/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Caretaker'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(Request $request, $id)
     {
         $caretaker = User::where('role', 'caretaker')
@@ -98,6 +133,16 @@ class CaretakerController extends Controller
     /**
      * Delete a caretaker.
      */
+    #[OA\Delete(
+        path: '/rental/caretakers/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Caretaker'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, $id)
     {
         $caretaker = User::where('role', 'caretaker')

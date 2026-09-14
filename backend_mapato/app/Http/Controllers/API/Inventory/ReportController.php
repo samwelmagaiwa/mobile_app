@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Inventory\CrateController;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 11 — the 12 standard reports.
@@ -30,6 +31,20 @@ class ReportController extends Controller
         'cash_reconciliation' => 'Cash reconciliation',
     ];
 
+    #[OA\Get(
+
+        path: '/inventory/reports',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Report'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function index()
     {
         $data = [];
@@ -39,6 +54,26 @@ class ReportController extends Controller
 
         return response()->json(['data' => $data]);
     }
+
+    #[OA\Get(
+
+        path: '/inventory/reports/{key}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Report'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'key', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function show(Request $request, string $key)
     {

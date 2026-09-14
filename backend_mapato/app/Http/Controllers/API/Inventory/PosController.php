@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 5 — parked sales, returns and cancellations, discount limits.
@@ -24,6 +25,20 @@ class PosController extends Controller
 
     // -------------------------------------------------------- parked sales
 
+    #[OA\Get(
+
+        path: '/inventory/parked-sales',
+
+        summary: 'Parked sales',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function parkedSales(Request $request)
     {
         $rows = DB::table('inventory_parked_sales as ps')
@@ -37,6 +52,20 @@ class PosController extends Controller
 
         return response()->json(['data' => $rows]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/parked-sales',
+
+        summary: 'Park sale',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function parkSale(Request $request)
     {
@@ -62,6 +91,26 @@ class PosController extends Controller
         return response()->json(['message' => 'Sale parked', 'data' => ['id' => (int) $id]], 201);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/parked-sales/{id}/resume',
+
+        summary: 'Resume parked sale',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function resumeParkedSale(int $id)
     {
         $parked = DB::table('inventory_parked_sales')->find($id);
@@ -80,6 +129,26 @@ class PosController extends Controller
         return response()->json(['data' => $parked]);
     }
 
+    #[OA\Delete(
+
+        path: '/inventory/parked-sales/{id}',
+
+        summary: 'Discard parked sale',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function discardParkedSale(int $id)
     {
         $updated = DB::table('inventory_parked_sales')
@@ -92,6 +161,20 @@ class PosController extends Controller
     }
 
     // ------------------------------------------------ returns/cancellations
+
+    #[OA\Get(
+
+        path: '/inventory/returns',
+
+        summary: 'Returns',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function returns(Request $request)
     {
@@ -106,6 +189,20 @@ class PosController extends Controller
 
         return response()->json(['data' => $query->orderByDesc('r.id')->limit(200)->get()]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/returns',
+
+        summary: 'Store return',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / POS'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function storeReturn(Request $request)
     {
@@ -193,6 +290,16 @@ class PosController extends Controller
     }
 
     /** Approving puts restockable goods back and credits the sale. */
+    #[OA\Post(
+        path: '/inventory/returns/{id}/decide',
+        summary: 'Decide return',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / POS'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function decideReturn(Request $request, int $id)
     {
         $return = DB::table('inventory_sale_returns')->find($id);
@@ -277,6 +384,13 @@ class PosController extends Controller
      * Whether a discount is inside the configured limit.
      * Anything above `max_discount_percent` needs a manager.
      */
+    #[OA\Get(
+        path: '/inventory/discount-check',
+        summary: 'Check discount',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / POS'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function checkDiscount(Request $request)
     {
         $data = $request->validate([

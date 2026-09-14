@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 10 — the depot generates and prints its own barcodes for product units,
@@ -19,6 +20,13 @@ class BarcodeController extends Controller
     ];
 
     /** Issue (or return the existing) code for one entity. */
+    #[OA\Post(
+        path: '/inventory/barcodes',
+        summary: 'Generate',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Barcode'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function generate(Request $request)
     {
         $data = $request->validate([
@@ -93,6 +101,13 @@ class BarcodeController extends Controller
      * barcode, and a product's legacy barcode — so counter scanners, phone
      * cameras and manufacturer codes all land in the same place.
      */
+    #[OA\Get(
+        path: '/inventory/barcodes/resolve',
+        summary: 'Resolve',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Barcode'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function resolve(Request $request)
     {
         $code = trim((string) $request->query('code', ''));
@@ -211,6 +226,13 @@ class BarcodeController extends Controller
     }
 
     /** Label data for a print run; the app renders and prints the sheet. */
+    #[OA\Post(
+        path: '/inventory/barcodes/labels',
+        summary: 'Labels',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Barcode'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function labels(Request $request)
     {
         $data = $request->validate([

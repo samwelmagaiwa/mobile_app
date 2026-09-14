@@ -60,6 +60,13 @@ class PropertyController extends Controller
      * Get property statistics.
      * GET /rental/properties/stats
      */
+    #[OA\Get(
+        path: '/rental/properties/stats',
+        summary: 'Stats',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function stats(Request $request)
     {
         $stats = $this->propertyService
@@ -74,6 +81,16 @@ class PropertyController extends Controller
      * Show single property.
      * GET /rental/properties/{id}
      */
+    #[OA\Get(
+        path: '/rental/properties/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(Request $request, string $id)
     {
         $property = $this->propertyService
@@ -88,6 +105,13 @@ class PropertyController extends Controller
      * Create a new property.
      * POST /rental/properties
      */
+    #[OA\Post(
+        path: '/rental/properties',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(StorePropertyRequest $request)
     {
         try {
@@ -110,6 +134,16 @@ class PropertyController extends Controller
      * Update a property.
      * PUT /rental/properties/{id}
      */
+    #[OA\Put(
+        path: '/rental/properties/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(UpdatePropertyRequest $request, string $id)
     {
         try {
@@ -131,6 +165,16 @@ class PropertyController extends Controller
      * Delete a property (soft delete).
      * DELETE /rental/properties/{id}
      */
+    #[OA\Delete(
+        path: '/rental/properties/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, string $id)
     {
         try {
@@ -149,6 +193,16 @@ class PropertyController extends Controller
      * Restore a deleted property.
      * POST /rental/properties/{id}/restore
      */
+    #[OA\Post(
+        path: '/rental/properties/{id}/restore',
+        summary: 'Restore',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function restore(Request $request, string $id)
     {
         try {
@@ -170,6 +224,13 @@ class PropertyController extends Controller
      * Get deleted properties.
      * GET /rental/properties/trashed
      */
+    #[OA\Get(
+        path: '/rental/properties/trashed',
+        summary: 'Trashed',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function trashed(Request $request)
     {
         $properties = $this->propertyService
@@ -184,6 +245,16 @@ class PropertyController extends Controller
      * Add a house to a property.
      * POST /rental/properties/{id}/houses
      */
+    #[OA\Post(
+        path: '/rental/properties/{id}/houses',
+        summary: 'Add house',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Properties'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function addHouse(Request $request, string $propertyId)
     {
         $property = Property::when(

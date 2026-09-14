@@ -70,6 +70,13 @@ class DriverAgreementController extends Controller
     /**
      * Store a newly created driver agreement
      */
+    #[OA\Post(
+        path: '/admin/driver-agreements',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request): JsonResponse
     {
         try {
@@ -204,6 +211,16 @@ class DriverAgreementController extends Controller
     /**
      * Display the specified driver agreement
      */
+    #[OA\Get(
+        path: '/admin/driver-agreements/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(string $id): JsonResponse
     {
         try {
@@ -230,6 +247,16 @@ class DriverAgreementController extends Controller
     /**
      * Update the specified driver agreement
      */
+    #[OA\Put(
+        path: '/admin/driver-agreements/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(Request $request, string $id): JsonResponse
     {
         try {
@@ -283,6 +310,16 @@ class DriverAgreementController extends Controller
     /**
      * Remove the specified driver agreement
      */
+    #[OA\Delete(
+        path: '/admin/driver-agreements/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(string $id): JsonResponse
     {
         try {
@@ -309,6 +346,16 @@ class DriverAgreementController extends Controller
     /**
      * Get driver agreement by driver ID
      */
+    #[OA\Get(
+        path: '/admin/driver-agreements/driver/{driverId}',
+        summary: 'Get by driver',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getByDriver(string $driverId): JsonResponse
     {
         try {
@@ -342,6 +389,13 @@ class DriverAgreementController extends Controller
     /**
      * Calculate preview of faida jumla for kwa_mkataba agreements
      */
+    #[OA\Post(
+        path: '/admin/driver-agreements/calculate-preview',
+        summary: 'Calculate preview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Driver Agreements'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function calculatePreview(Request $request): JsonResponse
     {
         try {

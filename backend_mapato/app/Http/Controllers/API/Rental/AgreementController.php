@@ -11,6 +11,7 @@ use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 
 class AgreementController extends Controller
 {
@@ -24,6 +25,13 @@ class AgreementController extends Controller
     /**
      * List all agreements for the landlord's properties.
      */
+    #[OA\Get(
+        path: '/rental/agreements',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $query = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -63,6 +71,16 @@ class AgreementController extends Controller
     /**
      * Get single agreement with full details.
      */
+    #[OA\Get(
+        path: '/rental/agreements/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(Request $request, string $id)
     {
         $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -77,6 +95,13 @@ class AgreementController extends Controller
     /**
      * Create a new agreement.
      */
+    #[OA\Post(
+        path: '/rental/agreements',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $request->validate([
@@ -160,6 +185,16 @@ class AgreementController extends Controller
     /**
      * Renew an agreement (extend end date).
      */
+    #[OA\Post(
+        path: '/rental/agreements/{id}/renew',
+        summary: 'Renew',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function renew(Request $request, string $id)
     {
         $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -186,6 +221,16 @@ class AgreementController extends Controller
     /**
      * Terminate an agreement early.
      */
+    #[OA\Post(
+        path: '/rental/agreements/{id}/terminate',
+        summary: 'Terminate',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function terminate(Request $request, string $id)
     {
         $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -217,6 +262,16 @@ class AgreementController extends Controller
     /**
      * Upload document to an agreement.
      */
+    #[OA\Post(
+        path: '/rental/agreements/{id}/documents',
+        summary: 'Upload document',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function uploadDocument(Request $request, string $id)
     {
         $agreement = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {
@@ -249,6 +304,13 @@ class AgreementController extends Controller
     /**
      * Get expiring agreements for notifications.
      */
+    #[OA\Get(
+        path: '/rental/agreements/expiring',
+        summary: 'Get expiring',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Agreement'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getExpiring(Request $request)
     {
         $agreements = RentalAgreement::when(!$request->user()->isSuperAdmin(), function ($hq) use ($request) {

@@ -98,6 +98,13 @@ class AdminController extends Controller
     /**
      * Record payment from driver
      */
+    #[OA\Post(
+        path: '/admin/record-payment',
+        summary: 'Record payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function recordPayment(Request $request)
     {
         try {
@@ -163,6 +170,13 @@ class AdminController extends Controller
     /**
      * Generate receipt for payment
      */
+    #[OA\Post(
+        path: '/admin/generate-receipt',
+        summary: 'Generate receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function generateReceipt(Request $request)
     {
         try {
@@ -437,6 +451,16 @@ class AdminController extends Controller
     /**
      * Update driver
      */
+    #[OA\Put(
+        path: '/admin/drivers/{id}',
+        summary: 'Update driver',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateDriver(Request $request, $id)
     {
         try {
@@ -561,6 +585,16 @@ class AdminController extends Controller
     /**
      * Delete driver
      */
+    #[OA\Delete(
+        path: '/admin/drivers/{id}',
+        summary: 'Delete driver',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deleteDriver(Request $request, $id)
     {
         try {
@@ -607,6 +641,13 @@ class AdminController extends Controller
     /**
      * Get all vehicles managed by admin
      */
+    #[OA\Get(
+        path: '/admin/vehicles',
+        summary: 'Get vehicles',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getVehicles(Request $request)
     {
         try {
@@ -685,6 +726,16 @@ class AdminController extends Controller
     /**
      * Update vehicle
      */
+    #[OA\Put(
+        path: '/admin/vehicles/{id}',
+        summary: 'Update vehicle',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateVehicle(Request $request, $id)
     {
         try {
@@ -748,6 +799,16 @@ class AdminController extends Controller
     /**
      * Unassign driver from vehicle
      */
+    #[OA\Post(
+        path: '/admin/vehicles/{id}/unassign',
+        summary: 'Unassign driver from vehicle',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function unassignDriverFromVehicle($id)
     {
         try {
@@ -769,6 +830,13 @@ class AdminController extends Controller
     /**
      * Create new vehicle
      */
+    #[OA\Post(
+        path: '/admin/vehicles',
+        summary: 'Create vehicle',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function createVehicle(CreateVehicleRequest $request)
     {
         try {
@@ -838,6 +906,13 @@ class AdminController extends Controller
     /**
      * Assign driver to vehicle
      */
+    #[OA\Post(
+        path: '/admin/assign-driver',
+        summary: 'Assign driver to vehicle',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function assignDriverToVehicle(Request $request)
     {
         try {
@@ -889,6 +964,16 @@ class AdminController extends Controller
     /**
      * Delete vehicle
      */
+    #[OA\Delete(
+        path: '/admin/vehicles/{id}',
+        summary: 'Delete vehicle',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deleteVehicle($id)
     {
         try {
@@ -905,6 +990,13 @@ class AdminController extends Controller
     /**
      * Get payment history
      */
+    #[OA\Get(
+        path: '/admin/payment-history',
+        summary: 'Get payment history',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPaymentHistory(Request $request)
     {
         try {
@@ -1029,6 +1121,13 @@ class AdminController extends Controller
     /**
      * Add reminder/note
      */
+    #[OA\Post(
+        path: '/admin/reminders',
+        summary: 'Add reminder',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function addReminder(Request $request)
     {
         try {
@@ -1159,6 +1258,13 @@ class AdminController extends Controller
     /**
      * Get all reminders
      */
+    #[OA\Get(
+        path: '/admin/reminders',
+        summary: 'Get reminders',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReminders(Request $request)
     {
         try {
@@ -1206,6 +1312,16 @@ class AdminController extends Controller
     /**
      * Update reminder
      */
+    #[OA\Put(
+        path: '/admin/reminders/{id}',
+        summary: 'Update reminder',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateReminder(Request $request, $id)
     {
         try {
@@ -1234,6 +1350,16 @@ class AdminController extends Controller
     /**
      * Delete reminder
      */
+    #[OA\Delete(
+        path: '/admin/reminders/{id}',
+        summary: 'Delete reminder',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deleteReminder($id)
     {
         try {
@@ -1296,6 +1422,16 @@ class AdminController extends Controller
     /**
      * Get specific driver information
      */
+    #[OA\Get(
+        path: '/admin/drivers/{id}',
+        summary: 'Get driver',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriver(Request $request, $id)
     {
         try {
@@ -1368,6 +1504,16 @@ class AdminController extends Controller
     /**
      * Get driver debt trends over time
      */
+    #[OA\Get(
+        path: '/admin/drivers/{driverId}/debt-trends',
+        summary: 'Get driver debt trends',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriverDebtTrends(Request $request, $driverId)
     {
         try {
@@ -1437,6 +1583,16 @@ class AdminController extends Controller
     /**
      * Get driver payment trends over time
      */
+    #[OA\Get(
+        path: '/admin/drivers/{driverId}/payment-trends',
+        summary: 'Get driver payment trends',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriverPaymentTrends(Request $request, $driverId)
     {
         try {

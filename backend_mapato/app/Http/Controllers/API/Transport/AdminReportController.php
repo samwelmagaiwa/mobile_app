@@ -10,6 +10,7 @@ use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class AdminReportController extends Controller
 {
@@ -130,6 +131,13 @@ class AdminReportController extends Controller
     /**
      * Get revenue report for admin dashboard
      */
+    #[OA\Get(
+        path: '/admin/analytics/trends',
+        summary: 'Get revenue report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getRevenueReport(Request $request)
     {
         try {
@@ -234,6 +242,13 @@ class AdminReportController extends Controller
     /**
      * Get expense report for admin dashboard
      */
+    #[OA\Get(
+        path: '/admin/reports/expenses',
+        summary: 'Get expense report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getExpenseReport(Request $request)
     {
         try {
@@ -324,6 +339,13 @@ class AdminReportController extends Controller
     /**
      * Get profit/loss report for admin dashboard
      */
+    #[OA\Get(
+        path: '/admin/reports/profit-loss',
+        summary: 'Get profit loss report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getProfitLossReport(Request $request)
     {
         try {
@@ -386,6 +408,13 @@ class AdminReportController extends Controller
     /**
      * Get device performance report
      */
+    #[OA\Get(
+        path: '/admin/reports/device-performance',
+        summary: 'Get device performance report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDevicePerformanceReport(Request $request)
     {
         try {
@@ -455,6 +484,13 @@ class AdminReportController extends Controller
     /**
      * Get dashboard summary report
      */
+    #[OA\Get(
+        path: '/admin/reports/dashboard',
+        summary: 'Get dashboard report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDashboardReport(Request $request)
     {
         try {
@@ -540,6 +576,13 @@ class AdminReportController extends Controller
     /**
      * Get comprehensive analytics overview for mobile app
      */
+    #[OA\Get(
+        path: '/admin/analytics/overview',
+        summary: 'Get analytics overview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getAnalyticsOverview(Request $request)
     {
         try {
@@ -645,6 +688,13 @@ class AdminReportController extends Controller
     /**
      * Get top performing metrics for mobile dashboard
      */
+    #[OA\Get(
+        path: '/admin/analytics/top-performers',
+        summary: 'Get top performers',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getTopPerformers(Request $request)
     {
         try {
@@ -755,6 +805,13 @@ class AdminReportController extends Controller
     /**
      * Get real-time analytics for live dashboard
      */
+    #[OA\Get(
+        path: '/admin/analytics/live',
+        summary: 'Get live analytics',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getLiveAnalytics(Request $request)
     {
         try {
@@ -870,6 +927,13 @@ class AdminReportController extends Controller
     /**
      * Export report to PDF (placeholder)
      */
+    #[OA\Post(
+        path: '/admin/reports/export-pdf',
+        summary: 'Export to pdf',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function exportToPdf(Request $request)
     {
         try {

@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Routing\Controller;
+use OpenApi\Attributes as OA;
 
 class ReminderController extends Controller
 {
+    #[OA\Get(
+        path: '/inventory/reminders',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Reminder'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $type = $request->query('type'); // payment_due | low_stock
@@ -30,6 +38,26 @@ class ReminderController extends Controller
         ]);
     }
 
+    #[OA\Put(
+
+        path: '/inventory/reminders/{id}/done',
+
+        summary: 'Mark done',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Reminder'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function markDone($id)
     {
         $row = DB::table('inventory_reminders')->where('id', $id)->first();
@@ -40,6 +68,26 @@ class ReminderController extends Controller
         ]);
         return response()->json(['message' => 'Reminder marked done']);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/reminders/{id}/snooze',
+
+        summary: 'Snooze',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Reminder'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function snooze(Request $request, $id)
     {

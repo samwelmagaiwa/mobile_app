@@ -15,12 +15,20 @@ use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use OpenApi\Attributes as OA;
 
 class MaintenanceController extends Controller
 {
     /**
      * List all maintenance requests.
      */
+    #[OA\Get(
+        path: '/rental/maintenance/requests',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $user = $request->user();
@@ -66,6 +74,13 @@ class MaintenanceController extends Controller
     /**
      * Store a new maintenance request.
      */
+    #[OA\Post(
+        path: '/rental/maintenance/requests',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $request->validate([
@@ -98,6 +113,16 @@ class MaintenanceController extends Controller
     /**
      * Show a single maintenance request.
      */
+    #[OA\Get(
+        path: '/rental/maintenance/requests/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(string $id)
     {
         $maintenanceRequest = MaintenanceRequest::with(['property', 'house', 'tenant', 'workOrder.vendor'])
@@ -109,6 +134,16 @@ class MaintenanceController extends Controller
     /**
      * Assign a vendor and create a work order.
      */
+    #[OA\Post(
+        path: '/rental/maintenance/requests/{id}/assign',
+        summary: 'Assign',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function assign(Request $request, string $id)
     {
         $maintenanceRequest = MaintenanceRequest::findOrFail($id);
@@ -144,6 +179,16 @@ class MaintenanceController extends Controller
     /**
      * Update request/work order status.
      */
+    #[OA\Put(
+        path: '/rental/maintenance/requests/{id}/status',
+        summary: 'Update status',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateStatus(Request $request, string $id)
     {
         $maintenanceRequest = MaintenanceRequest::findOrFail($id);
@@ -189,6 +234,13 @@ class MaintenanceController extends Controller
     /**
      * Vendor management methods.
      */
+    #[OA\Get(
+        path: '/rental/maintenance/vendors',
+        summary: 'Get vendors',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getVendors(Request $request)
     {
         $user = $request->user();
@@ -218,12 +270,46 @@ class MaintenanceController extends Controller
         return ResponseHelper::success(VendorResource::collection($vendors));
     }
 
+    #[OA\Get(
+
+        path: '/rental/maintenance/marketplace/vendors',
+
+        summary: 'Get marketplace vendors',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Rental / Maintenance'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function getMarketplaceVendors(Request $request)
     {
         // Public marketplace returns global vendors
         $vendors = Vendor::where('is_global', true)->where('is_active', true)->get();
         return ResponseHelper::success(VendorResource::collection($vendors));
     }
+
+    #[OA\Post(
+
+        path: '/rental/maintenance/vendors/{id}/save',
+
+        summary: 'Save to roster',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Rental / Maintenance'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function saveToRoster(Request $request, $id)
     {
@@ -232,12 +318,46 @@ class MaintenanceController extends Controller
         return ResponseHelper::success(null, 'Fundi ameongezwa kwenye orodha yako');
     }
 
+    #[OA\Post(
+
+        path: '/rental/maintenance/vendors/{id}/remove',
+
+        summary: 'Remove from roster',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Rental / Maintenance'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function removeFromRoster(Request $request, $id)
     {
         $vendor = Vendor::findOrFail($id);
         $request->user()->savedVendors()->detach($vendor->id);
         return ResponseHelper::success(null, 'Fundi ameondolewa kwenye orodha yako');
     }
+
+    #[OA\Post(
+
+        path: '/rental/maintenance/vendors',
+
+        summary: 'Store vendor',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Rental / Maintenance'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function storeVendor(Request $request)
     {
@@ -295,6 +415,13 @@ class MaintenanceController extends Controller
     /**
      * Preventive Maintenance methods.
      */
+    #[OA\Get(
+        path: '/rental/maintenance/preventive',
+        summary: 'Get preventive',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Maintenance'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPreventive(Request $request)
     {
         $user = $request->user();
@@ -307,6 +434,20 @@ class MaintenanceController extends Controller
 
         return ResponseHelper::success($schedules);
     }
+
+    #[OA\Post(
+
+        path: '/rental/maintenance/preventive',
+
+        summary: 'Store preventive',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Rental / Maintenance'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function storePreventive(Request $request)
     {

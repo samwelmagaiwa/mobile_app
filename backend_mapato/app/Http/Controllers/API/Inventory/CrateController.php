@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 8 — crates and empty bottles.
@@ -24,12 +25,40 @@ class CrateController extends Controller
     ) {
     }
 
+    #[OA\Get(
+
+        path: '/inventory/crate-types',
+
+        summary: 'Types',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Crate'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function types()
     {
         return response()->json([
             'data' => DB::table('inventory_crate_types')->orderBy('name')->get(),
         ]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/crate-types',
+
+        summary: 'Store type',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Crate'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function storeType(Request $request)
     {
@@ -51,6 +80,13 @@ class CrateController extends Controller
     }
 
     /** Record crates going out, coming back, broken, or bought outright. */
+    #[OA\Post(
+        path: '/inventory/crate-movements',
+        summary: 'Move',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Crate'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function move(Request $request)
     {
         $data = $request->validate([
@@ -81,6 +117,20 @@ class CrateController extends Controller
         return response()->json(['message' => 'Crate movement recorded', 'data' => ['ids' => $ids]], 201);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/crate-movements',
+
+        summary: 'Movements',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Crate'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function movements(Request $request)
     {
         $query = DB::table('inventory_crate_movements as m')
@@ -104,6 +154,13 @@ class CrateController extends Controller
      * party's own running balance — issued adds, returned/broken/purchased
      * subtract, by construction of the ledger legs.
      */
+    #[OA\Get(
+        path: '/inventory/crate-balances',
+        summary: 'Customer balances',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Crate'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function customerBalances(Request $request)
     {
         $rows = DB::table('inventory_crate_movements as m')
@@ -150,6 +207,13 @@ class CrateController extends Controller
     }
 
     /** The depot's own position, with the reconciliation identity checked. */
+    #[OA\Get(
+        path: '/inventory/crate-position',
+        summary: 'Depot position',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Crate'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function depotPosition()
     {
         $types = DB::table('inventory_crate_types')->orderBy('name')->get();

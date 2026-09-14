@@ -6,12 +6,22 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use OpenApi\Attributes as OA;
 
 class MediaController extends Controller
 {
     /**
      * Serve public disk files (e.g., avatars) with CORS headers for web clients.
      */
+    #[OA\Get(
+        path: '/files/public/{path}',
+        summary: 'Public file',
+        tags: ['Admin / Media'],
+        parameters: [
+            new OA\Parameter(name: 'path', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function publicFile(Request $request, string $path): StreamedResponse
     {
         // Normalize the path to avoid leading slashes or directory traversal

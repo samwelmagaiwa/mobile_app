@@ -6,6 +6,7 @@ use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 7 — customer payments, allocation to invoices, and the daily cash
@@ -21,6 +22,13 @@ class CashController extends Controller
      * Take a payment and spread it across the customer's unpaid sales,
      * oldest first, unless specific allocations are supplied.
      */
+    #[OA\Post(
+        path: '/inventory/payments',
+        summary: 'Receive payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Cash'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function receivePayment(Request $request)
     {
         $data = $request->validate([
@@ -142,6 +150,20 @@ class CashController extends Controller
 
     // ------------------------------------------------------- cash sessions
 
+    #[OA\Get(
+
+        path: '/inventory/cash-sessions',
+
+        summary: 'Sessions',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Cash'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function sessions(Request $request)
     {
         $query = DB::table('inventory_cash_sessions as cs')
@@ -160,6 +182,20 @@ class CashController extends Controller
 
         return response()->json(['data' => $query->orderByDesc('cs.id')->limit(100)->get()]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/cash-sessions',
+
+        summary: 'Open session',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Cash'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function openSession(Request $request)
     {
@@ -190,6 +226,26 @@ class CashController extends Controller
 
         return response()->json(['message' => 'Session opened', 'data' => ['id' => (int) $id]], 201);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/cash-sessions/{id}/expenses',
+
+        summary: 'Add expense',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Cash'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function addExpense(Request $request, int $id)
     {
@@ -227,6 +283,16 @@ class CashController extends Controller
     }
 
     /** What the drawer should hold right now, and what it actually holds. */
+    #[OA\Get(
+        path: '/inventory/cash-sessions/{id}',
+        summary: 'Session summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Cash'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function sessionSummary(int $id)
     {
         $session = DB::table('inventory_cash_sessions')->find($id);
@@ -262,6 +328,26 @@ class CashController extends Controller
 
         return (float) $session->opening_float + $cashIn - $expenses;
     }
+
+    #[OA\Post(
+
+        path: '/inventory/cash-sessions/{id}/close',
+
+        summary: 'Close session',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Cash'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function closeSession(Request $request, int $id)
     {

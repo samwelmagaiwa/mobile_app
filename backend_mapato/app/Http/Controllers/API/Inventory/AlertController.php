@@ -5,12 +5,20 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Areas 12 and 13 — alerts, the audit trail viewer and depot settings.
  */
 class AlertController extends Controller
 {
+    #[OA\Get(
+        path: '/inventory/alerts',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Alert'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         if ($request->boolean('refresh', true)) {
@@ -219,6 +227,26 @@ class AlertController extends Controller
         return $alerts;
     }
 
+    #[OA\Post(
+
+        path: '/inventory/alerts/{id}/acknowledge',
+
+        summary: 'Acknowledge',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Alert'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function acknowledge(int $id)
     {
         $updated = DB::table('inventory_alerts')->where('id', $id)
@@ -230,6 +258,20 @@ class AlertController extends Controller
     }
 
     // ---------------------------------------------------- Area 13: audit log
+
+    #[OA\Get(
+
+        path: '/inventory/audit-log',
+
+        summary: 'Audit log',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Alert'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function auditLog(Request $request)
     {
@@ -266,12 +308,40 @@ class AlertController extends Controller
 
     // ---------------------------------------------------- Area 13: settings
 
+    #[OA\Get(
+
+        path: '/inventory/settings',
+
+        summary: 'Settings',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Alert'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function settings()
     {
         return response()->json([
             'data' => DB::table('inventory_settings')->pluck('value', 'key'),
         ]);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/settings',
+
+        summary: 'Update settings',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Alert'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function updateSettings(Request $request)
     {

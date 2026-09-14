@@ -13,12 +13,20 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
+use OpenApi\Attributes as OA;
 
 class PaymentController extends Controller
 {
     /**
      * Get drivers with outstanding debts
      */
+    #[OA\Get(
+        path: '/admin/payments/drivers-with-debts',
+        summary: 'Get drivers with debts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriversWithDebts(Request $request): JsonResponse
     {
         try {
@@ -108,6 +116,16 @@ class PaymentController extends Controller
     /**
      * Get debt summary for a specific driver
      */
+    #[OA\Get(
+        path: '/admin/payments/driver-debt-summary/{driverId}',
+        summary: 'Get driver debt summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriverDebtSummary(string $driverId): JsonResponse
     {
         try {
@@ -139,6 +157,16 @@ class PaymentController extends Controller
     /**
      * Get debt records for a specific driver
      */
+    #[OA\Get(
+        path: '/admin/payments/driver-debts/{driverId}',
+        summary: 'Get driver debt records',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDriverDebtRecords(string $driverId, Request $request): JsonResponse
     {
         try {
@@ -183,6 +211,13 @@ class PaymentController extends Controller
     /**
      * Record a new payment and update debt records
      */
+    #[OA\Post(
+        path: '/admin/payments/record',
+        summary: 'Record payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function recordPayment(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -317,6 +352,13 @@ class PaymentController extends Controller
     /**
      * Get payment history
      */
+    #[OA\Get(
+        path: '/admin/payments/history',
+        summary: 'Get payment history',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPaymentHistory(Request $request): JsonResponse
     {
         try {
@@ -375,6 +417,16 @@ class PaymentController extends Controller
     /**
      * Update a payment record
      */
+    #[OA\Put(
+        path: '/admin/payments/{paymentId}',
+        summary: 'Update payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'paymentId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updatePayment(int $paymentId, Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -414,6 +466,16 @@ class PaymentController extends Controller
     /**
      * Delete a payment record
      */
+    #[OA\Delete(
+        path: '/admin/payments/{paymentId}',
+        summary: 'Delete payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'paymentId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deletePayment(int $paymentId): JsonResponse
     {
         DB::beginTransaction();
@@ -453,6 +515,13 @@ class PaymentController extends Controller
     /**
      * Get payment summary statistics
      */
+    #[OA\Get(
+        path: '/admin/payments/summary',
+        summary: 'Get payment summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPaymentSummary(Request $request): JsonResponse
     {
         try {
@@ -523,6 +592,16 @@ class PaymentController extends Controller
     /**
      * Mark specific debt record as paid
      */
+    #[OA\Put(
+        path: '/admin/payments/mark-debt-paid/{debtId}',
+        summary: 'Mark debt as paid',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        parameters: [
+            new OA\Parameter(name: 'debtId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function markDebtAsPaid(int $debtId, Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -563,6 +642,13 @@ class PaymentController extends Controller
     /**
      * Store a new monthly payment (not tied to debt clearance)
      */
+    #[OA\Post(
+        path: '/admin/payments/new',
+        summary: 'Store new payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function storeNewPayment(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -622,6 +708,13 @@ class PaymentController extends Controller
      * Map of drivers who have new payments in a given month
      * GET /admin/payments/new-payments-map?month=YYYY-MM
      */
+    #[OA\Get(
+        path: '/admin/payments/new-payments-map',
+        summary: 'Get new payments map',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getNewPaymentsMap(Request $request): JsonResponse
     {
         $month = $request->get('month');

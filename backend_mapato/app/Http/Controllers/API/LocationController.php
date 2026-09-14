@@ -40,6 +40,18 @@ class LocationController extends Controller
         return response()->json(['success' => true, 'data' => $lgas]);
     }
 
+    #[OA\Get(
+
+        path: '/locations/wards',
+
+        summary: 'Get wards',
+
+        tags: ['Locations'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function getWards(Request $request)
     {
         $request->request->add(['district_id' => $request->query('district_id')]);
@@ -50,6 +62,18 @@ class LocationController extends Controller
         return response()->json(['success' => true, 'data' => $wards]);
     }
 
+    #[OA\Get(
+
+        path: '/locations/streets',
+
+        summary: 'Get streets',
+
+        tags: ['Locations'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function getStreets(Request $request)
     {
         if (!$request->has('ward_id')) {
@@ -58,6 +82,18 @@ class LocationController extends Controller
         $villages = Village::where('ward_id', $request->ward_id)->orderBy('name')->get();
         return response()->json(['success' => true, 'data' => $villages]);
     }
+
+    #[OA\Get(
+
+        path: '/locations/places',
+
+        summary: 'Get places',
+
+        tags: ['Locations'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function getPlaces(Request $request)
     {

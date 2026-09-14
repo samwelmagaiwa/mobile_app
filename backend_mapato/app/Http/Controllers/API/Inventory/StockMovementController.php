@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 class StockMovementController extends Controller
 {
@@ -18,6 +19,13 @@ class StockMovementController extends Controller
     /**
      * List stock movement audit logs with optional filters (product_id, type, dates).
      */
+    #[OA\Get(
+        path: '/inventory/stock-movements',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Stock Movement'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $query = DB::table('inventory_stock_movements as sm')
@@ -73,6 +81,13 @@ class StockMovementController extends Controller
      * Stock in / out. Goes through the ledger so batches and the movement log
      * stay consistent: issues are allocated first-expiring-first (Area 3).
      */
+    #[OA\Post(
+        path: '/inventory/stock-movements',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Stock Movement'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $v = Validator::make($request->all(), [

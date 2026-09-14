@@ -6,6 +6,7 @@ use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 2 — product categories.
@@ -15,6 +16,20 @@ class CategoryController extends Controller
     public function __construct(private readonly AuditTrail $audit)
     {
     }
+
+    #[OA\Get(
+
+        path: '/categories',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Category'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -33,6 +48,26 @@ class CategoryController extends Controller
         return response()->json(['data' => $query->orderBy('c.name')->get()]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/categories/{id}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Category'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function show(int $id)
     {
         $row = DB::table('inventory_categories as c')
@@ -48,6 +83,20 @@ class CategoryController extends Controller
 
         return response()->json(['data' => $row]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/categories',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Category'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function store(Request $request)
     {
@@ -70,6 +119,26 @@ class CategoryController extends Controller
 
         return response()->json(['message' => 'Category created', 'data' => ['id' => (int) $id]], 201);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/categories/{id}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Category'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function update(Request $request, int $id)
     {
@@ -108,6 +177,16 @@ class CategoryController extends Controller
      * By default, refuses if the category has products.
      * Pass ?force=1 (admin-only) to null out product references instead.
      */
+    #[OA\Delete(
+        path: '/inventory/categories/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Category'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, int $id)
     {
         $existing = DB::table('inventory_categories')->where('id', $id)->first();

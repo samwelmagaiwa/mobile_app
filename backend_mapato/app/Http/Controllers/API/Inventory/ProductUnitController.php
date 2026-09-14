@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 2 — selling units (bottle / pack / crate) and their tiered prices.
@@ -15,6 +16,16 @@ use Illuminate\Support\Facades\DB;
 class ProductUnitController extends Controller
 {
     /** All units of one product, each with its retail / wholesale / special prices. */
+    #[OA\Get(
+        path: '/inventory/products/{productId}/units',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Product Unit'],
+        parameters: [
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(int $productId)
     {
         if (! DB::table('inventory_products')->where('id', $productId)->exists()) {
@@ -40,6 +51,26 @@ class ProductUnitController extends Controller
 
         return response()->json(['data' => $data]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/products/{productId}/units',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Product Unit'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function store(Request $request, int $productId)
     {
@@ -98,6 +129,28 @@ class ProductUnitController extends Controller
         return response()->json(['message' => 'Unit created', 'data' => ['id' => (int) $unitId]], 201);
     }
 
+    #[OA\Put(
+
+        path: '/inventory/products/{productId}/units/{unitId}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Product Unit'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+            new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function update(Request $request, int $productId, int $unitId)
     {
         $unit = DB::table('inventory_product_units')
@@ -135,6 +188,28 @@ class ProductUnitController extends Controller
         return response()->json(['message' => 'Unit updated']);
     }
 
+    #[OA\Delete(
+
+        path: '/inventory/products/{productId}/units/{unitId}',
+
+        summary: 'Delete a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Product Unit'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+            new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function destroy(int $productId, int $unitId)
     {
         $unit = DB::table('inventory_product_units')
@@ -152,6 +227,17 @@ class ProductUnitController extends Controller
     }
 
     /** Set one tier's price for one unit. Logs the change. */
+    #[OA\Post(
+        path: '/inventory/products/{productId}/units/{unitId}/price',
+        summary: 'Set price',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Product Unit'],
+        parameters: [
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function setPrice(Request $request, int $productId, int $unitId)
     {
         $exists = DB::table('inventory_product_units')
@@ -191,6 +277,17 @@ class ProductUnitController extends Controller
     }
 
     /** Price change history for one unit, newest first. */
+    #[OA\Get(
+        path: '/inventory/products/{productId}/units/{unitId}/price-history',
+        summary: 'Price history',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Product Unit'],
+        parameters: [
+            new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function priceHistory(Request $request, int $productId, int $unitId)
     {
         $exists = DB::table('inventory_product_units')

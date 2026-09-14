@@ -6,12 +6,27 @@ use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
+use OpenApi\Attributes as OA;
 
 class CustomerController extends Controller
 {
     public function __construct(private readonly AuditTrail $audit)
     {
     }
+
+    #[OA\Get(
+
+        path: '/customers',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Customer'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -35,6 +50,20 @@ class CustomerController extends Controller
         ]);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/customers',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Customer'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -51,6 +80,26 @@ class CustomerController extends Controller
         ]);
         return response()->json(['message' => 'Customer created', 'data' => ['id' => (int)$id]], 201);
     }
+
+    #[OA\Put(
+
+        path: '/inventory/customers/{id}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Customer'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function update(Request $request, int $id)
     {
@@ -75,6 +124,16 @@ class CustomerController extends Controller
      * Blocked if the customer has any active sales (debt/partial).
      * Pass ?force=1 (admin-only) to override.
      */
+    #[OA\Delete(
+        path: '/inventory/customers/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Customer'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, int $id)
     {
         $existing = DB::table('inventory_customers')->where('id', $id)->first();

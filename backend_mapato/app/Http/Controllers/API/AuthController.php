@@ -313,6 +313,12 @@ class AuthController extends Controller
      * registered emails or phone numbers. Rate-limited via the `throttle`
      * middleware on the route for the same reason.
      */
+    #[OA\Post(
+        path: '/auth/forgot-password',
+        summary: 'Forgot password',
+        tags: ['Auth'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function forgotPassword(Request $request)
     {
         Log::info('Password reset verification started', [
@@ -391,6 +397,12 @@ class AuthController extends Controller
      * device that had the old, possibly-compromised password stays logged
      * out until it authenticates with the new one.
      */
+    #[OA\Post(
+        path: '/auth/reset-password',
+        summary: 'Reset password',
+        tags: ['Auth'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function resetPassword(Request $request)
     {
         try {
@@ -596,6 +608,13 @@ class AuthController extends Controller
     /**
      * Upload or update user avatar/profile photo
      */
+    #[OA\Post(
+        path: '/auth/profile/avatar',
+        summary: 'Upload avatar',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function uploadAvatar(Request $request)
     {
         try {
@@ -653,6 +672,13 @@ class AuthController extends Controller
     /**
      * Refresh token
      */
+    #[OA\Post(
+        path: '/auth/refresh',
+        summary: 'Refresh',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function refresh(Request $request)
     {
         try {

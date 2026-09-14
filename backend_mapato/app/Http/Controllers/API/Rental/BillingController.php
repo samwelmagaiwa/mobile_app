@@ -12,6 +12,7 @@ use App\Models\Rental\RentalAgreement;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use OpenApi\Attributes as OA;
 
 class BillingController extends Controller
 {
@@ -25,6 +26,13 @@ class BillingController extends Controller
     /**
      * Get all bills (for landlord or tenant).
      */
+    #[OA\Get(
+        path: '/rental/billing/bills',
+        summary: 'Get bills',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getBills(Request $request)
     {
         $user = $request->user();
@@ -53,6 +61,13 @@ class BillingController extends Controller
     /**
      * Get all payments.
      */
+    #[OA\Get(
+        path: '/rental/payments',
+        summary: 'Get payments',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPayments(Request $request)
     {
         $user = $request->user();
@@ -71,6 +86,13 @@ class BillingController extends Controller
     /**
      * Get all receipts.
      */
+    #[OA\Get(
+        path: '/rental/receipts',
+        summary: 'Get receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceipts(Request $request)
     {
         $user = $request->user();
@@ -89,6 +111,16 @@ class BillingController extends Controller
     /**
      * Get single receipt details.
      */
+    #[OA\Get(
+        path: '/rental/receipts/{id}',
+        summary: 'Get receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceipt(Request $request, $id)
     {
         $receipt = RentalReceipt::with('payment.tenant', 'payment.bill.agreement.house.property', 'payment.collector', 'payment.receipt')
@@ -100,6 +132,13 @@ class BillingController extends Controller
     /**
      * Record a new payment.
      */
+    #[OA\Post(
+        path: '/rental/payments/record',
+        summary: 'Record payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function recordPayment(Request $request)
     {
         $request->validate([
@@ -135,6 +174,16 @@ class BillingController extends Controller
     /**
      * Dispatch receipt to tenant repository.
      */
+    #[OA\Post(
+        path: '/rental/receipts/{id}/dispatch',
+        summary: 'Dispatch receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function dispatchReceipt(Request $request, $id)
     {
         $receipt = RentalReceipt::findOrFail($id);
@@ -160,6 +209,13 @@ class BillingController extends Controller
     /**
      * Get dashboard statistics.
      */
+    #[OA\Get(
+        path: '/rental/dashboard',
+        summary: 'Get dashboard',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDashboard(Request $request)
     {
         $user = $request->user();
@@ -246,6 +302,13 @@ class BillingController extends Controller
     /**
      * Get arrears report.
      */
+    #[OA\Get(
+        path: '/rental/reports/arrears',
+        summary: 'Get arrears',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getArrears(Request $request)
     {
         $user = $request->user();
@@ -277,6 +340,13 @@ class BillingController extends Controller
     /**
      * Get revenue report.
      */
+    #[OA\Get(
+        path: '/rental/reports/revenue',
+        summary: 'Get revenue',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getRevenue(Request $request)
     {
         $user = $request->user();
@@ -327,6 +397,13 @@ class BillingController extends Controller
      * Get occupancy report.
      * GET /rental/reports/occupancy
      */
+    #[OA\Get(
+        path: '/rental/reports/occupancy',
+        summary: 'Get occupancy',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Billing'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getOccupancy(Request $request)
     {
         $user = $request->user();

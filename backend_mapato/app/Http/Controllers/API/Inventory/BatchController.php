@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 3 — batches and expiry dates.
@@ -18,6 +19,13 @@ class BatchController extends Controller
     }
 
     /** Batches, newest first. Filterable by product, status and expiry window. */
+    #[OA\Get(
+        path: '/inventory/batches',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Batch'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $query = DB::table('inventory_batches as b')
@@ -74,6 +82,13 @@ class BatchController extends Controller
     }
 
     /** Receive stock into a batch. Creates the batch when the number is new. */
+    #[OA\Post(
+        path: '/inventory/batches',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Batch'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -105,6 +120,26 @@ class BatchController extends Controller
         ], 201);
     }
 
+    #[OA\Put(
+
+        path: '/inventory/batches/{id}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Batch'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function update(Request $request, int $id)
     {
         if (! DB::table('inventory_batches')->where('id', $id)->exists()) {
@@ -124,6 +159,13 @@ class BatchController extends Controller
     }
 
     /** Counts for the alert badges: expired and expiring within N days. */
+    #[OA\Get(
+        path: '/inventory/expiry-summary',
+        summary: 'Expiry summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Batch'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function expirySummary(Request $request)
     {
         $days = (int) $request->query('days', 30);

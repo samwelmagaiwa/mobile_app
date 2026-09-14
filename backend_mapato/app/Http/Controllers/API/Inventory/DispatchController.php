@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 9 — loading a vehicle, the route, and reconciling on return.
@@ -22,6 +23,20 @@ class DispatchController extends Controller
         private readonly AuditTrail $audit,
     ) {
     }
+
+    #[OA\Get(
+
+        path: '/inventory/dispatches',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Dispatch'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -48,6 +63,26 @@ class DispatchController extends Controller
         return response()->json(['data' => $query->orderByDesc('d.id')->limit(100)->get()]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/dispatches/{id}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Dispatch'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function show(int $id)
     {
         $dispatch = DB::table('inventory_dispatches as d')
@@ -71,6 +106,13 @@ class DispatchController extends Controller
     }
 
     /** Load a vehicle: stock leaves the depot now. */
+    #[OA\Post(
+        path: '/inventory/dispatches',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Dispatch'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -139,6 +181,16 @@ class DispatchController extends Controller
      * The vehicle is back: record what came back, what was sold, and the cash.
      * Unsold stock returns to the depot.
      */
+    #[OA\Post(
+        path: '/inventory/dispatches/{id}/reconcile',
+        summary: 'Reconcile',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Dispatch'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function reconcile(Request $request, int $id)
     {
         $dispatch = DB::table('inventory_dispatches')->find($id);

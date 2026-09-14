@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class ExpenseController extends Controller
 {
@@ -14,6 +15,13 @@ class ExpenseController extends Controller
     ];
 
     /** GET /inventory/expenses */
+    #[OA\Get(
+        path: '/inventory/expenses',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
@@ -30,6 +38,13 @@ class ExpenseController extends Controller
     }
 
     /** POST /inventory/expenses */
+    #[OA\Post(
+        path: '/inventory/expenses',
+        summary: 'Create a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -56,6 +71,16 @@ class ExpenseController extends Controller
     }
 
     /** PUT /inventory/expenses/{id} */
+    #[OA\Put(
+        path: '/inventory/expenses/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(Request $request, int $id)
     {
         $expense = DB::table('inventory_expenses')->find($id);
@@ -86,6 +111,16 @@ class ExpenseController extends Controller
     }
 
     /** DELETE /inventory/expenses/{id} */
+    #[OA\Delete(
+        path: '/inventory/expenses/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, int $id)
     {
         $expense = DB::table('inventory_expenses')->find($id);
@@ -108,6 +143,13 @@ class ExpenseController extends Controller
      * GET /inventory/expenses/summary
      * Returns per-category totals AND revenue-vs-expense for the period.
      */
+    #[OA\Get(
+        path: '/inventory/expenses/summary',
+        summary: 'Summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function summary(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
@@ -156,6 +198,13 @@ class ExpenseController extends Controller
     }
 
     /** GET /inventory/expenses/categories */
+    #[OA\Get(
+        path: '/inventory/expenses/categories',
+        summary: 'Categories',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Expense'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function categories()
     {
         return response()->json(['data' => self::CATEGORIES]);

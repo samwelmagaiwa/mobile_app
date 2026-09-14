@@ -155,6 +155,26 @@ class SalesController extends Controller
         ]);
     }
 
+    #[OA\Get(
+
+        path: '/inventory/sales/{id}',
+
+        summary: 'Get a single resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Sales'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function show($id)
     {
         $sale = DB::table('inventory_sales as s')
@@ -358,6 +378,13 @@ class SalesController extends Controller
      * dashboard chart so it always shows complete data, not just cached
      * page-1 sales that may not span the selected month.
      */
+    #[OA\Get(
+        path: '/inventory/sales/monthly-chart',
+        summary: 'Monthly chart',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function monthlyChart(Request $request)
     {
         $year  = (int) ($request->query('year',  now()->year));
@@ -404,6 +431,16 @@ class SalesController extends Controller
      * Record a payment against an existing debt or partial sale.
      * Updates paid_total and recalculates payment_status automatically.
      */
+    #[OA\Post(
+        path: '/inventory/sales/{id}/payments',
+        summary: 'Record payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function recordPayment(Request $request, int $id)
     {
         $v = Validator::make($request->all(), [
@@ -487,6 +524,16 @@ class SalesController extends Controller
      * Cancels a sale and returns all issued stock back to the ledger.
      * Only allowed on today's sales (configurable) and by managers.
      */
+    #[OA\Post(
+        path: '/inventory/sales/{id}/cancel',
+        summary: 'Cancel',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function cancel(Request $request, int $id)
     {
         $data = $request->validate([
@@ -549,6 +596,13 @@ class SalesController extends Controller
      * GET /inventory/sales/summary
      * Aggregated totals for the same filters as index — used by the history tab summary bar.
      */
+    #[OA\Get(
+        path: '/inventory/sales/summary',
+        summary: 'Summary',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function summary(Request $request)
     {
         $status = $request->query('status');
@@ -603,6 +657,13 @@ class SalesController extends Controller
      * dashboard down to. Sales officers get an empty list -- they never see
      * the filter, their view is always their own data.
      */
+    #[OA\Get(
+        path: '/inventory/sales-officers',
+        summary: 'Officers',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function officers(Request $request)
     {
         if (!$this->isPrivileged($request)) {

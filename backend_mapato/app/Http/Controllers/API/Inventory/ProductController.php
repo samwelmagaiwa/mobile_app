@@ -234,6 +234,26 @@ class ProductController extends Controller
         );
     }
 
+    #[OA\Put(
+
+        path: '/inventory/products/{id}',
+
+        summary: 'Update a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Products'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function update(Request $request, int $id)
     {
         $existing = DB::table('inventory_products')->where('id', $id)->first();
@@ -310,6 +330,16 @@ class ProductController extends Controller
      * Pass ?force=1 (admin-only) to archive (status=inactive) instead
      * of deleting a product that has sales history.
      */
+    #[OA\Delete(
+        path: '/inventory/products/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Products'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, int $id)
     {
         $existing = DB::table('inventory_products')->where('id', $id)->first();

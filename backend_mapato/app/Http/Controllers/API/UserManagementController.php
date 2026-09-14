@@ -121,6 +121,13 @@ class UserManagementController extends Controller
      * manages them within that service -- "see all users as per service and
      * as per admins of that service."
      */
+    #[OA\Get(
+        path: '/admin/users/by-service',
+        summary: 'Users by service',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function usersByService(Request $request)
     {
         $auth = $request->user();
@@ -335,6 +342,16 @@ class UserManagementController extends Controller
     }
 
     // Update user (only fields allowed)
+    #[OA\Put(
+        path: '/admin/users/{id}',
+        summary: 'Update a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function update(Request $request, string $id)
     {
         $auth = $request->user();
@@ -445,6 +462,16 @@ class UserManagementController extends Controller
     }
 
     // Delete user
+    #[OA\Delete(
+        path: '/admin/users/{id}',
+        summary: 'Delete a resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function destroy(Request $request, string $id)
     {
         $auth = $request->user();
@@ -486,6 +513,16 @@ class UserManagementController extends Controller
      * of all services until re-bound). This is intentional — super_admin can use
      * this to revoke an admin's access to a service without deleting the account.
      */
+    #[OA\Put(
+        path: '/admin/users/{id}/services',
+        summary: 'Bind services',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function bindServices(Request $request, string $id)
     {
         $auth = $request->user();
@@ -539,6 +576,16 @@ class UserManagementController extends Controller
     }
 
     // Reset password to provided value
+    #[OA\Post(
+        path: '/admin/users/{id}/reset-password',
+        summary: 'Reset password',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function resetPassword(Request $request, string $id)
     {
         $auth = $request->user();

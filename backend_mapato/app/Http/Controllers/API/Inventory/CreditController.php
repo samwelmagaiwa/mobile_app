@@ -6,6 +6,7 @@ use App\Services\Inventory\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 6 — customer credit limits, statements and debtor ageing.
@@ -17,6 +18,13 @@ class CreditController extends Controller
     }
 
     /** Customers with what they owe and how much room is left on the limit. */
+    #[OA\Get(
+        path: '/inventory/credit/customers',
+        summary: 'Customers',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Credit'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function customers(Request $request)
     {
         $query = DB::table('inventory_customers as c')
@@ -48,6 +56,26 @@ class CreditController extends Controller
         return response()->json(['data' => $query->orderBy('c.name')->get()]);
     }
 
+    #[OA\Put(
+
+        path: '/inventory/credit/customers/{id}',
+
+        summary: 'Update credit',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Credit'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function updateCredit(Request $request, int $id)
     {
         $before = DB::table('inventory_customers')->find($id);
@@ -77,6 +105,16 @@ class CreditController extends Controller
      * Whether this customer may take on more credit right now.
      * The POS calls this before allowing a debt or partial sale.
      */
+    #[OA\Get(
+        path: '/inventory/credit/customers/{id}/check',
+        summary: 'Credit check',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Credit'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function creditCheck(Request $request, int $id)
     {
         $customer = DB::table('inventory_customers')->find($id);
@@ -115,6 +153,16 @@ class CreditController extends Controller
     }
 
     /** Opening balance, the period's transactions, closing balance. */
+    #[OA\Get(
+        path: '/inventory/credit/customers/{id}/statement',
+        summary: 'Statement',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Credit'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function statement(Request $request, int $id)
     {
         $customer = DB::table('inventory_customers')->find($id);
@@ -167,6 +215,13 @@ class CreditController extends Controller
     }
 
     /** Who owes what, bucketed by how long it has been outstanding. */
+    #[OA\Get(
+        path: '/inventory/credit/debtors-ageing',
+        summary: 'Debtors ageing',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Credit'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function debtorsAgeing()
     {
         $rows = DB::table('inventory_sales as s')

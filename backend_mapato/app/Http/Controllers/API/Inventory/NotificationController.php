@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 /**
  * A logged-in user's own approval-notification inbox. No inv_perm gate --
@@ -15,6 +16,13 @@ use Illuminate\Support\Facades\DB;
  */
 class NotificationController extends Controller
 {
+    #[OA\Get(
+        path: '/inventory/notifications',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Notification'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $userId = optional($request->user())->id;
@@ -42,6 +50,26 @@ class NotificationController extends Controller
         ]);
     }
 
+    #[OA\Post(
+
+        path: '/inventory/notifications/{id}/read',
+
+        summary: 'Mark read',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Notification'],
+
+        parameters: [
+
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+
+        ],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
+
     public function markRead(Request $request, int $id)
     {
         $userId = optional($request->user())->id;
@@ -54,6 +82,20 @@ class NotificationController extends Controller
             ? response()->json(['message' => 'Marked read'])
             : response()->json(['message' => 'Not found'], 404);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/notifications/read-all',
+
+        summary: 'Mark all read',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Notification'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function markAllRead(Request $request)
     {

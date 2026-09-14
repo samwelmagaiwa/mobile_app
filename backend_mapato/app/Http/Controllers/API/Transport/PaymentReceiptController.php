@@ -11,12 +11,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use OpenApi\Attributes as OA;
 
 class PaymentReceiptController extends Controller
 {
     /**
      * Get pending receipts (payments without receipts sent)
      */
+    #[OA\Get(
+        path: '/admin/receipts/pending',
+        summary: 'Get pending receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPendingReceipts(Request $request)
     {
         try {
@@ -99,6 +107,13 @@ class PaymentReceiptController extends Controller
     /**
      * Generate receipt for a payment
      */
+    #[OA\Post(
+        path: '/admin/receipts/generate',
+        summary: 'Generate receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function generateReceipt(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -168,6 +183,16 @@ class PaymentReceiptController extends Controller
     /**
      * Get receipt preview data
      */
+    #[OA\Get(
+        path: '/admin/receipts/{receiptId}',
+        summary: 'Get receipt preview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceiptPreview(int $receiptId)
     {
         try {
@@ -196,6 +221,13 @@ class PaymentReceiptController extends Controller
     /**
      * Send receipt to driver and mark as issued on payment
      */
+    #[OA\Post(
+        path: '/admin/receipts/send',
+        summary: 'Send receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function sendReceipt(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -269,6 +301,13 @@ class PaymentReceiptController extends Controller
     /**
      * Get all receipts with filters
      */
+    #[OA\Get(
+        path: '/admin/receipts',
+        summary: 'Get receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceipts(Request $request)
     {
         try {
@@ -372,6 +411,16 @@ class PaymentReceiptController extends Controller
     /**
      * Update receipt status
      */
+    #[OA\Put(
+        path: '/admin/receipts/{receiptId}/status',
+        summary: 'Update receipt status',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateReceiptStatus(Request $request, int $receiptId)
     {
         $validator = Validator::make($request->all(), [
@@ -408,6 +457,16 @@ class PaymentReceiptController extends Controller
     /**
      * Cancel receipt
      */
+    #[OA\Put(
+        path: '/admin/receipts/{receiptId}/cancel',
+        summary: 'Cancel receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function cancelReceipt(Request $request, int $receiptId)
     {
         try {
@@ -432,6 +491,16 @@ class PaymentReceiptController extends Controller
     /**
      * Delete receipt
      */
+    #[OA\Delete(
+        path: '/admin/receipts/{receiptId}',
+        summary: 'Delete receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deleteReceipt(Request $request, int $receiptId)
     {
         try {
@@ -455,6 +524,13 @@ class PaymentReceiptController extends Controller
     /**
      * Get receipt statistics
      */
+    #[OA\Get(
+        path: '/admin/receipts/stats',
+        summary: 'Get receipt stats',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceiptStats(Request $request)
     {
         try {
@@ -494,6 +570,13 @@ class PaymentReceiptController extends Controller
     /**
      * Export receipts
      */
+    #[OA\Post(
+        path: '/admin/receipts/export',
+        summary: 'Export receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function exportReceipts(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -536,6 +619,13 @@ class PaymentReceiptController extends Controller
     /**
      * Generate bulk receipts
      */
+    #[OA\Post(
+        path: '/admin/receipts/bulk-generate',
+        summary: 'Generate bulk receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function generateBulkReceipts(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -633,6 +723,13 @@ class PaymentReceiptController extends Controller
     /**
      * Search receipts
      */
+    #[OA\Get(
+        path: '/admin/receipts/search',
+        summary: 'Search receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function searchReceipts(Request $request)
     {
         $validator = Validator::make($request->all(), [

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use OpenApi\Attributes as OA;
 
 /**
  * Area 3 — damages, breakages and expired goods.
@@ -21,6 +22,20 @@ class WriteOffController extends Controller
         private readonly InventoryNotifier $notifier,
     ) {
     }
+
+    #[OA\Get(
+
+        path: '/inventory/write-offs',
+
+        summary: 'List resources',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Write Off'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function index(Request $request)
     {
@@ -50,6 +65,20 @@ class WriteOffController extends Controller
 
         return response()->json(['data' => $query->orderByDesc('w.id')->limit(200)->get()]);
     }
+
+    #[OA\Post(
+
+        path: '/inventory/write-offs',
+
+        summary: 'Create a resource',
+
+        security: [['bearerAuth' => []]],
+
+        tags: ['Inventory / Write Off'],
+
+        responses: [new OA\Response(response: 200, description: 'Success')],
+
+    )]
 
     public function store(Request $request)
     {
@@ -109,6 +138,16 @@ class WriteOffController extends Controller
     }
 
     /** Approve and remove the stock, or reject and leave it alone. */
+    #[OA\Post(
+        path: '/inventory/write-offs/{id}/decide',
+        summary: 'Decide',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Write Off'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function decide(Request $request, int $id)
     {
         $writeOff = DB::table('inventory_write_offs')->find($id);

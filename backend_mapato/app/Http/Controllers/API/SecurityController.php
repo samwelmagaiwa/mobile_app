@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use OpenApi\Attributes as OA;
 
 class SecurityController extends Controller
 {
@@ -27,6 +28,13 @@ class SecurityController extends Controller
      *    other device is forced to re-authenticate with the new password.
      *  - Action is audit-logged (security-critical event).
      */
+    #[OA\Post(
+        path: '/auth/change-password',
+        summary: 'Change password',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Security'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function changePassword(Request $request)
     {
         try {
@@ -104,6 +112,13 @@ class SecurityController extends Controller
     /**
      * Get current security settings for the authenticated user
      */
+    #[OA\Get(
+        path: '/auth/security',
+        summary: 'Get security settings',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Security'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getSecuritySettings(Request $request)
     {
         $user = $request->user();
@@ -121,6 +136,13 @@ class SecurityController extends Controller
      * POST /auth/two-factor
      * Enable or disable two-factor authentication for the current user.
      */
+    #[OA\Post(
+        path: '/auth/two-factor',
+        summary: 'Set two factor',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Security'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function setTwoFactor(Request $request)
     {
         try {
@@ -171,6 +193,13 @@ class SecurityController extends Controller
      * DELETE /auth/login-history
      * Clear the current user's login activity history.
      */
+    #[OA\Delete(
+        path: '/auth/login-history',
+        summary: 'Clear login history',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Security'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function clearLoginHistory(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
@@ -192,6 +221,13 @@ class SecurityController extends Controller
     /**
      * Get login history for the authenticated user
      */
+    #[OA\Get(
+        path: '/auth/login-history',
+        summary: 'Get login history',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Security'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getLoginHistory(Request $request)
     {
         $user = $request->user();

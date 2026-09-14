@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 
 /**
  * Backup and restore endpoints.
@@ -48,6 +49,13 @@ class BackupController extends Controller
      * GET /admin/backup
      * Returns backup metadata (last backup date, available backups list).
      */
+    #[OA\Get(
+        path: '/auth/admin/backup',
+        summary: 'Status',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Backup'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function status(Request $request): \Illuminate\Http\JsonResponse
     {
         if ($err = $this->authorise($request)) return $err;
@@ -72,6 +80,13 @@ class BackupController extends Controller
      * Dumps the current database to a JSON snapshot and stores it.
      * Returns a signed download URL valid for 10 minutes.
      */
+    #[OA\Post(
+        path: '/auth/admin/backup',
+        summary: 'Create',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Backup'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function create(Request $request): \Illuminate\Http\JsonResponse
     {
         if ($err = $this->authorise($request)) return $err;
@@ -123,6 +138,13 @@ class BackupController extends Controller
      * This is a DESTRUCTIVE operation that overwrites existing rows.
      * It runs inside a transaction so any failure rolls back cleanly.
      */
+    #[OA\Post(
+        path: '/auth/admin/restore',
+        summary: 'Restore',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Backup'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function restore(Request $request): \Illuminate\Http\JsonResponse
     {
         if ($err = $this->authorise($request)) return $err;

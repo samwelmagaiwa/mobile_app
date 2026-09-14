@@ -80,6 +80,13 @@ class TenantController extends Controller
     /**
      * Search available system tenants
      */
+    #[OA\Get(
+        path: '/rental/tenants/system',
+        summary: 'Available system tenants',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function availableSystemTenants(Request $request)
     {
         $user = $request->user();
@@ -104,6 +111,16 @@ class TenantController extends Controller
     /**
      * Show single tenant details.
      */
+    #[OA\Get(
+        path: '/rental/tenants/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show(Request $request, $id)
     {
         $isSuperAdmin = $request->user()->isSuperAdmin();
@@ -165,6 +182,13 @@ class TenantController extends Controller
     /**
      * Onboard a new tenant.
      */
+    #[OA\Post(
+        path: '/rental/tenants/onboard',
+        summary: 'Onboard',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function onboard(Request $request)
     {
         $request->validate([
@@ -226,6 +250,16 @@ class TenantController extends Controller
     /**
      * Update tenant status (active, notice, terminated, defaulter).
      */
+    #[OA\Put(
+        path: '/rental/tenants/{id}/status',
+        summary: 'Update status',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -272,6 +306,16 @@ class TenantController extends Controller
     /**
      * Terminate tenant (delete agreement).
      */
+    #[OA\Delete(
+        path: '/rental/tenants/{id}',
+        summary: 'Terminate',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function terminate(Request $request, $id)
     {
         $isSuperAdmin = $request->user()->isSuperAdmin();
@@ -319,6 +363,13 @@ class TenantController extends Controller
     /**
      * Get tenant's own bills.
      */
+    #[OA\Get(
+        path: '/rental/tenant/bills',
+        summary: 'My bills',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function myBills(Request $request)
     {
         $bills = RentBill::whereHas('agreement', function ($query) use ($request) {
@@ -331,6 +382,13 @@ class TenantController extends Controller
     /**
      * Get tenant's own payments.
      */
+    #[OA\Get(
+        path: '/rental/tenant/payments',
+        summary: 'My payments',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function myPayments(Request $request)
     {
         $payments = RentalPayment::where('tenant_id', $request->user()->id)
@@ -344,6 +402,13 @@ class TenantController extends Controller
     /**
      * Get tenant's own receipts.
      */
+    #[OA\Get(
+        path: '/rental/tenant/receipts',
+        summary: 'My receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Rental / Tenants'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function myReceipts(Request $request)
     {
         $receipts = RentalReceipt::where('is_dispatched', true)

@@ -13,12 +13,20 @@ use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use OpenApi\Attributes as OA;
 
 class DashboardController extends Controller
 {
     /**
      * Get comprehensive dashboard data
      */
+    #[OA\Get(
+        path: '/admin/dashboard-data',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         try {
@@ -308,6 +316,13 @@ class DashboardController extends Controller
     /**
      * Get statistics for admin report
      */
+    #[OA\Get(
+        path: '/admin/dashboard-stats',
+        summary: 'Get stats',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getStats(Request $request)
     {
         try {
@@ -358,6 +373,13 @@ class DashboardController extends Controller
     /**
      * Get active drivers count
      */
+    #[OA\Get(
+        path: '/admin/dashboard/active-drivers-count',
+        summary: 'Get active drivers count',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getActiveDriversCount()
     {
         try {
@@ -371,6 +393,13 @@ class DashboardController extends Controller
     /**
      * Get active devices count
      */
+    #[OA\Get(
+        path: '/admin/dashboard/active-devices-count',
+        summary: 'Get active devices count',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getActiveDevicesCount()
     {
         try {
@@ -384,6 +413,13 @@ class DashboardController extends Controller
     /**
      * Get unpaid debts count
      */
+    #[OA\Get(
+        path: '/admin/dashboard/unpaid-debts-count',
+        summary: 'Get unpaid debts count',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getUnpaidDebtsCount()
     {
         try {
@@ -397,6 +433,13 @@ class DashboardController extends Controller
     /**
      * Get generated receipts count
      */
+    #[OA\Get(
+        path: '/admin/dashboard/generated-receipts-count',
+        summary: 'Get generated receipts count',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getGeneratedReceiptsCount()
     {
         try {
@@ -411,6 +454,13 @@ class DashboardController extends Controller
     /**
      * Get pending receipts count (API endpoint)
      */
+    #[OA\Get(
+        path: '/admin/dashboard/pending-receipts-count',
+        summary: 'Get pending receipts count api',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPendingReceiptsCountApi()
     {
         try {
@@ -426,6 +476,13 @@ class DashboardController extends Controller
     /**
      * Get daily revenue (API endpoint)
      */
+    #[OA\Get(
+        path: '/admin/dashboard/daily-revenue',
+        summary: 'Get daily revenue api',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getDailyRevenueApi()
     {
         try {
@@ -452,6 +509,13 @@ class DashboardController extends Controller
     /**
      * Get weekly revenue (API endpoint)
      */
+    #[OA\Get(
+        path: '/admin/dashboard/weekly-revenue',
+        summary: 'Get weekly revenue api',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getWeeklyRevenueApi()
     {
         try {
@@ -485,6 +549,13 @@ class DashboardController extends Controller
     /**
      * Get monthly revenue (API endpoint)
      */
+    #[OA\Get(
+        path: '/admin/dashboard/monthly-revenue',
+        summary: 'Get monthly revenue api',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Dashboard'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getMonthlyRevenueApi()
     {
         try {

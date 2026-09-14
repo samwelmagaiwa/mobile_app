@@ -10,12 +10,20 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\Driver;
 use App\Models\DebtRecord;
+use OpenApi\Attributes as OA;
 
 class DebtsController extends Controller
 {
     /**
      * List all drivers with debt summary (including zero-debt)
      */
+    #[OA\Get(
+        path: '/admin/debts/drivers',
+        summary: 'List drivers',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Debts'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function listDrivers(Request $request): JsonResponse
     {
         try {
@@ -92,6 +100,13 @@ class DebtsController extends Controller
     /**
      * Create multiple debt records for selected dates
      */
+    #[OA\Post(
+        path: '/admin/debts/bulk-create',
+        summary: 'Bulk create',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Debts'],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function bulkCreate(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -202,6 +217,16 @@ class DebtsController extends Controller
     /**
      * List debt records for a driver
      */
+    #[OA\Get(
+        path: '/admin/debts/driver/{driverId}/records',
+        summary: 'List driver records',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Debts'],
+        parameters: [
+            new OA\Parameter(name: 'driverId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function listDriverRecords(string $driverId, Request $request): JsonResponse
     {
         try {
@@ -239,6 +264,16 @@ class DebtsController extends Controller
     /**
      * Update an existing debt record
      */
+    #[OA\Put(
+        path: '/admin/debts/records/{id}',
+        summary: 'Update record',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Debts'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function updateRecord(int $id, Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -307,6 +342,16 @@ class DebtsController extends Controller
     /**
      * Delete an existing debt record (only if not paid)
      */
+    #[OA\Delete(
+        path: '/admin/debts/records/{id}',
+        summary: 'Delete record',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Debts'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function deleteRecord(int $id): JsonResponse
     {
         try {
