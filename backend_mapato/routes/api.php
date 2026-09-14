@@ -129,7 +129,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Drivers
     Route::get('drivers', [AdminController::class, 'getDrivers']);
     Route::get('drivers/{id}', [AdminController::class, 'getDriver']);
-    Route::get('drivers/{driverId}/prediction', [\App\Http\Controllers\API\DriverPredictionController::class, 'show']);
     Route::post('drivers', [AdminController::class, 'createDriver']);
     Route::put('drivers/{id}', [AdminController::class, 'updateDriver']);
     Route::delete('drivers/{id}', [AdminController::class, 'deleteDriver']);
