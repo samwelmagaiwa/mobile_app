@@ -14,6 +14,7 @@ import 'modules/inventory/providers/inventory_provider.dart';
 import 'modules/inventory/providers/depot_provider.dart';
 import 'modules/inventory/providers/notifications_provider.dart';
 import 'modules/inventory/screens/inventory_home.dart';
+import 'models/login_response.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/debts_provider.dart';
@@ -254,8 +255,20 @@ class BodaMapatoApp extends StatelessWidget {
                     const SettingsScreen(),
                 "/demo": (final BuildContext context) =>
                     const DemoLanguageScreen(),
-                "/select-service": (final BuildContext context) =>
-                    const ServiceSelectionScreen(),
+                "/select-service": (final BuildContext context) {
+                  // This route builder never had access to the logged-in
+                  // user, so it always constructed ServiceSelectionScreen
+                  // with allowedServices left null -> "no access to any
+                  // service" for EVERY user (super_admin included) who
+                  // reached it via the back arrow / apps icon from a
+                  // service home screen, regardless of their real access.
+                  final UserData? user =
+                      Provider.of<AuthProvider>(context, listen: false).user;
+                  return ServiceSelectionScreen(
+                    allowedServices:
+                        user != null ? _allowedServicesFor(user) : const <String>[],
+                  );
+                },
                 "/inventory": (final BuildContext context) =>
                     const ServiceGuard(service: 'inventory', child: InventoryHome()),
                 "/coming-soon": (final BuildContext context) =>
@@ -523,18 +536,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Widget _resolveServiceHome(AuthProvider authProvider) {
-    final List<String> boundServices = authProvider.user!.serviceTypes;
-    if (boundServices.length == 1) {
-      return _ServiceHomeFor(service: boundServices.first, authProvider: authProvider);
+    final List<String> allowed = _allowedServicesFor(authProvider.user!);
+    if (allowed.length == 1) {
+      return _ServiceHomeFor(service: allowed.first, authProvider: authProvider);
     }
-    if (boundServices.length > 1) {
-      return ServiceSelectionScreen(allowedServices: boundServices);
-    }
-    final List<String> roleServices = _servicesForRole(authProvider.user!.role ?? '');
-    if (roleServices.length == 1) {
-      return _ServiceHomeFor(service: roleServices.first, authProvider: authProvider);
-    }
-    return ServiceSelectionScreen(allowedServices: roleServices);
+    return ServiceSelectionScreen(allowedServices: allowed);
   }
 
   void _goToLogin(BuildContext ctx) {
@@ -729,3 +735,13 @@ class _ServiceHomeForState extends State<_ServiceHomeFor> {
 // Role → allowed services mapping lives in utils/role_services.dart.
 // Alias so existing call-sites in this file don't need changing.
 List<String> _servicesForRole(String role) => servicesForRole(role);
+
+/// The services a user may pick from: their explicit bindings if any exist,
+/// else whatever their role implies (e.g. super_admin -> all three).
+/// Single source of truth so "Select Service" always reflects who's
+/// actually logged in, instead of a route that forgets to look.
+List<String> _allowedServicesFor(UserData user) {
+  final List<String> bound = user.serviceTypes;
+  if (bound.isNotEmpty) return bound;
+  return _servicesForRole(user.role ?? '');
+}
