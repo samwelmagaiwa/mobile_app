@@ -250,7 +250,29 @@ class ProductController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'cost_price', 'selling_price', 'quantity', 'min_stock', 'status'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'category', type: 'string', nullable: true),
+                new OA\Property(property: 'category_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'brand_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'cost_price', type: 'number'),
+                new OA\Property(property: 'selling_price', type: 'number'),
+                new OA\Property(property: 'unit', type: 'string', nullable: true),
+                new OA\Property(property: 'unit_factor', type: 'integer', nullable: true),
+                new OA\Property(property: 'quantity', type: 'integer'),
+                new OA\Property(property: 'min_stock', type: 'integer'),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+                new OA\Property(property: 'barcode', type: 'string', nullable: true),
+                new OA\Property(property: 'price_tier', type: 'string', enum: ['retail', 'wholesale'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

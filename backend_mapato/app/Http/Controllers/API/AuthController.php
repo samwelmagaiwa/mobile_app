@@ -317,7 +317,17 @@ class AuthController extends Controller
         path: '/auth/forgot-password',
         summary: 'Forgot password',
         tags: ['Auth'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['email', 'phone_number'],
+                properties: [
+                new OA\Property(property: 'email', type: 'string', format: 'email'),
+                new OA\Property(property: 'phone_number', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function forgotPassword(Request $request)
     {
@@ -401,7 +411,18 @@ class AuthController extends Controller
         path: '/auth/reset-password',
         summary: 'Reset password',
         tags: ['Auth'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['email', 'reset_token', 'password'],
+                properties: [
+                new OA\Property(property: 'email', type: 'string', format: 'email'),
+                new OA\Property(property: 'reset_token', type: 'string'),
+                new OA\Property(property: 'password', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function resetPassword(Request $request)
     {
@@ -613,6 +634,15 @@ class AuthController extends Controller
         summary: 'Upload avatar',
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(properties: [
+                    new OA\Property(property: 'avatar', type: 'string', format: 'binary', description: 'Also accepted as `photo` or `image`'),
+                ]),
+            ),
+        ),
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function uploadAvatar(Request $request)

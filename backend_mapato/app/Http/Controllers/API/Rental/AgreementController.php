@@ -100,7 +100,34 @@ class AgreementController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Agreement'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['tenant_id', 'property_id', 'house_id', 'start_date', 'end_date', 'rent_amount'],
+                properties: [
+                new OA\Property(property: 'tenant_id', type: 'string'),
+                new OA\Property(property: 'property_id', type: 'string'),
+                new OA\Property(property: 'house_id', type: 'string'),
+                new OA\Property(property: 'start_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'end_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'rent_amount', type: 'number'),
+                new OA\Property(property: 'deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'deposit_paid', type: 'number', nullable: true),
+                new OA\Property(property: 'rent_cycle', type: 'string', enum: ['monthly', 'quarterly', 'semi_annual', 'annual'], nullable: true),
+                new OA\Property(property: 'due_day', type: 'integer', nullable: true),
+                new OA\Property(property: 'grace_period_days', type: 'integer', nullable: true),
+                new OA\Property(property: 'late_fee_type', type: 'string', enum: ['percentage', 'fixed', 'none'], nullable: true),
+                new OA\Property(property: 'late_fee_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'utility_charges', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'rules', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'terms', type: 'string', nullable: true),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                new OA\Property(property: 'notice_period_days', type: 'integer', nullable: true),
+                new OA\Property(property: 'auto_renew', type: 'boolean', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -193,7 +220,17 @@ class AgreementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['new_end_date'],
+                properties: [
+                new OA\Property(property: 'new_end_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'new_rent_amount', type: 'number', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function renew(Request $request, string $id)
     {
@@ -229,7 +266,16 @@ class AgreementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['termination_reason'],
+                properties: [
+                new OA\Property(property: 'termination_reason', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function terminate(Request $request, string $id)
     {
@@ -270,7 +316,17 @@ class AgreementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['document', 'document_type'],
+                properties: [
+                new OA\Property(property: 'document', type: 'string'),
+                new OA\Property(property: 'document_type', type: 'string', enum: ['signed_contract', 'id_card', 'receipt', 'other']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function uploadDocument(Request $request, string $id)
     {

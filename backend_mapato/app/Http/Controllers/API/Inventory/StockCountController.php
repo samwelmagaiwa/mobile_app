@@ -111,7 +111,15 @@ class StockCountController extends Controller
 
         tags: ['Inventory / Stock Count'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -140,7 +148,19 @@ class StockCountController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['product_id', 'counted_quantity'],
+                properties: [
+                new OA\Property(property: 'product_id', type: 'integer'),
+                new OA\Property(property: 'batch_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'counted_quantity', type: 'integer'),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function saveLine(Request $request, int $id)
     {

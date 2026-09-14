@@ -143,7 +143,16 @@ class BackupController extends Controller
         summary: 'Restore',
         security: [['bearerAuth' => []]],
         tags: ['Admin / Backup'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['backup_file'],
+                properties: [
+                new OA\Property(property: 'backup_file', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function restore(Request $request): \Illuminate\Http\JsonResponse
     {

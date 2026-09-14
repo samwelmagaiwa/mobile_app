@@ -111,7 +111,21 @@ class DispatchController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Dispatch'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['lines'],
+                properties: [
+                new OA\Property(property: 'vehicle', type: 'string', nullable: true),
+                new OA\Property(property: 'agent_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'route', type: 'string', nullable: true),
+                new OA\Property(property: 'dispatch_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                new OA\Property(property: 'lines', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -189,7 +203,18 @@ class DispatchController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['cash_returned', 'lines'],
+                properties: [
+                new OA\Property(property: 'cash_returned', type: 'number'),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                new OA\Property(property: 'lines', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function reconcile(Request $request, int $id)
     {

@@ -86,7 +86,23 @@ class StockMovementController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Stock Movement'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['product_id', 'type', 'quantity'],
+                properties: [
+                new OA\Property(property: 'product_id', type: 'string'),
+                new OA\Property(property: 'type', type: 'string', enum: ['in', 'out']),
+                new OA\Property(property: 'quantity', type: 'integer'),
+                new OA\Property(property: 'reference', type: 'string', nullable: true),
+                new OA\Property(property: 'batch_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'batch_number', type: 'string', nullable: true),
+                new OA\Property(property: 'expiry_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'cost_price', type: 'number', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {

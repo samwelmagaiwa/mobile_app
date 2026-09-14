@@ -27,7 +27,21 @@ class CashController extends Controller
         summary: 'Receive payment',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Cash'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['customer_id', 'amount', 'method'],
+                properties: [
+                new OA\Property(property: 'customer_id', type: 'integer'),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer', 'cheque']),
+                new OA\Property(property: 'reference', type: 'string', nullable: true),
+                new OA\Property(property: 'paid_at', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'allocations', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function receivePayment(Request $request)
     {
@@ -193,7 +207,15 @@ class CashController extends Controller
 
         tags: ['Inventory / Cash'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'opening_float', type: 'number', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -243,7 +265,17 @@ class CashController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['description', 'amount'],
+                properties: [
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'amount', type: 'number'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -345,7 +377,17 @@ class CashController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['counted_cash'],
+                properties: [
+                new OA\Property(property: 'counted_cash', type: 'number'),
+                new OA\Property(property: 'difference_reason', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

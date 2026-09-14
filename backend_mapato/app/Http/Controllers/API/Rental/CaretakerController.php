@@ -39,7 +39,18 @@ class CaretakerController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Caretaker'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'phone_number'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'phone_number', type: 'string'),
+                new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -73,7 +84,16 @@ class CaretakerController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['property_ids'],
+                properties: [
+                new OA\Property(property: 'property_ids', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function assignProperties(Request $request, $caretakerId)
     {
@@ -112,7 +132,16 @@ class CaretakerController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+                new OA\Property(property: 'is_active', type: 'boolean', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(Request $request, $id)
     {

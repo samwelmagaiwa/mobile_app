@@ -216,7 +216,20 @@ class PaymentController extends Controller
         summary: 'Record payment',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['driver_id', 'amount', 'payment_channel', 'covers_days'],
+                properties: [
+                new OA\Property(property: 'driver_id', type: 'string'),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'payment_channel', type: 'string', enum: ['cash', 'mpesa', 'bank', 'mobile', 'other']),
+                new OA\Property(property: 'covers_days', type: 'array', items: new OA\Items(type: 'string')),
+                new OA\Property(property: 'remarks', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function recordPayment(Request $request): JsonResponse
     {
@@ -425,7 +438,18 @@ class PaymentController extends Controller
         parameters: [
             new OA\Parameter(name: 'paymentId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'amount', type: 'number', nullable: true),
+                new OA\Property(property: 'payment_channel', type: 'string', enum: ['cash', 'mpesa', 'bank', 'mobile', 'other'], nullable: true),
+                new OA\Property(property: 'remarks', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['pending', 'completed', 'cancelled'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updatePayment(int $paymentId, Request $request): JsonResponse
     {
@@ -600,7 +624,16 @@ class PaymentController extends Controller
         parameters: [
             new OA\Parameter(name: 'debtId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['payment_id'],
+                properties: [
+                new OA\Property(property: 'payment_id', type: 'integer'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function markDebtAsPaid(int $debtId, Request $request): JsonResponse
     {
@@ -647,7 +680,19 @@ class PaymentController extends Controller
         summary: 'Store new payment',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['driver_id', 'amount', 'payment_date'],
+                properties: [
+                new OA\Property(property: 'driver_id', type: 'string'),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'payment_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'month_for', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function storeNewPayment(Request $request): JsonResponse
     {

@@ -68,7 +68,22 @@ class ProductUnitController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'factor'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'factor', type: 'integer'),
+                new OA\Property(property: 'is_base', type: 'boolean', nullable: true),
+                new OA\Property(property: 'barcode', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive'], nullable: true),
+                new OA\Property(property: 'retail_price', type: 'number', nullable: true),
+                new OA\Property(property: 'wholesale_price', type: 'number', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -147,7 +162,19 @@ class ProductUnitController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'factor', 'status'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'factor', type: 'integer'),
+                new OA\Property(property: 'barcode', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -236,7 +263,20 @@ class ProductUnitController extends Controller
             new OA\Parameter(name: 'productId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'unitId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['tier', 'price'],
+                properties: [
+                new OA\Property(property: 'tier', type: 'string', enum: ['retail', 'wholesale', 'special']),
+                new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'price', type: 'number'),
+                new OA\Property(property: 'effective_from', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'reason', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function setPrice(Request $request, int $productId, int $unitId)
     {

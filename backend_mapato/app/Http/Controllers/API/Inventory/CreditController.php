@@ -72,7 +72,19 @@ class CreditController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['credit_limit', 'payment_terms_days', 'is_blocked'],
+                properties: [
+                new OA\Property(property: 'credit_limit', type: 'number'),
+                new OA\Property(property: 'payment_terms_days', type: 'integer'),
+                new OA\Property(property: 'is_blocked', type: 'boolean'),
+                new OA\Property(property: 'block_reason', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

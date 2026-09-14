@@ -43,7 +43,18 @@ class ExpenseController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Expense'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['description', 'amount', 'expense_date'],
+                properties: [
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'expense_date', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -79,7 +90,17 @@ class ExpenseController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'amount', type: 'number', nullable: true),
+                new OA\Property(property: 'expense_date', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(Request $request, int $id)
     {

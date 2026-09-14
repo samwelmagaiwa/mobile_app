@@ -137,7 +137,21 @@ class BillingController extends Controller
         summary: 'Record payment',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Billing'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['bill_id', 'amount_paid', 'payment_method'],
+                properties: [
+                new OA\Property(property: 'bill_id', type: 'string'),
+                new OA\Property(property: 'amount_paid', type: 'number'),
+                new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'bank_transfer', 'm-pesa', 'airtel_money', 'tigo_pesa']),
+                new OA\Property(property: 'transaction_reference', type: 'string', nullable: true),
+                new OA\Property(property: 'payment_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function recordPayment(Request $request)
     {

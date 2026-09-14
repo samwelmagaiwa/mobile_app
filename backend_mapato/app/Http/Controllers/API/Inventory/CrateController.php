@@ -56,7 +56,18 @@ class CrateController extends Controller
 
         tags: ['Inventory / Crate'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'deposit_value'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'deposit_value', type: 'number'),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -85,7 +96,21 @@ class CrateController extends Controller
         summary: 'Move',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Crate'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['crate_type_id', 'direction', 'quantity'],
+                properties: [
+                new OA\Property(property: 'crate_type_id', type: 'integer'),
+                new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'direction', type: 'string', enum: ['issued', 'returned', 'broken', 'purchased']),
+                new OA\Property(property: 'quantity', type: 'integer'),
+                new OA\Property(property: 'reference', type: 'string', nullable: true),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function move(Request $request)
     {

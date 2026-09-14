@@ -79,7 +79,21 @@ class MaintenanceController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Maintenance'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['property_id', 'category', 'priority', 'description'],
+                properties: [
+                new OA\Property(property: 'property_id', type: 'string'),
+                new OA\Property(property: 'house_id', type: 'string', nullable: true),
+                new OA\Property(property: 'category', type: 'string'),
+                new OA\Property(property: 'priority', type: 'string', enum: ['low', 'medium', 'high', 'emergency']),
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'photo', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -142,7 +156,20 @@ class MaintenanceController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['vendor_id', 'title'],
+                properties: [
+                new OA\Property(property: 'vendor_id', type: 'string'),
+                new OA\Property(property: 'title', type: 'string'),
+                new OA\Property(property: 'instructions', type: 'string', nullable: true),
+                new OA\Property(property: 'estimated_cost', type: 'number', nullable: true),
+                new OA\Property(property: 'scheduled_date', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function assign(Request $request, string $id)
     {
@@ -187,7 +214,18 @@ class MaintenanceController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['status'],
+                properties: [
+                new OA\Property(property: 'status', type: 'string', enum: ['open', 'pending', 'in_progress', 'resolved', 'cancelled']),
+                new OA\Property(property: 'actual_cost', type: 'number', nullable: true),
+                new OA\Property(property: 'completion_date', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateStatus(Request $request, string $id)
     {
@@ -355,7 +393,21 @@ class MaintenanceController extends Controller
 
         tags: ['Rental / Maintenance'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'phone'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'phone', type: 'string'),
+                new OA\Property(property: 'specialty', type: 'string', nullable: true),
+                new OA\Property(property: 'experience', type: 'string', nullable: true),
+                new OA\Property(property: 'business_name', type: 'string', nullable: true),
+                new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -445,7 +497,20 @@ class MaintenanceController extends Controller
 
         tags: ['Rental / Maintenance'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['property_id', 'description', 'frequency', 'next_run'],
+                properties: [
+                new OA\Property(property: 'property_id', type: 'string'),
+                new OA\Property(property: 'house_id', type: 'string', nullable: true),
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'frequency', type: 'string', enum: ['monthly', 'quarterly', 'semi_annual', 'annual']),
+                new OA\Property(property: 'next_run', type: 'string', format: 'date'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

@@ -33,7 +33,17 @@ class SecurityController extends Controller
         summary: 'Change password',
         security: [['bearerAuth' => []]],
         tags: ['Admin / Security'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['current_password', 'new_password'],
+                properties: [
+                new OA\Property(property: 'current_password', type: 'string'),
+                new OA\Property(property: 'new_password', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function changePassword(Request $request)
     {
@@ -141,7 +151,16 @@ class SecurityController extends Controller
         summary: 'Set two factor',
         security: [['bearerAuth' => []]],
         tags: ['Admin / Security'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['enabled'],
+                properties: [
+                new OA\Property(property: 'enabled', type: 'boolean'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function setTwoFactor(Request $request)
     {

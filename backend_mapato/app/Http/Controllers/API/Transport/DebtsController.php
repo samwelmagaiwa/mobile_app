@@ -105,7 +105,21 @@ class DebtsController extends Controller
         summary: 'Bulk create',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Debts'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['driver_id'],
+                properties: [
+                new OA\Property(property: 'driver_id', type: 'string'),
+                new OA\Property(property: 'dates', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'amount', type: 'number', nullable: true),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                new OA\Property(property: 'promised_to_pay', type: 'boolean', nullable: true),
+                new OA\Property(property: 'promise_to_pay_at', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function bulkCreate(Request $request): JsonResponse
     {
@@ -272,7 +286,20 @@ class DebtsController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'earning_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'expected_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                new OA\Property(property: 'promised_to_pay', type: 'boolean', nullable: true),
+                new OA\Property(property: 'promise_to_pay_at', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'license_number', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateRecord(int $id, Request $request): JsonResponse
     {

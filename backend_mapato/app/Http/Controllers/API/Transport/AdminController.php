@@ -103,7 +103,24 @@ class AdminController extends Controller
         summary: 'Record payment',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['driver_id', 'amount', 'category', 'description', 'payment_method'],
+                properties: [
+                new OA\Property(property: 'driver_id', type: 'string', format: 'uuid'),
+                new OA\Property(property: 'device_id', type: 'string', format: 'uuid', nullable: true),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'category', type: 'string'),
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer', 'card']),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                new OA\Property(property: 'customer_name', type: 'string', nullable: true),
+                new OA\Property(property: 'customer_phone', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function recordPayment(Request $request)
     {
@@ -175,7 +192,19 @@ class AdminController extends Controller
         summary: 'Generate receipt',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['transaction_id', 'service_description'],
+                properties: [
+                new OA\Property(property: 'transaction_id', type: 'string', format: 'uuid'),
+                new OA\Property(property: 'customer_name', type: 'string', nullable: true),
+                new OA\Property(property: 'service_description', type: 'string'),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function generateReceipt(Request $request)
     {
@@ -459,7 +488,21 @@ class AdminController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+                new OA\Property(property: 'phone', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive'], nullable: true),
+                new OA\Property(property: 'license_number', type: 'string', nullable: true),
+                new OA\Property(property: 'address', type: 'string', nullable: true),
+                new OA\Property(property: 'emergency_contact', type: 'string', nullable: true),
+                new OA\Property(property: 'vehicle_type', type: 'string', enum: ['bajaji', 'pikipiki', 'gari'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateDriver(Request $request, $id)
     {
@@ -734,7 +777,19 @@ class AdminController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+                new OA\Property(property: 'type', type: 'string', enum: ['bajaji', 'pikipiki', 'gari'], nullable: true),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'is_active', type: 'boolean', nullable: true),
+                new OA\Property(property: 'driver_id', type: 'string', format: 'uuid', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateVehicle(Request $request, $id)
     {
@@ -835,7 +890,20 @@ class AdminController extends Controller
         summary: 'Create vehicle',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'type', 'plate_number'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'type', type: 'string', enum: ['bajaji', 'pikipiki', 'gari']),
+                new OA\Property(property: 'plate_number', type: 'string'),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'driver_id', type: 'string', format: 'uuid', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function createVehicle(CreateVehicleRequest $request)
     {
@@ -911,7 +979,17 @@ class AdminController extends Controller
         summary: 'Assign driver to vehicle',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['driver_id', 'vehicle_id'],
+                properties: [
+                new OA\Property(property: 'driver_id', type: 'string', format: 'uuid'),
+                new OA\Property(property: 'vehicle_id', type: 'string', format: 'uuid'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function assignDriverToVehicle(Request $request)
     {
@@ -1126,7 +1204,21 @@ class AdminController extends Controller
         summary: 'Add reminder',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['title', 'message', 'reminder_date', 'priority'],
+                properties: [
+                new OA\Property(property: 'title', type: 'string'),
+                new OA\Property(property: 'message', type: 'string'),
+                new OA\Property(property: 'driver_id', type: 'string', format: 'uuid', nullable: true),
+                new OA\Property(property: 'vehicle_id', type: 'string', format: 'uuid', nullable: true),
+                new OA\Property(property: 'reminder_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'priority', type: 'string', enum: ['low', 'medium', 'high', 'urgent']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function addReminder(Request $request)
     {
@@ -1320,7 +1412,19 @@ class AdminController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'title', type: 'string', nullable: true),
+                new OA\Property(property: 'message', type: 'string', nullable: true),
+                new OA\Property(property: 'reminder_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'priority', type: 'string', enum: ['low', 'medium', 'high', 'urgent'], nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'completed', 'cancelled'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateReminder(Request $request, $id)
     {

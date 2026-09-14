@@ -94,7 +94,18 @@ class BrandController extends Controller
 
         tags: ['Inventory / Brand'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -136,7 +147,17 @@ class BrandController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['status'],
+                properties: [
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

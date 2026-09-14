@@ -63,7 +63,19 @@ class PosController extends Controller
 
         tags: ['Inventory / POS'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['cart', 'total'],
+                properties: [
+                new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'cart', type: 'array', items: new OA\Items(type: 'string')),
+                new OA\Property(property: 'total', type: 'number'),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -200,7 +212,19 @@ class PosController extends Controller
 
         tags: ['Inventory / POS'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['sale_id', 'type', 'lines'],
+                properties: [
+                new OA\Property(property: 'sale_id', type: 'integer'),
+                new OA\Property(property: 'type', type: 'string', enum: ['return', 'cancellation']),
+                new OA\Property(property: 'reason', type: 'string', nullable: true),
+                new OA\Property(property: 'lines', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -298,7 +322,16 @@ class PosController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['decision'],
+                properties: [
+                new OA\Property(property: 'decision', type: 'string', enum: ['approved', 'rejected']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function decideReturn(Request $request, int $id)
     {

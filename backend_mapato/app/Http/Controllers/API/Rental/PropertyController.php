@@ -110,7 +110,33 @@ class PropertyController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Properties'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'property_type', 'region', 'district', 'address', 'billing_cycle'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'property_type', type: 'string'),
+                new OA\Property(property: 'region', type: 'string'),
+                new OA\Property(property: 'district', type: 'string'),
+                new OA\Property(property: 'ward', type: 'string', nullable: true),
+                new OA\Property(property: 'street', type: 'string', nullable: true),
+                new OA\Property(property: 'address', type: 'string'),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'billing_cycle', type: 'string'),
+                new OA\Property(property: 'currency', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', nullable: true),
+                new OA\Property(property: 'total_units', type: 'integer', nullable: true),
+                new OA\Property(property: 'number_of_blocks', type: 'integer', nullable: true),
+                new OA\Property(property: 'caretaker_id', type: 'string', nullable: true),
+                new OA\Property(property: 'default_rent_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'default_deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'utility_billing_enabled', type: 'boolean', nullable: true),
+                new OA\Property(property: 'cover_image', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(StorePropertyRequest $request)
     {
@@ -142,7 +168,32 @@ class PropertyController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+                new OA\Property(property: 'property_type', type: 'string', nullable: true),
+                new OA\Property(property: 'region', type: 'string', nullable: true),
+                new OA\Property(property: 'district', type: 'string', nullable: true),
+                new OA\Property(property: 'ward', type: 'string', nullable: true),
+                new OA\Property(property: 'street', type: 'string', nullable: true),
+                new OA\Property(property: 'address', type: 'string', nullable: true),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'billing_cycle', type: 'string', nullable: true),
+                new OA\Property(property: 'currency', type: 'string', nullable: true),
+                new OA\Property(property: 'status', type: 'string', nullable: true),
+                new OA\Property(property: 'total_units', type: 'integer', nullable: true),
+                new OA\Property(property: 'number_of_blocks', type: 'integer', nullable: true),
+                new OA\Property(property: 'caretaker_id', type: 'string', nullable: true),
+                new OA\Property(property: 'default_rent_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'default_deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'utility_billing_enabled', type: 'boolean', nullable: true),
+                new OA\Property(property: 'cover_image', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(UpdatePropertyRequest $request, string $id)
     {
@@ -253,7 +304,26 @@ class PropertyController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['house_number', 'rent_amount'],
+                properties: [
+                new OA\Property(property: 'house_number', type: 'string'),
+                new OA\Property(property: 'rent_amount', type: 'number'),
+                new OA\Property(property: 'type', type: 'string', enum: ['apartment', 'room', 'commercial', 'studio', 'bedsitter', 'one_bedroom', 'two_bedroom'], nullable: true),
+                new OA\Property(property: 'deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'block_id', type: 'string', nullable: true),
+                new OA\Property(property: 'electricity_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'water_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'bedrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'bathrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'floor', type: 'integer', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['vacant', 'occupied', 'maintenance', 'reserved'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function addHouse(Request $request, string $propertyId)
     {

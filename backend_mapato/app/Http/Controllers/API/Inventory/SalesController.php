@@ -439,7 +439,19 @@ class SalesController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['amount', 'method'],
+                properties: [
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer']),
+                new OA\Property(property: 'reference', type: 'string', nullable: true),
+                new OA\Property(property: 'paid_at', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function recordPayment(Request $request, int $id)
     {
@@ -532,7 +544,16 @@ class SalesController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['reason'],
+                properties: [
+                new OA\Property(property: 'reason', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function cancel(Request $request, int $id)
     {

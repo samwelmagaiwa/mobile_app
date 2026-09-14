@@ -25,7 +25,17 @@ class BarcodeController extends Controller
         summary: 'Generate',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Barcode'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['entity_type', 'entity_id'],
+                properties: [
+                new OA\Property(property: 'entity_type', type: 'string', enum: ['product_unit', 'batch', 'crate']),
+                new OA\Property(property: 'entity_id', type: 'integer'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function generate(Request $request)
     {
@@ -231,7 +241,17 @@ class BarcodeController extends Controller
         summary: 'Labels',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Barcode'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['entity_type', 'entity_ids'],
+                properties: [
+                new OA\Property(property: 'entity_type', type: 'string', enum: ['product_unit', 'batch', 'crate']),
+                new OA\Property(property: 'entity_ids', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function labels(Request $request)
     {

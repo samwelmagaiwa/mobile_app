@@ -77,7 +77,22 @@ class PurchasingController extends Controller
 
         tags: ['Inventory / Purchasing'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'phone', type: 'string', nullable: true),
+                new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
+                new OA\Property(property: 'address', type: 'string', nullable: true),
+                new OA\Property(property: 'contact_person', type: 'string', nullable: true),
+                new OA\Property(property: 'payment_terms_days', type: 'integer', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -122,7 +137,22 @@ class PurchasingController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['name', 'status'],
+                properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'phone', type: 'string', nullable: true),
+                new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
+                new OA\Property(property: 'address', type: 'string', nullable: true),
+                new OA\Property(property: 'contact_person', type: 'string', nullable: true),
+                new OA\Property(property: 'payment_terms_days', type: 'integer', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -302,7 +332,19 @@ class PurchasingController extends Controller
 
         tags: ['Inventory / Purchasing'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['supplier_id', 'lines'],
+                properties: [
+                new OA\Property(property: 'supplier_id', type: 'integer'),
+                new OA\Property(property: 'expected_at', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                new OA\Property(property: 'lines', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -373,7 +415,16 @@ class PurchasingController extends Controller
 
         ],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['status'],
+                properties: [
+                new OA\Property(property: 'status', type: 'string', enum: ['draft', 'sent', 'cancelled']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -405,7 +456,22 @@ class PurchasingController extends Controller
         summary: 'Receive goods',
         security: [['bearerAuth' => []]],
         tags: ['Inventory / Purchasing'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['supplier_id', 'lines'],
+                properties: [
+                new OA\Property(property: 'supplier_id', type: 'integer'),
+                new OA\Property(property: 'purchase_order_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'received_on', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                new OA\Property(property: 'invoice_number', type: 'string', nullable: true),
+                new OA\Property(property: 'invoice_due_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'lines', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function receiveGoods(Request $request)
     {
@@ -598,7 +664,21 @@ class PurchasingController extends Controller
 
         tags: ['Inventory / Purchasing'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['supplier_id', 'amount', 'method'],
+                properties: [
+                new OA\Property(property: 'supplier_id', type: 'integer'),
+                new OA\Property(property: 'supplier_invoice_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer', 'cheque']),
+                new OA\Property(property: 'reference', type: 'string', nullable: true),
+                new OA\Property(property: 'paid_on', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 

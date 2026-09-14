@@ -350,7 +350,23 @@ class UserManagementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+                new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
+                new OA\Property(property: 'phone_number', type: 'string', nullable: true),
+                new OA\Property(property: 'role', type: 'string', enum: ['super_admin', 'admin', 'driver', 'landlord', 'caretaker', 'tenant', 'viewer', 'manager', 'operator', 'sales_officer'], nullable: true),
+                new OA\Property(property: 'is_active', type: 'boolean', nullable: true),
+                new OA\Property(property: 'service_type', type: 'string', enum: ['rental', 'transport', 'inventory'], nullable: true),
+                new OA\Property(property: 'service_types', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'full_access', type: 'boolean', nullable: true),
+                new OA\Property(property: 'permissions', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(Request $request, string $id)
     {
@@ -521,7 +537,16 @@ class UserManagementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['service_types'],
+                properties: [
+                new OA\Property(property: 'service_types', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function bindServices(Request $request, string $id)
     {
@@ -584,7 +609,16 @@ class UserManagementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['password'],
+                properties: [
+                new OA\Property(property: 'password', type: 'string'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function resetPassword(Request $request, string $id)
     {

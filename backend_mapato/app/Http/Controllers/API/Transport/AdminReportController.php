@@ -932,6 +932,11 @@ class AdminReportController extends Controller
         summary: 'Export to pdf',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'report_type', in: 'query', schema: new OA\Schema(type: 'string', default: 'revenue')),
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function exportToPdf(Request $request)

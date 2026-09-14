@@ -407,7 +407,19 @@ class DriverViewController extends Controller
         summary: 'Submit payment request',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver View'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['amount', 'description', 'payment_method'],
+                properties: [
+                new OA\Property(property: 'amount', type: 'number'),
+                new OA\Property(property: 'description', type: 'string'),
+                new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer']),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function submitPaymentRequest(Request $request)
     {

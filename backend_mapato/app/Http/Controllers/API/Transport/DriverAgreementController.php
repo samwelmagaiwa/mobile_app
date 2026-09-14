@@ -75,7 +75,28 @@ class DriverAgreementController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver Agreements'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['agreement_type', 'start_date', 'payment_frequencies'],
+                properties: [
+                new OA\Property(property: 'agreement_type', type: 'string', enum: ['kwa_mkataba', 'dei_waka']),
+                new OA\Property(property: 'start_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'end_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'weekends_countable', type: 'boolean', nullable: true),
+                new OA\Property(property: 'saturday_included', type: 'boolean', nullable: true),
+                new OA\Property(property: 'sunday_included', type: 'boolean', nullable: true),
+                new OA\Property(property: 'payment_frequencies', type: 'array', items: new OA\Items(type: 'string')),
+                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                new OA\Property(property: 'daily_target', type: 'number', nullable: true),
+                new OA\Property(property: 'contract_period_months', type: 'integer', nullable: true),
+                new OA\Property(property: 'bonus_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'agreed_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'total_profit', type: 'number', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request): JsonResponse
     {
@@ -255,7 +276,24 @@ class DriverAgreementController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'agreement_type', type: 'string', enum: ['kwa_mkataba', 'dei_waka'], nullable: true),
+                new OA\Property(property: 'start_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'end_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'mwaka_atamaliza', type: 'string', nullable: true),
+                new OA\Property(property: 'kiasi_cha_makubaliano', type: 'number', nullable: true),
+                new OA\Property(property: 'wikendi_zinahesabika', type: 'boolean', nullable: true),
+                new OA\Property(property: 'jumamosi', type: 'boolean', nullable: true),
+                new OA\Property(property: 'jumapili', type: 'boolean', nullable: true),
+                new OA\Property(property: 'payment_frequencies', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive', 'completed', 'terminated'], nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(Request $request, string $id): JsonResponse
     {
@@ -394,7 +432,22 @@ class DriverAgreementController extends Controller
         summary: 'Calculate preview',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Driver Agreements'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['agreement_type', 'start_date', 'end_date', 'kiasi_cha_makubaliano'],
+                properties: [
+                new OA\Property(property: 'agreement_type', type: 'string', enum: ['kwa_mkataba']),
+                new OA\Property(property: 'start_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'end_date', type: 'string', format: 'date'),
+                new OA\Property(property: 'kiasi_cha_makubaliano', type: 'number'),
+                new OA\Property(property: 'wikendi_zinahesabika', type: 'boolean', nullable: true),
+                new OA\Property(property: 'jumamosi', type: 'boolean', nullable: true),
+                new OA\Property(property: 'jumapili', type: 'boolean', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function calculatePreview(Request $request): JsonResponse
     {

@@ -112,7 +112,16 @@ class PaymentReceiptController extends Controller
         summary: 'Generate receipt',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['payment_id'],
+                properties: [
+                new OA\Property(property: 'payment_id', type: 'integer'),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function generateReceipt(Request $request)
     {
@@ -226,7 +235,19 @@ class PaymentReceiptController extends Controller
         summary: 'Send receipt',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['receipt_id', 'send_via', 'contact_info'],
+                properties: [
+                new OA\Property(property: 'receipt_id', type: 'integer'),
+                new OA\Property(property: 'send_via', type: 'string', enum: ['whatsapp', 'email', 'system']),
+                new OA\Property(property: 'contact_info', type: 'string'),
+                new OA\Property(property: 'message', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function sendReceipt(Request $request)
     {
@@ -419,7 +440,16 @@ class PaymentReceiptController extends Controller
         parameters: [
             new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['status'],
+                properties: [
+                new OA\Property(property: 'status', type: 'string', enum: ['generated', 'sent', 'delivered', 'cancelled']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateReceiptStatus(Request $request, int $receiptId)
     {
@@ -575,7 +605,20 @@ class PaymentReceiptController extends Controller
         summary: 'Export receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['format'],
+                properties: [
+                new OA\Property(property: 'format', type: 'string', enum: ['pdf', 'excel']),
+                new OA\Property(property: 'status', type: 'string', enum: ['generated', 'sent', 'delivered', 'cancelled'], nullable: true),
+                new OA\Property(property: 'driver_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'date_from', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'date_to', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function exportReceipts(Request $request)
     {
@@ -624,7 +667,16 @@ class PaymentReceiptController extends Controller
         summary: 'Generate bulk receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['payment_ids'],
+                properties: [
+                new OA\Property(property: 'payment_ids', type: 'array', items: new OA\Items(type: 'string')),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function generateBulkReceipts(Request $request)
     {

@@ -76,7 +76,20 @@ class WriteOffController extends Controller
 
         tags: ['Inventory / Write Off'],
 
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['product_id', 'reason', 'quantity'],
+                properties: [
+                new OA\Property(property: 'product_id', type: 'integer'),
+                new OA\Property(property: 'batch_id', type: 'integer', nullable: true),
+                new OA\Property(property: 'reason', type: 'string', enum: ['damage', 'breakage', 'expiry', 'theft', 'other']),
+                new OA\Property(property: 'quantity', type: 'integer'),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
 
@@ -146,7 +159,17 @@ class WriteOffController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['decision'],
+                properties: [
+                new OA\Property(property: 'decision', type: 'string', enum: ['approved', 'rejected']),
+                new OA\Property(property: 'decision_note', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function decide(Request $request, int $id)
     {

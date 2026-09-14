@@ -97,7 +97,37 @@ class HouseController extends Controller
         summary: 'Create a resource',
         security: [['bearerAuth' => []]],
         tags: ['Rental / House'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['property_id', 'house_number', 'type', 'rent_amount'],
+                properties: [
+                new OA\Property(property: 'property_id', type: 'string'),
+                new OA\Property(property: 'block_id', type: 'string', nullable: true),
+                new OA\Property(property: 'house_number', type: 'string'),
+                new OA\Property(property: 'type', type: 'string', enum: ['apartment', 'room', 'commercial', 'studio', 'bedsitter', 'one_bedroom', 'two_bedroom', 'three_bedroom']),
+                new OA\Property(property: 'rent_amount', type: 'number'),
+                new OA\Property(property: 'deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'electricity_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'water_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'bedrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'bathrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'floor', type: 'integer', nullable: true),
+                new OA\Property(property: 'square_meters', type: 'integer', nullable: true),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'kitchen_location', type: 'string', nullable: true),
+                new OA\Property(property: 'distance_from_road', type: 'string', nullable: true),
+                new OA\Property(property: 'electricity_type', type: 'string', nullable: true),
+                new OA\Property(property: 'electricity_sharing_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'water_type', type: 'string', nullable: true),
+                new OA\Property(property: 'water_sharing_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'maintenance_until', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'units_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'unit_names', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function store(Request $request)
     {
@@ -223,7 +253,36 @@ class HouseController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                new OA\Property(property: 'house_number', type: 'string', nullable: true),
+                new OA\Property(property: 'block_id', type: 'string', nullable: true),
+                new OA\Property(property: 'type', type: 'string', enum: ['apartment', 'room', 'commercial', 'studio', 'bedsitter', 'one_bedroom', 'two_bedroom', 'three_bedroom'], nullable: true),
+                new OA\Property(property: 'rent_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'deposit_amount', type: 'number', nullable: true),
+                new OA\Property(property: 'electricity_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'water_meter', type: 'string', nullable: true),
+                new OA\Property(property: 'bedrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'bathrooms', type: 'integer', nullable: true),
+                new OA\Property(property: 'floor', type: 'integer', nullable: true),
+                new OA\Property(property: 'square_meters', type: 'integer', nullable: true),
+                new OA\Property(property: 'status', type: 'string', enum: ['vacant', 'occupied', 'maintenance', 'reserved'], nullable: true),
+                new OA\Property(property: 'description', type: 'string', nullable: true),
+                new OA\Property(property: 'kitchen_location', type: 'string', nullable: true),
+                new OA\Property(property: 'distance_from_road', type: 'string', nullable: true),
+                new OA\Property(property: 'electricity_type', type: 'string', nullable: true),
+                new OA\Property(property: 'electricity_sharing_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'water_type', type: 'string', nullable: true),
+                new OA\Property(property: 'water_sharing_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'maintenance_until', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'units_count', type: 'integer', nullable: true),
+                new OA\Property(property: 'unit_names', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function update(Request $request, $id)
     {

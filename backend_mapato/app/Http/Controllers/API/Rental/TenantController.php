@@ -187,7 +187,32 @@ class TenantController extends Controller
         summary: 'Onboard',
         security: [['bearerAuth' => []]],
         tags: ['Rental / Tenants'],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['first_name', 'last_name', 'email', 'phone', 'rental_house_id', 'rent_amount'],
+                properties: [
+                new OA\Property(property: 'first_name', type: 'string'),
+                new OA\Property(property: 'last_name', type: 'string'),
+                new OA\Property(property: 'email', type: 'string', format: 'email'),
+                new OA\Property(property: 'phone', type: 'string'),
+                new OA\Property(property: 'rental_house_id', type: 'string'),
+                new OA\Property(property: 'rent_amount', type: 'number'),
+                new OA\Property(property: 'start_date', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'gender', type: 'string', nullable: true),
+                new OA\Property(property: 'dob', type: 'string', format: 'date', nullable: true),
+                new OA\Property(property: 'nida', type: 'string', nullable: true),
+                new OA\Property(property: 'emergency_contact', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'id_details', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'employment', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'history', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'occupants', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'pets', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
+                new OA\Property(property: 'tenant_photo', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function onboard(Request $request)
     {
@@ -258,7 +283,16 @@ class TenantController extends Controller
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: 'Success')],
+                requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+            required: ['status'],
+                properties: [
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'notice', 'terminated', 'defaulter']),
+                ],
+            ),
+        ),
+responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function updateStatus(Request $request, $id)
     {
