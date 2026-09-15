@@ -34,7 +34,17 @@ class CategoryController extends Controller
         responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
-
+    #[OA\Get(
+        path: '/inventory/categories',
+        summary: 'List resources',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Category'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function index(Request $request)
     {
         $query = DB::table('inventory_categories as c')

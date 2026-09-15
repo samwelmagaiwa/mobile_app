@@ -42,6 +42,30 @@ class ProductController extends Controller
             ),
         ],
     )]
+    #[OA\Get(
+        path: '/products',
+        summary: 'List products',
+        description: 'Paginated product list with search, status, and low-stock filters.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Products'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', description: 'Search name/SKU/barcode', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: ['active', 'inactive'])),
+            new OA\Parameter(name: 'low_stock', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'brand_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated product list',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object')),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                ], type: 'object'),
+            ),
+        ],
+    )]
     public function index(Request $request)
     {
         $q = $request->query('q');

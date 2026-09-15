@@ -47,6 +47,28 @@ class UserManagementController extends Controller
             )),
         ],
     )]
+    #[OA\Get(
+        path: '/admin/users',
+        summary: 'List staff visible to the caller',
+        description: 'super_admin sees everyone; admin sees staff bound to their own service(s); '
+            . 'anyone else sees only accounts they personally created.',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin / Users'],
+        parameters: [
+            new OA\Parameter(name: 'created_by', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'role', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'q', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'string', default: '1')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+            new OA\Parameter(name: 'service_type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['inventory', 'rental', 'transport'])),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Staff list', content: new OA\JsonContent(
+                type: 'array',
+                items: new OA\Items(ref: '#/components/schemas/User'),
+            )),
+        ],
+    )]
     public function myUsers(Request $request)
     {
         $user = $request->user();

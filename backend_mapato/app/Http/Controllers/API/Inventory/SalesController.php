@@ -43,6 +43,28 @@ class SalesController extends Controller
             ], type: 'object')),
         ],
     )]
+    #[OA\Get(
+        path: '/sales',
+        summary: 'List sales (scoped to the caller, unless privileged)',
+        description: 'A `sales_officer` always sees only their own sales. `admin`/`super_admin`/'
+            . '`manager` see everything, or one specific officer via `officer_id`.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: ['paid', 'debt', 'partial'])),
+            new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'q', in: 'query', description: 'Search sale number/customer name/phone', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'officer_id', in: 'query', description: 'Admin/super_admin/manager only: filter to one sales officer', schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Paginated sales list', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object')),
+                new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+            ], type: 'object')),
+        ],
+    )]
     public function index(Request $request)
     {
         $status = $request->query('status');
@@ -174,7 +196,16 @@ class SalesController extends Controller
         responses: [new OA\Response(response: 200, description: 'Success')],
 
     )]
-
+    #[OA\Get(
+        path: '/sales/{id}',
+        summary: 'Get a single resource',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function show($id)
     {
         $sale = DB::table('inventory_sales as s')
@@ -740,6 +771,48 @@ responses: [new OA\Response(response: 200, description: 'Success')],
 
     #[OA\Post(
         path: '/inventory/sales',
+        summary: 'Record a sale (POS checkout)',
+        description: 'Issues stock FEFO via the batch ledger, records payments, and optionally '
+            . 'posts a crate exchange -- all inside one transaction.',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Sales'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['items', 'payment_status', 'subtotal', 'total', 'paid_total'],
+                properties: [
+                    new OA\Property(property: 'customer_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'customer_name_override', type: 'string', nullable: true),
+                    new OA\Property(property: 'customer_phone', type: 'string', nullable: true),
+                    new OA\Property(property: 'payment_status', type: 'string', enum: ['paid', 'debt', 'partial']),
+                    new OA\Property(property: 'items', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'product_id', type: 'integer'),
+                        new OA\Property(property: 'quantity', type: 'integer'),
+                        new OA\Property(property: 'unit_price', type: 'number'),
+                    ], type: 'object')),
+                    new OA\Property(property: 'payments', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'amount', type: 'number'),
+                        new OA\Property(property: 'method', type: 'string', enum: ['cash', 'mobile_money', 'bank_transfer']),
+                    ], type: 'object')),
+                    new OA\Property(property: 'subtotal', type: 'number'),
+                    new OA\Property(property: 'discount', type: 'number', nullable: true),
+                    new OA\Property(property: 'tax', type: 'number', nullable: true),
+                    new OA\Property(property: 'total', type: 'number'),
+                    new OA\Property(property: 'paid_total', type: 'number'),
+                    new OA\Property(property: 'due_date', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Sale created', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'message', type: 'string'),
+                new OA\Property(property: 'data', type: 'object'),
+            ], type: 'object')),
+            new OA\Response(response: 422, description: 'Validation failed', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    #[OA\Post(
+        path: '/sales',
         summary: 'Record a sale (POS checkout)',
         description: 'Issues stock FEFO via the batch ledger, records payments, and optionally '
             . 'posts a crate exchange -- all inside one transaction.',

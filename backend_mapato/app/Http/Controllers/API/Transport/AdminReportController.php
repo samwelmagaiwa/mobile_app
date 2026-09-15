@@ -142,6 +142,17 @@ class AdminReportController extends Controller
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
+    #[OA\Get(
+        path: '/admin/reports/revenue',
+        summary: 'Get revenue report',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Admin Report'],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getRevenueReport(Request $request)
     {
         try {

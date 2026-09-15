@@ -594,6 +594,26 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             new OA\Response(response: 401, description: 'Unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ],
     )]
+    #[OA\Get(
+        path: '/common/profile',
+        summary: "Get the logged-in user's current profile",
+        description: 'Always fetches fresh from the database (with role/service backfill applied), '
+            . 'so call this after login instead of trusting a stale cached profile.',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Current user data',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+                    new OA\Property(property: 'role', type: 'string'),
+                    new OA\Property(property: 'dashboard_route', type: 'string'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function user(Request $request)
     {
         try {
@@ -631,6 +651,38 @@ responses: [new OA\Response(response: 200, description: 'Success')],
      */
     #[OA\Post(
         path: '/auth/profile/avatar',
+        summary: 'Upload avatar',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(properties: [
+                    new OA\Property(property: 'avatar', type: 'string', format: 'binary', description: 'Also accepted as `photo` or `image`'),
+                ]),
+            ),
+        ),
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Post(
+        path: '/auth/profile/photo',
+        summary: 'Upload avatar',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(properties: [
+                    new OA\Property(property: 'avatar', type: 'string', format: 'binary', description: 'Also accepted as `photo` or `image`'),
+                ]),
+            ),
+        ),
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Post(
+        path: '/auth/profile/image',
         summary: 'Upload avatar',
         security: [['bearerAuth' => []]],
         tags: ['Auth'],

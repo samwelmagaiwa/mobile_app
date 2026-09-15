@@ -28,6 +28,16 @@ class PaymentReceiptController extends Controller
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
+    #[OA\Get(
+        path: '/payment-receipts/pending',
+        summary: 'Get pending receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '100')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getPendingReceipts(Request $request)
     {
         try {
@@ -126,6 +136,22 @@ class PaymentReceiptController extends Controller
         ),
 responses: [new OA\Response(response: 200, description: 'Success')],
     )]
+    #[OA\Post(
+        path: '/payment-receipts/generate',
+        summary: 'Generate receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['payment_id'],
+                properties: [
+                    new OA\Property(property: 'payment_id', type: 'integer'),
+                ],
+            ),
+        ),
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function generateReceipt(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -205,6 +231,36 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         ],
         responses: [new OA\Response(response: 200, description: 'Success')],
     )]
+    #[OA\Get(
+        path: '/admin/receipts/{receiptId}/preview',
+        summary: 'Get receipt preview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Get(
+        path: '/payment-receipts/{receiptId}',
+        summary: 'Get receipt preview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Get(
+        path: '/payment-receipts/{receiptId}/preview',
+        summary: 'Get receipt preview',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'receiptId', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
     public function getReceiptPreview(int $receiptId)
     {
         try {
@@ -251,6 +307,25 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             ),
         ),
 responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Post(
+        path: '/payment-receipts/send',
+        summary: 'Send receipt',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['receipt_id', 'send_via', 'contact_info'],
+                properties: [
+                    new OA\Property(property: 'receipt_id', type: 'integer'),
+                    new OA\Property(property: 'send_via', type: 'string', enum: ['whatsapp', 'email', 'system']),
+                    new OA\Property(property: 'contact_info', type: 'string'),
+                    new OA\Property(property: 'message', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [new OA\Response(response: 200, description: 'Success')],
     )]
     public function sendReceipt(Request $request)
     {
@@ -327,6 +402,20 @@ responses: [new OA\Response(response: 200, description: 'Success')],
      */
     #[OA\Get(
         path: '/admin/receipts',
+        summary: 'Get receipts',
+        security: [['bearerAuth' => []]],
+        tags: ['Transport / Payment Receipt'],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'driver_id', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date_from', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'date_to', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'string', default: '20')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Success')],
+    )]
+    #[OA\Get(
+        path: '/payment-receipts',
         summary: 'Get receipts',
         security: [['bearerAuth' => []]],
         tags: ['Transport / Payment Receipt'],
