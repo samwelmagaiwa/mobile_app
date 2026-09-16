@@ -23,7 +23,13 @@ class _LeaseAgreementsScreenState extends State<LeaseAgreementsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
+    // RentalProvider.fetchTenants()/fetchAgreements() call notifyListeners()
+    // synchronously before their first await; calling them directly from
+    // initState() fires that notification while this widget's own build is
+    // still in progress ("setState() or markNeedsBuild() called during
+    // build"). Defer to the post-frame callback, as every other screen in
+    // this app that kicks off a provider fetch from initState() already does.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   @override

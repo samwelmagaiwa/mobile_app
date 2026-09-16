@@ -179,22 +179,11 @@ class _AppLandingScreenState extends State<AppLandingScreen>
             ),
           ),
 
-          // Top: skip button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12.h,
-            right: 20.w,
-            child: TextButton(
-              onPressed: widget.onContinue,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white54,
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              ),
-              child: Text(
-                isSw ? 'Ruka' : 'Skip',
-                style: TextStyle(fontSize: 14.sp, letterSpacing: 0.5),
-              ),
-            ),
-          ),
+          // Note: no internal skip button here -- the app shell (main.dart)
+          // overlays a language toggle + login pill in this exact top-right
+          // corner, and tapping it already calls the same onContinue this
+          // skip button used to call. A second control in the same spot
+          // would just draw on top of / behind the shell's pill.
 
           // Bottom: dots + CTA
           Positioned(
@@ -291,7 +280,10 @@ class _SlideView extends StatelessWidget {
         SafeArea(
           child: Column(
             children: [
-              SizedBox(height: 20.h),
+              // Clears the language-toggle + login pill the app shell
+              // overlays in the top-right corner (main.dart's AuthWrapper) --
+              // without this the centered logo renders directly under them.
+              SizedBox(height: 56.h),
 
               // App name logo — Tanzania-flag diagonal gradient across mixed fonts
               FlagAppNameText(

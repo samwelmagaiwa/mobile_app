@@ -5,7 +5,15 @@
       "name": "flutter-app",
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "emulator-5554", "--pid-file", ".flutter-pid"],
-      "port": 8080
+      "port": 8080,
+      "cwd": "boda_mapato"
+    },
+    {
+      "name": "flutter-web",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "web-server", "--web-port", "8090"],
+      "port": 8090,
+      "cwd": "boda_mapato"
     },
     {
       "name": "backend-mapato",

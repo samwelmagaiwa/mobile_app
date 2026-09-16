@@ -361,6 +361,15 @@ class BodaMapatoApp extends StatelessWidget {
                   }
                   return const HouseManagementScreen(propertyId: '', propertyName: '');
                 },
+                // SMS history was never built (no screen exists anywhere in
+                // the app), but navigation_config.dart's "sms_history" nav
+                // item still links here -- without a route entry, tapping it
+                // crashed with "Could not find a generator for route
+                // RouteSettings(/rental/sms, null)" for anyone holding the
+                // view_sms_history permission. Coming-soon stub until the
+                // real feature is built.
+                "/rental/sms": (final BuildContext context) =>
+                    const ComingSoonScreen(),
                 "/rental/agreements": (final BuildContext context) =>
                     const LeaseAgreementsScreen(),
                 "/rental/create-agreement": (final BuildContext context) =>
@@ -580,9 +589,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 onContinue: () => _goToLogin(context),
               ),
 
-              // Language icon + Ingia pill pinned top-right
+              // Language icon + Ingia pill pinned top-right. The extra
+              // fixed margin (not just the device's safe-area inset) keeps
+              // it clear of the status bar / rounded corners on devices
+              // that report a small or zero padding.top.
               Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
+                top: MediaQuery.of(context).padding.top + 20,
                 right: 16,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
