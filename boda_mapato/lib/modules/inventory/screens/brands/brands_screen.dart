@@ -164,9 +164,7 @@ class _BrandsScreenState extends State<BrandsScreen> {
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
-    final auth = context.read<AuthProvider>();
-    final canManage =
-        UserPermissions.fromRole(auth.user?.role ?? 'viewer').has('inv_manage_products');
+    final canManage = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_products');
 
     final brands = inv.brands
         .where((b) =>

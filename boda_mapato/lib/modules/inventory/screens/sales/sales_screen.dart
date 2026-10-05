@@ -164,8 +164,7 @@ class _SalesScreenState extends State<SalesScreen>
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
-    final auth = context.read<AuthProvider>();
-    final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+    final perms = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions);
     final canCreateSales = perms.has('inv_create_sales');
 
     return SafeArea(
@@ -261,8 +260,8 @@ class _SalesScreenState extends State<SalesScreen>
   Widget _buildPosTab(
       BuildContext context, InventoryProvider inv, LocalizationService loc) {
     final auth = context.read<AuthProvider>();
-    final role = (auth.user?.role ?? '').toLowerCase();
-    final canManageCustomers = role == 'admin' || role == 'manager';
+    // Customer edit/delete is gated server-side by inv_manage_products.
+    final canManageCustomers = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_products');
     final userId = int.tryParse(auth.user?.id ?? '') ?? 1;
 
     return SingleChildScrollView(
@@ -747,8 +746,8 @@ class _SalesScreenState extends State<SalesScreen>
   // ==========================================
   Widget _buildHistoryTab(
       BuildContext context, InventoryProvider inv, LocalizationService loc) {
-    final role = context.read<AuthProvider>().user?.role ?? '';
-    final isManager = role == 'admin' || role == 'manager';
+    // Cancelling a sale is gated server-side by inv_manage_sales.
+    final isManager = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_sales');
     final summary = inv.salesSummary;
 
     void _applyFilters() {

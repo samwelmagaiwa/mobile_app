@@ -46,9 +46,7 @@ class _ProductUnitsScreenState extends State<ProductUnitsScreen> {
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
-    final UserPermissions perms = UserPermissions.fromRole(
-      context.read<AuthProvider>().user?.role ?? 'viewer',
-    );
+    final UserPermissions perms = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions);
     final bool canManage = perms.has('inv_manage_products');
     final List<InvProductUnit> units = inv.unitsOf(widget.product.id);
 

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
+import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/api_service.dart';
 import '../../../../services/localization_service.dart';
@@ -96,7 +97,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final loc = context.watch<LocalizationService>();
     final auth = context.read<AuthProvider>();
     final role = auth.user?.role ?? 'viewer';
-    final canAdd = role == 'admin' || role == 'manager' || role == 'sales_officer';
+    // Adding follows the permission the server enforces on POST/PUT, so it
+    // works for anyone an admin granted inv_manage_expenses (and no longer
+    // shows a button the server would reject for a role without it).
+    // Deleting stays an admin/manager decision.
+    final canAdd = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_expenses');
     final canDelete = role == 'admin' || role == 'manager';
 
     const textPrimary = Colors.white;

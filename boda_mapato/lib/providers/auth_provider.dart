@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/login_response.dart';
+import '../models/user_permissions.dart';
 import '../services/api_service.dart';
 import '../services/app_messenger.dart';
 import '../services/auth_events.dart';
@@ -39,6 +40,20 @@ class AuthProvider extends ChangeNotifier {
 
   // Getters
   UserData? get user => _user;
+
+  /// The user's effective permissions: role defaults UNION the explicit
+  /// grants an admin gave them (the server's effective_permissions). Every
+  /// screen should gate on this -- not on the role alone -- so a permission
+  /// granted in the permission management screen actually takes effect, and
+  /// so the client agrees with what the server enforces.
+  UserPermissions get permissions {
+    final UserData? u = _user;
+    if (u == null) return const UserPermissions.empty();
+    return UserPermissions.fromUser(
+      userRole: u.role ?? 'viewer',
+      explicitGrants: u.permissions,
+    );
+  }
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;

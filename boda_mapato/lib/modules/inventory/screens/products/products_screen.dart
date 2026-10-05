@@ -51,11 +51,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
     final inv = context.watch<InventoryProvider>();
-    final auth = context.read<AuthProvider>();
-    final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+    final perms = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions);
     final canManage = perms.has('inv_manage_products');
-    // Add-product is also open to the create-only grant (sales_officer);
-    // the edit/delete menu below stays canManage-only.
+    // Add-product is also open to the create-only grant (sales_officer, or any
+    // account an admin toggled "Add New Products" on for); the edit/delete
+    // menu below stays canManage-only.
     final canCreate = canManage || perms.has('inv_create_products');
     final filtered = inv.products.where((p) {
       if (_query.isEmpty) return true;

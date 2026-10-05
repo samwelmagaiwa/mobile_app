@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
 import '../../models/inv_sale.dart';
@@ -568,8 +569,8 @@ class _SaleReceiptScreenState extends State<SaleReceiptScreen> {
     final loc  = context.watch<LocalizationService>();
     final s    = context.watch<DepotProvider>().settings;
     final auth = context.watch<AuthProvider>();
-    final role = auth.user?.role ?? '';
-    final canConfigure = role == 'admin' || role == 'manager';
+    // Saving depot/receipt settings is gated server-side by inv_manage_settings.
+    final canConfigure = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_settings');
 
     final shopName   = _s(s, 'depot_name', 'DUKA LAKO');
     final tagline    = _s(s, 'receipt_tagline');

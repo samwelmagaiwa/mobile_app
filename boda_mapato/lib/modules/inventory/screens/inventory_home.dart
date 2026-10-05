@@ -537,8 +537,7 @@ class _InventoryDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
+    final perms = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions);
     final List<_InvMenuEntry> visible =
         _invEntries(loc).where((e) => e.isVisible(perms)).toList();
 

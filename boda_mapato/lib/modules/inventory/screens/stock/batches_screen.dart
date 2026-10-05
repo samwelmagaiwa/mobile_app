@@ -71,9 +71,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
     final InventoryProvider inv = context.watch<InventoryProvider>();
-    final bool canManage = UserPermissions.fromRole(
-      context.read<AuthProvider>().user?.role ?? 'viewer',
-    ).has('inv_manage_stock');
+    final bool canManage = context.select<AuthProvider, UserPermissions>((AuthProvider a) => a.permissions).has('inv_manage_stock');
 
     final List<InvBatch> rows = _visible(inv.batches);
 

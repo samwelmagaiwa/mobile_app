@@ -823,11 +823,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 style: ThemeConstants.bodyStyle),
           ),
         ),
-        DropdownMenuItem<int?>(
-          value: -1,
-          child: Text('+ ${loc.translate('add_category')}',
-              style: const TextStyle(color: ThemeConstants.primaryOrange)),
-        ),
+        if (_canManageCatalog)
+          DropdownMenuItem<int?>(
+            value: -1,
+            child: Text('+ ${loc.translate('add_category')}',
+                style: const TextStyle(color: ThemeConstants.primaryOrange)),
+          ),
       ],
       onChanged: (int? v) {
         if (v == -1) {
@@ -842,6 +843,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       },
     );
   }
+
+  /// Creating a category or brand needs inv_manage_products. A user who may
+  /// only add products (sales_officer, inv_create_products) can still pick an
+  /// existing one, but must not be offered the "+ add" entry -- the server
+  /// would reject it.
+  bool get _canManageCatalog =>
+      context.read<AuthProvider>().permissions.has('inv_manage_products');
 
   Widget _brandPicker(LocalizationService loc) {
     final InventoryProvider inv = context.watch<InventoryProvider>();
@@ -870,11 +878,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 style: ThemeConstants.bodyStyle),
           ),
         ),
-        DropdownMenuItem<int?>(
-          value: -1,
-          child: Text('+ ${loc.translate('add_brand')}',
-              style: const TextStyle(color: ThemeConstants.primaryOrange)),
-        ),
+        if (_canManageCatalog)
+          DropdownMenuItem<int?>(
+            value: -1,
+            child: Text('+ ${loc.translate('add_brand')}',
+                style: const TextStyle(color: ThemeConstants.primaryOrange)),
+          ),
       ],
       onChanged: (int? v) {
         if (v == -1) {

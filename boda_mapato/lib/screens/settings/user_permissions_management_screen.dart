@@ -39,6 +39,7 @@ class _UserPermissionsManagementScreenState
       {'id': 'inv_create_products',  'name': 'Add New Products', 'icon': 'add_box'},
       {'id': 'inv_manage_products',  'name': 'Manage Products',  'icon': 'edit'},
       {'id': 'inv_manage_stock',     'name': 'Manage Stock',     'icon': 'track_changes'},
+      {'id': 'inv_report_damage',    'name': 'Report Damaged Stock', 'icon': 'report_problem'},
       // Sales
       {'id': 'inv_create_sales',     'name': 'Create Sales',     'icon': 'point_of_sale'},
       {'id': 'inv_manage_sales',     'name': 'Manage Sales',     'icon': 'manage_accounts'},
