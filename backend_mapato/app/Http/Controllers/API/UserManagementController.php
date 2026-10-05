@@ -243,7 +243,9 @@ class UserManagementController extends Controller
             // is letters-only, so a letters()+numbers() complexity
             // requirement here would reject the app's own UX pattern.
             'password' => ['required', 'confirmed', Password::min(8)],
-            'phone_number' => 'nullable|string|max:50|unique:users,phone_number',
+            // Required: login verifies the phone number, so an account without
+            // one could never sign in.
+            'phone_number' => 'required|string|max:50|unique:users,phone_number',
             'role' => 'nullable|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'nullable|boolean',
             // Legacy single value - still accepted for old clients.
@@ -310,6 +312,10 @@ class UserManagementController extends Controller
                     'message' => 'You can only create staff for your assigned service(s): ' . implode(', ', $ownServices),
                 ], 403);
             }
+
+            if ($denied = $this->permissionScopeError($auth, $data['permissions'] ?? [])) {
+                return $denied;
+            }
         }
 
         $user = new User();
@@ -338,6 +344,29 @@ class UserManagementController extends Controller
             'message' => 'User created',
             'data' => ['user' => $this->userPayload($user)],
         ], 201);
+    }
+
+    /**
+     * A non-super-admin may only hand out permissions for services they are
+     * themselves bound to (e.g. an inventory-only admin cannot grant Transport
+     * or Rental access). Returns a 403 response, or null when everything is in scope.
+     */
+    private function permissionScopeError(User $auth, array $permissions)
+    {
+        $ownServices = $auth->services()->pluck('service_type')->all();
+        $outOfScope = array_filter(
+            $permissions,
+            fn ($perm) => !in_array(User::serviceForPermission((string) $perm), $ownServices, true)
+        );
+        if (empty($outOfScope)) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'You can only grant permissions for your assigned service(s): ' . implode(', ', $ownServices),
+            'out_of_scope' => array_values($outOfScope),
+        ], 403);
     }
 
     /** Prefer the new `service_types` array; fall back to the legacy single value. */
@@ -419,7 +448,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         $validator = Validator::make($data, [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id . ',id',
-            'phone_number' => 'nullable|string|max:50|unique:users,phone_number,' . $user->id . ',id',
+            'phone_number' => 'sometimes|required|string|max:50|unique:users,phone_number,' . $user->id . ',id',
             'role' => 'sometimes|string|in:super_admin,admin,driver,landlord,caretaker,tenant,viewer,manager,operator,sales_officer',
             'is_active' => 'sometimes|boolean',
             'service_type' => 'nullable|string|in:rental,transport,inventory',
@@ -440,6 +469,10 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         // Non-super-admins cannot grant full_access flag.
         if (!$auth->isSuperAdmin() && array_key_exists('full_access', $data) && $data['full_access']) {
             return response()->json(['success' => false, 'message' => 'Only super admin can grant full access.'], 403);
+        }
+
+        if (!$auth->isSuperAdmin() && ($denied = $this->permissionScopeError($auth, $data['permissions'] ?? []))) {
+            return $denied;
         }
 
         // Same escalation guard as store(): a plain admin editing an existing

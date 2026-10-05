@@ -142,6 +142,16 @@ class User extends Authenticatable
         return array_merge(self::INV_PERMISSIONS, self::SERVICE_PERMISSIONS);
     }
 
+    /** The service ('inventory'|'rental'|'transport') a grantable key belongs to. */
+    public static function serviceForPermission(string $permission): string
+    {
+        return match (true) {
+            str_starts_with($permission, 'inv_') => 'inventory',
+            str_ends_with($permission, '_rental') => 'rental',
+            default                               => 'transport',
+        };
+    }
+
     /** True when the user holds this explicit (non-role-default) grant. */
     public function hasExplicitGrant(string $permission): bool
     {

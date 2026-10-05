@@ -267,6 +267,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       BorderSide(color: Colors.white.withOpacity(0.3)),
                                 ),
                               ),
+                              // Login checks the phone number, so an account
+                              // without one could never sign in.
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? (_loc.isSwahili ? 'Ingiza namba ya simu' : 'Enter phone number')
+                                  : null,
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
