@@ -104,6 +104,9 @@ class User extends Authenticatable
     /** All known inventory permission keys. Used to validate explicit grants. */
     const INV_PERMISSIONS = [
         'inv_view_products',   'inv_manage_products',
+        // Narrower than inv_manage_products: may add NEW products only --
+        // no editing, deleting, pricing changes, categories or brands.
+        'inv_create_products',
         'inv_manage_stock',    'inv_create_sales',
         'inv_manage_sales',    'inv_view_reminders',
         'inv_view_purchasing', 'inv_view_credit',
@@ -240,7 +243,7 @@ class User extends Authenticatable
         // scoped down from a broader default after an admin reported a
         // sales_officer account seeing near-admin-level quick menus.
         'sales_officer'=> [
-            'inv_view_products','inv_create_sales','inv_view_reminders',
+            'inv_view_products','inv_create_products','inv_create_sales','inv_view_reminders',
             'inv_view_credit','inv_view_cash','inv_view_crates',
             // Can flag damaged/expired/broken stock they spot at the
             // counter without full stock-management rights -- approving

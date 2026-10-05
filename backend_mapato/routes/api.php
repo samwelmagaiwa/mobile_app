@@ -277,8 +277,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('inventory/alerts/{id}/acknowledge', [InventoryAlertController::class, 'acknowledge']);
     });
 
-    Route::middleware('inv_perm:inv_manage_products')->group(function () {
+    // Creating a product accepts either full catalogue management OR the narrower
+    // create-only grant (sales_officer); edit/delete stay manage-only below.
+    Route::middleware('inv_perm:inv_manage_products,inv_create_products')->group(function () {
         Route::post('inventory/products',        [InventoryProductController::class, 'store']);
+    });
+
+    Route::middleware('inv_perm:inv_manage_products')->group(function () {
         Route::put('inventory/products/{id}',    [InventoryProductController::class, 'update']);
         Route::delete('inventory/products/{id}', [InventoryProductController::class, 'destroy']);
         Route::post('inventory/categories',        [InventoryCategoryController::class, 'store']);
