@@ -55,6 +55,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'is_active' => 'boolean',
         'full_access' => 'boolean',
+        'must_change_password' => 'boolean',
         'permissions' => 'array',
         'email_verified' => 'boolean',
         'phone_verified' => 'boolean',

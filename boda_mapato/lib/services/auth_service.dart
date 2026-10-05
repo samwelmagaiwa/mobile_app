@@ -335,8 +335,8 @@ mixin AuthService {
             headers: headers,
             body: jsonEncode(<String, String>{
               "current_password": currentPassword,
-              "password": newPassword,
-              "password_confirmation": confirmPassword,
+              "new_password": newPassword,
+              "new_password_confirmation": confirmPassword,
             }),
           )
           .timeout(timeoutDuration);

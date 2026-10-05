@@ -329,6 +329,7 @@ class UserManagementController extends Controller
         $user->permissions = $data['permissions'] ?? [];
         $user->is_active = array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true;
         $user->created_by = $auth->id;
+        $user->must_change_password = true;
         $user->save();
 
         $this->syncServiceTypes($user, $serviceTypes);
@@ -701,6 +702,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         }
 
         $user->password = Hash::make($data['password']);
+        $user->must_change_password = true;
         $user->save();
 
         $this->audit->record(

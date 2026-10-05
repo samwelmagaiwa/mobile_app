@@ -400,6 +400,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       final response = await _apiService.post('/auth/change-password', {
         'current_password': _currentPasswordController.text,
         'new_password': _newPasswordController.text,
+        'new_password_confirmation': _confirmPasswordController.text,
       });
 
       if (response['success'] == true) {

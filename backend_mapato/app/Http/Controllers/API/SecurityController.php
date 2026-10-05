@@ -73,6 +73,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             }
 
             $user->password = Hash::make($validated['new_password']);
+            $user->must_change_password = false;
             $user->save();
 
             // Revoke every token so all other devices must re-login.

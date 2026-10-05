@@ -28,6 +28,7 @@ import 'screens/admin/debts_management_screen.dart';
 import 'screens/admin/drivers_management_screen.dart';
 import 'screens/admin/vehicles_management_screen.dart';
 import 'screens/analytics/analytics_screen.dart';
+import 'screens/auth/force_password_change_screen.dart';
 import 'screens/coming_soon_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
 import 'screens/demo_language_screen.dart';
@@ -572,6 +573,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
           // ── Authenticated ────────────────────────────────────────────────
           if (authProvider.isAuthenticated && authProvider.user != null) {
+            // Admin-issued default password: must be replaced before anything else.
+            if (authProvider.user!.mustChangePassword) {
+              return const ForcePasswordChangeScreen();
+            }
             if (!_languageChosenThisSession) {
               return _LanguageSelectionPage(onSelected: _onLanguageChosen);
             }

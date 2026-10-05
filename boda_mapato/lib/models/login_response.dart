@@ -69,6 +69,7 @@ class UserData {
     this.avatarUrl,
     this.permissions,
     this.fullAccess = false,
+    this.mustChangePassword = false,
     this.serviceTypes = const <String>[],
   });
 
@@ -97,6 +98,7 @@ class UserData {
         avatarUrl: _pickAvatarUrl(json),
         permissions: _pickPermissions(json),
         fullAccess: (json["full_access"] as bool?) ?? false,
+        mustChangePassword: (json["must_change_password"] as bool?) ?? false,
         serviceTypes: _pickServiceTypes(json),
       );
   final String id;
@@ -114,6 +116,8 @@ class UserData {
   /// May be null when admin hasn't assigned any extras yet.
   final List<String>? permissions;
   final bool fullAccess;
+  /// True while the account still uses an admin-issued default password.
+  final bool mustChangePassword;
   /// Services (rental/transport/inventory) this account is bound to.
   /// Empty means an admin hasn't assigned one yet.
   final List<String> serviceTypes;
