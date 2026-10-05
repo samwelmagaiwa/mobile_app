@@ -13,6 +13,7 @@ use App\Helpers\ResponseHelper;
 use App\Http\Requests\CreateDriverRequest;
 use App\Http\Requests\CreateVehicleRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use OpenApi\Attributes as OA;
@@ -275,8 +276,8 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         try {
             // Get authenticated admin or use temporary bypass
             $admin = $request->user();
-            $page = $request->get('page', 1);
-            $limit = $request->get('limit', 20);
+            $page = max((int) $request->get('page', 1), 1);
+            $limit = min(max((int) $request->get('limit', 20), 1), 200);
             $offset = ($page - 1) * $limit;
 
             // Build query for drivers
@@ -297,34 +298,48 @@ responses: [new OA\Response(response: 200, description: 'Success')],
                           ->take($limit)
                           ->get();
 
+            // One grouped query per metric for the whole page, instead of 4-5
+            // queries per driver.
+            $driverIds = $users->map(fn ($user) => $user->driver?->id)->filter()->values();
+
+            $paid = Transaction::whereIn('driver_id', $driverIds)
+                ->where('type', 'income')
+                ->where('status', 'completed')
+                ->selectRaw('driver_id, SUM(amount) as total, MAX(transaction_date) as last_payment')
+                ->groupBy('driver_id')
+                ->get()
+                ->keyBy('driver_id');
+
+            $trips = Transaction::whereIn('driver_id', $driverIds)
+                ->where('status', 'completed')
+                ->selectRaw('driver_id, COUNT(*) as trips')
+                ->groupBy('driver_id')
+                ->pluck('trips', 'driver_id');
+
+            // Newest active/completed agreement per driver. (This used to be a
+            // relation query with ->where('active')->orWhere('completed'), which
+            // dropped the driver filter and matched other drivers' agreements.)
+            $agreements = DriverAgreement::whereIn('driver_id', $driverIds)
+                ->whereIn('status', ['active', 'completed'])
+                ->orderByDesc('created_at')
+                ->get()
+                ->unique('driver_id')
+                ->keyBy('driver_id');
+
             // Transform data to match expected format
-            $drivers = $users->map(function ($user) {
+            $drivers = $users->map(function ($user) use ($paid, $trips, $agreements) {
                 $driver = $user->driver;
                 $device = $user->assignedDevice;
-                
-                // Calculate total payments from transactions
-                $totalPayments = $driver ? $driver->incomeTransactions()->sum('amount') : 0;
-                
-                // Get last payment date
-                $lastPayment = $driver ? $driver->incomeTransactions()
-                    ->latest('transaction_date')
-                    ->first()?->transaction_date : null;
-                
-                // Calculate trips completed (count of completed transactions)
-                $tripsCompleted = $driver ? $driver->completedTransactions()->count() : 0;
-                
-                // Calculate rating (placeholder - you can implement actual rating logic)
-                $rating = 4.5; // Default rating
-                
-                // Check agreement completion status
-                $activeAgreement = $driver ? $driver->driverAgreements()
-                    ->where('status', 'active')
-                    ->orWhere('status', 'completed')
-                    ->first() : null;
-                
+
+                $totals = $driver ? $paid->get($driver->id) : null;
+                $lastPayment = $totals?->last_payment ? Carbon::parse($totals->last_payment) : null;
+                $tripsCompleted = $driver ? (int) ($trips[$driver->id] ?? 0) : 0;
+                $rating = 4.5; // Default rating (placeholder until real ratings exist)
+                $activeAgreement = $driver ? $agreements->get($driver->id) : null;
+
                 $hasCompletedAgreement = $activeAgreement !== null;
                 $agreementStatus = $activeAgreement ? $activeAgreement->status : null;
-                
+
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -334,7 +349,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
                     'vehicle_number' => $device?->plate_number ?? 'N/A',
                     'vehicle_type' => $device?->type ?? 'N/A',
                     'status' => $user->is_active ? 'active' : 'inactive',
-                    'total_payments' => (float) $totalPayments,
+                    'total_payments' => (float) ($totals?->total ?? 0),
                     'last_payment' => $lastPayment?->toISOString(),
                     'joined_date' => $user->created_at->toISOString(),
                     'rating' => $rating,

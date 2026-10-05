@@ -43,29 +43,35 @@ class PaymentReceiptController extends Controller
         try {
             $limit = min((int) $request->get('limit', 100), 200);
 
-            $payments = Payment::with(['driver', 'recordedBy'])
+            $payments = Payment::with(['driver.user', 'recordedBy'])
                 ->completed()
                 ->pendingReceipt()
                 ->orderByDesc('payment_date')
                 ->limit($limit)
                 ->get();
 
-            $pending = $payments->map(function (Payment $p) {
+            // Outstanding debt per driver, fetched once for every driver on the page
+            // (a driver can have several pending payments) instead of twice per payment.
+            $unpaidByDriver = DebtRecord::unpaid()
+                ->whereIn('driver_id', $payments->pluck('driver_id')->unique()->values())
+                ->orderBy('earning_date')
+                ->get(['driver_id', 'earning_date', 'expected_amount', 'paid_amount'])
+                ->groupBy('driver_id');
+
+            $pending = $payments->map(function (Payment $p) use ($unpaidByDriver) {
                 $coveredDays = $p->covers_days ?? [];
                 $coveredDaysCount = count($coveredDays);
-                // Compute remaining outstanding debt for this driver (after this payment)
-                // Remaining = SUM(expected_amount - paid_amount) for unpaid records
-                $remainingDebtTotal = (float) DebtRecord::unpaid()
-                    ->where('driver_id', $p->driver_id)
-                    ->selectRaw('COALESCE(SUM(expected_amount - paid_amount),0) as total')
-                    ->value('total');
+                $unpaid = $unpaidByDriver->get($p->driver_id, collect());
 
-                // Get all unpaid dates for this driver (ordered)
-                $unpaidDates = DebtRecord::unpaid()
-                    ->where('driver_id', $p->driver_id)
-                    ->orderBy('earning_date')
-                    ->pluck('earning_date')
-                    ->map(function ($d) { return Carbon::parse($d)->format('Y-m-d'); })
+                // Remaining = SUM(expected_amount - paid_amount) over the driver's unpaid records
+                $remainingDebtTotal = round(
+                    (float) $unpaid->sum(fn ($r) => (float) $r->expected_amount - (float) $r->paid_amount),
+                    2,
+                );
+
+                // All unpaid dates for this driver, oldest first
+                $unpaidDates = $unpaid
+                    ->map(fn ($r) => Carbon::parse($r->earning_date)->format('Y-m-d'))
                     ->values()
                     ->toArray();
 

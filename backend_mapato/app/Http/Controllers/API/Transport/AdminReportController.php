@@ -461,26 +461,30 @@ class AdminReportController extends Controller
                         ->completed()
                         ->whereBetween('transaction_date', [$startDate, $endDate]);
                 })
-                ->get()
-                ->map(function ($device) use ($startDate, $endDate) {
-                    $revenue = Transaction::where('device_id', $device->id)
-                        ->income()
-                        ->completed()
-                        ->whereBetween('transaction_date', [$startDate, $endDate])
-                        ->sum('amount');
+                ->get();
 
-                    $trips = Transaction::where('device_id', $device->id)
-                        ->income()
-                        ->completed()
-                        ->whereBetween('transaction_date', [$startDate, $endDate])
-                        ->count();
+            // Revenue and trip count for every listed device in one grouped query,
+            // instead of two queries per device.
+            $totals = Transaction::whereIn('device_id', $devices->pluck('id'))
+                ->income()
+                ->completed()
+                ->whereBetween('transaction_date', [$startDate, $endDate])
+                ->selectRaw('device_id, SUM(amount) as revenue, COUNT(*) as trips')
+                ->groupBy('device_id')
+                ->get()
+                ->keyBy('device_id');
+
+            $devices = $devices
+                ->map(function ($device) use ($totals) {
+                    $revenue = (float) ($totals->get($device->id)?->revenue ?? 0);
+                    $trips = (int) ($totals->get($device->id)?->trips ?? 0);
 
                     return [
                         'id' => $device->id,
                         'name' => $device->name,
                         'plate_number' => $device->plate_number,
                         'driver_name' => $device->driver->user->name ?? 'No Driver',
-                        'revenue' => (float) $revenue,
+                        'revenue' => $revenue,
                         'trips' => $trips,
                         'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0
                     ];
@@ -754,7 +758,7 @@ class AdminReportController extends Controller
                         'id' => $driver->id,
                         'name' => $driver->user->name ?? 'Unknown',
                         'phone' => $driver->user->phone_number ?? '',
-                        'revenue' => (float) $revenue,
+                        'revenue' => $revenue,
                         'trips' => $trips,
                         'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
                         'license_number' => $driver->license_number
@@ -783,7 +787,7 @@ class AdminReportController extends Controller
                         'name' => $device->name,
                         'plate_number' => $device->plate_number,
                         'driver_name' => $device->driver->user->name ?? 'Unassigned',
-                        'revenue' => (float) $revenue,
+                        'revenue' => $revenue,
                         'trips' => $trips,
                         'average_per_trip' => $trips > 0 ? round($revenue / $trips, 2) : 0,
                         'device_type' => $device->device_type ?? 'Vehicle'
