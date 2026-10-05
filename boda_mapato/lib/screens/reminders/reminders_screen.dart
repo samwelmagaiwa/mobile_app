@@ -253,6 +253,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   Icons.search,
                   color: ThemeConstants.textSecondary,
                 ),
+                // This screen is dark teal, but the app's global
+                // InputDecorationTheme defaults filled fields to solid white
+                // (styles.dart's AppColors.surface, meant for light-themed
+                // forms elsewhere) -- with white-at-70%-opacity hint/icon
+                // colors meant for a dark background, that made the search
+                // box render as a blank white rectangle with invisible
+                // placeholder text. Overriding both locally here.
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.08),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
@@ -944,6 +953,13 @@ class _AddReminderDialogState extends State<_AddReminderDialog> {
                           dropdownColor: ThemeConstants.primaryBlue,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
+                            // Same root cause as the search field above: the
+                            // app's global InputDecorationTheme defaults
+                            // filled fields to solid white (styles.dart's
+                            // AppColors.surface). Without this override, that
+                            // white fill painted right over the intentional
+                            // dark Container this dropdown sits inside.
+                            filled: false,
                           ),
                           items: const [
                             DropdownMenuItem(

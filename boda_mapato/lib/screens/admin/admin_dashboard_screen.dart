@@ -1089,7 +1089,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   void _navigateToPage(String page) {
     switch (page) {
       case "modern_dashboard":
-        Navigator.pushNamed(context, "/modern-dashboard");
+        // pushReplacementNamed, not pushNamed: this screen is itself reached
+        // from a live ModernDashboardScreen underneath. A plain push left
+        // both instances alive at once, each with its own 20s auto-refresh
+        // timer and its own full dashboard load on initState -- every
+        // dashboard endpoint (pending receipts, debts, revenue, payments
+        // history, reminders) was firing twice back-to-back, forever, until
+        // the user manually popped back. Matches the other two call sites
+        // for this route (service_switcher_dialog.dart, service_selection_
+        // screen.dart), which already replace instead of stacking.
+        Navigator.pushReplacementNamed(context, "/modern-dashboard");
       case "drivers":
         Navigator.pushNamed(context, "/admin/drivers");
       case "vehicles":

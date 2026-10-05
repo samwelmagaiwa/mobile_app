@@ -120,8 +120,17 @@ class AuthProvider extends ChangeNotifier {
       final bool serverUp = await api.testConnectivity();
       if (!serverUp) {
         final String url = ApiService.baseUrl;
-        final String msg =
-            'Seva haipatikani: $url/health. Hakikisha simu yako na kompyuta yako ziko kwenye mtandao mmoja na bandari 8000 inaruhusiwa.';
+        // The "same network / port 8000" wording only makes sense for a
+        // local dev backend (127.0.0.1 / 192.168.x / the 10.0.2.2 emulator
+        // loopback) -- pointing a user at production (a public HTTPS
+        // domain) toward those steps sends them troubleshooting the wrong
+        // thing. Only show it for the addresses it's actually true for.
+        final bool isLocalBackend = url.contains('127.0.0.1') ||
+            url.contains('10.0.2.2') ||
+            url.contains('192.168.');
+        final String msg = isLocalBackend
+            ? 'Seva haipatikani: $url/health. Hakikisha simu yako na kompyuta yako ziko kwenye mtandao mmoja na bandari 8000 inaruhusiwa.'
+            : 'Seva haipatikani: $url/health. Hakikisha kifaa chako kina intaneti inayofanya kazi, kisha jaribu tena.';
         _setError(msg);
         _errorMessage = msg;
         return false;

@@ -54,6 +54,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final auth = context.read<AuthProvider>();
     final perms = UserPermissions.fromRole(auth.user?.role ?? 'viewer');
     final canManage = perms.has('inv_manage_products');
+    // Add-product is also open to the create-only grant (sales_officer);
+    // the edit/delete menu below stays canManage-only.
+    final canCreate = canManage || perms.has('inv_create_products');
     final filtered = inv.products.where((p) {
       if (_query.isEmpty) return true;
       final q = _query.toLowerCase();
@@ -99,7 +102,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       const Icon(Icons.qr_code_scanner, color: Colors.white70),
                 ),
                 SizedBox(width: 4.w),
-                if (canManage)
+                if (canCreate)
                   ElevatedButton.icon(
                     onPressed: () => Navigator.push(
                       context,

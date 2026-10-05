@@ -204,6 +204,8 @@ class UserPermissions {
         // reports, and the depot's own operating-expense ledger.
         return const [
           'inv_view_products',
+          // May add NEW products only (no edit/delete/pricing/categories).
+          'inv_create_products',
           'inv_create_sales',
           'inv_view_reminders',
           'inv_view_credit',

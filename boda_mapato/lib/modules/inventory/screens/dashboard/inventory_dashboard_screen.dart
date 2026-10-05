@@ -146,16 +146,24 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
             orElse: () => const {},
           )['name'] as String?;
 
-    return PopupMenuButton<String?>(
+    // PopupMenuButton<T> can't use `null` as a real item value: Flutter's
+    // PopupMenuButtonState treats a null result from the menu route as
+    // "dismissed without selecting" (same as tapping outside to close it)
+    // and calls onCanceled instead of onSelected -- so tapping "All
+    // Officers" (value: null) never actually fired the reset. Use a
+    // sentinel string instead and map it back to null here.
+    const String allOfficersValue = '__all_officers__';
+    return PopupMenuButton<String>(
       tooltip: loc.translate('filter_by_officer'),
-      onSelected: (id) => inv.setSelectedOfficer(id),
-      itemBuilder: (context) => <PopupMenuEntry<String?>>[
-        PopupMenuItem<String?>(
-          value: null,
+      onSelected: (id) =>
+          inv.setSelectedOfficer(id == allOfficersValue ? null : id),
+      itemBuilder: (context) => <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: allOfficersValue,
           child: Text(loc.translate('all_officers')),
         ),
         const PopupMenuDivider(),
-        ...officers.map((o) => PopupMenuItem<String?>(
+        ...officers.map((o) => PopupMenuItem<String>(
               value: o['id'] as String,
               child: Text('${o['name']}'),
             )),

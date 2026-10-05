@@ -337,21 +337,21 @@ class _DebtsManagementScreenState extends State<DebtsManagementScreen>
         ),
       );
     }
-    // Two-column grid layout to avoid overflow and improve readability
+    // Full-width list: the previous 2-column grid squeezed each card to
+    // ~half the screen width, and each card's own 2-column info-box wrap
+    // then squeezed those down further (~78px each) -- nowhere near enough
+    // room for an icon + text like "License: D1234ABC" without truncating
+    // to "licens e: D...". A single column gives every card, and every
+    // info box inside it, the full width to breathe.
     return RefreshIndicator(
       color: Colors.white,
       backgroundColor: ThemeConstants.primaryBlue,
       onRefresh: _loadDrivers,
-      child: GridView.builder(
+      child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _filtered.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          // Provide enough vertical space for larger fonts and two rows of info boxes
-          mainAxisExtent: 230,
-        ),
+        separatorBuilder: (BuildContext context, int i) =>
+            const SizedBox(height: 12),
         itemBuilder: (BuildContext context, int i) {
           final Driver d = _filtered[i];
           return _buildDriverTile(d);

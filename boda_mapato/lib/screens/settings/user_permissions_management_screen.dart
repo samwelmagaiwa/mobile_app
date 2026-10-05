@@ -36,6 +36,7 @@ class _UserPermissionsManagementScreenState
     'inventory': [
       // Products & Stock
       {'id': 'inv_view_products',    'name': 'View Products',    'icon': 'inventory_2'},
+      {'id': 'inv_create_products',  'name': 'Add New Products', 'icon': 'add_box'},
       {'id': 'inv_manage_products',  'name': 'Manage Products',  'icon': 'edit'},
       {'id': 'inv_manage_stock',     'name': 'Manage Stock',     'icon': 'track_changes'},
       // Sales
