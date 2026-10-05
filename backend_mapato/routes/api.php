@@ -292,11 +292,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('inventory/brands',        [InventoryBrandController::class, 'store']);
         Route::put('inventory/brands/{id}',    [InventoryBrandController::class, 'update']);
         Route::delete('inventory/brands/{id}', [InventoryBrandController::class, 'destroy']);
-        Route::get('inventory/customers',          [InventoryCustomerController::class, 'index']);
-        Route::get('customers',                    [InventoryCustomerController::class, 'index']);
-        Route::post('inventory/customers',         [InventoryCustomerController::class, 'store']);
         Route::put('inventory/customers/{id}',     [InventoryCustomerController::class, 'update']);
         Route::delete('inventory/customers/{id}',  [InventoryCustomerController::class, 'destroy']);
+    });
+
+    // Listing and adding customers is part of SELLING (pick or create the buyer
+    // at the POS, sell on credit), so it must work for anyone who can create
+    // sales -- not only those who manage the catalogue. Editing/deleting a
+    // customer stays inv_manage_products (above).
+    Route::middleware('inv_perm:inv_manage_products,inv_create_sales,inv_view_credit')->group(function () {
+        Route::get('inventory/customers',          [InventoryCustomerController::class, 'index']);
+        Route::get('customers',                    [InventoryCustomerController::class, 'index']);
+    });
+    Route::middleware('inv_perm:inv_manage_products,inv_create_sales')->group(function () {
+        Route::post('inventory/customers',         [InventoryCustomerController::class, 'store']);
     });
 
     // ── Product units & pricing ───────────────────────────────────────────────
@@ -454,8 +463,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // ── Depot Settings (inv_manage_settings) ──────────────────────────────────
-    Route::middleware('inv_perm:inv_manage_settings')->group(function () {
+    // Reading is needed to SELL (shop name/address/tax on the receipt, the
+    // max-discount and tax limits at the POS), so anyone who can create sales
+    // may read it. Only inv_manage_settings may change it.
+    Route::middleware('inv_perm:inv_manage_settings,inv_create_sales')->group(function () {
         Route::get('inventory/settings',  [InventoryAlertController::class, 'settings']);
+    });
+    Route::middleware('inv_perm:inv_manage_settings')->group(function () {
         Route::put('inventory/settings',  [InventoryAlertController::class, 'updateSettings']);
     });
 
