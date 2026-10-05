@@ -253,7 +253,7 @@ class UserManagementController extends Controller
             'service_types.*' => 'string|in:rental,transport,inventory',
             'full_access' => 'nullable|boolean',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:' . implode(',', User::INV_PERMISSIONS),
+            'permissions.*' => 'string|in:' . implode(',', User::grantablePermissions()),
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -427,7 +427,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             'service_types.*' => 'string|in:rental,transport,inventory',
             'full_access' => 'sometimes|boolean',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:' . implode(',', User::INV_PERMISSIONS),
+            'permissions.*' => 'string|in:' . implode(',', User::grantablePermissions()),
         ]);
         if ($validator->fails()) {
             return response()->json([

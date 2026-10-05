@@ -120,6 +120,36 @@ class User extends Authenticatable
     ];
 
     /**
+     * Per-user grants for the Rental and Transport services. Unlike the inv_*
+     * keys these are not part of any role default; they only ever come from an
+     * explicit grant in the permission-management screen. The route -> key
+     * mapping that enforces them lives in config/feature_permissions.php.
+     */
+    const SERVICE_PERMISSIONS = [
+        'manage_properties_rental', 'manage_houses_rental',
+        'onboard_tenants_rental',   'manage_agreements_rental',
+        'manage_billing_rental',    'view_reports_rental',
+        'manage_maintenance_rental',
+        'manage_vehicles_transport',   'manage_drivers_transport',
+        'manage_agreements_transport', 'manage_payments_transport',
+        'manage_debts_transport',      'view_reports_transport',
+        'manage_reminders_transport',
+    ];
+
+    /** Every key an explicit grant may contain. */
+    public static function grantablePermissions(): array
+    {
+        return array_merge(self::INV_PERMISSIONS, self::SERVICE_PERMISSIONS);
+    }
+
+    /** True when the user holds this explicit (non-role-default) grant. */
+    public function hasExplicitGrant(string $permission): bool
+    {
+        return $this->full_access
+            || (is_array($this->permissions) && in_array($permission, $this->permissions, true));
+    }
+
+    /**
      * Get the user who created this user
      */
     public function creator()
