@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Transport;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Services\TransactionService;
@@ -25,7 +26,7 @@ class TransactionController extends Controller
     {
         try {
             $driver = $request->user()->driver;
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
             $type = $request->get('type'); // income, expense
             $status = $request->get('status'); // pending, completed, cancelled
             $deviceId = $request->get('device_id');
@@ -189,7 +190,7 @@ class TransactionController extends Controller
     {
         try {
             $driver = $request->user()->driver;
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
 
             // Verify device belongs to driver
             $device = $driver->devices()->findOrFail($deviceId);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -66,8 +67,11 @@ class SalesApiTest extends TestCase
             ],
         ];
 
-        $controller = app(\App\Http\Controllers\Inventory\SalesController::class);
+        $controller = app(\App\Http\Controllers\API\Inventory\SalesController::class);
+        // Sales lists are scoped to the caller, so act as a privileged user.
+        $admin = User::factory()->create(['role' => 'admin']);
         $request = \Illuminate\Http\Request::create('/api/inventory/sales', 'POST', $payload);
+        $request->setUserResolver(fn () => $admin);
         $response = $controller->store($request);
 
         $this->assertEquals(201, $response->getStatusCode());
@@ -83,6 +87,7 @@ class SalesApiTest extends TestCase
 
         // Test Index with Eager Loading
         $indexRequest = \Illuminate\Http\Request::create('/api/inventory/sales', 'GET');
+        $indexRequest->setUserResolver(fn () => $admin);
         $indexResponse = $controller->index($indexRequest);
 
         $this->assertEquals(200, $indexResponse->getStatusCode());
@@ -123,7 +128,7 @@ class SalesApiTest extends TestCase
             ],
         ];
 
-        $controller = app(\App\Http\Controllers\Inventory\SalesController::class);
+        $controller = app(\App\Http\Controllers\API\Inventory\SalesController::class);
 
         // Missing customer for debt -> 422
         $requestFail = \Illuminate\Http\Request::create('/api/inventory/sales', 'POST', $payload);

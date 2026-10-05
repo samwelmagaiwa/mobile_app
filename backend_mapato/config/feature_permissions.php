@@ -30,6 +30,7 @@ return [
         'admin/driver-agreements*' => ['manage_agreements_transport'],
         'admin/payments*'          => ['manage_payments_transport'],
         'admin/receipts*'          => ['manage_payments_transport'],
+        'payment-receipts*'        => ['manage_payments_transport'],
         'admin/debts*'             => ['manage_debts_transport'],
         'admin/reminders*'         => ['manage_reminders_transport'],
         'admin/reports*'           => ['view_reports_transport'],

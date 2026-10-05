@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Inventory;
 
 use Illuminate\Http\Request;
+use App\Support\Pagination;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
@@ -306,7 +307,7 @@ class AlertController extends Controller
         }
 
         $rows = $query->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 50));
+            ->paginate(Pagination::perPage($request, 50));
 
         return response()->json([
             'data' => $rows->items(),

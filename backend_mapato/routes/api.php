@@ -73,9 +73,8 @@ Route::prefix('locations')->group(function () {
 
 // Public routes (no authentication required)
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
-    Route::post('resend-otp', [AuthController::class, 'resendOtp']);
+    // Brute-force guard: keyed by email + IP so one office NAT can't lock out everyone.
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     // Rate-limited: both steps are unauthenticated and check identity by
     // email/phone, so without a limit they'd be a brute-force target.
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
@@ -86,7 +85,8 @@ Route::prefix('auth')->group(function () {
 Route::get('public/houses', [HouseController::class, 'publicListing']);
 
 // Payment Receipt routes - PROTECTED
-Route::middleware(['auth:sanctum'])->prefix('payment-receipts')->group(function () {
+// Transport receipts across all drivers: admin-level only (or the payments grant).
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('payment-receipts')->group(function () {
     Route::get('pending', [PaymentReceiptController::class, 'getPendingReceipts']);
     Route::post('generate', [PaymentReceiptController::class, 'generateReceipt']);
     Route::get('{receiptId}/preview', [PaymentReceiptController::class, 'getReceiptPreview']);

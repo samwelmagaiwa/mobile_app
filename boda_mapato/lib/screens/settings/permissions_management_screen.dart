@@ -303,12 +303,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                                 'password_confirmation': password,
                                 'service_type': _activeService,
                               }..removeWhere((key, value) => value == null);
-                              // Use admin users endpoint
-                              debugPrint(
-                                  'DEBUG: About to call createUser with payload: $payload');
+                              // Use admin users endpoint. The payload carries the
+                              // initial password, so it is never logged.
                               final Map<String, dynamic> res =
                                   await _api.createUser(payload);
-                              debugPrint('DEBUG: createUser response: $res');
                               if ((res['success'] == true) || res.containsKey('data')) {
                                 if (!mounted) return;
                                 // ignore: use_build_context_synchronously

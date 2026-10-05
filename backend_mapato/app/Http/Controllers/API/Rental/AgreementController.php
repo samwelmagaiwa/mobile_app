@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Rental;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Rental\RentalAgreement;
 use App\Models\Rental\House;
 use App\Models\User;
@@ -67,7 +68,7 @@ class AgreementController extends Controller
                 ->where('end_date', '<=', now()->addDays(30));
         }
 
-        $perPage = $request->get('per_page', 15);
+        $perPage = Pagination::perPage($request, 15);
         return ResponseHelper::paginate($query->orderBy('created_at', 'desc')->paginate($perPage));
     }
 

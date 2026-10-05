@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Rental;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
 use App\Http\Resources\PropertyResource;
@@ -47,7 +48,7 @@ class PropertyController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'status', 'property_type', 'sort_by', 'sort_order']);
-        $perPage = $request->get('per_page', 15);
+        $perPage = Pagination::perPage($request, 15);
 
         $properties = $this->propertyService
             ->setOwner($request->user()->id)

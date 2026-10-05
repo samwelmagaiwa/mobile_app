@@ -301,7 +301,8 @@ class InventoryDepotOperationsTest extends TestCase
 
         $qtyBeforeApproval = DB::table('inventory_products')->find($this->productId)->quantity;
 
-        $this->actingAsAdmin()
+        // The requester may not approve their own return, so a second admin decides.
+        $this->actingAs(User::factory()->create(['role' => 'admin']), 'sanctum')
             ->postJson("/api/inventory/returns/{$returnId}/decide", ['decision' => 'approved'])
             ->assertOk();
 

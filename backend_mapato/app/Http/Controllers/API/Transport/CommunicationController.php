@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Transport;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Communication;
 use App\Models\Driver;
 use App\Helpers\ResponseHelper;
@@ -18,7 +19,7 @@ class CommunicationController extends Controller
     public function index(Request $request)
     {
         try {
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
             $search = $request->get('search');
             $mode = $request->get('mode');
             $status = $request->get('status'); // 'answered' or 'unanswered'
@@ -308,7 +309,7 @@ class CommunicationController extends Controller
                 return ResponseHelper::notFound('Driver not found');
             }
 
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
             
             $communications = Communication::where('driver_id', $driverId)
                 ->with('driver.user')

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Rental;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Rental\MaintenanceRequest;
 use App\Models\Rental\WorkOrder;
 use App\Models\Rental\Vendor;
@@ -66,7 +67,7 @@ class MaintenanceController extends Controller
             $query->where('property_id', $request->property_id);
         }
 
-        $requests = $query->latest()->paginate($request->get('per_page', 15));
+        $requests = $query->latest()->paginate(Pagination::perPage($request, 15));
 
         return ResponseHelper::paginate($requests, MaintenanceRequestResource::class);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Inventory;
 
 use App\Services\Inventory\StockLedger;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +76,7 @@ class BatchController extends Controller
             ->orderByRaw('CASE WHEN b.expiry_date IS NULL THEN 1 ELSE 0 END')
             ->orderBy('b.expiry_date')
             ->orderByDesc('b.id')
-            ->paginate((int) $request->query('per_page', 50));
+            ->paginate(Pagination::perPage($request, 50));
 
         return response()->json([
             'data' => $rows->items(),

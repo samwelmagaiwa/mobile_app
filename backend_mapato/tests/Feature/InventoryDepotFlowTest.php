@@ -177,16 +177,40 @@ class InventoryDepotFlowTest extends TestCase
         $ledger->post($typeId, 'not_a_real_movement', 1, $this->customerId, null, null, null);
     }
 
-    public function test_sku_generator_produces_unique_sequential_codes(): void
+    public function test_sku_generator_builds_brand_product_unit_codes_and_suffixes_collisions(): void
     {
         $generator = app(\App\Services\Inventory\SkuGenerator::class);
 
-        $first = $generator->generate('Sodas', 'Coca-Cola');
-        $second = $generator->generate('Sodas', 'Coca-Cola');
+        $brandId = DB::table('inventory_brands')->insertGetId([
+            'name' => 'Coca-Cola',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
+        // BRAND(3)-PRODUCT(3)-UNIT, with no size token and the default PCS unit.
+        $first = $generator->generate('Sodas', $brandId);
+        $this->assertSame('COC-SOD-PCS', $first);
+
+        // A size in the name becomes its own segment and is not re-used as the product word.
+        $this->assertSame('COC-SOD-500-BTL', $generator->generate('Sodas 500ml', $brandId, 'bottle'));
+
+        // Once that exact SKU exists, the next identical request gets a running suffix.
+        DB::table('inventory_products')->insert([
+            'name' => 'Sodas',
+            'sku' => $first,
+            'cost_price' => 500,
+            'selling_price' => 800,
+            'unit' => 'pcs',
+            'quantity' => 0,
+            'min_stock' => 0,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $second = $generator->generate('Sodas', $brandId);
         $this->assertNotSame($first, $second);
-        $this->assertSame('SODAS-COCA-0001', $first);
-        $this->assertSame('SODAS-COCA-0002', $second);
+        $this->assertSame('COC-SOD-PCS-2', $second);
     }
 
     public function test_settings_seeded_with_depot_defaults(): void

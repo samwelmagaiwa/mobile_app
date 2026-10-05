@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Transport;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Receipt;
 use App\Models\Transaction;
 use App\Helpers\ResponseHelper;
@@ -19,7 +20,7 @@ class ReceiptController extends Controller
     {
         try {
             $driver = $request->user()->driver;
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
 
             $receipts = Receipt::whereHas('transaction', function ($query) use ($driver) {
                 $query->where('driver_id', $driver->id);

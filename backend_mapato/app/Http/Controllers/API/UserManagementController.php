@@ -502,6 +502,11 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         $user->fill($validated);
         $user->save();
 
+        // A deactivated account must not keep working on tokens it already holds.
+        if (!$user->is_active) {
+            $user->tokens()->delete();
+        }
+
         if ($touchesServices) {
             $this->syncServiceTypes($user, $this->resolveServiceTypes($data));
         }
@@ -567,6 +572,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         }
 
         $summary = "{$auth->name} deleted {$user->role} account \"{$user->name}\" ({$user->email})";
+        $user->tokens()->delete();
         $user->delete();
 
         $this->audit->record(

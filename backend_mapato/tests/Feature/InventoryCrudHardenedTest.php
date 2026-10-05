@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Inventory\BrandController;
-use App\Http\Controllers\Inventory\CategoryController;
-use App\Http\Controllers\Inventory\CustomerController;
-use App\Http\Controllers\Inventory\ProductController;
-use App\Http\Controllers\Inventory\PurchasingController;
+use App\Http\Controllers\API\Inventory\BrandController;
+use App\Http\Controllers\API\Inventory\CategoryController;
+use App\Http\Controllers\API\Inventory\CustomerController;
+use App\Http\Controllers\API\Inventory\ProductController;
+use App\Http\Controllers\API\Inventory\PurchasingController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

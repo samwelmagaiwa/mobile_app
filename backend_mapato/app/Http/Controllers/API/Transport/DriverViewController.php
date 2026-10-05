@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Transport;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Transaction;
 use App\Helpers\ResponseHelper;
 use Illuminate\Http\Request;
@@ -202,7 +203,7 @@ class DriverViewController extends Controller
         try {
             $user = $request->user();
             $driver = $user->driver;
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
 
             if (!$driver) {
                 return ResponseHelper::error('Driver profile not found', 404);
@@ -241,7 +242,7 @@ class DriverViewController extends Controller
         try {
             $user = $request->user();
             $driver = $user->driver;
-            $perPage = (int) $request->get('per_page', 20);
+            $perPage = Pagination::perPage($request, 20);
             if (!$driver) {
                 return ResponseHelper::error('Driver profile not found', 404);
             }
@@ -291,7 +292,7 @@ class DriverViewController extends Controller
         try {
             $user = $request->user();
             $driver = $user->driver;
-            $perPage = (int) $request->get('per_page', 50);
+            $perPage = Pagination::perPage($request, 50);
             if (!$driver) {
                 return ResponseHelper::error('Driver profile not found', 404);
             }
@@ -342,7 +343,7 @@ class DriverViewController extends Controller
         try {
             $user = $request->user();
             $driver = $user->driver;
-            $perPage = $request->get('per_page', 15);
+            $perPage = Pagination::perPage($request, 15);
 
             if (!$driver) {
                 return ResponseHelper::error('Driver profile not found', 404);

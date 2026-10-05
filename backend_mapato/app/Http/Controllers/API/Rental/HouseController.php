@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Rental;
 
 use App\Http\Controllers\Controller;
+use App\Support\Pagination;
 use App\Models\Rental\House;
 use App\Models\Rental\Property;
 use App\Helpers\ResponseHelper;
@@ -65,7 +66,7 @@ class HouseController extends Controller
         }
 
         // Pagination
-        $perPage = $request->get('per_page', 15);
+        $perPage = Pagination::perPage($request, 15);
         $houses = $query->with('property', 'block', 'currentTenant')->paginate($perPage);
 
         return ResponseHelper::paginate($houses);
@@ -518,7 +519,7 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             $query->where('has_sitting_room', $request->boolean('has_sitting_room'));
         }
 
-        $perPage = $request->get('per_page', 20);
+        $perPage = Pagination::perPage($request, 20);
         $houses = $query->latest()->paginate($perPage);
 
         // Strip private meter data from each house
