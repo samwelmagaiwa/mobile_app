@@ -31,6 +31,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
 
+        // The container sits behind aaPanel's nginx, so every request reaches us
+        // from the Docker gateway (172.20.0.1) and request()->ip() was the same
+        // for every client -- which made per-IP rate limits and audit/login logs
+        // useless. Trust forwarded headers ONLY from private/loopback addresses
+        // (the proxy), never from a client on the public internet, so the
+        // X-Forwarded-For header can't be spoofed to dodge a limit.
+        $middleware->trustProxies(at: [
+            '127.0.0.1',
+            '10.0.0.0/8',
+            '172.16.0.0/12',
+            '192.168.0.0/16',
+        ]);
+
         // API-only backend: there is no 'login' route. Laravel's
         // ApplicationBuilder pre-registers a default redirect callback of
         // `fn () => route('login')`; Authenticate::unauthenticated() calls

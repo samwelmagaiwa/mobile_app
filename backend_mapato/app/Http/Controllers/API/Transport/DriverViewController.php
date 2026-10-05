@@ -203,7 +203,8 @@ class DriverViewController extends Controller
         try {
             $user = $request->user();
             $driver = $user->driver;
-            $perPage = Pagination::perPage($request, 15);
+            // The driver dashboard asks for a month of history (up to 1000 rows) in one call.
+            $perPage = Pagination::perPage($request, 15, 1000);
 
             if (!$driver) {
                 return ResponseHelper::error('Driver profile not found', 404);

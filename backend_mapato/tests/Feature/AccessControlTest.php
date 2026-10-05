@@ -58,6 +58,40 @@ class AccessControlTest extends TestCase
         $this->assertNotSame(429, $attempt('someone.else@example.test'));
     }
 
+    /** Ten bad logins for one email from the given client, as seen through the nginx proxy or directly. */
+    private function hammerLogin(string $email, string $remoteAddr, ?string $forwardedFor, int $times = 11): int
+    {
+        $status = 0;
+        for ($i = 0; $i < $times; $i++) {
+            $headers = $forwardedFor ? ['X-Forwarded-For' => $forwardedFor] : [];
+            $status = $this->withServerVariables(['REMOTE_ADDR' => $remoteAddr])
+                ->withHeaders($headers)
+                ->postJson('/api/auth/login', ['email' => $email, 'password' => 'wrong', 'phone_number' => '0712345678'])
+                ->status();
+        }
+
+        return $status;
+    }
+
+    public function test_behind_the_proxy_each_real_client_gets_its_own_login_limit(): void
+    {
+        // Every request reaches the app from the Docker gateway; the real client is in X-Forwarded-For.
+        $this->assertSame(429, $this->hammerLogin('victim@example.test', '172.20.0.1', '198.51.100.7'));
+
+        // The same email from a different real client is not locked out by the attacker.
+        $this->assertNotSame(429, $this->hammerLogin('victim@example.test', '172.20.0.1', '203.0.113.9', times: 1));
+    }
+
+    public function test_a_public_client_cannot_dodge_the_limit_by_spoofing_x_forwarded_for(): void
+    {
+        $statuses = [];
+        for ($i = 0; $i < 12; $i++) {
+            $statuses[] = $this->hammerLogin('victim@example.test', '203.0.113.50', "198.51.100.{$i}", times: 1);
+        }
+
+        $this->assertSame(429, end($statuses));
+    }
+
     public function test_removed_otp_routes_are_gone(): void
     {
         $this->assertContains($this->postJson('/api/auth/verify-otp')->status(), [404, 405]);
@@ -212,6 +246,25 @@ class AccessControlTest extends TestCase
             ->assertCreated();
     }
 
+    public function test_login_tells_the_app_whether_the_password_must_be_changed(): void
+    {
+        $this->user('sales_officer', services: ['inventory'], extra: [
+            'email' => 'flagged@example.test', 'password' => 'STAFFNEW',
+            'phone_number' => '0712345678', 'must_change_password' => true,
+        ]);
+        $this->user('sales_officer', services: ['inventory'], extra: [
+            'email' => 'settled@example.test', 'password' => 'STAFFNEW',
+            'phone_number' => '0787654321', 'must_change_password' => false,
+        ]);
+
+        $login = fn (string $email, string $phone) => $this->postJson('/api/auth/login', [
+            'email' => $email, 'password' => 'STAFFNEW', 'phone_number' => $phone,
+        ])->assertOk()->json('data.user.must_change_password');
+
+        $this->assertTrue($login('flagged@example.test', '0712345678'));
+        $this->assertFalse($login('settled@example.test', '0787654321'));
+    }
+
     public function test_changing_the_temporary_password_clears_the_flag(): void
     {
         $staff = $this->user('sales_officer', services: ['inventory'], extra: [
@@ -242,5 +295,10 @@ class AccessControlTest extends TestCase
         $this->assertSame(15, $perPage(['per_page' => 0]));
         $this->assertSame(15, $perPage(['per_page' => -5]));
         $this->assertSame(20, $perPage(['per_page' => 'abc'], 20));
+
+        // An endpoint whose client really needs a long page can raise its own ceiling.
+        $long = fn (array $query) => Pagination::perPage(Request::create('/x', 'GET', $query), 15, 1000);
+        $this->assertSame(1000, $long(['per_page' => 1000]));
+        $this->assertSame(1000, $long(['per_page' => 5000]));
     }
 }

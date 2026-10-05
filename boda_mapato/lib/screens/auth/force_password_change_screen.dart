@@ -3,13 +3,39 @@ import 'package:provider/provider.dart';
 
 import '../../constants/theme_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 import '../../services/localization_service.dart';
 
 /// Shown instead of the app while the signed-in account still uses the
 /// default password an admin issued. Changing it signs the user out (the
 /// server revokes every token), so they log in again with the new password.
+///
+/// The change goes straight to [AuthService] rather than through
+/// [AuthProvider.changePassword]: that sets the provider-wide loading flag,
+/// which makes the root widget swap this screen for the splash screen and
+/// dispose it mid-request, losing the result and any error message.
 class ForcePasswordChangeScreen extends StatefulWidget {
-  const ForcePasswordChangeScreen({super.key});
+  const ForcePasswordChangeScreen({
+    super.key,
+    this.changePassword = _changePasswordOnServer,
+    this.onChanged,
+  });
+
+  /// Performs the change; throws on failure. Overridable for tests.
+  final Future<void> Function(String current, String next, String confirm)
+      changePassword;
+
+  /// Called after a successful change. Defaults to signing out, because the
+  /// server revokes every token when a password changes.
+  final Future<void> Function()? onChanged;
+
+  static Future<void> _changePasswordOnServer(
+          String current, String next, String confirm) =>
+      AuthService.changePassword(
+        currentPassword: current,
+        newPassword: next,
+        confirmPassword: confirm,
+      );
 
   @override
   State<ForcePasswordChangeScreen> createState() =>
@@ -33,25 +59,23 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
 
   Future<void> _submit(bool sw) async {
     if (!_formKey.currentState!.validate()) return;
-    final AuthProvider auth = context.read<AuthProvider>();
     setState(() => _saving = true);
-    final bool ok = await auth.changePassword(
-      currentPassword: _current.text,
-      newPassword: _new.text,
-      confirmPassword: _confirm.text,
-    );
-    if (!mounted) return;
-    if (ok) {
-      await auth.logout();
+    try {
+      await widget.changePassword(_current.text, _new.text, _confirm.text);
+    } on Exception {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ThemeConstants.showErrorSnackBar(
+        context,
+        sw
+            ? 'Imeshindikana kubadilisha nywila. Hakikisha nywila ya sasa ni sahihi.'
+            : 'Could not change the password. Check your current password.',
+      );
       return;
     }
-    setState(() => _saving = false);
-    ThemeConstants.showErrorSnackBar(
-      context,
-      sw
-          ? 'Imeshindikana kubadilisha nywila. Hakikisha nywila ya sasa ni sahihi.'
-          : 'Could not change the password. Check your current password.',
-    );
+
+    if (!mounted) return;
+    await (widget.onChanged ?? context.read<AuthProvider>().logout)();
   }
 
   InputDecoration _decoration(String label) => InputDecoration(
