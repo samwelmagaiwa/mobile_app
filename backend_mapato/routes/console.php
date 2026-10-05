@@ -19,3 +19,7 @@ Schedule::command('rental:generate-bills')
 // Rental - check for overdue bills daily at 6 AM
 Schedule::command('rental:mark-overdue')
     ->dailyAt('06:00');
+
+// Expired API tokens are already rejected; this just removes the dead rows.
+Schedule::command('sanctum:prune-expired --hours=24')
+    ->daily();

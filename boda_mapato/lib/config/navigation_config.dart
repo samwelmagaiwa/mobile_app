@@ -16,6 +16,9 @@ class NavigationItem {
   final String key;
   final IconData icon;
   final String route;
+  /// Any ONE of these grants access (see NavigationBuilder). A role default and
+  /// the matching per-user toggle from the permission screen are both listed so
+  /// either path shows the item.
   final List<String>? requiredPermissions;
   final String? badgeKey; // Key to get badge count from dashboard data
   final Color? badgeColor;
@@ -84,7 +87,7 @@ class NavigationConfig {
       key: 'analytics',
       icon: Icons.analytics,
       route: '/admin/analytics',
-      requiredPermissions: ['view_analytics'],
+      requiredPermissions: ['view_analytics', 'view_reports_transport'],
     ),
     NavigationItem(
       key: 'reports',
@@ -97,13 +100,13 @@ class NavigationConfig {
       key: 'receipts',
       icon: Icons.receipt_long,
       route: '/receipts',
-      requiredPermissions: ['manage_receipts_transport'],
+      requiredPermissions: ['manage_receipts_transport', 'manage_payments_transport'],
     ),
     NavigationItem(
       key: 'reminders',
       icon: Icons.notifications,
       route: '/admin/reminders',
-      requiredPermissions: ['view_reminders'],
+      requiredPermissions: ['view_reminders', 'manage_reminders_transport'],
       badgeKey: 'reminders',
       badgeColor: Colors.orange,
     ),
@@ -139,7 +142,7 @@ class NavigationConfig {
       key: 'tenants',
       icon: Icons.people_alt,
       route: '/rental/tenants',
-      requiredPermissions: ['view_tenants'],
+      requiredPermissions: ['view_tenants', 'onboard_tenants_rental'],
     ),
     NavigationItem(
       key: 'properties',
@@ -151,7 +154,7 @@ class NavigationConfig {
       key: 'maintenance',
       icon: Icons.handyman,
       route: '/rental/maintenance',
-      requiredPermissions: ['view_maintenance'],
+      requiredPermissions: ['view_maintenance', 'manage_maintenance_rental'],
     ),
     NavigationItem(
       key: 'vendors',

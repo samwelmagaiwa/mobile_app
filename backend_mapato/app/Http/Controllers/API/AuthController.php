@@ -765,11 +765,14 @@ responses: [new OA\Response(response: 200, description: 'Success')],
     {
         try {
             $user = $request->user();
-            
-            // Revoke current token
-            $request->user()->currentAccessToken()->delete();
-            
-            // Create new token
+
+            // Retire the current token after a short grace period instead of deleting
+            // it: if the response is lost on a flaky mobile connection the app still
+            // holds the old token, which must keep working long enough to retry.
+            $request->user()->currentAccessToken()->forceFill([
+                'expires_at' => now()->addMinutes(10),
+            ])->save();
+
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return ResponseHelper::success([

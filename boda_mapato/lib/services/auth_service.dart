@@ -263,6 +263,17 @@ mixin AuthService {
     }
   }
 
+  /// The server wraps the new token as `{data: {token: ...}}`; older/other
+  /// responses put it at the top level, so accept both.
+  @visibleForTesting
+  static String? tokenFromRefreshResponse(final Map<String, dynamic> body) {
+    final Object? wrapped = body["data"];
+    final Object? token =
+        (wrapped is Map<String, dynamic> ? wrapped["token"] : null) ??
+            body["token"];
+    return token is String && token.isNotEmpty ? token : null;
+  }
+
   // Refresh token
   static Future<String?> refreshToken() async {
     try {
@@ -274,14 +285,13 @@ mixin AuthService {
           )
           .timeout(timeoutDuration);
 
-      final Map<String, dynamic> data = _handleResponse(response);
-
-      if (data["token"] != null) {
-        await saveToken(data["token"]);
-        return data["token"];
+      final String? token = tokenFromRefreshResponse(_handleResponse(response));
+      if (token == null) {
+        return null;
       }
 
-      return null;
+      await saveToken(token);
+      return token;
     } on Exception catch (e) {
       throw Exception("Token refresh failed: $e");
     }

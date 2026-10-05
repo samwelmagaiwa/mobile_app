@@ -97,6 +97,44 @@ class AccessControlTest extends TestCase
         $this->assertSame(0, $staff->tokens()->count());
     }
 
+    // -------------------------------------------------------- token lifetime
+
+    public function test_tokens_expire_after_their_lifetime(): void
+    {
+        $staff = $this->user('sales_officer', services: ['inventory']);
+        $token = $staff->createToken('t')->plainTextToken;
+
+        $this->travel(29)->days();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/auth/user')->assertOk();
+
+        $this->travel(2)->days();   // 31 days after issue
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/auth/user')->assertUnauthorized();
+    }
+
+    public function test_refresh_issues_a_fresh_token_and_retires_the_old_one_after_a_grace_period(): void
+    {
+        $staff = $this->user('sales_officer', services: ['inventory']);
+        $old = $staff->createToken('t')->plainTextToken;
+
+        $this->app['auth']->forgetGuards();
+        $new = $this->withHeader('Authorization', "Bearer {$old}")
+            ->postJson('/api/auth/refresh')->assertOk()->json('data.token');
+        $this->assertNotEmpty($new);
+
+        // The old token still works for the grace window (a lost response must not log the user out)...
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$old}")->getJson('/api/auth/user')->assertOk();
+
+        // ...but not after it, while the new one carries on.
+        $this->travel(11)->minutes();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$old}")->getJson('/api/auth/user')->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$new}")->getJson('/api/auth/user')->assertOk();
+    }
+
     // ----------------------------------------------- payment receipts / roles
 
     public function test_payment_receipts_need_admin_or_the_payments_grant(): void

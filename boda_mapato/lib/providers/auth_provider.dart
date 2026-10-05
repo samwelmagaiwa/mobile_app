@@ -37,6 +37,8 @@ class AuthProvider extends ChangeNotifier {
   // Background refresh interval — 5 min is frequent enough to catch
   // permission changes while avoiding a network hit every 60 seconds.
   static const Duration _refreshInterval = Duration(minutes: 5);
+  // Rotate the API token about once a day (24h / refresh interval).
+  static const int _renewEveryTicks = 24 * 60 ~/ 5;
 
   // Getters
   UserData? get user => _user;
@@ -75,7 +77,23 @@ class AuthProvider extends ChangeNotifier {
     if (_isAuthenticated && !kIsWeb) {
       _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
         refreshUser();
+        // Keep the server-side token lifetime rolling for sessions left open for days.
+        if (timer.tick % _renewEveryTicks == 0) {
+          unawaited(_renewToken());
+        }
       });
+    }
+  }
+
+  /// Swaps the stored API token for a fresh one. The server expires tokens 30
+  /// days after issue, so renewing on every app start (and daily while open)
+  /// means only someone who stays away that long is ever signed out. A failure
+  /// is harmless: the current token keeps working until it actually expires.
+  Future<void> _renewToken() async {
+    try {
+      await AuthService.refreshToken();
+    } on Exception catch (e) {
+      debugPrint("Token renewal skipped: $e");
     }
   }
 
@@ -104,6 +122,7 @@ class AuthProvider extends ChangeNotifier {
 
         if (_user != null) {
           _startRefreshTimer();
+          unawaited(_renewToken());
         } else {
           // Token exists locally but server rejected it — clear local state.
           await AuthService.clearAuthData();
