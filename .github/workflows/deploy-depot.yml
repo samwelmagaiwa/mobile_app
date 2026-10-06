@@ -107,3 +107,7 @@ jobs:
             echo "Health check: HTTP $code"
             # Fail the run (not just print) when the new release does not answer.
             [ "$code" = "200" ] || { echo "Health check failed"; exit 1; }
+            # Queued jobs and scheduled commands only run if these two processes are up.
+            sleep 8
+            docker exec depot_backend sh -c "ps -eo args | grep -q '[q]ueue:work' && ps -eo args | grep -q '[s]chedule:work'"               || { echo "Queue worker or scheduler is not running"; exit 1; }
+            echo "Queue worker and scheduler are running"
