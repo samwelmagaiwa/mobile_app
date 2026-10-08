@@ -1205,17 +1205,13 @@ class _SalesScreenState extends State<SalesScreen>
               SizedBox(height: 10.h),
               DropdownButtonFormField<String>(
                 value: method,
+                isExpanded: true,
                 dropdownColor: ThemeConstants.primaryBlue,
-                decoration: InputDecoration(
-                  labelText: loc.translate('payment_method'),
-                  labelStyle: ThemeConstants.captionStyle,
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: const BorderSide(color: Colors.white24)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: const BorderSide(color: Colors.white54)),
-                ),
+                // Same dark field as the Amount above. A bare InputDecoration here
+                // inherits the app-wide white fill, giving a white box with white text.
+                decoration: ThemeConstants.invInputDecoration(
+                        loc.translate('payment_method'))
+                    .copyWith(labelText: loc.translate('payment_method')),
                 style: ThemeConstants.bodyStyle,
                 items: [
                   DropdownMenuItem(value: 'cash', child: Text(loc.translate('cash'))),
