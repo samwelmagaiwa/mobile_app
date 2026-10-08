@@ -5,7 +5,7 @@ namespace App\Http\Controllers\API\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Inventory\CrateController;
+use App\Http\Controllers\API\Inventory\CrateController;
 use OpenApi\Attributes as OA;
 
 /**
