@@ -8,6 +8,7 @@ import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/api_service.dart';
 import '../../../../services/localization_service.dart';
+import '../../services/inv_event_bus.dart';
 import '../widgets/inventory_widgets.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -308,7 +309,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         api: _api,
       ),
     );
-    if (result == true) _load();
+    if (result == true) {
+      _load();
+      // Refresh dashboard KPIs so expensesToday updates immediately.
+      InvEventBus.instance.emit({InvDomain.expense});
+    }
   }
 
   Future<void> _confirmDelete(
@@ -339,6 +344,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     if (ok == true) {
       await _api.delete('/inventory/expenses/${exp['id']}');
       _load();
+      InvEventBus.instance.emit({InvDomain.expense});
     }
   }
 }

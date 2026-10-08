@@ -15,9 +15,52 @@ import '../models/inv_product.dart';
 import '../models/inv_product_unit.dart';
 import '../models/inv_reminder.dart';
 import '../models/inv_sale.dart';
+import '../services/inv_event_bus.dart';
 
 class InventoryProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
+  late final StreamSubscription<Set<InvDomain>> _busSub;
+
+  InventoryProvider() {
+    _busSub = InvEventBus.instance.stream.listen(_onBusEvent);
+  }
+
+  @override
+  void dispose() {
+    _busSub.cancel();
+    super.dispose();
+  }
+
+  /// Reacts to domain events emitted by any mutation in the app and
+  /// refreshes whichever slices of data this provider owns.
+  void _onBusEvent(Set<InvDomain> domains) {
+    final futures = <Future<void>>[];
+
+    if (domains.contains(InvDomain.sale) ||
+        domains.contains(InvDomain.credit)) {
+      futures.addAll([fetchSales(), fetchKpis()]);
+    }
+    if (domains.contains(InvDomain.product) ||
+        domains.contains(InvDomain.stock)) {
+      futures.add(fetchProducts());
+    }
+    if (domains.contains(InvDomain.stock)) {
+      futures.add(fetchBatches());
+    }
+    if (domains.contains(InvDomain.expense)) {
+      futures.add(fetchKpis());
+    }
+    // Always refresh KPIs after a sale (covers debt total, cash, profit).
+    if (domains.contains(InvDomain.sale)) {
+      // already added above — no-op duplicate guard
+    }
+
+    Future.wait(futures).then((_) {
+      _refreshLowStockReminders();
+      _refreshPaymentDueReminders();
+      notifyListeners();
+    }).ignore();
+  }
 
   // Data
   final List<InvProduct> _products = <InvProduct>[];
@@ -432,6 +475,7 @@ class InventoryProvider extends ChangeNotifier {
         fetchBatches(),
       ]);
       _refreshLowStockReminders();
+      InvEventBus.instance.emit({InvDomain.stock});
       return true;
     } on Exception {
       return false;
@@ -459,6 +503,7 @@ class InventoryProvider extends ChangeNotifier {
         fetchBatches(),
       ]);
       _refreshLowStockReminders();
+      InvEventBus.instance.emit({InvDomain.stock});
       return true;
     } on Exception {
       return false;
@@ -533,6 +578,7 @@ class InventoryProvider extends ChangeNotifier {
       });
       await fetchProducts();
       _refreshLowStockReminders();
+      InvEventBus.instance.emit({InvDomain.product});
       return true;
     } on Exception {
       return false;
@@ -575,6 +621,7 @@ class InventoryProvider extends ChangeNotifier {
       });
       await fetchProducts();
       _refreshLowStockReminders();
+      InvEventBus.instance.emit({InvDomain.product});
       return true;
     } on Exception {
       return false;
@@ -753,6 +800,7 @@ class InventoryProvider extends ChangeNotifier {
         'method': method,
       });
       await fetchSales();
+      InvEventBus.instance.emit({InvDomain.credit});
       return (true, 'payment_recorded');
     } on Exception catch (_) {
       return (false, 'payment_failed');
@@ -976,15 +1024,9 @@ class InventoryProvider extends ChangeNotifier {
       _partialPaymentMethod = 'cash';
       notifyListeners();
 
-      // Refresh data in the background â€” don't block the return.
-      Future.wait([
-        fetchSales(),
-        fetchProducts(),
-        fetchReminders(),
-      ]).then((_) {
-        _refreshLowStockReminders();
-        notifyListeners();
-      }).ignore();
+      // Emit events — the bus listener re-fetches sales, products,
+      // KPIs, and reminders in the background.
+      InvEventBus.instance.emit({InvDomain.sale, InvDomain.product});
 
       return (true, 'success');
     } on Exception catch (_) {
@@ -1644,6 +1686,7 @@ class InventoryProvider extends ChangeNotifier {
           fetchBatches(),
         ]);
         _refreshLowStockReminders();
+        InvEventBus.instance.emit({InvDomain.stock});
       }
       return true;
     } on Exception {
@@ -1750,6 +1793,7 @@ class InventoryProvider extends ChangeNotifier {
         fetchBatches(),
       ]);
       _refreshLowStockReminders();
+      InvEventBus.instance.emit({InvDomain.stock});
       return true;
     } on ApiException catch (e) {
       _lastStockCountError = e.message;

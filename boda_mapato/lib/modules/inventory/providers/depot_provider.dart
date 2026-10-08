@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../services/api_service.dart';
 import '../models/inv_depot_models.dart';
+import '../services/inv_event_bus.dart';
 
 /// State for Areas 4–13: purchasing, credit, cash, crates, POS extras,
 /// dispatch, barcodes, reports, alerts, audit and settings.
@@ -9,9 +12,37 @@ import '../models/inv_depot_models.dart';
 /// Kept separate from [InventoryProvider] so neither class becomes a
 /// dumping ground; screens read whichever one owns their data.
 class DepotProvider extends ChangeNotifier {
-  DepotProvider({ApiService? api}) : _api = api ?? ApiService();
+  DepotProvider({ApiService? api}) : _api = api ?? ApiService() {
+    _busSub = InvEventBus.instance.stream.listen(_onBusEvent);
+  }
 
   final ApiService _api;
+  late final StreamSubscription<Set<InvDomain>> _busSub;
+
+  @override
+  void dispose() {
+    _busSub.cancel();
+    super.dispose();
+  }
+
+  /// Re-fetches depot-owned data when relevant events arrive from other
+  /// providers (e.g. a goods receipt emitted by InventoryProvider triggers
+  /// crate and purchasing refreshes here).
+  void _onBusEvent(Set<InvDomain> domains) {
+    final futures = <Future<void>>[];
+    if (domains.contains(InvDomain.purchase)) {
+      futures.addAll([fetchPurchaseOrders(), fetchSupplierInvoices(), fetchSuppliers()]);
+    }
+    if (domains.contains(InvDomain.crate)) {
+      futures.addAll([fetchCratePosition(), fetchCrateBalances()]);
+    }
+    if (domains.contains(InvDomain.credit)) {
+      futures.addAll([fetchCreditCustomers(), fetchDebtors()]);
+    }
+    if (futures.isNotEmpty) {
+      Future.wait(futures).ignore();
+    }
+  }
 
   // ---- state -------------------------------------------------------------
   final List<InvSupplier> _suppliers = <InvSupplier>[];
@@ -309,6 +340,8 @@ class DepotProvider extends ChangeNotifier {
         fetchSupplierInvoices(),
         fetchSuppliers(),
       ]);
+      // Notify InventoryProvider to refresh products + KPIs (stock changed).
+      InvEventBus.instance.emit({InvDomain.purchase, InvDomain.stock});
     }
     return ok;
   }
@@ -677,6 +710,7 @@ class DepotProvider extends ChangeNotifier {
         fetchCrateBalances(),
         fetchCratePosition(),
       ]);
+      InvEventBus.instance.emit({InvDomain.crate});
     }
     return ok;
   }
