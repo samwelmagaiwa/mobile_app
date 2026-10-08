@@ -47,6 +47,10 @@ class DepotProvider extends ChangeNotifier {
   List<InvCashSession> get cashSessions => List.unmodifiable(_cashSessions);
   InvCashSession? get activeSession => _activeSession;
   List<InvCrateType> get crateTypes => List.unmodifiable(_crateTypes);
+
+  /// The types that may be chosen for a new sale or movement.
+  List<InvCrateType> get activeCrateTypes => List.unmodifiable(
+      _crateTypes.where((InvCrateType t) => t.isActive));
   List<InvCrateBalance> get crateBalances => List.unmodifiable(_crateBalances);
   List<InvCrateBalance> get cratePosition => List.unmodifiable(_cratePosition);
   List<InvParkedSale> get parkedSales => List.unmodifiable(_parkedSales);
@@ -595,6 +599,41 @@ class DepotProvider extends ChangeNotifier {
       ..clear()
       ..addAll(rows);
     notifyListeners();
+  }
+
+  // Crate types and the security deposit per crate (Depot Settings). Each call
+  // returns null on success, or the server's reason when it refuses -- for example
+  // customers still holding crates of a type being switched off.
+
+  Future<String?> createCrateType(
+          {required String name, required double deposit}) =>
+      _crateTypeCall(() => _api.post('/inventory/crate-types',
+          <String, dynamic>{'name': name, 'deposit_value': deposit}));
+
+  Future<String?> updateCrateType(int id,
+          {required String name,
+          required double deposit,
+          required bool active}) =>
+      _crateTypeCall(() => _api.put('/inventory/crate-types/$id',
+          <String, dynamic>{
+            'name': name,
+            'deposit_value': deposit,
+            'status': active ? 'active' : 'inactive',
+          }));
+
+  Future<String?> deleteCrateType(int id) =>
+      _crateTypeCall(() => _api.delete('/inventory/crate-types/$id'));
+
+  Future<String?> _crateTypeCall(Future<Object?> Function() call) async {
+    try {
+      await call();
+      await fetchCrateTypes();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } on Exception catch (e) {
+      return e.toString();
+    }
   }
 
   Future<void> fetchCrateBalances({int? customerId}) async {

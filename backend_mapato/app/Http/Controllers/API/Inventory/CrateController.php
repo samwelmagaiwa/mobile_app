@@ -7,6 +7,7 @@ use App\Services\Inventory\CrateLedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use OpenApi\Attributes as OA;
 
@@ -79,15 +80,120 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             'status' => 'nullable|in:active,inactive',
         ]);
 
-        $id = DB::table('inventory_crate_types')->insertGetId([
-            'name' => $data['name'],
+        $row = [
+            'name' => trim($data['name']),
             'deposit_value' => $data['deposit_value'],
             'status' => $data['status'] ?? 'active',
+        ];
+        $id = DB::table('inventory_crate_types')->insertGetId($row + [
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
+        $this->audit->record($request, 'crate_type', (int) $id, 'created', null, $row, $row['name']);
+
         return response()->json(['message' => 'Crate type created', 'data' => ['id' => (int) $id]], 201);
+    }
+
+    /** Rename a crate type, change the security deposit per crate, or switch it on/off. */
+    #[OA\Put(
+        path: '/inventory/crate-types/{id}',
+        summary: 'Update crate type',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Crate'],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'deposit_value', type: 'number'),
+                new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
+            ]),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Updated'),
+            new OA\Response(response: 404, description: 'No such crate type'),
+            new OA\Response(response: 422, description: 'Invalid, or customers still hold this type'),
+        ],
+    )]
+    public function updateType(Request $request, int $id)
+    {
+        $type = DB::table('inventory_crate_types')->where('id', $id)->first();
+        if (! $type) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255',
+                Rule::unique('inventory_crate_types', 'name')->ignore($id)],
+            'deposit_value' => 'sometimes|required|numeric|min:0|max:100000000',
+            'status' => 'sometimes|in:active,inactive',
+        ]);
+        if ($data === []) {
+            return response()->json(['message' => 'Nothing to update'], 422);
+        }
+        if (isset($data['name'])) {
+            $data['name'] = trim($data['name']);
+        }
+
+        // A type nobody can pick any more could not be returned either, so it may not be
+        // switched off while customers still hold crates of it.
+        if (($data['status'] ?? null) === 'inactive' && $type->status !== 'inactive') {
+            $held = $this->heldByCustomers($id);
+            if ($held !== 0) {
+                return response()->json([
+                    'message' => "Customers still hold {$held} crate(s) of this type. Record their return before switching it off.",
+                ], 422);
+            }
+        }
+
+        DB::table('inventory_crate_types')->where('id', $id)->update($data + ['updated_at' => now()]);
+
+        $this->audit->record($request, 'crate_type', $id, 'updated', (array) $type, $data, $data['name'] ?? $type->name);
+
+        return response()->json(['message' => 'Crate type updated']);
+    }
+
+    /** Delete a crate type that has never been used. Used ones can only be switched off. */
+    #[OA\Delete(
+        path: '/inventory/crate-types/{id}',
+        summary: 'Delete crate type',
+        security: [['bearerAuth' => []]],
+        tags: ['Inventory / Crate'],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Deleted'),
+            new OA\Response(response: 404, description: 'No such crate type'),
+            new OA\Response(response: 422, description: 'Has crate history'),
+        ],
+    )]
+    public function destroyType(Request $request, int $id)
+    {
+        $type = DB::table('inventory_crate_types')->where('id', $id)->first();
+        if (! $type) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        if (DB::table('inventory_crate_movements')->where('crate_type_id', $id)->exists()) {
+            return response()->json([
+                'message' => 'This crate type has crate history, so it cannot be deleted. Switch it off instead.',
+            ], 422);
+        }
+
+        DB::table('inventory_crate_types')->where('id', $id)->delete();
+
+        $this->audit->record($request, 'crate_type', $id, 'deleted', (array) $type, null, $type->name);
+
+        return response()->json(['message' => 'Crate type deleted']);
+    }
+
+    /** Net crates of one type that customers currently hold (positive) or are owed (negative). */
+    private function heldByCustomers(int $crateTypeId): int
+    {
+        return (int) DB::table('inventory_crate_movements')
+            ->where('crate_type_id', $crateTypeId)
+            ->where('party_type', 'customer')
+            ->sum('quantity');
     }
 
     /** Record crates going out, coming back, broken, or bought outright. */

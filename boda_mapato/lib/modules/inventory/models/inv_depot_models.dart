@@ -444,6 +444,9 @@ class InvCrateType {
   final String name;
   final double depositValue;
   final String status;
+
+  /// Switched-off types stay in the records but are not offered for new sales.
+  bool get isActive => status == 'active';
 }
 
 @immutable

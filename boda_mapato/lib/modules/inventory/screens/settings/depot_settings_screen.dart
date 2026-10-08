@@ -15,6 +15,7 @@ import '../../../../screens/settings/user_management_screen.dart';
 import '../../models/inv_depot_models.dart';
 import '../../providers/depot_provider.dart';
 import '../widgets/inventory_widgets.dart';
+import 'crate_deposit_card.dart';
 import 'receipt_header_screen.dart';
 
 /// Area 13 — depot settings and the permanent audit trail.
@@ -130,6 +131,10 @@ class _SettingsTabState extends State<_SettingsTab> {
             TextEditingController(text: settings[f.key] ?? '');
       }
     }
+    // The crate deposit card needs the current crate types.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<DepotProvider>().fetchCrateTypes();
+    });
   }
 
   @override
@@ -183,6 +188,8 @@ class _SettingsTabState extends State<_SettingsTab> {
   @override
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
+    final bool canManageSettings = context.select<AuthProvider, bool>(
+        (AuthProvider a) => a.permissions.has('inv_manage_settings'));
 
     return Form(
       key: _formKey,
@@ -231,6 +238,25 @@ class _SettingsTabState extends State<_SettingsTab> {
               ),
             ),
           ),
+          // -- Security deposit charged per crate (one row per crate type) --
+          if (canManageSettings)
+            Padding(
+              padding: EdgeInsets.only(bottom: 12.h),
+              child: Consumer<DepotProvider>(
+                builder: (BuildContext _, DepotProvider depot, Widget? __) =>
+                    CrateDepositCard(
+                  swahili: loc.isSwahili,
+                  types: depot.crateTypes,
+                  onCreate: (String name, double deposit) =>
+                      depot.createCrateType(name: name, deposit: deposit),
+                  onUpdate: (InvCrateType t, String name, double deposit,
+                          bool active) =>
+                      depot.updateCrateType(t.id,
+                          name: name, deposit: deposit, active: active),
+                  onDelete: (InvCrateType t) => depot.deleteCrateType(t.id),
+                ),
+              ),
+            ),
           // -- Quick-link to user management (admin / super_admin only) --
           // Lets an admin create staff for their own bound service, and a
           // super_admin manage every account across every service.

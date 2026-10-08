@@ -436,11 +436,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // ── Crates & Empties (inv_view_crates) ────────────────────────────────────
     Route::middleware('inv_perm:inv_view_crates')->group(function () {
         Route::get('inventory/crate-types',       [InventoryCrateController::class, 'types']);
-        Route::post('inventory/crate-types',      [InventoryCrateController::class, 'storeType']);
         Route::get('inventory/crate-movements',   [InventoryCrateController::class, 'movements']);
         Route::post('inventory/crate-movements',  [InventoryCrateController::class, 'move']);
         Route::get('inventory/crate-balances',    [InventoryCrateController::class, 'customerBalances']);
         Route::get('inventory/crate-position',    [InventoryCrateController::class, 'depotPosition']);
+    });
+
+    // Crate types and the security deposit charged per crate are depot configuration,
+    // so changing them needs the settings permission, not just access to crates.
+    Route::middleware('inv_perm:inv_manage_settings')->group(function () {
+        Route::post('inventory/crate-types',        [InventoryCrateController::class, 'storeType']);
+        Route::put('inventory/crate-types/{id}',    [InventoryCrateController::class, 'updateType']);
+        Route::delete('inventory/crate-types/{id}', [InventoryCrateController::class, 'destroyType']);
     });
 
     // ── Reports (inv_view_reports) ────────────────────────────────────────────

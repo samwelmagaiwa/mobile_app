@@ -141,7 +141,7 @@ class _SalesScreenState extends State<SalesScreen>
               style: ThemeConstants.bodyStyle,
               decoration: ThemeConstants.invInputDecoration(
                   loc.isSwahili ? 'Aina ya crate' : 'Crate type'),
-              items: depot.crateTypes
+              items: depot.activeCrateTypes
                   .map((c) => DropdownMenuItem<int>(
                         value: c.id,
                         child: Text(c.name, style: ThemeConstants.bodyStyle),
@@ -641,7 +641,7 @@ class _SalesScreenState extends State<SalesScreen>
                             final CrateCheckoutProblem? crateProblem =
                                 crateCheckoutProblem(
                               customerBroughtCrates: _customerBroughtCrates,
-                              hasCrateTypes: depot.crateTypes.isNotEmpty,
+                              hasCrateTypes: depot.activeCrateTypes.isNotEmpty,
                               crateTypeId: _oweCrateTypeId,
                               quantityText: _oweCrateQty.text,
                             );

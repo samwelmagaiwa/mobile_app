@@ -149,7 +149,7 @@ class _DepotPositionTab extends StatelessWidget {
                 Expanded(
                   child: InvStatTile(
                     label: loc.translate('deposit_at_risk'),
-                    value: 'TSH ${atRisk.toStringAsFixed(0)}',
+                    value: 'TZS ${atRisk.toStringAsFixed(0)}',
                     icon: Icons.savings_outlined,
                   ),
                 ),
@@ -218,7 +218,7 @@ class _DepotPositionTab extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                  Padding(padding: pad, child: Text('TSH ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
+                                  Padding(padding: pad, child: Text('TZS ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
                                 ],
                               );
                             },
@@ -338,7 +338,7 @@ class _CustomerHoldingsTab extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Padding(padding: pad, child: Text('TSH ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
+                          Padding(padding: pad, child: Text('TZS ${c.depositAtRisk.toStringAsFixed(0)}', style: cellStyle)),
                         ],
                       );
                     },
@@ -413,7 +413,7 @@ class _CrateMovementSheetState extends State<_CrateMovementSheet> {
   @override
   Widget build(BuildContext context) {
     final LocalizationService loc = context.watch<LocalizationService>();
-    final List<InvCrateType> types = context.watch<DepotProvider>().crateTypes;
+    final List<InvCrateType> types = context.watch<DepotProvider>().activeCrateTypes;
     final List<InvCustomer> customers =
         context.watch<InventoryProvider>().customers;
 
