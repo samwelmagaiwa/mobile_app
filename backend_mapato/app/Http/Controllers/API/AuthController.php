@@ -171,11 +171,9 @@ class AuthController extends Controller
                 ]);
             }
 
-            // Revoke existing tokens
-            $tokensRevoked = $user->tokens()->count();
-            $user->tokens()->delete();
+            // Other devices stay signed in; only sessions beyond the cap are dropped.
+            $tokensRevoked = $this->makeRoomForNewSession($user);
 
-            // Create new token
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // Load relationships based on role
@@ -749,6 +747,43 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         } catch (\Exception $e) {
             return ResponseHelper::error('Failed to upload avatar: '.$e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Clear dead token rows and, if the account is already at its session cap,
+     * revoke its OLDEST live sessions so the login about to happen leaves at most
+     * `sanctum.max_sessions` of them.
+     *
+     * A "live session" is a normal token. Rows retired by /auth/refresh (they carry
+     * a short grace expiry) and tokens past the configured lifetime are not
+     * sessions, so they neither count toward the cap nor get to push a real one out.
+     *
+     * @return int how many live sessions were revoked to make room (normally 0)
+     */
+    private function makeRoomForNewSession(User $user): int
+    {
+        $lifetime = (int) config('sanctum.expiration');
+
+        $user->tokens()
+            ->where(function ($dead) use ($lifetime) {
+                $dead->where('expires_at', '<=', now());
+                if ($lifetime > 0) {
+                    $dead->orWhere('created_at', '<=', now()->subMinutes($lifetime));
+                }
+            })
+            ->delete();
+
+        $max = max((int) config('sanctum.max_sessions', 5), 1);
+        $live = $user->tokens()->whereNull('expires_at')->orderBy('id')->pluck('id');
+
+        $excess = $live->count() - ($max - 1);   // leave room for the new one
+        if ($excess <= 0) {
+            return 0;
+        }
+
+        $user->tokens()->whereIn('id', $live->take($excess)->all())->delete();
+
+        return $excess;
     }
 
     /**

@@ -52,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
     final UserData? u = _user;
     if (u == null) return const UserPermissions.empty();
     return UserPermissions.fromUser(
-      userRole: u.role ?? 'viewer',
+      userRole: u.role,
       explicitGrants: u.permissions,
     );
   }
@@ -276,20 +276,36 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  bool _verifyingSession = false;
+
   Future<void> _handleUnauthorized() async {
-    // Verify the token is actually invalid before force-logging out.
-    // A single 401 from any endpoint (e.g. polling) can be a transient server
-    // error even when the session is still valid.
+    // Several requests can come back 401 together; verify once, not per request.
+    if (_verifyingSession) return;
+    _verifyingSession = true;
+    try {
+      await _verifyOrEndSession();
+    } finally {
+      _verifyingSession = false;
+    }
+  }
+
+  Future<void> _verifyOrEndSession() async {
+    // A 401 on one endpoint is not proof the session is gone, so ask the server
+    // directly. Only a definite 401 here ends the session -- a timeout, no
+    // signal or a 5xx must NOT sign the user out (they would lose what they
+    // are typing because of a bad connection, not a bad session).
     try {
       final Map<String, dynamic>? check = await AuthService.getCurrentUser();
       if (check != null) {
-        // Token is still valid — update user and ignore the transient 401.
         _user = UserData.fromJson(check);
         notifyListeners();
+      }
+      return; // the server accepted the token: the earlier 401 was transient
+    } on Exception catch (e) {
+      if (!AuthService.isSessionInvalid(e)) {
+        debugPrint("Session check inconclusive, staying signed in: $e");
         return;
       }
-    } on Exception {
-      // getCurrentUser threw — token is truly invalid, proceed with logout.
     }
 
     try {
@@ -311,7 +327,11 @@ class AuthProvider extends ChangeNotifier {
     _stopRefreshTimer();
     notifyListeners();
     // Inform the user globally
-    AppMessenger.show('Muda wa kikao umeisha, tafadhali ingia tena.');
+    AppMessenger.show(
+      localization.isSwahili
+          ? 'Kikao chako kimeisha, au umeingia kwenye kifaa kingine mara nyingi. Tafadhali ingia tena.'
+          : 'Your session has ended, or this account was signed in on too many other devices. Please sign in again.',
+    );
   }
 
   // Refresh user data — called on the background timer and after permission edits.

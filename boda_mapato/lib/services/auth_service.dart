@@ -6,6 +6,19 @@ import "package:http/http.dart" as http;
 import "package:shared_preferences/shared_preferences.dart";
 import "../config/api_config.dart";
 
+/// A non-2xx answer from the server. Keeps the status code so callers can tell
+/// "your session is no longer valid" (401) from a server hiccup (5xx), and
+/// prints exactly like the plain `Exception` it replaces.
+class AuthHttpException implements Exception {
+  AuthHttpException(this.statusCode, this.message);
+
+  final int statusCode;
+  final String message;
+
+  @override
+  String toString() => "Exception: $message";
+}
+
 mixin AuthService {
   // API Configuration - Updated for Laravel backend
   // For mobile device testing via USB debugging on this PC (192.168.1.124)
@@ -50,8 +63,9 @@ mixin AuthService {
         debugPrint(
             'Body (first 1000): ${b.length > 1000 ? '${b.substring(0, 1000)}...' : b}');
       }
-      throw Exception(
-        data["message"] ?? "Server error: ${response.statusCode}",
+      throw AuthHttpException(
+        response.statusCode,
+        (data["message"] ?? "Server error: ${response.statusCode}").toString(),
       );
     }
   }
@@ -258,10 +272,18 @@ mixin AuthService {
       }
 
       return user;
+    } on AuthHttpException {
+      rethrow; // keep the status code for the caller
     } on Exception catch (e) {
       throw Exception("Failed to get user data: $e");
     }
   }
+
+  /// True only when the server itself says this token is no longer valid (401).
+  /// A timeout, no signal or a 5xx says nothing about the session, so those must
+  /// never be treated as "signed out".
+  static bool isSessionInvalid(final Object error) =>
+      error is AuthHttpException && error.statusCode == 401;
 
   /// The server wraps the new token as `{data: {token: ...}}`; older/other
   /// responses put it at the top level, so accept both.

@@ -51,6 +51,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Concurrent Sessions
+    |--------------------------------------------------------------------------
+    |
+    | How many devices one account may be signed in on at once. Signing in on
+    | another device no longer ends the others; once an account is at this
+    | limit, the OLDEST session is the one that gets signed out.
+    |
+    */
+
+    'max_sessions' => (int) env('SANCTUM_MAX_SESSIONS', 5),
+
+    /*
+    |--------------------------------------------------------------------------
     | Token Prefix
     |--------------------------------------------------------------------------
     |
