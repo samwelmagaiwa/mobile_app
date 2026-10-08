@@ -37,7 +37,7 @@ class DepotProvider extends ChangeNotifier {
       futures.addAll([fetchCratePosition(), fetchCrateBalances()]);
     }
     if (domains.contains(InvDomain.credit)) {
-      futures.addAll([fetchCreditCustomers(), fetchDebtors()]);
+      futures.addAll([fetchCreditCustomers(), fetchDebtorsAgeing()]);
     }
     if (futures.isNotEmpty) {
       Future.wait(futures).ignore();
