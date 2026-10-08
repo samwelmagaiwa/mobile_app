@@ -94,9 +94,25 @@ responses: [new OA\Response(response: 200, description: 'Success')],
             'phone' => 'required|string|max:32',
             'address' => 'nullable|string|max:255',
         ]);
+        $name = trim($data['name']);
+        $phone = trim($data['phone']);
+
+        // The same person saved twice (a double-tap, or re-entering a known
+        // customer) must not become two records: hand back the existing one.
+        $existingId = DB::table('inventory_customers')
+            ->where('phone', $phone)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->value('id');
+        if ($existingId) {
+            return response()->json([
+                'message' => 'Customer already exists',
+                'data' => ['id' => (int) $existingId, 'existing' => true],
+            ]);
+        }
+
         $id = DB::table('inventory_customers')->insertGetId([
-            'name' => $data['name'],
-            'phone' => $data['phone'],
+            'name' => $name,
+            'phone' => $phone,
             'address' => $data['address'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
@@ -173,6 +189,20 @@ responses: [new OA\Response(response: 200, description: 'Success')],
         $existing = DB::table('inventory_customers')->where('id', $id)->first();
         if (! $existing) {
             return response()->json(['message' => 'Not found'], 404);
+        }
+
+        // Crates the customer holds (or is owed) live in the crate ledger. Deleting the
+        // customer would orphan those ledger rows, so this is never overridable.
+        $crateBalance = (int) DB::table('inventory_crate_movements')
+            ->where('party_type', 'customer')
+            ->where('customer_id', $id)
+            ->sum('quantity');
+        if ($crateBalance !== 0) {
+            return response()->json([
+                'message' => $crateBalance > 0
+                    ? "This customer is holding {$crateBalance} crate(s). Record their return first."
+                    : 'The depot owes this customer ' . abs($crateBalance) . ' crate(s). Settle that first.',
+            ], 422);
         }
 
         $force       = filter_var($request->query('force', false), FILTER_VALIDATE_BOOLEAN);

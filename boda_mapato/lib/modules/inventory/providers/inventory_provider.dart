@@ -596,6 +596,24 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  /// Removes a customer. Returns null on success, or the server's reason when it
+  /// refuses (open debt, or crates still held) so the screen can show it.
+  Future<String?> deleteCustomer(int id) async {
+    try {
+      await _api.delete('/inventory/customers/$id');
+      _customers.removeWhere((InvCustomer c) => c.id == id);
+      if (_selectedCustomerId == id) {
+        _selectedCustomerId = null;
+      }
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } on Exception catch (e) {
+      return e.toString();
+    }
+  }
+
   Future<void> fetchCustomers({String? q}) async {
     final List<String> endpoints = [
       '/inventory/customers',

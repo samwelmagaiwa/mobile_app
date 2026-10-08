@@ -16,6 +16,8 @@ import '../../providers/inventory_provider.dart';
 import '../../services/inventory_export_service.dart';
 import '../scanning/barcode_scanner_screen.dart';
 import '../widgets/inventory_widgets.dart';
+import 'crate_checkout_rules.dart';
+import 'sale_confirmation_dialog.dart';
 import 'sale_receipt_screen.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -487,6 +489,25 @@ class _SalesScreenState extends State<SalesScreen>
                               color: Colors.white),
                           onPressed: () => _openCreateCustomerDialog(context),
                         ),
+                        if (inv.selectedCustomerId != null) ...[
+                          SizedBox(width: 6.w),
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: ThemeConstants.invFill,
+                              side: const BorderSide(
+                                  color: ThemeConstants.invBorder),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                            tooltip: loc.isSwahili
+                                ? 'Futa mteja'
+                                : 'Delete customer',
+                            icon: const Icon(Icons.person_remove,
+                                color: ThemeConstants.errorRed),
+                            onPressed: () => _confirmDeleteCustomer(context, inv),
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -614,36 +635,66 @@ class _SalesScreenState extends State<SalesScreen>
                     onPressed: (inv.cart.isEmpty || _checkingOut)
                         ? null
                         : () async {
-                            // Validate crate fields only when filled in —
-                            // walk-in customers silently skip crate tracking.
-                            if (!_customerBroughtCrates &&
-                                _oweCrateTypeId != null) {
-                              final int? qty =
-                                  int.tryParse(_oweCrateQty.text.trim());
-                              if (qty == null || qty < 1) {
-                                ThemeConstants.showWarningSnackBar(
-                                  context,
-                                  loc.isSwahili
-                                      ? 'Ingiza idadi ya makreti anayodaiwa mteja'
-                                      : 'Enter the number of crates the customer owes',
-                                );
-                                return;
-                              }
+                            // If the customer did not bring empties, the crates they
+                            // owe MUST be recorded with the sale -- never skipped.
+                            final depot = context.read<DepotProvider>();
+                            final CrateCheckoutProblem? crateProblem =
+                                crateCheckoutProblem(
+                              customerBroughtCrates: _customerBroughtCrates,
+                              hasCrateTypes: depot.crateTypes.isNotEmpty,
+                              crateTypeId: _oweCrateTypeId,
+                              quantityText: _oweCrateQty.text,
+                            );
+                            if (crateProblem != null) {
+                              ThemeConstants.showWarningSnackBar(
+                                context,
+                                crateCheckoutMessage(crateProblem,
+                                    swahili: loc.isSwahili),
+                              );
+                              return;
                             }
-                            setState(() => _checkingOut = true);
+
                             // Toggle OFF = customer didn't bring empties →
                             // pass crate debt fields so the backend records
                             // an 'issued' movement inside the same transaction.
                             // Toggle ON = clean exchange, nothing to record.
-                            int? crateTypeId;
-                            int? crateQty;
-                            if (!_customerBroughtCrates) {
-                              final qty = int.tryParse(_oweCrateQty.text.trim());
-                              if (_oweCrateTypeId != null && qty != null && qty > 0) {
-                                crateTypeId = _oweCrateTypeId;
-                                crateQty = qty;
-                              }
-                            }
+                            final int? crateTypeId =
+                                _customerBroughtCrates ? null : _oweCrateTypeId;
+                            final int? crateQty = _customerBroughtCrates
+                                ? null
+                                : int.tryParse(_oweCrateQty.text.trim());
+
+                            // Show what is about to be sold, and its amount, and
+                            // only go on when the user says yes.
+                            final String? pickedName = inv.selectedCustomerId == null
+                                ? null
+                                : inv.customers
+                                    .where((c) => c.id == inv.selectedCustomerId)
+                                    .firstOrNull
+                                    ?.name;
+                            final bool confirmed = await showSaleConfirmation(
+                              context,
+                              SaleConfirmation(
+                                items: inv.cart,
+                                subtotal: inv.cartSubtotal,
+                                discount: inv.cartDiscount,
+                                total: inv.cartTotal,
+                                paymentMode: inv.paymentMode,
+                                customerName: pickedName ?? _posName.text,
+                                paidNow: inv.paidAmount,
+                                crateTypeName: crateTypeId == null
+                                    ? null
+                                    : depot.crateTypes
+                                        .where((c) => c.id == crateTypeId)
+                                        .firstOrNull
+                                        ?.name,
+                                crateQty: crateQty,
+                              ),
+                              swahili: loc.isSwahili,
+                            );
+                            if (!confirmed || !context.mounted) return;
+
+                            setState(() => _checkingOut = true);
                             final result = await inv.checkout(
                               createdBy: userId,
                               crateTypeId: crateTypeId,
@@ -1403,9 +1454,11 @@ class _SalesScreenState extends State<SalesScreen>
     _custName.clear();
     _custPhone.clear();
     _custAddress.clear();
+    bool saving = false;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
         backgroundColor: ThemeConstants.primaryBlue,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -1441,22 +1494,107 @@ class _SalesScreenState extends State<SalesScreen>
               onPressed: () => Navigator.pop(ctx),
               child: Text(loc.translate('cancel'))),
           ElevatedButton(
-            onPressed: () async {
-              final id = await inv.createCustomer(
-                name: _custName.text.trim(),
-                phone: _custPhone.text.trim(),
-                address: _custAddress.text.trim(),
-              );
-              if (id != null) {
-                inv.setCustomer(id);
-                if (context.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: Text(loc.translate('save')),
+            // Disabled while the request runs so a double-tap can't save twice.
+            onPressed: saving
+                ? null
+                : () async {
+                    if (_custName.text.trim().isEmpty ||
+                        _custPhone.text.trim().isEmpty) {
+                      ThemeConstants.showWarningSnackBar(
+                        context,
+                        loc.isSwahili
+                            ? 'Ingiza jina na namba ya simu ya mteja'
+                            : 'Enter the customer name and phone number',
+                      );
+                      return;
+                    }
+                    setDialogState(() => saving = true);
+                    final id = await inv.createCustomer(
+                      name: _custName.text.trim(),
+                      phone: _custPhone.text.trim(),
+                      address: _custAddress.text.trim(),
+                    );
+                    if (id != null) {
+                      inv.setCustomer(id);
+                      if (context.mounted) Navigator.pop(ctx);
+                      return;
+                    }
+                    setDialogState(() => saving = false);
+                    if (context.mounted) {
+                      ThemeConstants.showErrorSnackBar(
+                        context,
+                        loc.isSwahili
+                            ? 'Imeshindikana kuhifadhi mteja. Jaribu tena.'
+                            : 'Could not save the customer. Please try again.',
+                      );
+                    }
+                  },
+            child: saving
+                ? SizedBox(
+                    width: 16.sp,
+                    height: 16.sp,
+                    child: const CircularProgressIndicator(strokeWidth: 2))
+                : Text(loc.translate('save')),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  /// Asks before removing the selected customer; the server refuses (and says
+  /// why) when they still owe money or hold crates.
+  Future<void> _confirmDeleteCustomer(
+      BuildContext context, InventoryProvider inv) async {
+    final loc = LocalizationService.instance;
+    final int? id = inv.selectedCustomerId;
+    if (id == null) return;
+    final String name =
+        inv.customers.where((c) => c.id == id).firstOrNull?.name ?? '';
+
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: ThemeConstants.primaryBlue,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        title: Text(loc.isSwahili ? 'Futa mteja?' : 'Delete customer?',
+            style: ThemeConstants.bodyStyle
+                .copyWith(fontWeight: FontWeight.bold)),
+        content: Text(
+          loc.isSwahili
+              ? 'Futa "$name"? Historia ya mauzo yake itabaki.'
+              : 'Delete "$name"? Their past sales stay in your records.',
+          style: ThemeConstants.captionStyle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: Text(loc.translate('cancel'),
+                style: const TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeConstants.errorRed),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: Text(loc.translate('delete')),
           ),
         ],
       ),
     );
+    if (yes != true || !context.mounted) return;
+
+    final String? problem = await inv.deleteCustomer(id);
+    if (!context.mounted) return;
+    if (problem != null) {
+      ThemeConstants.showWarningSnackBar(context, problem);
+      return;
+    }
+    _posName.clear();
+    _posPhone.clear();
+    inv.setManualName('');
+    ThemeConstants.showSuccessSnackBar(
+        context, loc.isSwahili ? 'Mteja amefutwa' : 'Customer deleted');
   }
 }
 

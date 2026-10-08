@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Inventory;
 
 use Illuminate\Http\Request;
+use App\Support\InventoryDefaults;
 use App\Support\Pagination;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -337,8 +338,12 @@ class AlertController extends Controller
 
     public function settings()
     {
+        // Stored values win; any setting that has no row yet reads as its default.
         return response()->json([
-            'data' => DB::table('inventory_settings')->pluck('value', 'key'),
+            'data' => array_merge(
+                InventoryDefaults::SETTINGS,
+                DB::table('inventory_settings')->pluck('value', 'key')->all(),
+            ),
         ]);
     }
 
@@ -358,7 +363,12 @@ class AlertController extends Controller
 
     public function updateSettings(Request $request)
     {
-        $allowed = DB::table('inventory_settings')->pluck('key')->all();
+        // Known settings can always be saved (created on first save); anything else
+        // is ignored unless it already exists.
+        $allowed = array_unique(array_merge(
+            array_keys(InventoryDefaults::SETTINGS),
+            DB::table('inventory_settings')->pluck('key')->all(),
+        ));
         $payload = $request->all();
 
         $saved = [];
@@ -366,7 +376,7 @@ class AlertController extends Controller
             if (! in_array($key, $allowed, true)) {
                 continue;
             }
-            DB::table('inventory_settings')->where('key', $key)->update([
+            DB::table('inventory_settings')->updateOrInsert(['key' => $key], [
                 'value' => is_scalar($value) ? (string) $value : json_encode($value),
                 'updated_at' => now(),
             ]);
