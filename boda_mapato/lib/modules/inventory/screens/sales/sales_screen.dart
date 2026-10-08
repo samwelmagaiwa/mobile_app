@@ -9,12 +9,14 @@ import '../../../../constants/theme_constants.dart';
 import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
+import '../../models/crates_owed.dart';
 import '../../models/inv_product.dart';
 import '../../models/inv_sale.dart';
 import '../../providers/depot_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../services/inventory_export_service.dart';
 import '../scanning/barcode_scanner_screen.dart';
+import '../widgets/crates_owed_note.dart';
 import '../widgets/inventory_widgets.dart';
 import 'crate_checkout_rules.dart';
 import 'sale_confirmation_dialog.dart';
@@ -67,6 +69,8 @@ class _SalesScreenState extends State<SalesScreen>
       if (depot.crateTypes.isEmpty) {
         depot.fetchCrateTypes();
       }
+      // Who already holds our crates, so picking them below can say so.
+      depot.fetchCrateBalances();
     });
   }
 
@@ -442,6 +446,9 @@ class _SalesScreenState extends State<SalesScreen>
                         child: DropdownButtonFormField<int?>(
                           key: ValueKey<String>('customer_${inv.selectedCustomerId}'),
                           initialValue: inv.selectedCustomerId,
+                          // Fill the space left beside the add/delete buttons and
+                          // cut long names short instead of overflowing.
+                          isExpanded: true,
                           dropdownColor: ThemeConstants.primaryBlue,
                           decoration: ThemeConstants.invInputDecoration(
                               loc.translate('select_customer')),
@@ -457,6 +464,7 @@ class _SalesScreenState extends State<SalesScreen>
                               (c) => DropdownMenuItem<int?>(
                                 value: c.id,
                                 child: Text(c.name,
+                                    overflow: TextOverflow.ellipsis,
                                     style: ThemeConstants.bodyStyle),
                               ),
                             ),
@@ -512,6 +520,17 @@ class _SalesScreenState extends State<SalesScreen>
                     ],
                   ),
                 ],
+
+                // If the picked customer is still holding our crates, say so before
+                // another sale is made to them.
+                if (inv.paymentMode != 'cash' && inv.selectedCustomerId != null)
+                  CratesOwedNote(
+                    owed: CratesOwed.forCustomer(
+                      context.watch<DepotProvider>().crateBalances,
+                      inv.selectedCustomerId!,
+                    ),
+                    swahili: loc.isSwahili,
+                  ),
 
                 // Customer name + phone (always shown, optional)
                 SizedBox(height: 10.h),

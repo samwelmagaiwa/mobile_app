@@ -6,8 +6,10 @@ import 'package:provider/provider.dart';
 
 import '../../../../constants/theme_constants.dart';
 import '../../../../services/localization_service.dart';
+import '../../models/crates_owed.dart';
 import '../../models/inv_depot_models.dart';
 import '../../providers/depot_provider.dart';
+import '../widgets/crates_owed_note.dart';
 import '../widgets/inventory_widgets.dart';
 
 /// Area 6 — credit limits, blocking, statements and debtor ageing.
@@ -34,6 +36,7 @@ class _CreditScreenState extends State<CreditScreen> {
     await Future.wait<void>(<Future<void>>[
       depot.fetchCreditCustomers(),
       depot.fetchDebtorsAgeing(),
+      depot.fetchCrateBalances(),
     ]);
     if (mounted) {
       setState(() => _loading = false);
@@ -184,6 +187,11 @@ class _CreditCustomerCard extends StatelessWidget {
                   ? 'TSH ${customer.available.toStringAsFixed(0)}'
                   : '—',
             }),
+            CratesOwedNote(
+              owed: CratesOwed.forCustomer(
+                  context.watch<DepotProvider>().crateBalances, customer.id),
+              swahili: loc.isSwahili,
+            ),
             if (customer.hasLimit) ...<Widget>[
               SizedBox(height: 8.h),
               ClipRRect(
@@ -848,8 +856,12 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
   }
 
   Future<void> _load() async {
-    final InvStatement? s =
-        await context.read<DepotProvider>().fetchStatement(widget.customerId);
+    final DepotProvider depot = context.read<DepotProvider>();
+    final List<Object?> results = await Future.wait<Object?>(<Future<Object?>>[
+      depot.fetchStatement(widget.customerId),
+      depot.fetchCrateBalances(),
+    ]);
+    final InvStatement? s = results.first as InvStatement?;
     if (mounted) {
       setState(() {
         _statement = s;
@@ -915,6 +927,12 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
                             loc.translate('closing'):
                                 'TSH ${s.closingBalance.toStringAsFixed(0)}',
                           }),
+                        ),
+                        CratesOwedNote(
+                          owed: CratesOwed.forCustomer(
+                              context.watch<DepotProvider>().crateBalances,
+                              widget.customerId),
+                          swahili: loc.isSwahili,
                         ),
                         SizedBox(height: 12.h),
                         if (s.lines.isEmpty)

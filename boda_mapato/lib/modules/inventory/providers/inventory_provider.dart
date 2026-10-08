@@ -18,12 +18,13 @@ import '../models/inv_sale.dart';
 import '../services/inv_event_bus.dart';
 
 class InventoryProvider extends ChangeNotifier {
-  final ApiService _api = ApiService();
-  late final StreamSubscription<Set<InvDomain>> _busSub;
-
-  InventoryProvider() {
+  /// [api] lets tests supply canned answers; the app uses the real client.
+  InventoryProvider({ApiService? api}) : _api = api ?? ApiService() {
     _busSub = InvEventBus.instance.stream.listen(_onBusEvent);
   }
+
+  final ApiService _api;
+  late final StreamSubscription<Set<InvDomain>> _busSub;
 
   @override
   void dispose() {
