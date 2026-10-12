@@ -14,6 +14,7 @@ import "../../providers/auth_provider.dart";
 import "../../services/api_service.dart";
 import "../../services/app_events.dart";
 import "../../services/localization_service.dart";
+import "../../widgets/month_chip_selector.dart";
 import "../../services/navigation_builder.dart";
 import "../../utils/responsive_helper.dart";
 import "../../config/api_config.dart";
@@ -1277,6 +1278,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
                                     ))
                                 .toList(),
                             isCurved: true,
+                            preventCurveOverShooting: true,
                             color: Colors.white,
                             barWidth: 3,
                             dotData: FlDotData(
@@ -1310,46 +1312,20 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen>
         ),
       );
 
-  Widget _buildMonthSelector() => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: months.asMap().entries.map((MapEntry<int, String> entry) {
-            final int index = entry.key;
-            final String month = entry.value;
-            final bool isSelected = index + 1 == _selectedMonth;
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedMonth = index + 1;
-                });
-                unawaited(_loadRevenueChartData(
-                    year: DateTime.now().year, month: _selectedMonth));
-                _chartAnimationController.reset();
-                _chartAnimationController.forward();
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withOpacity(0.3)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  month,
-                  style: TextStyle(
-                    color: isSelected ? textPrimary : textSecondary,
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+  Widget _buildMonthSelector() => MonthChipSelector(
+        selectedMonth: _selectedMonth,
+        labels: months,
+        selectedTextColor: textPrimary,
+        unselectedTextColor: textSecondary,
+        onSelected: (int month) {
+          setState(() {
+            _selectedMonth = month;
+          });
+          unawaited(_loadRevenueChartData(
+              year: DateTime.now().year, month: _selectedMonth));
+          _chartAnimationController.reset();
+          _chartAnimationController.forward();
+        },
       );
 
   // Not used anymore; kept for reference. Footer now handles the quick menu.

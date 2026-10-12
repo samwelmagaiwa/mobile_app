@@ -12,6 +12,7 @@ import '../../../../constants/theme_constants.dart';
 import '../../../../models/user_permissions.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/localization_service.dart';
+import '../../../../widgets/month_chip_selector.dart';
 import '../../../../utils/responsive_helper.dart';
 import '../../models/inv_sale.dart';
 import '../../providers/inventory_provider.dart';
@@ -1271,6 +1272,7 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
                                 )
                                 .toList(),
                             isCurved: true,
+                            preventCurveOverShooting: true,
                             color: Colors.white,
                             barWidth: 3,
                             dotData: FlDotData(
@@ -1304,43 +1306,15 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
           ),
         );
 
-  Widget _buildMonthSelector() => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: months.asMap().entries.map((MapEntry<int, String> entry) {
-            final int index = entry.key;
-            final String month = entry.value;
-            final bool isSelected = index + 1 == _selectedMonth;
-
-            return GestureDetector(
-              onTap: () {
-                setState(() => _selectedMonth = index + 1);
-                _loadChartForMonth(index + 1);
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withOpacity(0.3)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  month,
-                  style: TextStyle(
-                    color: isSelected ? textPrimary : textSecondary,
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+  Widget _buildMonthSelector() => MonthChipSelector(
+        selectedMonth: _selectedMonth,
+        labels: months,
+        selectedTextColor: textPrimary,
+        unselectedTextColor: textSecondary,
+        onSelected: (int month) {
+          setState(() => _selectedMonth = month);
+          _loadChartForMonth(month);
+        },
       );
 
   // Divider between joined sections
