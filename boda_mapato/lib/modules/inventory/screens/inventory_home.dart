@@ -1,5 +1,6 @@
 // ignore_for_file: cascade_invocations
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../services/localization_service.dart';
 import '../../../widgets/service_switcher_dialog.dart';
 import 'dashboard/inventory_dashboard_screen.dart';
+import 'dashboard/product_profit_screen.dart';
 import 'credit/credit_screen.dart';
 import 'settings/depot_settings_screen.dart';
 import 'hubs/products_hub_screen.dart';
@@ -135,7 +137,27 @@ List<_InvMenuEntry> _invEntries(LocalizationService loc) => <_InvMenuEntry>[
         pageBuilder: () => const DepotSettingsScreen(),
         visible: (UserPermissions p) => p.has('inv_manage_settings'),
       ),
+      // 9 — Profit by Product: the full list behind the dashboard's top rows. Kept LAST so
+      // no existing page index moves (other screens jump to menu pages by number).
+      _InvMenuEntry(
+        key: 'product_profit',
+        titleKey: 'profit_margins_title',
+        icon: Icons.trending_up,
+        color: ThemeConstants.successGreen,
+        pageBuilder: () => const ProductProfitScreen(),
+        visible: (UserPermissions p) => p.has('inv_view_reports'),
+      ),
     ];
+
+/// The menu page keys a user with [perms] gets, in order. Exposed so a test can pin the
+/// order: other screens open the home at a menu page by NUMBER, so a new page must never
+/// be inserted before an existing one.
+@visibleForTesting
+List<String> inventoryMenuKeys(UserPermissions perms, LocalizationService loc) =>
+    _invEntries(loc)
+        .where((_InvMenuEntry e) => e.isVisible(perms))
+        .map((_InvMenuEntry e) => e.key)
+        .toList();
 
 class InventoryHome extends StatefulWidget {
   const InventoryHome({super.key, this.initialIndex = 0});

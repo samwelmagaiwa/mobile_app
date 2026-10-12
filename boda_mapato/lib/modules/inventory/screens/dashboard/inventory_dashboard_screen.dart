@@ -23,6 +23,8 @@ import '../hubs/sales_hub_screen.dart';
 import '../hubs/stock_hub_screen.dart';
 import '../hubs/supply_chain_hub_screen.dart';
 import '../widgets/inventory_widgets.dart';
+import '../widgets/product_profit_table.dart';
+import 'product_profit_screen.dart';
 
 /// Inventory dashboard styled to match the Transport (Modern) dashboard:
 /// hero balance card, glass stat cards, month strip + line chart.
@@ -1562,189 +1564,13 @@ class _InventoryDashboardScreenState extends State<InventoryDashboardScreen>
             ),
             ),
             const SizedBox(height: 14),
-            // Per-product breakdown table — sorted by qty desc (top sellers first)
-            Row(
-              children: <Widget>[
-                Text(
-                  loc.translate('profit_margins_title'),
-                  style: TextStyle(
-                    color: textPrimary,
-                    fontSize: ResponsiveHelper.bodyM,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  loc.translate('top_products_sorted'),
-                  style: TextStyle(
-                    color: textSecondary,
-                    fontSize: ResponsiveHelper.bodyS,
-                  ),
-                ),
-              ],
+            // Per-product profit: the first 8 rows here, everything on its own screen.
+            ProductProfitTable(
+              products: inv.allProducts,
+              maxRows: 8,
+              onSeeAll: () =>
+                  Navigator.push(context, ProductProfitScreen.route()),
             ),
-            const SizedBox(height: 6),
-            // Header row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: <Widget>[
-                  SizedBox(
-                    width: 24,
-                    child: Text(loc.translate('rank'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    flex: 4,
-                    child: Text(loc.translate('product'),
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(loc.translate('qty'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(loc.translate('cost'),
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(loc.translate('profit'),
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontSize: ResponsiveHelper.bodyS,
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ),
-                ],
-              ),
-            ),
-            // Product rows sorted by quantity descending
-            ...(() {
-              final sorted = [...inv.products]
-                ..sort((a, b) => b.quantity.compareTo(a.quantity));
-              return sorted.asMap().entries.map((e) {
-                final rank = e.key + 1;
-                final p = e.value;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.white.withOpacity(0.06)),
-                    ),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      SizedBox(
-                        width: 24,
-                        child: Text(
-                          '$rank',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: rank == 1
-                                ? Colors.amber.shade300
-                                : rank == 2
-                                    ? Colors.grey.shade300
-                                    : rank == 3
-                                        ? Colors.brown.shade300
-                                        : textSecondary,
-                            fontSize: ResponsiveHelper.bodyS,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              p.name,
-                              style: TextStyle(
-                                color: textPrimary,
-                                fontSize: ResponsiveHelper.bodyS,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              p.unit.toUpperCase(),
-                              style: TextStyle(
-                                color: textSecondary,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '${p.quantity}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: textPrimary,
-                            fontSize: ResponsiveHelper.bodyS,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          formatAmount(p.totalCostPrice),
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            color: Colors.amber.shade300,
-                            fontSize: ResponsiveHelper.bodyS,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          formatAmount(p.totalExpectedProfit),
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            color: Colors.greenAccent.shade400,
-                            fontSize: ResponsiveHelper.bodyS,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              });
-            })(),
           ],
         ),
       );

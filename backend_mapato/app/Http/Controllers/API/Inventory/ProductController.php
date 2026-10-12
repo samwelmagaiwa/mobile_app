@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API\Inventory;
 
 use App\Services\Inventory\AuditTrail;
 use App\Services\Inventory\SkuGenerator;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
@@ -103,7 +104,9 @@ class ProductController extends Controller
             $query->where('p.brand_id', (int) $brandId);
         }
 
-        $products = $query->orderByDesc('p.id')->paginate(20);
+        // 20 by default; a client that needs the whole catalogue (profit-by-product)
+        // asks for up to 100 a page instead of making one request per 20.
+        $products = $query->orderByDesc('p.id')->paginate(Pagination::perPage($request, 20));
         return response()->json([
             'data' => $products->items(),
             'meta' => [

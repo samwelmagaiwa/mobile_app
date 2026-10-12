@@ -44,6 +44,7 @@ class InventoryProvider extends ChangeNotifier {
     if (domains.contains(InvDomain.product) ||
         domains.contains(InvDomain.stock)) {
       futures.add(fetchProducts());
+      if (_allProductsLoaded) futures.add(fetchAllProducts());
     }
     if (domains.contains(InvDomain.stock)) {
       futures.add(fetchBatches());
@@ -65,6 +66,10 @@ class InventoryProvider extends ChangeNotifier {
 
   // Data
   final List<InvProduct> _products = <InvProduct>[];
+  // The WHOLE catalogue. [_products] is only the page the product list last asked for
+  // (20 rows), which is fine for browsing but wrong for totals and rankings.
+  final List<InvProduct> _allProducts = <InvProduct>[];
+  bool _allProductsLoaded = false;
   final List<InvCustomer> _customers = <InvCustomer>[];
   final List<InvSale> _sales = <InvSale>[];
   final List<InvReminder> _reminders = <InvReminder>[];
@@ -145,6 +150,11 @@ class InventoryProvider extends ChangeNotifier {
 
   // Accessors
   List<InvProduct> get products => List.unmodifiable(_products);
+
+  /// Every product, for totals and rankings. Until the full catalogue has loaded this is
+  /// the first page, so a screen never flashes empty.
+  List<InvProduct> get allProducts =>
+      List.unmodifiable(_allProductsLoaded ? _allProducts : _products);
   List<InvCustomer> get customers => List.unmodifiable(_customers);
   List<InvSale> get sales => List.unmodifiable(_sales);
   bool get salesHasMore => _salesHasMore;
@@ -183,15 +193,15 @@ class InventoryProvider extends ChangeNotifier {
       _batches.fold<double>(0, (double sum, InvBatch b) => sum + b.stockValue);
 
   /// Total purchasing cost across all products in stock
-  double get totalInventoryCost => _products.fold<double>(
+  double get totalInventoryCost => allProducts.fold<double>(
       0, (double sum, InvProduct p) => sum + p.totalCostPrice);
 
   /// Total expected selling revenue across all products in stock
-  double get totalInventoryRevenue => _products.fold<double>(
+  double get totalInventoryRevenue => allProducts.fold<double>(
       0, (double sum, InvProduct p) => sum + p.totalSellingPrice);
 
   /// Total expected profit margin across all products in stock
-  double get totalInventoryExpectedProfit => _products.fold<double>(
+  double get totalInventoryExpectedProfit => allProducts.fold<double>(
       0, (double sum, InvProduct p) => sum + p.totalExpectedProfit);
 
   /// Selling units already loaded for a product; empty until [fetchUnits].
@@ -380,6 +390,7 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> bootstrap() async {
     await Future.wait([
       fetchProducts(),
+      fetchAllProducts(),
       fetchCustomers(),
       fetchSales(),
       fetchCategories(),
@@ -540,6 +551,38 @@ class InventoryProvider extends ChangeNotifier {
         // try next endpoint, then fall back to mock below
       }
     }
+  }
+
+  /// Loads every product (100 a page) into [allProducts]. Separate from [fetchProducts]
+  /// so the product list's own paging is untouched. A failure keeps what was loaded before.
+  Future<void> fetchAllProducts() async {
+    final List<InvProduct> loaded = <InvProduct>[];
+    int page = 1;
+    int lastPage = 1;
+
+    try {
+      do {
+        final res = await _api.getOrNull('/inventory/products?page=$page&per_page=100');
+        if (res == null || res['data'] is! List) {
+          if (page == 1) return; // nothing usable: keep the cached list
+          break;
+        }
+        final List<dynamic> rows = List<dynamic>.from(res['data'] as List);
+        loaded.addAll(
+            rows.map((j) => _fromProductJson(j as Map<String, dynamic>)));
+        final meta = res['meta'];
+        lastPage = meta is Map ? (int.tryParse('${meta['last_page']}') ?? 1) : 1;
+        page++;
+      } while (page <= lastPage && page <= 200);
+    } on Exception {
+      if (loaded.isEmpty) return;
+    }
+
+    _allProducts
+      ..clear()
+      ..addAll(loaded);
+    _allProductsLoaded = true;
+    notifyListeners();
   }
 
   Future<bool> createProduct({
