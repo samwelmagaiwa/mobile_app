@@ -16,12 +16,26 @@ class ProductProfitScreen extends StatefulWidget {
 
   /// The screen on its own, with a title bar and back button.
   static Route<void> route() => MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          backgroundColor: ThemeConstants.primaryBlue,
-          appBar: ThemeConstants.buildAppBar(
-            LocalizationService.instance.translate('profit_margins_title'),
+        builder: (_) => DecoratedBox(
+          // The same dark-to-teal fade as the rest of the inventory screens.
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                ThemeConstants.bgTop,
+                ThemeConstants.bgMid,
+                ThemeConstants.bgBottom,
+              ],
+            ),
           ),
-          body: const ProductProfitScreen(),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: ThemeConstants.buildAppBar(
+              LocalizationService.instance.translate('profit_margins_title'),
+            ),
+            body: const ProductProfitScreen(),
+          ),
         ),
       );
 
@@ -54,15 +68,45 @@ class _ProductProfitScreenState extends State<ProductProfitScreen> {
         ),
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
         children: <Widget>[
+          // "Sorted by sales" on the left, how many products on the right.
+          Padding(
+            padding: EdgeInsets.fromLTRB(6.w, 4.h, 6.w, 10.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    loc.translate('top_products_sorted'),
+                    style: ThemeConstants.captionStyle,
+                  ),
+                ),
+                Text(
+                  '${inv.allProducts.length}',
+                  key: const ValueKey<String>('profit_count'),
+                  style: ThemeConstants.captionStyle,
+                ),
+              ],
+            ),
+          ),
           Container(
-            decoration: ThemeConstants.glassCardDecoration,
+            // Outlined, not filled: the page gradient shows through.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: ThemeConstants.invAccent.withOpacity(0.55),
+                width: 1.4,
+              ),
+            ),
             padding: EdgeInsets.all(12.w),
             child: inv.allProducts.isEmpty
                 ? InvEmptyState(
                     icon: Icons.insights_outlined,
                     message: loc.translate('no_data'),
                   )
-                : ProductProfitTable(products: inv.allProducts),
+                : ProductProfitTable(
+                    products: inv.allProducts,
+                    showTitle: false,
+                  ),
           ),
         ],
       ),

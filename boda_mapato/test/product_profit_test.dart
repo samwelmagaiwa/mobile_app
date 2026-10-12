@@ -240,6 +240,101 @@ void main() {
     });
   });
 
+  group('full screen design', () {
+    final LocalizationService loc = LocalizationService.instance;
+
+    Future<void> pumpPushed(WidgetTester t, int count) async {
+      _ignoreTestFontOverflow();
+      t.view.physicalSize = const Size(1170, 2532);
+      t.view.devicePixelRatio = 3;
+      addTearDown(t.view.reset);
+
+      await t.pumpWidget(MultiProvider(
+        providers: <ChangeNotifierProvider<ChangeNotifier>>[
+          ChangeNotifierProvider<InventoryProvider>(
+              create: (_) => InventoryProvider(api: _CatalogueApi(count))),
+          ChangeNotifierProvider<LocalizationService>.value(value: loc),
+        ],
+        child: ScreenUtilInit(
+          designSize: const Size(390, 844),
+          builder: (_, __) => MaterialApp(
+            home: Builder(
+              builder: (BuildContext context) => TextButton(
+                onPressed: () =>
+                    Navigator.push(context, ProductProfitScreen.route()),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await t.tap(find.text('open'));
+      await t.pumpAndSettle();
+    }
+
+    testWidgets('the title is in the top bar only, not repeated in the card',
+        (t) async {
+      await pumpPushed(t, 12);
+
+      final String title = loc.translate('profit_margins_title');
+      expect(find.text(title), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(title)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the subtitle sits above the card with the product count beside it',
+        (t) async {
+      await pumpPushed(t, 12);
+
+      expect(find.text(loc.translate('top_products_sorted')), findsOneWidget);
+      expect(t.widget<Text>(find.byKey(const ValueKey<String>('profit_count'))).data,
+          '12');
+      // The subtitle is above the table's header row.
+      expect(
+        t.getTopLeft(find.text(loc.translate('top_products_sorted'))).dy,
+        lessThan(t.getTopLeft(find.text(loc.translate('rank'))).dy),
+      );
+    });
+
+    testWidgets('lists every product, and the page has the dark-to-teal background',
+        (t) async {
+      await pumpPushed(t, 12);
+
+      expect(_row(12), findsOneWidget);
+      final bool hasGradient = t
+          .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+          .any((DecoratedBox d) {
+        final Decoration dec = d.decoration;
+        return dec is BoxDecoration &&
+            dec.gradient is LinearGradient &&
+            (dec.gradient! as LinearGradient).colors.length == 3;
+      });
+      expect(hasGradient, isTrue);
+    });
+
+    testWidgets('the table can leave out its own heading but keeps header and rows',
+        (t) async {
+      _ignoreTestFontOverflow();
+      t.view.physicalSize = const Size(1170, 2532);
+      t.view.devicePixelRatio = 3;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProductProfitTable(products: _products(3), showTitle: false),
+          ),
+        ),
+      ));
+
+      expect(find.text(loc.translate('profit_margins_title')), findsNothing);
+      expect(find.text(loc.translate('top_products_sorted')), findsNothing);
+      expect(find.text(loc.translate('rank')), findsOneWidget); // header row still there
+      expect(_row(3), findsOneWidget);
+    });
+  });
+
   group('menu', () {
     final LocalizationService loc = LocalizationService.instance;
 

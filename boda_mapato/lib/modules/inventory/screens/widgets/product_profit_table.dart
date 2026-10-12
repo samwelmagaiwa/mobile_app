@@ -15,6 +15,7 @@ class ProductProfitTable extends StatelessWidget {
     required this.products,
     this.maxRows,
     this.onSeeAll,
+    this.showTitle = true,
   });
 
   /// Any order; they are ranked here.
@@ -23,6 +24,10 @@ class ProductProfitTable extends StatelessWidget {
   /// Show only this many rows and add the "see all" button underneath. Null shows every
   /// row and no button (the full screen).
   final int? maxRows;
+
+  /// The "Faida kwa Bidhaa  Zimepangwa kwa mauzo" heading above the header row. The full
+  /// screen turns it off because its top bar already carries the title.
+  final bool showTitle;
 
   /// What the "see all" button does. The button is only active when there are more
   /// products than [maxRows].
@@ -50,31 +55,33 @@ class ProductProfitTable extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Flexible(
-              child: Text(
-                loc.translate('profit_margins_title'),
-                style: TextStyle(
-                  color: _textPrimary,
-                  fontSize: ResponsiveHelper.bodyM,
-                  fontWeight: FontWeight.w600,
+        if (showTitle) ...<Widget>[
+          Row(
+            children: <Widget>[
+              Flexible(
+                child: Text(
+                  loc.translate('profit_margins_title'),
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: ResponsiveHelper.bodyM,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                loc.translate('top_products_sorted'),
-                style: TextStyle(
-                  color: _textSecondary,
-                  fontSize: ResponsiveHelper.bodyS,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  loc.translate('top_products_sorted'),
+                  style: TextStyle(
+                    color: _textSecondary,
+                    fontSize: ResponsiveHelper.bodyS,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
+            ],
+          ),
+          const SizedBox(height: 6),
+        ],
         _header(loc),
         for (int i = 0; i < rows.length; i++) _row(i + 1, rows[i]),
         if (maxRows != null) _seeAllButton(loc, all.length),
