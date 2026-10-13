@@ -2,11 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\AdminDashboardController;
+use App\Http\Controllers\Web\StatusController;
 
-// Welcome page
-Route::get('/', function () {
-    return view('welcome');
-});
+// Status page: says whether the API is actually working
+Route::get('/', StatusController::class);
 
 // Admin Dashboard Routes
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {

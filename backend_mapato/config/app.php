@@ -17,6 +17,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Brand and API Version
+    |--------------------------------------------------------------------------
+    |
+    | Shown on the status page at the site root and reported by the health check.
+    | (APP_NAME is Laravel's own name and is not set on the server, so it is not
+    | used for anything people see.)
+    |
+    */
+
+    'brand' => env('APP_BRAND', '3 in One'),
+
+    'api_version' => env('API_VERSION', '1.0.0'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

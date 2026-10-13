@@ -689,7 +689,7 @@ Route::get('health', function () {
         'status' => 'success',
         'message' => 'Boda Mapato API is running',
         'timestamp' => now()->toISOString(),
-        'version' => '1.0.0',
+        'version' => config('app.api_version'),
         'server_time' => date('Y-m-d H:i:s'),
         'php_version' => PHP_VERSION,
     ]);
