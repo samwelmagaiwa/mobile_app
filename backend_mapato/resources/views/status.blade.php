@@ -44,36 +44,11 @@
             text-align: center;
         }
 
-        .brand {
-            margin: 0;
-            font-size: 64px;
+        h1 {
+            margin: 6px 0 0;
+            font-size: 36px;
             font-weight: 800;
-            letter-spacing: -1px;
-            line-height: 1;
-        }
-
-        .brand .in {
-            font-size: 22px;
-            font-weight: 600;
-            color: var(--accent);
-            margin: 0 4px;
-            vertical-align: baseline;
-        }
-
-        .brand .depot {
-            display: block;
-            margin-top: 10px;
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            color: var(--accent);
-        }
-
-        h2 {
-            margin: 26px 0 0;
-            font-size: 28px;
-            font-weight: 800;
+            letter-spacing: -0.5px;
         }
 
         .pill {
@@ -134,17 +109,14 @@
 
         @media (max-width: 480px) {
             .card { padding: 32px 20px 22px; border-radius: 26px; }
-            .brand { font-size: 52px; }
-            .brand .depot { font-size: 20px; letter-spacing: 6px; }
-            h2 { font-size: 24px; }
+            h1 { font-size: 28px; }
             .row, .pill { font-size: 16px; }
         }
     </style>
 </head>
 <body>
     <main class="card">
-        <h1 class="brand" aria-label="{{ $brand }}">3<span class="in">in</span>One<span class="depot">Depot</span></h1>
-        <h2>{{ $brand }} API</h2>
+        <h1>{{ $brand }} API</h1>
 
         <div class="pill {{ $online ? '' : 'bad' }}" role="status">
             <span class="dot" aria-hidden="true"></span>

@@ -19,8 +19,8 @@ class StatusPageTest extends TestCase
         $response->assertSee('Online');
         $response->assertSee('Connected');
         $response->assertSee('3 in One Depot API');
-        $response->assertSee('Depot');
         $response->assertDontSee('Transport');
+        $response->assertDontSee('class="brand"', false);
         $response->assertSee('Open the health check');
         $response->assertSee(config('app.api_version'));
         $response->assertSee(url('/api/health'), false);
