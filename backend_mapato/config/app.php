@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'brand' => env('APP_BRAND', '3 in One'),
+    'brand' => env('APP_BRAND', '3 in One Depot'),
 
     'api_version' => env('API_VERSION', '1.0.0'),
 

@@ -60,13 +60,21 @@
             vertical-align: baseline;
         }
 
-        h2 {
-            margin: 22px 0 6px;
-            font-size: 30px;
-            font-weight: 800;
+        .brand .depot {
+            display: block;
+            margin-top: 10px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: var(--accent);
         }
 
-        .scope { margin: 0; color: var(--muted); font-size: 18px; }
+        h2 {
+            margin: 26px 0 0;
+            font-size: 28px;
+            font-weight: 800;
+        }
 
         .pill {
             display: inline-flex;
@@ -127,6 +135,7 @@
         @media (max-width: 480px) {
             .card { padding: 32px 20px 22px; border-radius: 26px; }
             .brand { font-size: 52px; }
+            .brand .depot { font-size: 20px; letter-spacing: 6px; }
             h2 { font-size: 24px; }
             .row, .pill { font-size: 16px; }
         }
@@ -134,9 +143,8 @@
 </head>
 <body>
     <main class="card">
-        <h1 class="brand" aria-label="{{ $brand }}">3<span class="in">in</span>One</h1>
+        <h1 class="brand" aria-label="{{ $brand }}">3<span class="in">in</span>One<span class="depot">Depot</span></h1>
         <h2>{{ $brand }} API</h2>
-        <p class="scope">Transport &middot; Rental &middot; Inventory</p>
 
         <div class="pill {{ $online ? '' : 'bad' }}" role="status">
             <span class="dot" aria-hidden="true"></span>
